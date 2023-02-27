@@ -63,36 +63,43 @@ auth_session(Options) ->
 					when element(1, Info) == up ->
 				ok
 		end,
-		SId = diameter:session_id(Hostname),
-		EapId = 0,
-		IMSI = maps:get(imsi, Options, "001001123456789"),
-		Identity = iolist_to_binary([?PERM_AKAp, IMSI, $@, OriginRealm]),
-      EapPacket = #eap_packet{code = response, type = ?Identity,
-               identifier = EapId, data = Identity},
-		EapMessage = ocs_eap_codec:eap_packet(EapPacket),
-		DER = #'3gpp_sta_DER'{'Session-Id' = SId,
-			'Auth-Application-Id' = ?STa_APPLICATION_ID,
-			'Origin-Host' = Hostname,
-			'Origin-Realm' = OriginRealm,
-			'Destination-Realm' = OriginRealm,
-         'Auth-Request-Type' = ?'3GPP_STA_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE', 
-			'EAP-Payload' = EapMessage,
-			'User-Name' = [Identity],
-			'RAT-Type' = [?'3GPP_STA_RAT-TYPE_WLAN']},
-		Fsta = fun('3gpp_sta_DEA', _N) ->
-					record_info(fields, '3gpp_sta_DEA')
+		Frequest = fun F(0) ->
+					 ok;
+				F(N) ->
+					SId = diameter:session_id(Hostname),
+					EapId = 0,
+					IMSI = maps:get(imsi, Options, "001001123456789"),
+					Identity = iolist_to_binary([?PERM_AKAp, IMSI, $@, OriginRealm]),
+					EapPacket = #eap_packet{code = response, type = ?Identity,
+								identifier = EapId, data = Identity},
+					EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+					DER = #'3gpp_sta_DER'{'Session-Id' = SId,
+						'Auth-Application-Id' = ?STa_APPLICATION_ID,
+						'Origin-Host' = Hostname,
+						'Origin-Realm' = OriginRealm,
+						'Destination-Realm' = OriginRealm,
+						'Auth-Request-Type' = ?'3GPP_STA_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+						'EAP-Payload' = EapMessage,
+						'User-Name' = [Identity],
+						'RAT-Type' = [?'3GPP_STA_RAT-TYPE_WLAN']},
+					Fsta = fun('3gpp_sta_DEA', _N) ->
+								record_info(fields, '3gpp_sta_DEA')
+					end,
+					Fbase = fun('diameter_base_answer-message', _N) ->
+								record_info(fields, 'diameter_base_answer-message')
+					end,
+					case diameter:call(Name, sta, DER, []) of
+						#'3gpp_sta_DEA'{} = Answer ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
+						#'diameter_base_answer-message'{} = Answer ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
+						{error, Reason} ->
+									throw(Reason)
+					end,
+					timer:sleep(maps:get(interval, Options, 1000)),
+					F(N-1)
 		end,
-		Fbase = fun('diameter_base_answer-message', _N) ->
-					record_info(fields, 'diameter_base_answer-message')
-		end,
-		case diameter:call(Name, sta, DER, []) of
-			#'3gpp_sta_DEA'{} = Answer ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
-			#'diameter_base_answer-message'{} = Answer ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
-			{error, Reason} ->
-						throw(Reason)
-		end
+		Frequest(maps:get(repeats, Options, 1))
 	catch
 		Error:Reason3 ->
 			io:fwrite("~w: ~w~n", [Error, Reason3]),
@@ -104,7 +111,7 @@ usage() ->
 	Option2 = " [--k 52EB3FD97F3CE03BB9B0877D5EC3AEE3]",
 	Option3 = " [--opc 9852CAF72767C963A7D120A45CA07DBA]",
 	Option4 = " [--interval 1000]",
-	Option5 = " [--updates 1]",
+	Option5 = " [--repeats 1]",
 	Option6 = " [--ip 127.0.0.1]",
 	Option7 = " [--raddr 127.0.0.1]",
 	Option8 = " [--rport 3868]",
@@ -125,8 +132,8 @@ options(["--opc", OPc | T], Acc) ->
 	options(T, Acc#{opc => OPc});
 options(["--interval", MS | T], Acc) ->
 	options(T, Acc#{interval => list_to_integer(MS)});
-options(["--updates", N | T], Acc) ->
-	options(T, Acc#{updates => list_to_integer(N)});
+options(["--repeats", N | T], Acc) ->
+	options(T, Acc#{repeats => list_to_integer(N)});
 options(["--ip", Address | T], Acc) ->
 	{ok, IP} = inet:parse_address(Address),
 	options(T, Acc#{ip => IP});
