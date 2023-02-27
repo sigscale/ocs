@@ -121,7 +121,7 @@ class dashBoard extends PolymerElement {
 			</paper-card>
 			<paper-card
 					id="diameterApp"
-					heading="Diameter Application">
+					heading="Diameter Applications">
 				<div
 						class="card-content">
 					<svg
@@ -682,7 +682,7 @@ class dashBoard extends PolymerElement {
 				}
 				var svgDia = select(root).select("#diameterApp div.card-content svg");
 				var yLabel = "↑ Transactions";
-				var nameDia = "Dictionary=";
+				var nameDia = "dictionary=";
 				ocsHealth.draw_line(svgDia, ocsHealth.diameterData, 450, 180, yLabel, nameDia);
 
 				if(request.response){
