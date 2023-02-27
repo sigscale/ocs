@@ -291,6 +291,9 @@ styleElement.innerHTML = `<template>
 		#diameterApp {
 			flex-direction: row;
 		}
+		#diameterApp div.card-content svg {
+			width: 100%;
+		}
 		#subsCard {
 			flex-direction: row;
 		}

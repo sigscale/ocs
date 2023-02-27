@@ -235,7 +235,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#diameterApp");
 		if(toggleDiaHealth.style.flex == "1 0 100%") {
 			this.$.vstream1.icon="ocs-icons:vcolumn";
-			toggleDiaHealth.style.flex = "inherit";
+			toggleDiaHealth.style.flex = "1 0 15%";
 		} else {
 			this.$.vstream1.icon="ocs-icons:vstream";
 			toggleDiaHealth.style.flex = "1 0 100%";
@@ -505,6 +505,9 @@ class dashBoard extends PolymerElement {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
 				var maxAge = matches ? parseInt(matches[1], 10) : -1
 				var root = ocsHealth.shadowRoot;
+				var svgContentDia = root.querySelector("#diameterApp div.card-content svg");
+				var widthD = parseInt(getComputedStyle(svgContentDia).width, 10);
+				var heightD = parseInt(getComputedStyle(svgContentDia).height, 10);
 				var svgContents = root.querySelector("#schedCard div.card-content svg");
 				var width = parseInt(getComputedStyle(svgContents).width, 10);
 				var height = parseInt(getComputedStyle(svgContents).height, 10);
@@ -557,6 +560,10 @@ class dashBoard extends PolymerElement {
 								newGxRecord.count = gxCounters[indexDia].observedValue;
 							}
 							ocsHealth.push('diameterData', newGxRecord);
+							var diaLength = ocsHealth.diameterData.length;
+							if(diaLength > numPoints) {
+								ocsHealth.splice('diameterData', 0, diaLength - numPoints);
+							}
 						}
 					}
 					if(request.response.checks["diameter-ro:counters"]) {
@@ -681,9 +688,10 @@ class dashBoard extends PolymerElement {
 					}
 				}
 				var svgDia = select(root).select("#diameterApp div.card-content svg");
+console.log(widthD, heightD);
 				var yLabel = "↑ Transactions";
 				var nameDia = "dictionary=";
-				ocsHealth.draw_line(svgDia, ocsHealth.diameterData, 450, 180, yLabel, nameDia);
+				ocsHealth.draw_line(svgDia, ocsHealth.diameterData, widthD, heightD, yLabel, nameDia);
 
 				if(request.response){
 					if(request.response.checks["table:size"]) {
