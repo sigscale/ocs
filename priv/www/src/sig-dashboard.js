@@ -589,17 +589,17 @@ class dashBoard extends PolymerElement {
 							widthSched, heightSched, yLabelSched, nameSched);
 					if(request.response.checks["diameter-gx:counters"]) {
 						var gxCounters = request.response.checks["diameter-gx:counters"];
-						for(var indexDia in gxCounters) {
+						for(var indexGx in gxCounters) {
 							var newGxRecord = new Object();
 							newGxRecord.dateTime = date.toISOString();
 							newGxRecord.name = "observedValue";
 							newGxRecord.componentId = "Gx";
-							if(gxCounters[indexDia].componentId == "CCA Result-Code: 2001") {
-								newGxRecord.count = gxCounters[indexDia].observedValue;
-							} else if(gxCounters[indexDia].componentId == "CCA Result-Code: 5012") {
-								newGxRecord.count = gxCounters[indexDia].observedValue;
-							} else if(gxCounters[indexDia].componentId == "CCA Result-Code: 5030") {
-								newGxRecord.count = gxCounters[indexDia].observedValue;
+							if(gxCounters[indexGx].componentId == "CCA Result-Code: 2001") {
+								newGxRecord.count = gxCounters[indexGx].observedValue;
+							} else if(gxCounters[indexGx].componentId == "CCA Result-Code: 5012") {
+								newGxRecord.count = gxCounters[indexGx].observedValue;
+							} else if(gxCounters[indexGx].componentId == "CCA Result-Code: 5030") {
+								newGxRecord.count = gxCounters[indexGx].observedValue;
 							}
 							ocsHealth.push('diameterData', newGxRecord);
 							var diaLength = ocsHealth.diameterData.length;
@@ -610,63 +610,63 @@ class dashBoard extends PolymerElement {
 					}
 					if(request.response.checks["diameter-ro:counters"]) {
 						var roCounters = request.response.checks["diameter-ro:counters"];
-						for(var indexDia in roCounters) {
+						for(var indexRo in roCounters) {
 							var newRoRecord = new Object();
 							newRoRecord.dateTime = date.toISOString();
 							newRoRecord.name = "observedValue";
 							newRoRecord.componentId = "Ro";
-							if(roCounters[indexDia].componentId == "CCA Result-Code: 2001") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 4010") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 4011") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 4012") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5012") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5030") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5031") {
-								newRoRecord.count = roCounters[indexDia].observedValue;
+							if(roCounters[indexRo].componentId == "CCA Result-Code: 2001") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4010") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4011") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4012") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5012") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5030") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
+							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5031") {
+								newRoRecord.count = roCounters[indexRo].observedValue;
 							}
 							ocsHealth.push('diameterData', newRoRecord);
 						}
 					}
 					if(request.response.checks["diameter-sta:counters"]) {
 						var staCounters = request.response.checks["diameter-sta:counters"];
-						for(var indexDia in staCounters) {
+						for(var indexSta in staCounters) {
 							var newStaRecord = new Object();
 							newStaRecord.dateTime = date.toISOString();
 							newStaRecord.name = "observedValue";
 							newStaRecord.componentId = "STa";
-							if(staCounters[indexDia].componentId == "DEA Result-Code: 2001") {
-								newStaRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 1001") {
-								newStaRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 5012") {
-								newStaRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 5030") {
-								newStaRecord.count = staCounters[indexDia].observedValue;
+							if(staCounters[indexSta].componentId == "DEA Result-Code: 2001") {
+								newStaRecord.count = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 1001") {
+								newStaRecord.count = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5012") {
+								newStaRecord.count = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5030") {
+								newStaRecord.count = staCounters[indexSta].observedValue;
 							}
 							ocsHealth.push('diameterData', newStaRecord);
 						}
 					}
 					if(request.response.checks["diameter-swm:counters"]) {
 						var swmCounters = request.response.checks["diameter-swm:counters"];
-						for(var indexDia in swmCounters) {
+						for(var indexSwm in swmCounters) {
 							var newSwmRecord = new Object();
 							newSwmRecord.dateTime = date.toISOString();
 							newSwmRecord.name = "observedValue";
 							newSwmRecord.componentId = "SWm";
-							if(swmCounters[indexDia].componentId == "DEA Result-Code: 2001") {
-								newSwmRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 1001") {
-								newSwmRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 5012") {
-								newSwmRecord.count = staCounters[indexDia].observedValue;
-							} else if(staCounters[indexDia].componentId == "DEA Result-Code: 5030") {
-								newStaRecord.count = staCounters[indexDia].observedValue;
+							if(swmCounters[indexSwm].componentId == "DEA Result-Code: 2001") {
+								newSwmRecord.count = staCounters[indexSwm].observedValue;
+							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 1001") {
+								newSwmRecord.count = staCounters[indexSwm].observedValue;
+							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 5012") {
+								newSwmRecord.count = staCounters[indexSwm].observedValue;
+							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 5030") {
+								newStaRecord.count = staCounters[indexSwm].observedValue;
 							}
 							ocsHealth.push('diameterData', newSwmRecord);
 						}
@@ -702,19 +702,19 @@ class dashBoard extends PolymerElement {
 					}
 					if(request.response.checks["diameter-ro:counters"]) {
 						var roCounters = request.response.checks["diameter-ro:counters"];
-						for(var indexDia in roCounters) {
-							if(roCounters[indexDia].componentId == "CCA Result-Code: 2001") {
-								var rc2001 = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 4012") {
-								var rc4012 = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5030") {
-								var rc5030 = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 4010") {
-								var rc4010 = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5031") {
-								var rc5031 = roCounters[indexDia].observedValue;
-							} else if(roCounters[indexDia].componentId == "CCA Result-Code: 5012") {
-								var rc5012 = roCounters[indexDia].observedValue;
+						for(var indexCredit in roCounters) {
+							if(roCounters[indexCredit].componentId == "CCA Result-Code: 2001") {
+								var rc2001 = roCounters[indexCredit].observedValue;
+							} else if(roCounters[indexCredit].componentId == "CCA Result-Code: 4012") {
+								var rc4012 = roCounters[indexCredit].observedValue;
+							} else if(roCounters[indexCredit].componentId == "CCA Result-Code: 5030") {
+								var rc5030 = roCounters[indexCredit].observedValue;
+							} else if(roCounters[indexCredit].componentId == "CCA Result-Code: 4010") {
+								var rc4010 = roCounters[indexCredit].observedValue;
+							} else if(roCounters[indexCredit].componentId == "CCA Result-Code: 5031") {
+								var rc5031 = roCounters[indexCredit].observedValue;
+							} else if(roCounters[indexCredit].componentId == "CCA Result-Code: 5012") {
+								var rc5012 = roCounters[indexCredit].observedValue;
 							}
 						}
 					}
