@@ -288,10 +288,11 @@ styleElement.innerHTML = `<template>
 		#schedCard div.card-content svg {
 			width: 100%;
 		}
-		#diameterApp {
+		#diameterCard {
 			flex-direction: row;
+			flex: 1 0 100%;
 		}
-		#diameterApp div.card-content svg {
+		#diameterCard div.card-content svg {
 			width: 100%;
 		}
 		#subsCard {

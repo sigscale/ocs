@@ -120,12 +120,11 @@ class dashBoard extends PolymerElement {
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
-					id="diameterApp"
+					id="diameterCard"
 					heading="Diameter Applications">
 				<div
 						class="card-content">
 					<svg
-							width="450"
 							height="188">
 					</svg>
 				</div>
@@ -232,7 +231,7 @@ class dashBoard extends PolymerElement {
 	_toggleDia() {
 		var toggleDiaHealth = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(toggleDiaHealth.style.flex == "1 0 100%") {
 			this.$.vstream1.icon="ocs-icons:vcolumn";
 			toggleDiaHealth.style.flex = "1 0 15%";
@@ -258,7 +257,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderSched.style.order == '-1') {
 			orderSubs.style.order = '0';
 			orderCredit.style.order = '0';
@@ -283,7 +282,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderSched.style.order == '1') {
 			orderSubs.style.order = '0';
 			orderCredit.style.order = '0';
@@ -309,7 +308,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderSubs.style.order == '-1') {
 			orderSched.style.order = '0';
 			orderCredit.style.order = '0';
@@ -334,7 +333,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderSubs.style.order == '1') {
 			orderSched.style.order = '0';
 			orderCredit.style.order = '0';
@@ -359,7 +358,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderCredit.style.order == '-1') {
 			orderSched.style.order = '0';
 			orderSubs.style.order = '0';
@@ -384,7 +383,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderCredit.style.order == '1') {
 			orderSched.style.order = '0';
 			orderSubs.style.order = '0';
@@ -409,7 +408,7 @@ class dashBoard extends PolymerElement {
 		orderUp.style.order = '-1';
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderUp.style.order == '-1') {
 			orderSched.style.order = '0';
 			orderSubs.style.order = '0';
@@ -434,7 +433,7 @@ class dashBoard extends PolymerElement {
 		orderUp.style.order = '1';
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		if(orderUp.style.order == '1') {
 			orderSched.style.order = '0';
 			orderSubs.style.order = '0';
@@ -458,7 +457,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		orderDia.style.order = '-1';
 		if(orderDia.style.order == '-1') {
 			orderSched.style.order = '0';
@@ -483,7 +482,7 @@ class dashBoard extends PolymerElement {
 				.querySelector("#upCard");
 		var orderDia = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterApp");
+				.querySelector("#diameterCard");
 		orderDia.style.order = '1';
 		if(orderDia.style.order == '1') {
 			orderSched.style.order = '0';
@@ -505,44 +504,42 @@ class dashBoard extends PolymerElement {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
 				var maxAge = matches ? parseInt(matches[1], 10) : -1
 				var root = ocsHealth.shadowRoot;
-				var svgContentDia = root.querySelector("#diameterApp div.card-content svg");
-				var widthD = parseInt(getComputedStyle(svgContentDia).width, 10);
-				var heightD = parseInt(getComputedStyle(svgContentDia).height, 10);
-				var svgContents = root.querySelector("#schedCard div.card-content svg");
-				var width = parseInt(getComputedStyle(svgContents).width, 10);
-				var height = parseInt(getComputedStyle(svgContents).height, 10);
-				var numPoints = width / 2;
+				var svgContentDia = root.querySelector("#diameterCard div.card-content svg");
+				var widthDia = parseInt(getComputedStyle(svgContentDia).width, 10);
+				var heightDia = parseInt(getComputedStyle(svgContentDia).height, 10);
+				var svgContentSched = root.querySelector("#schedCard div.card-content svg");
+				var widthSched = parseInt(getComputedStyle(svgContentSched).width, 10);
+				var heightSched = parseInt(getComputedStyle(svgContentSched).height, 10);
+				var date = new Date();
+				var numPoints;
 				if(request.response){
 					if(ajax.lastResponse.checks["scheduler:utilization"]) {
 						for(var index in request.response.checks["scheduler:utilization"]) {
-							var newRecord = new Object();
-							var date = new Date();
-							newRecord.dateTime = date.toISOString();
-							newRecord.name = "observedValue";
-							newRecord.componentId = request.response.checks
+							var newSchedRecord = new Object();
+							newSchedRecord.dateTime = date.toISOString();
+							newSchedRecord.name = "observedValue";
+							newSchedRecord.componentId = request.response.checks
 									["scheduler:utilization"][index].componentId;
-							newRecord.count = request.response.checks
+							newSchedRecord.count = request.response.checks
 									["scheduler:utilization"][index].observedValue;
-							ocsHealth.push('schedulerData', newRecord);
+							ocsHealth.push('schedulerData', newSchedRecord);
 							var schedulerLength = ocsHealth.schedulerData.length;
+							numPoints = widthSched / 2;
 							if(schedulerLength > numPoints) {
 								ocsHealth.splice('schedulerData', 0, schedulerLength - numPoints);
 							}
 						}
 						ocsHealth.numSchedulers = request.response.checks["scheduler:utilization"].length;
 					}
-				}
-				var svgSched = select(root).select("#schedCard div.card-content svg");
-				var yLabel = "↑ Scheduler (%)";
-				var name = "sched=";
-				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height, yLabel, name);
-
-				if(request.response){
+					var svgSched = select(root).select("#schedCard div.card-content svg");
+					var yLabelSched = "↑ Scheduler (%)";
+					var nameSched = "sched=";
+					ocsHealth.draw_line(svgSched, ocsHealth.schedulerData,
+							widthSched, heightSched, yLabelSched, nameSched);
 					if(request.response.checks["diameter-gx:counters"]) {
 						var gxCounters = request.response.checks["diameter-gx:counters"];
 						for(var indexDia in gxCounters) {
 							var newGxRecord = new Object();
-							var date = new Date();
 							newGxRecord.dateTime = date.toISOString();
 							newGxRecord.name = "observedValue";
 							newGxRecord.componentId = "Gx";
@@ -570,7 +567,6 @@ class dashBoard extends PolymerElement {
 						var roCounters = request.response.checks["diameter-ro:counters"];
 						for(var indexDia in roCounters) {
 							var newRoRecord = new Object();
-							var date = new Date();
 							newRoRecord.dateTime = date.toISOString();
 							newRoRecord.name = "observedValue";
 							newRoRecord.componentId = "Ro";
@@ -594,7 +590,6 @@ class dashBoard extends PolymerElement {
 						var s6bCounters = request.response.checks["diameter-s6b:counters"];
 						for(var indexDia in s6bCounters) {
 							var newS6bRecord = new Object();
-							var date = new Date();
 							newS6bRecord.dateTime = date.toISOString();
 							newS6bRecord.name = "observedValue";
 							newS6bRecord.componentId = "S6b";
@@ -618,7 +613,6 @@ class dashBoard extends PolymerElement {
 						var staCounters = request.response.checks["diameter-sta:counters"];
 						for(var indexDia in staCounters) {
 							var newStaRecord = new Object();
-							var date = new Date();
 							newStaRecord.dateTime = date.toISOString();
 							newStaRecord.name = "observedValue";
 							newStaRecord.componentId = "STa";
@@ -642,7 +636,6 @@ class dashBoard extends PolymerElement {
 						var swmCounters = request.response.checks["diameter-swm:counters"];
 						for(var indexDia in swmCounters) {
 							var newSwmRecord = new Object();
-							var date = new Date();
 							newSwmRecord.dateTime = date.toISOString();
 							newSwmRecord.name = "observedValue";
 							newSwmRecord.componentId = "SWm";
@@ -666,7 +659,6 @@ class dashBoard extends PolymerElement {
 						var swxCounters = request.response.checks["diameter-swx:counters"];
 						for(var indexDia in swxCounters) {
 							var newSwxRecord = new Object();
-							var date = new Date();
 							newSwxRecord.dateTime = date.toISOString();
 							newSwxRecord.name = "observedValue";
 							newSwxRecord.componentId = "SWx";
@@ -686,32 +678,29 @@ class dashBoard extends PolymerElement {
 							ocsHealth.push('diameterData', newSwxRecord);
 						}
 					}
-				}
-				var svgDia = select(root).select("#diameterApp div.card-content svg");
-console.log(widthD, heightD);
-				var yLabel = "↑ Transactions";
-				var nameDia = "dictionary=";
-				ocsHealth.draw_line(svgDia, ocsHealth.diameterData, widthD, heightD, yLabel, nameDia);
-
-				if(request.response){
+					var svgDia = select(root).select("#diameterCard div.card-content svg");
+					var yLabelDia = "↑ Transactions";
+					var nameDia = "dictionary=";
+					ocsHealth.draw_line(svgDia, ocsHealth.diameterData,
+							widthDia, heightDia, yLabelDia, nameDia);
 					if(request.response.checks["table:size"]) {
 						ocsHealth.subscriptions.splice(0, ocsHealth.subscriptions.length);
 						for(var index in request.response.checks["table:size"]) {
-							var newRecord = new Object();
+							var NewTableSizeRecord = new Object();
 							if(request.response.checks["table:size"][index].componentId == "bucket"){
-								newRecord.name = request.response.checks["table:size"][index].componentId;
-								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('subscriptions', newRecord);
+								NewTableSizeRecord.name = request.response.checks["table:size"][index].componentId;
+								NewTableSizeRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('subscriptions', NewTableSizeRecord);
 							}
 							if(request.response.checks["table:size"][index].componentId == "service") {
-								newRecord.name = request.response.checks["table:size"][index].componentId;
-								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('subscriptions', newRecord);
+								NewTableSizeRecord.name = request.response.checks["table:size"][index].componentId;
+								NewTableSizeRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('subscriptions', NewTableSizeRecord);
 							}
 							if(request.response.checks["table:size"][index].componentId == "product") {
-								newRecord.name = request.response.checks["table:size"][index].componentId;
-								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('subscriptions', newRecord);
+								NewTableSizeRecord.name = request.response.checks["table:size"][index].componentId;
+								NewTableSizeRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('subscriptions', NewTableSizeRecord);
 							}
 						}
 					}
@@ -736,14 +725,14 @@ console.log(widthD, heightD);
 							}
 						}
 					}
+					var svgSubs = select(root).select("#subsCard div.card-content svg");
+					ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
+					ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
+					var svgUp = select(root).select("#upCard div.card-content svg");
+					ocsHealth.draw_up(svgUp, ocsHealth.uptime);
+					var svgCredit = select(root).select("#creditCard div.card-content svg");
+					ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
 				}
-				var svgSubs = select(root).select("#subsCard div.card-content svg");
-				ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
-				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
-				var svgUp = select(root).select("#upCard div.card-content svg");
-				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
-				var svgCredit = select(root).select("#creditCard div.card-content svg");
-				ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
 			}
 		}
 		var handleAjaxError = function(error) {
