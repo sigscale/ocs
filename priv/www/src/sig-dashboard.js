@@ -55,6 +55,29 @@ class dashBoard extends PolymerElement {
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
+					id="diaCard"
+					heading="Diameter Applications">
+				<div
+						class="card-content">
+					<svg
+							height="188">
+					</svg>
+				</div>
+				<paper-icon-button
+						id="diaCardButton"
+						icon="ocs-icons:vstream"
+						on-click="_toggleDia">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:vleft"
+						on-click="_orderLeftDia">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:vright"
+						on-click="_orderRightDia">
+				</paper-icon-button>
+			</paper-card>
+			<paper-card
 					id="subsCard"
 					heading="Subscriptions">
 				<div
@@ -66,11 +89,11 @@ class dashBoard extends PolymerElement {
 				</div>
 				<paper-icon-button
 						icon="ocs-icons:vleft"
-						on-click="_orderLeftSub">
+						on-click="_orderLeftSubs">
 				</paper-icon-button>
 				<paper-icon-button
 						icon="ocs-icons:vright"
-						on-click="_orderRightSub">
+						on-click="_orderRightSubs">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -109,29 +132,6 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						icon="ocs-icons:vright"
 						on-click="_orderRightUp">
-				</paper-icon-button>
-			</paper-card>
-			<paper-card
-					id="diameterCard"
-					heading="Diameter Applications">
-				<div
-						class="card-content">
-					<svg
-							height="188">
-					</svg>
-				</div>
-				<paper-icon-button
-						id="diaCardButton"
-						icon="ocs-icons:vstream"
-						on-click="_toggleDia">
-				</paper-icon-button>
-				<paper-icon-button
-						icon="ocs-icons:vleft"
-						on-click="_orderLeftDia">
-				</paper-icon-button>
-				<paper-icon-button
-						icon="ocs-icons:vright"
-						on-click="_orderRightDia">
 				</paper-icon-button>
 			</paper-card>
 			<iron-ajax
@@ -209,7 +209,8 @@ class dashBoard extends PolymerElement {
 		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#schedCard");
-		if(card.style.flex == "1 0 100%") {
+		var flex = getComputedStyle(card).flex;
+		if(flex == "1 0 100%") {
 			this.$.schedCardButton.icon="ocs-icons:vcolumn";
 			card.style.flex = "1 0 15%";
 		} else {
@@ -221,8 +222,9 @@ class dashBoard extends PolymerElement {
 	_toggleDia() {
 		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(card.style.flex == "1 0 100%") {
+				.querySelector("#diaCard");
+		var flex = getComputedStyle(card).flex;
+		if(flex == "1 0 100%") {
 			this.$.diaCardButton.icon="ocs-icons:vcolumn";
 			card.style.flex = "1 0 15%";
 		} else {
@@ -232,253 +234,64 @@ class dashBoard extends PolymerElement {
 	}
 
 	_orderLeftSched() {
-		var orderSched = document.body.querySelector('sig-app')
+		var schedCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#schedCard");
-		orderSched.style.order = '-1';
-		var orderSubs = document.body.querySelector('sig-app')
+		var subsCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
+		var creditCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
+		var upCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
+		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderSched.style.order == '-1') {
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'schedCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
 		}
 	}
 
 	_orderRightSched() {
-		var orderSched = document.body.querySelector('sig-app')
+		var schedCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#schedCard");
-		orderSched.style.order = '1';
-		var orderSubs = document.body.querySelector('sig-app')
+		var subsCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
+		var creditCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
+		var upCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
+		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderSched.style.order == '1') {
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-
-	_orderLeftSub() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		orderSubs.style.order = '-1';
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderSubs.style.order == '-1') {
-			orderSched.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderRightSub() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		orderSubs.style.order = '1';
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderSubs.style.order == '1') {
-			orderSched.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderLeftCredit() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		orderCredit.style.order = '-1';
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderCredit.style.order == '-1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderRightCredit() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		orderCredit.style.order = '1';
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderCredit.style.order == '1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderUp.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderLeftUp() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		orderUp.style.order = '-1';
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderUp.style.order == '-1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderRightUp() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		orderUp.style.order = '1';
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		if(orderUp.style.order == '1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderDia.style.order = '0';
-		}
-	}
-
-	_orderLeftDia() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		orderDia.style.order = '-1';
-		if(orderDia.style.order == '-1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
-		}
-	}
-
-	_orderRightDia() {
-		var orderSched = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#schedCard");
-		var orderSubs = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#subsCard");
-		var orderCredit = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#creditCard");
-		var orderUp = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#upCard");
-		var orderDia = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diameterCard");
-		orderDia.style.order = '1';
-		if(orderDia.style.order == '1') {
-			orderSched.style.order = '0';
-			orderSubs.style.order = '0';
-			orderCredit.style.order = '0';
-			orderUp.style.order = '0';
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'schedCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
 		}
 	}
 
@@ -494,7 +307,7 @@ class dashBoard extends PolymerElement {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
 				var maxAge = matches ? parseInt(matches[1], 10) : -1
 				var root = ocsHealth.shadowRoot;
-				var svgContentDia = root.querySelector("#diameterCard div.card-content svg");
+				var svgContentDia = root.querySelector("#diaCard div.card-content svg");
 				var widthDia = parseInt(getComputedStyle(svgContentDia).width, 10);
 				var heightDia = parseInt(getComputedStyle(svgContentDia).height, 10);
 				var svgContentSched = root.querySelector("#schedCard div.card-content svg");
@@ -668,7 +481,7 @@ class dashBoard extends PolymerElement {
 							ocsHealth.push('diameterData', newSwxRecord);
 						}
 					}
-					var svgDia = select(root).select("#diameterCard div.card-content svg");
+					var svgDia = select(root).select("#diaCard div.card-content svg");
 					var yLabelDia = "↑ Transactions";
 					var nameDia = "app";
 					ocsHealth.draw_line(svgDia, ocsHealth.diameterData,

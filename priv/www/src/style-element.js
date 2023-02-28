@@ -284,25 +284,30 @@ styleElement.innerHTML = `<template>
 		#schedCard {
 			flex-direction: row;
 			flex: 1 0 100%;
+			order: 1;
 		}
 		#schedCard div.card-content svg {
 			width: 100%;
 		}
-		#diameterCard {
+		#diaCard {
 			flex-direction: row;
 			flex: 1 0 100%;
+			order: 2;
 		}
-		#diameterCard div.card-content svg {
+		#diaCard div.card-content svg {
 			width: 100%;
 		}
 		#subsCard {
 			flex-direction: row;
+			order: 3;
 		}
 		#creditCard {
 			flex-direction: row;
+			order: 4;
 		}
 		#upCard {
 			flex-direction: row;
+			order: 5;
 		}
 	</style>
 </template>`;
