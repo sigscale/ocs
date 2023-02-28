@@ -563,24 +563,24 @@ class dashBoard extends PolymerElement {
 				var heightSched = parseInt(getComputedStyle(svgContentSched).height, 10);
 				var date = new Date();
 				var numPoints;
-				if(request.response){
-					if(ajax.lastResponse.checks["scheduler:utilization"]) {
-						for(var indexSched in request.response.checks["scheduler:utilization"]) {
+				var indexDia;
+				if(request.response) {
+					if(request.response.checks["scheduler:utilization"]) {
+						var schedCounters = request.response.checks["scheduler:utilization"];
+						ocsHealth.numSchedulers = schedCounters.length;
+						for(var indexSched in schedCounters) {
 							var newSchedRecord = new Object();
 							newSchedRecord.dateTime = date.toISOString();
-							newSchedRecord.name = "observedValue";
-							newSchedRecord.componentId = request.response.checks
-									["scheduler:utilization"][indexSched].componentId;
-							newSchedRecord.count = request.response.checks
-									["scheduler:utilization"][indexSched].observedValue;
+							newSchedRecord.componentId = schedCounters[indexSched].componentId;
+							newSchedRecord.count = schedCounters[indexSched].observedValue;
 							ocsHealth.push('schedulerData', newSchedRecord);
 							var schedulerLength = ocsHealth.schedulerData.length;
 							numPoints = widthSched / 2;
-							if(schedulerLength > numPoints) {
-								ocsHealth.splice('schedulerData', 0, schedulerLength - numPoints);
+							if((schedulerLength / ocsHealth.numSchedulers) > numPoints) {
+								ocsHealth.splice('schedulerData', 0,
+										schedulerLength - (numPoints * ocsHealth.numSchedulers));
 							}
 						}
-						ocsHealth.numSchedulers = request.response.checks["scheduler:utilization"].length;
 					}
 					var svgSched = select(root).select("#schedCard div.card-content svg");
 					var yLabelSched = "↑ Scheduler (%)";
@@ -589,87 +589,128 @@ class dashBoard extends PolymerElement {
 							widthSched, heightSched, yLabelSched, nameSched);
 					if(request.response.checks["diameter-gx:counters"]) {
 						var gxCounters = request.response.checks["diameter-gx:counters"];
+						var newGxRecord = new Object();
+						newGxRecord.dateTime = date.toISOString();
+						newGxRecord.componentId = "Gx";
+						newGxRecord.counter = 0;
 						for(var indexGx in gxCounters) {
-							var newGxRecord = new Object();
-							newGxRecord.dateTime = date.toISOString();
-							newGxRecord.name = "observedValue";
-							newGxRecord.componentId = "Gx";
-							if(gxCounters[indexGx].componentId == "CCA Result-Code: 2001") {
-								newGxRecord.count = gxCounters[indexGx].observedValue;
-							} else if(gxCounters[indexGx].componentId == "CCA Result-Code: 5012") {
-								newGxRecord.count = gxCounters[indexGx].observedValue;
-							} else if(gxCounters[indexGx].componentId == "CCA Result-Code: 5030") {
-								newGxRecord.count = gxCounters[indexGx].observedValue;
-							}
-							ocsHealth.push('diameterData', newGxRecord);
-							var diaLength = ocsHealth.diameterData.length;
-							if(diaLength > numPoints) {
-								ocsHealth.splice('diameterData', 0, diaLength - numPoints);
+							if(gxCounters[indexGx].observedValue) {
+								newGxRecord.counter += gxCounters[indexGx].observedValue;
 							}
 						}
+						indexDia = ocsHealth.diameterData.length - 1;
+						while(indexDia >= 0) {
+							if(ocsHealth.diameterData[indexDia].componentId == "Gx") {
+								break;
+							}
+							indexDia--;
+						}
+						if(indexDia >= 0
+								&& (ocsHealth.diameterData[indexDia].counter < newGxRecord.counter)) {
+								newGxRecord.counter = newGxRecord.counter
+										- ocsHealth.diameterData[indexDia].counter;
+						} else {
+							newGxRecord.count = newGxRecord.counter;
+						}
+						ocsHealth.push('diameterData', newGxRecord);
 					}
 					if(request.response.checks["diameter-ro:counters"]) {
 						var roCounters = request.response.checks["diameter-ro:counters"];
+						var newRoRecord = new Object();
+						newRoRecord.dateTime = date.toISOString();
+						newRoRecord.componentId = "Ro";
+						newRoRecord.counter = 0;
 						for(var indexRo in roCounters) {
-							var newRoRecord = new Object();
-							newRoRecord.dateTime = date.toISOString();
-							newRoRecord.name = "observedValue";
-							newRoRecord.componentId = "Ro";
-							if(roCounters[indexRo].componentId == "CCA Result-Code: 2001") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4010") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4011") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 4012") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5012") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5030") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
-							} else if(roCounters[indexRo].componentId == "CCA Result-Code: 5031") {
-								newRoRecord.count = roCounters[indexRo].observedValue;
+							if(roCounters[indexRo].observedValue) {
+								newRoRecord.counter += roCounters[indexRo].observedValue;
 							}
-							ocsHealth.push('diameterData', newRoRecord);
 						}
+						indexDia = ocsHealth.diameterData.length - 1;
+						while(indexDia >= 0) {
+							if(ocsHealth.diameterData[indexDia].componentId == "Ro") {
+								break;
+							}
+							indexDia--;
+						}
+						if(indexDia >= 0
+								&& (ocsHealth.diameterData[indexDia].counter < newRoRecord.counter)) {
+								newRoRecord.count = newRoRecord.counter
+										- ocsHealth.diameterData[indexDia].counter;
+						} else {
+							newRoRecord.count = newRoRecord.counter;
+						}
+						ocsHealth.push('diameterData', newRoRecord);
 					}
 					if(request.response.checks["diameter-sta:counters"]) {
 						var staCounters = request.response.checks["diameter-sta:counters"];
+						var newStaRecord = new Object();
+						newStaRecord.dateTime = date.toISOString();
+						newStaRecord.componentId = "STa";
+						newStaRecord.counter = 0;
 						for(var indexSta in staCounters) {
-							var newStaRecord = new Object();
-							newStaRecord.dateTime = date.toISOString();
-							newStaRecord.name = "observedValue";
-							newStaRecord.componentId = "STa";
-							if(staCounters[indexSta].componentId == "DEA Result-Code: 2001") {
-								newStaRecord.count = staCounters[indexSta].observedValue;
-							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 1001") {
-								newStaRecord.count = staCounters[indexSta].observedValue;
-							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5012") {
-								newStaRecord.count = staCounters[indexSta].observedValue;
-							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5030") {
-								newStaRecord.count = staCounters[indexSta].observedValue;
+							if(staCounters[indexSta].observedValue) {
+								newStaRecord.counter += staCounters[indexSta].observedValue;
 							}
-							ocsHealth.push('diameterData', newStaRecord);
 						}
+						indexDia = ocsHealth.diameterData.length - 1;
+						while(indexDia >= 0) {
+							if(ocsHealth.diameterData[indexDia].componentId == "STa") {
+								break;
+							}
+							indexDia--;
+						}
+						if(indexDia >= 0
+								&& (ocsHealth.diameterData[indexDia].counter < newStaRecord.counter)) {
+								newStaRecord.count = newStaRecord.counter
+										- ocsHealth.diameterData[indexDia].counter;
+						} else {
+							newStaRecord.count = newStaRecord.counter;
+						}
+						ocsHealth.push('diameterData', newStaRecord);
 					}
 					if(request.response.checks["diameter-swm:counters"]) {
 						var swmCounters = request.response.checks["diameter-swm:counters"];
+						var newSwmRecord = new Object();
+						newSwmRecord.dateTime = date.toISOString();
+						newSwmRecord.componentId = "SWm";
+						newSwmRecord.counter = 0;
 						for(var indexSwm in swmCounters) {
-							var newSwmRecord = new Object();
-							newSwmRecord.dateTime = date.toISOString();
-							newSwmRecord.name = "observedValue";
-							newSwmRecord.componentId = "SWm";
-							if(swmCounters[indexSwm].componentId == "DEA Result-Code: 2001") {
-								newSwmRecord.count = staCounters[indexSwm].observedValue;
-							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 1001") {
-								newSwmRecord.count = staCounters[indexSwm].observedValue;
-							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 5012") {
-								newSwmRecord.count = staCounters[indexSwm].observedValue;
-							} else if(staCounters[indexSwm].componentId == "DEA Result-Code: 5030") {
-								newStaRecord.count = staCounters[indexSwm].observedValue;
+							if(swmCounters[indexSwm].observedValue) {
+								newSwmRecord.counter += swmCounters[indexSwm].observedValue;
 							}
-							ocsHealth.push('diameterData', newSwmRecord);
 						}
+						indexDia = ocsHealth.diameterData.length - 1;
+						while(indexDia >= 0) {
+							if(ocsHealth.diameterData[indexDia].componentId == "SWm") {
+								break;
+							}
+							indexDia--;
+						}
+						if(indexDia >= 0
+								&& (ocsHealth.diameterData[indexDia].counter < newStaRecord.counter)) {
+								newSwmRecord.count = newSwmRecord.counter
+										- ocsHealth.diameterData[indexDia].counter;
+						} else {
+							newSwmRecord.count = newSwmRecord.counter;
+						}
+						ocsHealth.push('diameterData', newSwmRecord);
+					}
+					var diameterAcc = ocsHealth.diameterData.reduceRight(function(accumulator, data) {
+						if(accumulator.last == undefined) {
+							accumulator.last = data.dateTime;
+							accumulator.total = 1;
+						} else if(accumulator.last !== data.dateTime) {
+							accumulator.last = data.dateTime;
+							accumulator.total += 1;
+						}
+						return accumulator;
+					}, new Object());
+					if(diameterAcc.total > (widthDia / 2)) {
+						indexDia = 0;
+						while(ocsHealth.diameterData[indexDia].dateTime == diameterAcc.last) {
+							indexDia++;
+						}
+						ocsHealth.splice('diameterData', 0, indexDia);
 					}
 					var svgDia = select(root).select("#diaCard div.card-content svg");
 					var yLabelDia = "↑ Transactions";
@@ -743,14 +784,12 @@ class dashBoard extends PolymerElement {
 	}
 
 	draw_credit(svg, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012) {
-
 		var g1 = svg.append('g');
 		var g2 = svg.append('g');
 		var g3 = svg.append('g');
 		var g4 = svg.append('g');
 		var g5 = svg.append('g');
 		var g6 = svg.append('g');
-  
 		g1.append('rect')
 			.attr('width', '150')
 			.attr('height', '28')
