@@ -565,14 +565,14 @@ class dashBoard extends PolymerElement {
 				var numPoints;
 				if(request.response){
 					if(ajax.lastResponse.checks["scheduler:utilization"]) {
-						for(var index in request.response.checks["scheduler:utilization"]) {
+						for(var indexSched in request.response.checks["scheduler:utilization"]) {
 							var newSchedRecord = new Object();
 							newSchedRecord.dateTime = date.toISOString();
 							newSchedRecord.name = "observedValue";
 							newSchedRecord.componentId = request.response.checks
-									["scheduler:utilization"][index].componentId;
+									["scheduler:utilization"][indexSched].componentId;
 							newSchedRecord.count = request.response.checks
-									["scheduler:utilization"][index].observedValue;
+									["scheduler:utilization"][indexSched].observedValue;
 							ocsHealth.push('schedulerData', newSchedRecord);
 							var schedulerLength = ocsHealth.schedulerData.length;
 							numPoints = widthSched / 2;
