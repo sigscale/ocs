@@ -37,7 +37,7 @@ class dashBoard extends PolymerElement {
 				<div
 						class="card-content">
 					<svg
-							height="300">
+							height="188">
 					</svg>
 				</div>
 				<paper-icon-button
