@@ -756,20 +756,24 @@ service_network([#'3gpp_ro_Service-Information'{
 	MccMnc;
 service_network([#'3gpp_ro_Service-Information'{
 		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
-		'Access-Network-Information' = [ANI]}]}]) ->
-	{MCC, MNC, _ } = access_info(string:tokens(binary_to_list(ANI), ",")),
-	MCC ++ MNC;
+		'Access-Network-Information' = ANI}]}])
+		when length(ANI) > 0 ->
+	access_info(ANI);
 service_network(_) ->
 	undefined.
 
 %% @hidden
+%% 3GPP TS 24.229 7. 2A.4
 access_info([H | T]) ->
-	case access_info1(string:tokens(H, ";")) of
+	case access_info1(string:tokens(binary_to_list(H), ";")) of
 		ID when length(ID) > 0 ->
-			ocs_diameter:plmn(ID);
+			{MCC, MNC, _ } = ocs_diameter:plmn(ID),
+			MCC ++ MNC;
 		[] ->
 			access_info(T)
-	end.
+	end;
+access_info([]) ->
+	"000000".
 %% @hidden
 access_info1(["utran-cell-id-3gpp=" ++ CID | _]) ->
 	CID;
