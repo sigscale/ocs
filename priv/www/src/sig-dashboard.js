@@ -46,12 +46,10 @@ class dashBoard extends PolymerElement {
 						on-click="_toggle">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftSched">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vright"
 						icon="ocs-icons:vright"
 						on-click="_orderRightSched">
 				</paper-icon-button>
@@ -67,12 +65,10 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
-						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftSub">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vright"
 						icon="ocs-icons:vright"
 						on-click="_orderRightSub">
 				</paper-icon-button>
@@ -88,12 +84,10 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
-						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftCredit">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vright"
 						icon="ocs-icons:vright"
 						on-click="_orderRightCredit">
 				</paper-icon-button>
@@ -109,12 +103,10 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
-						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftUp">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vright"
 						icon="ocs-icons:vright"
 						on-click="_orderRightUp">
 				</paper-icon-button>
@@ -134,12 +126,10 @@ class dashBoard extends PolymerElement {
 						on-click="_toggleDia">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftDia">
 				</paper-icon-button>
 				<paper-icon-button
-						id="vright"
 						icon="ocs-icons:vright"
 						on-click="_orderRightDia">
 				</paper-icon-button>
