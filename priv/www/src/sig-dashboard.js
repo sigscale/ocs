@@ -295,6 +295,254 @@ class dashBoard extends PolymerElement {
 		}
 	}
 
+	_orderLeftDia() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'diaCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightDia() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'diaCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_orderLeftSubs() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'subsCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightSubs() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'subsCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_orderLeftCredit() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'creditCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightCredit() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'creditCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_orderLeftUp() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'upCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightUp() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'upCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
 	_healthChart() {
 		var ocsHealth = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard');
