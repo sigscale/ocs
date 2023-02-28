@@ -13,10 +13,11 @@ endif
 
 script_SCRIPTS = scripts/install_tables.escript \
 		scripts/join_cluster.escript \
+		scripts/export_ipdr.escript \
 		scripts/send_sms.escript \
 		scripts/voice_call.escript \
 		scripts/data_session.escript \
-		scripts/export_ipdr.escript
+		scripts/aaa-sta.escript
 
 .PHONY: release
 release:	$(PACKAGE_VERSION).tar.gz
