@@ -1433,7 +1433,7 @@ head_service_inventory(Config) ->
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [auth_header()],
 		ContentType},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 get_service_not_found() ->
