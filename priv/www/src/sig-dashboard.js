@@ -523,7 +523,7 @@ class dashBoard extends PolymerElement {
 					}
 					var svgSched = select(root).select("#schedCard div.card-content svg");
 					var yLabelSched = "↑ Scheduler (%)";
-					var nameSched = "sched=";
+					var nameSched = "sched";
 					ocsHealth.draw_line(svgSched, ocsHealth.schedulerData,
 							widthSched, heightSched, yLabelSched, nameSched);
 					if(request.response.checks["diameter-gx:counters"]) {
@@ -670,7 +670,7 @@ class dashBoard extends PolymerElement {
 					}
 					var svgDia = select(root).select("#diameterCard div.card-content svg");
 					var yLabelDia = "↑ Transactions";
-					var nameDia = "dictionary=";
+					var nameDia = "app";
 					ocsHealth.draw_line(svgDia, ocsHealth.diameterData,
 							widthDia, heightDia, yLabelDia, nameDia);
 					if(request.response.checks["table:size"]) {
@@ -1031,7 +1031,6 @@ class dashBoard extends PolymerElement {
 		var xDomain;
 		var yDomain;
 		var zDomain;
-		var name;
 		var xRange = [marginLeft, width - marginRight];
 		var yRange = [height - marginBottom, marginTop];
 		var title;
@@ -1103,12 +1102,12 @@ class dashBoard extends PolymerElement {
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
-					var scheduler = i[0];
+					var lineName = i[0];
 					var minVal = Math.min.apply(null, i[1]);
 					var maxVal = Math.max.apply(null, i[1]);
 					var total = i[1].reduce((acc, c) => acc + c, 0);
 					var meanAve = total/i[1].length;
-					var numm = name + scheduler
+					var numm = name + "=" + lineName
 							+ " min=" + minVal
 							+ ", mean=" + Math.round(meanAve)
 							+ ", max=" + maxVal;
