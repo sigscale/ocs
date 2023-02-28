@@ -41,9 +41,9 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
-						id="vstream"
+						id="schedCardButton"
 						icon="ocs-icons:vstream"
-						on-click="_toggle">
+						on-click="_toggleSched">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vleft"
@@ -129,7 +129,7 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
-						id="vstream1"
+						id="diaCardButton"
 						icon="ocs-icons:vstream"
 						on-click="_toggleDia">
 				</paper-icon-button>
@@ -215,29 +215,29 @@ class dashBoard extends PolymerElement {
 		this._healthChart();
 	}
 
-	_toggle() {
-		var toggleHealth = document.body.querySelector('sig-app')
+	_toggleSched() {
+		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#schedCard");
-		if(toggleHealth.style.flex == "1 0 100%") {
-			this.$.vstream.icon="ocs-icons:vcolumn";
-			toggleHealth.style.flex = "1 0 15%";
+		if(card.style.flex == "1 0 100%") {
+			this.$.schedCardButton.icon="ocs-icons:vcolumn";
+			card.style.flex = "1 0 15%";
 		} else {
-			this.$.vstream.icon="ocs-icons:vstream";
-			toggleHealth.style.flex = "1 0 100%";
+			this.$.schedCardButton.icon="ocs-icons:vstream";
+			card.style.flex = "1 0 100%";
 		}
 	}
 
 	_toggleDia() {
-		var toggleDiaHealth = document.body.querySelector('sig-app')
+		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diameterCard");
-		if(toggleDiaHealth.style.flex == "1 0 100%") {
-			this.$.vstream1.icon="ocs-icons:vcolumn";
-			toggleDiaHealth.style.flex = "1 0 15%";
+		if(card.style.flex == "1 0 100%") {
+			this.$.diaCardButton.icon="ocs-icons:vcolumn";
+			card.style.flex = "1 0 15%";
 		} else {
-			this.$.vstream1.icon="ocs-icons:vstream";
-			toggleDiaHealth.style.flex = "1 0 100%";
+			this.$.diaCardButton.icon="ocs-icons:vstream";
+			card.style.flex = "1 0 100%";
 		}
 	}
 
