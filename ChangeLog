@@ -1,3 +1,32 @@
+2023-03-01  Vance Shipley <vances@sigscale.org>
+
+	* refactor dashboard graphs; shift old time points out, calculate delta
+	* rename reused index variables in dashboard
+	* remove unused diameter counters in dashboard
+	* add order functionality to all graphs
+	* refactored flex box order change buttons
+	* diameter graph app name
+	* fixed diameter counters in health module
+	* remove unwanted ids
+	* literate naming for graph toggle buttons
+	* consistent graph card width; refactor ajax response handler
+	* change height for scheduler graph
+	* support non-3gpp access by assigning mncmnc 000000
+	* install aaa sta script
+	* get whole width when toggle graph
+	* implemented repeat and interval for sta escript
+	* change papercard name and hover
+	* change yaxis label
+	* Revert "fix error code bug for balance query"
+	* add style element for diameter application
+	* implement diamater application graph
+	* add sched to drawline function
+	* toggle diameter application graph
+	* implemente order feature in all graphs
+	* toggle schedule graph
+	* add toggle icon and order icon
+	* sta escript for auth diameter statistics
+
 2023-02-07  Vance Shipley <vances@sigscale.org>
 
 	* user-name avp is mandatory in swx rtr
