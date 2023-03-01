@@ -671,6 +671,8 @@ dia_count({275, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        STA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({272, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        CCA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({268, 0, 'Result-Code', ResultCode}, Count) ->
+   io:fwrite("        DEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({257, 1, error}, Count) ->
 	io:fwrite("        CER error: ~b~n", [Count]);
 dia_count({257, 0, error}, Count) ->
