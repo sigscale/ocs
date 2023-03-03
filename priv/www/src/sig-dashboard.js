@@ -15,7 +15,7 @@ import { select, selectAll } from 'd3-selection';
 import { arc, pie, line, curveLinear } from 'd3-shape';
 import { scaleOrdinal, scaleLinear, scaleUtc } from 'd3-scale';
 import { axisBottom, axisLeft, ticks, tickSizeOuter } from 'd3-axis';
-import { max, extent, group, InternSet, range } from 'd3-array';
+import { mean, max, extent, group, InternSet, range } from 'd3-array';
 import { transition } from 'd3-transition';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js';
 import "@polymer/paper-card/paper-card.js";
@@ -1160,7 +1160,7 @@ class dashBoard extends PolymerElement {
 				.attr("stroke-linecap", strokeLinecap)
 				.attr("stroke-width", strokeWidth)
 				.attr("stroke-opacity", strokeOpacity)
-				.on('mouseover', function (d, i) {
+				.on('mouseover', function (event, d) {
 					select(this)
 						.transition()
 						.duration('50')
@@ -1168,20 +1168,16 @@ class dashBoard extends PolymerElement {
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
-					var lineName = i[0];
-					var minVal = Math.min.apply(null, i[1]);
-					var maxVal = Math.max.apply(null, i[1]);
-					var total = i[1].reduce((acc, c) => acc + c, 0);
-					var meanAve = total/i[1].length;
-					var numm = name + "=" + lineName
-							+ " min=" + minVal
-							+ ", mean=" + Math.round(meanAve)
-							+ ", max=" + maxVal;
+					var dExtent = extent(d[1]);
+					var numm = name + "=" + d[0]
+							+ " min=" + dExtent[0]
+							+ ", mean=" + mean(d[1])
+							+ ", max=" + dExtent[1];
 					div.html(numm )
-						.style("left", (d.pageX + 10) + "px")
-						.style("top", (d.pageY - 15) + "px");
+						.style("left", (event.pageX + 10) + "px")
+						.style("top", (event.pageY - 15) + "px");
 				})
-				.on('mouseout', function (d, i) {
+				.on('mouseout', function (event, d) {
 					select(this).transition()
 						.duration('50')
 						.attr('opacity', '1');
