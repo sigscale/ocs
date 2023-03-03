@@ -15,7 +15,7 @@ import { select, selectAll } from 'd3-selection';
 import { arc, pie, line, curveLinear } from 'd3-shape';
 import { scaleOrdinal, scaleLinear, scaleUtc } from 'd3-scale';
 import { axisBottom, axisLeft, ticks, tickSizeOuter } from 'd3-axis';
-import { mean, max, extent, group, InternSet, range } from 'd3-array';
+import { min, mean, max, extent, group, InternSet, range } from 'd3-array';
 import { transition } from 'd3-transition';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js';
 import "@polymer/paper-card/paper-card.js";
@@ -1098,23 +1098,21 @@ class dashBoard extends PolymerElement {
 		var zDomain;
 		var xRange = [marginLeft, width - marginRight];
 		var yRange = [height - marginBottom, marginTop];
-		var title;
 		var strokeLinecap;
 		var strokeLinejoin;
 		var strokeWidth = 1.5;
 		var strokeOpacity;
 		var mixBlendMode = "multiply";
-		var yFormat;
 		svg.selectAll("*").remove();
 		select("body").selectAll("#" + name + "Tooltip").remove();
 		var X = data.map(x);
 		var Y = data.map(y);
 		var Z = data.map(z);
-		if (defined === undefined) defined = (d, i) => !isNaN(X[i]) && !isNaN(Y[i]);
+		defined = (d, i) => !isNaN(X[i]) && !isNaN(Y[i]);
 		var D = data.map(defined);
-		if (xDomain === undefined) xDomain = extent(X);
-		if (yDomain === undefined) yDomain = [0, max(Y)];
-		if (zDomain === undefined) zDomain = Z;
+		xDomain = extent(X);
+		yDomain = [0, max(Y)];
+		zDomain = Z;
 		zDomain = new InternSet(zDomain);
 		var I = range(X.length).filter(i => zDomain.has(Z[i]));
 		var xScale = scaleUtc(xDomain, xRange);
@@ -1122,8 +1120,7 @@ class dashBoard extends PolymerElement {
 			.domain(yDomain).nice()
 			.range(yRange);
 		var xAxis = axisBottom(xScale).ticks(width / 80).tickSizeOuter(0);
-		var yAxis = axisLeft(yScale).ticks(height / 60, yFormat);
-		var T = title === undefined ? Z : title === null ? null : data.map(data, title);
+		var yAxis = axisLeft(yScale).ticks(height / 60);
 		var Valueline = line()
 			.defined(i => D[i])
 			.curve(curve)
@@ -1168,12 +1165,11 @@ class dashBoard extends PolymerElement {
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
-					var dExtent = extent(d[1]);
 					var numm = name + "=" + d[0]
-							+ " min=" + dExtent[0]
-							+ ", mean=" + mean(d[1])
-							+ ", max=" + dExtent[1];
-					div.html(numm )
+							+ " min=" + Math.round(yScale.invert(max(d[1])))
+							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
+							+ ", max=" + Math.round(yScale.invert(min(d[1])));
+					div.html(numm)
 						.style("left", (event.pageX + 10) + "px")
 						.style("top", (event.pageY - 15) + "px");
 				})
