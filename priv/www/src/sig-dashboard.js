@@ -587,7 +587,33 @@ class dashBoard extends PolymerElement {
 					var nameSched = "sched";
 					ocsHealth.draw_line(svgSched, ocsHealth.schedulerData,
 							widthSched, heightSched, yLabelSched, nameSched);
-					var diaLength = csHealth.diameterData.length;
+					var diaLength = ocsHealth.diameterData.length;
+					var newBaseRecord = new Object();
+					newBaseRecord.dateTime = date.toISOString();
+					newBaseRecord.componentId = "Base";
+					newBaseRecord.counter = 0;
+					newBaseRecord.count = 0;
+					if(request.response.checks["diameter-base:counters"]) {
+						var baseCounters = request.response.checks["diameter-base:counters"];
+						for(var indexBase in baseCounters) {
+							if(baseCounters[indexBase].observedValue) {
+								newBaseRecord.counter += baseCounters[indexBase].observedValue;
+							}
+						}
+						indexDia = diaLength - 1;
+						while(indexDia >= 0) {
+							if(ocsHealth.diameterData[indexDia].componentId == "Base") {
+								break;
+							}
+							indexDia--;
+						}
+						if(indexDia >= 0 && (diaLength > 1)
+								&& (ocsHealth.diameterData[indexDia].counter < newBaseRecord.counter)) {
+								newBaseRecord.counter = newBaseRecord.counter
+										- ocsHealth.diameterData[indexDia].counter;
+						}
+					}
+					ocsHealth.push('diameterData', newBaseRecord);
 					if(request.response.checks["diameter-gx:counters"]) {
 						var gxCounters = request.response.checks["diameter-gx:counters"];
 						var newGxRecord = new Object();
