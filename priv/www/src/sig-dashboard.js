@@ -1083,7 +1083,7 @@ class dashBoard extends PolymerElement {
 		var mixBlendMode = "multiply";
 		var yFormat;
 		svg.selectAll("*").remove();
-		select("body").selectAll(name + "Tooltip").remove();
+		select("body").selectAll("#" + name + "Tooltip").remove();
 		var X = data.map(x);
 		var Y = data.map(y);
 		var Z = data.map(z);
