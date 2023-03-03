@@ -587,30 +587,30 @@ class dashBoard extends PolymerElement {
 					var nameSched = "sched";
 					ocsHealth.draw_line(svgSched, ocsHealth.schedulerData,
 							widthSched, heightSched, yLabelSched, nameSched);
+					var diaLength = csHealth.diameterData.length;
 					if(request.response.checks["diameter-gx:counters"]) {
 						var gxCounters = request.response.checks["diameter-gx:counters"];
 						var newGxRecord = new Object();
 						newGxRecord.dateTime = date.toISOString();
 						newGxRecord.componentId = "Gx";
 						newGxRecord.counter = 0;
+						newGxRecord.count = 0;
 						for(var indexGx in gxCounters) {
 							if(gxCounters[indexGx].observedValue) {
 								newGxRecord.counter += gxCounters[indexGx].observedValue;
 							}
 						}
-						indexDia = ocsHealth.diameterData.length - 1;
+						indexDia = diaLength - 1;
 						while(indexDia >= 0) {
 							if(ocsHealth.diameterData[indexDia].componentId == "Gx") {
 								break;
 							}
 							indexDia--;
 						}
-						if(indexDia >= 0
+						if(indexDia >= 0 && (diaLength > 1)
 								&& (ocsHealth.diameterData[indexDia].counter < newGxRecord.counter)) {
 								newGxRecord.counter = newGxRecord.counter
 										- ocsHealth.diameterData[indexDia].counter;
-						} else {
-							newGxRecord.count = newGxRecord.counter;
 						}
 						ocsHealth.push('diameterData', newGxRecord);
 					}
@@ -620,24 +620,23 @@ class dashBoard extends PolymerElement {
 						newRoRecord.dateTime = date.toISOString();
 						newRoRecord.componentId = "Ro";
 						newRoRecord.counter = 0;
+						newRoRecord.count = 0;
 						for(var indexRo in roCounters) {
 							if(roCounters[indexRo].observedValue) {
 								newRoRecord.counter += roCounters[indexRo].observedValue;
 							}
 						}
-						indexDia = ocsHealth.diameterData.length - 1;
+						indexDia = diaLength - 1;
 						while(indexDia >= 0) {
 							if(ocsHealth.diameterData[indexDia].componentId == "Ro") {
 								break;
 							}
 							indexDia--;
 						}
-						if(indexDia >= 0
+						if(indexDia >= 0 && (diaLength > 1)
 								&& (ocsHealth.diameterData[indexDia].counter < newRoRecord.counter)) {
 								newRoRecord.count = newRoRecord.counter
 										- ocsHealth.diameterData[indexDia].counter;
-						} else {
-							newRoRecord.count = newRoRecord.counter;
 						}
 						ocsHealth.push('diameterData', newRoRecord);
 					}
@@ -647,24 +646,23 @@ class dashBoard extends PolymerElement {
 						newStaRecord.dateTime = date.toISOString();
 						newStaRecord.componentId = "STa";
 						newStaRecord.counter = 0;
+						newStaRecord.count= 0;
 						for(var indexSta in staCounters) {
 							if(staCounters[indexSta].observedValue) {
 								newStaRecord.counter += staCounters[indexSta].observedValue;
 							}
 						}
-						indexDia = ocsHealth.diameterData.length - 1;
+						indexDia = diaLength - 1;
 						while(indexDia >= 0) {
 							if(ocsHealth.diameterData[indexDia].componentId == "STa") {
 								break;
 							}
 							indexDia--;
 						}
-						if(indexDia >= 0
+						if(indexDia >= 0 && (diaLength > 1)
 								&& (ocsHealth.diameterData[indexDia].counter < newStaRecord.counter)) {
 								newStaRecord.count = newStaRecord.counter
 										- ocsHealth.diameterData[indexDia].counter;
-						} else {
-							newStaRecord.count = newStaRecord.counter;
 						}
 						ocsHealth.push('diameterData', newStaRecord);
 					}
@@ -674,24 +672,23 @@ class dashBoard extends PolymerElement {
 						newSwmRecord.dateTime = date.toISOString();
 						newSwmRecord.componentId = "SWm";
 						newSwmRecord.counter = 0;
+						newSwmRecord.count = 0;
 						for(var indexSwm in swmCounters) {
 							if(swmCounters[indexSwm].observedValue) {
 								newSwmRecord.counter += swmCounters[indexSwm].observedValue;
 							}
 						}
-						indexDia = ocsHealth.diameterData.length - 1;
+						indexDia = diaLength - 1;
 						while(indexDia >= 0) {
 							if(ocsHealth.diameterData[indexDia].componentId == "SWm") {
 								break;
 							}
 							indexDia--;
 						}
-						if(indexDia >= 0
+						if(indexDia >= 0 && (diaLength > 1)
 								&& (ocsHealth.diameterData[indexDia].counter < newStaRecord.counter)) {
 								newSwmRecord.count = newSwmRecord.counter
 										- ocsHealth.diameterData[indexDia].counter;
-						} else {
-							newSwmRecord.count = newSwmRecord.counter;
 						}
 						ocsHealth.push('diameterData', newSwmRecord);
 					}
