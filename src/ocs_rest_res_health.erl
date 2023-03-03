@@ -306,7 +306,7 @@ diameter_dictionaries([], Acc) ->
 	when
 		Dictionary :: atom(),
 		Services :: [diameter:service_name()],
-		Counters :: [map()],
+		Counters :: map(),
 		DiameterCheck :: tuple().
 %% @doc Get Diameter count.
 %% @hidden
