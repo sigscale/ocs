@@ -83,7 +83,7 @@ class dashBoard extends PolymerElement {
 				<div
 						class="card-content">
 					<svg
-							width="400"
+							width="480"
 							height="188">
 					</svg>
 				</div>
