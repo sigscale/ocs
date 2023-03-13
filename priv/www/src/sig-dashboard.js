@@ -583,10 +583,8 @@ class dashBoard extends PolymerElement {
 						}
 					}
 					var svgSched = select(root).select("#schedCard div.card-content svg");
-					var yLabelSched = "↑ Scheduler (%)";
-					var nameSched = "sched";
-					ocsHealth.draw_line(svgSched, ocsHealth.schedulerData,
-							widthSched, heightSched, yLabelSched, nameSched);
+					ocsHealth.draw_sched(svgSched, ocsHealth.schedulerData,
+							widthSched, heightSched);
 					var diaLength = ocsHealth.diameterData.length;
 					var newBaseRecord = new Object();
 					newBaseRecord.dateTime = date.toISOString();
@@ -736,10 +734,8 @@ class dashBoard extends PolymerElement {
 						ocsHealth.splice('diameterData', 0, indexDia);
 					}
 					var svgDia = select(root).select("#diaCard div.card-content svg");
-					var yLabelDia = "↑ Transactions";
-					var nameDia = "app";
-					ocsHealth.draw_line(svgDia, ocsHealth.diameterData,
-							widthDia, heightDia, yLabelDia, nameDia);
+					ocsHealth.draw_dia(svgDia, ocsHealth.diameterData,
+							widthDia, heightDia);
 					if(request.response.checks["table:size"]) {
 						ocsHealth.subscriptions.splice(0, ocsHealth.subscriptions.length);
 						for(var index in request.response.checks["table:size"]) {
@@ -1063,7 +1059,7 @@ class dashBoard extends PolymerElement {
 		return svg.node();
 	}
 
-	draw_line(svg, data, width, height, yLabel, name) {
+	draw_sched(svg, data, width, height) {
 		var rs = getComputedStyle(document.querySelector(':root'));
 		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
 			rs.getPropertyValue('--paper-green-900'),
@@ -1084,6 +1080,139 @@ class dashBoard extends PolymerElement {
 			rs.getPropertyValue('--paper-indigo-900'),
 			rs.getPropertyValue('--paper-grey-900'),
 			rs.getPropertyValue('--paper-brown-900')]);
+		var yLabel = "↑ Scheduler (%)";
+		var name = "sched";
+		var curve = curveLinear;
+		var marginTop = 20;
+		var marginRight = 30;
+		var marginBottom = 30;
+		var marginLeft = 40;
+		var x = d => Date.parse(d.dateTime);
+		var y = d => d.count;
+		var z = d => d.componentId;
+		var defined;
+		var xDomain;
+		var yDomain;
+		var zDomain;
+		var xRange = [marginLeft, width - marginRight];
+		var yRange = [height - marginBottom, marginTop];
+		var strokeLinecap;
+		var strokeLinejoin;
+		var strokeWidth = 1.5;
+		var strokeOpacity;
+		var mixBlendMode = "multiply";
+		svg.selectAll("*").remove();
+		select("body").selectAll("#" + name + "Tooltip").remove();
+		var X = data.map(x);
+		var Y = data.map(y);
+		var Z = data.map(z);
+		defined = (d, i) => !isNaN(X[i]) && !isNaN(Y[i]);
+		var D = data.map(defined);
+		xDomain = extent(X);
+		yDomain = [0, max(Y)];
+		zDomain = Z;
+		zDomain = new InternSet(zDomain);
+		var I = range(X.length).filter(i => zDomain.has(Z[i]));
+		var xScale = scaleUtc(xDomain, xRange);
+		var yScale = scaleLinear()
+			.domain(yDomain).nice()
+			.range(yRange);
+		var xAxis = axisBottom(xScale).ticks(width / 80).tickSizeOuter(0);
+		var yAxis = axisLeft(yScale).ticks(height / 60);
+		var Valueline = line()
+			.defined(i => D[i])
+			.curve(curve)
+			.x(i => xScale(X[i]))
+			.y(i => yScale(Y[i]));
+		svg.attr("width", width)
+			.attr("height", height);
+		svg.append("g")
+			.attr("transform", `translate(${marginLeft},0)`)
+			.call(yAxis)
+			.call(g => g.select(".domain").remove())
+			.call(g => g.append("text")
+				.attr("x", -marginLeft)
+				.attr("y", 10)
+				.attr("fill", "currentColor")
+				.attr("text-anchor", "start")
+				.text(yLabel));
+		var div = select("body").append("div")
+			.attr("class", "tooltip")
+			.attr("id", name + "Tooltip")
+			.style("position", "absolute")
+			.style("top", "300px")
+			.style("left", "20px")
+			.style("z-index", "10")
+			.style("opacity", 0);
+		var path = svg.append("g")
+			.selectAll("path")
+			.data(group(I, i => Z[i]))
+			.join("path")
+				.style("mix-blend-mode", mixBlendMode)
+				.attr("d", ([, I]) => Valueline(I))
+				.attr("fill", "none")
+				.attr("stroke", color)
+				.attr("stroke-linecap", strokeLinecap)
+				.attr("stroke-width", strokeWidth)
+				.attr("stroke-opacity", strokeOpacity)
+				.on('mouseover', function (event, d) {
+					select(this)
+						.transition()
+						.duration('50')
+						.attr('opacity', '.500');
+					div.transition()
+						.duration('50')
+						.style("opacity", 1);
+					var numm = name + "=" + d[0]
+							+ " min=" + Math.round(yScale.invert(max(d[1])))
+							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
+							+ ", max=" + Math.round(yScale.invert(min(d[1])));
+					div.html(numm)
+						.style("left", (event.pageX + 10) + "px")
+						.style("top", (event.pageY - 15) + "px");
+				})
+				.on('mouseout', function (event, d) {
+					select(this).transition()
+						.duration('50')
+						.attr('opacity', '1');
+					div.transition()
+						.duration('50')
+						.style("opacity", 0);
+				});
+		var dot = svg.append("g")
+			.attr("display", "none");
+		dot.append("circle")
+			.attr("r", 2.5);
+		dot.append("text")
+			.attr("font-family", "sans-serif")
+			.attr("font-size", 10)
+			.attr("text-anchor", "middle")
+			.attr("y", -8);
+	}
+
+	draw_dia(svg, data, width, height) {
+		var rs = getComputedStyle(document.querySelector(':root'));
+		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
+			rs.getPropertyValue('--paper-green-900'),
+			rs.getPropertyValue('--paper-red-900'),
+			rs.getPropertyValue('--paper-blue-900'),
+			rs.getPropertyValue('--paper-cyan-900'),
+			rs.getPropertyValue('--paper-pink-900'),
+			rs.getPropertyValue('--paper-teal-900'),
+			rs.getPropertyValue('--paper-purple-900'),
+			rs.getPropertyValue('--paper-amber-900'),
+			rs.getPropertyValue('--paper-orange-900'),
+			rs.getPropertyValue('--paper-light-blue-900'),
+			rs.getPropertyValue('--paper-light-green-900'),
+			rs.getPropertyValue('--paper-lime-900'),
+			rs.getPropertyValue('--paper-blue-grey-900'),
+			rs.getPropertyValue('--paper-deep-orange-900'),
+			rs.getPropertyValue('--paper-deep-purple-900'),
+			rs.getPropertyValue('--paper-indigo-900'),
+			rs.getPropertyValue('--paper-grey-900'),
+			rs.getPropertyValue('--paper-brown-900')]);
+		var yLabel = "↑ Transactions";
+		var name = "app";
 		var curve = curveLinear;
 		var marginTop = 20;
 		var marginRight = 30;
