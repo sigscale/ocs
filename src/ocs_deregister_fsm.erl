@@ -213,7 +213,7 @@ abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 		'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
 		#statedata{sessions = Sessions} = StateData) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
-		[]->
+		[] ->
 			{stop, shutdown, StateData};
 		NewSessions ->
 			NewStateData = StateData#statedata{sessions = NewSessions},
@@ -223,7 +223,7 @@ abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 		'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
 		#statedata{sessions = Sessions} = StateData) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
-		[]->
+		[] ->
 			{stop, shutdown, StateData};
 		NewSessions ->
 			NewStateData = StateData#statedata{sessions = NewSessions},
@@ -246,7 +246,7 @@ abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 			{session_id, SessionId},
 			{result_code, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	case NewSessions of
-		[]->
+		[] ->
 			{stop, shutdown, StateData};
 		NewSessions ->
 			NewStateData = StateData#statedata{sessions = NewSessions},
@@ -269,7 +269,7 @@ abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 			{session_id, SessionId},
 			{result_code, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	case NewSessions of
-		[]->
+		[] ->
 			{stop, shutdown, StateData};
 		NewSessions ->
 			NewStateData = StateData#statedata{sessions = NewSessions},
