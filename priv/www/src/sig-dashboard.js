@@ -546,14 +546,14 @@ class dashBoard extends PolymerElement {
 	_healthChart() {
 		var ocsHealth = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard');
-		if(ocsHealth.schedulerTimeout != "undefined") {
+		if(ocsHealth.schedulerTimeout) {
 			clearTimeout(ocsHealth.schedulerTimeout);
 		}
 		var ajax = ocsHealth.shadowRoot.getElementById('getHealthDashAjax');
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
-				var maxAge = matches ? parseInt(matches[1], 10) : -1
+				var maxAge = matches ? parseInt(matches[1], 10) : 60;
 				var root = ocsHealth.shadowRoot;
 				var svgContentDia = root.querySelector("#diaCard div.card-content svg");
 				var widthDia = parseInt(getComputedStyle(svgContentDia).width, 10);
@@ -780,24 +780,28 @@ class dashBoard extends PolymerElement {
 					}
 					var svgSubs = select(root).select("#subsCard div.card-content svg");
 					ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
-					ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 					var svgUp = select(root).select("#upCard div.card-content svg");
 					ocsHealth.draw_up(svgUp, ocsHealth.uptime);
 					var svgCredit = select(root).select("#creditCard div.card-content svg");
 					ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
+					if(maxAge > 0) {
+						ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
+					} else {
+						ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, 1000);
+					}
+					ocsHealth.loading = false;
 				}
 			}
 		}
 		var handleAjaxError = function(error) {
+			ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, 60000);
+			ocsHealth.loading = false;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-			toast.text = error;
+			toast.text = "Error";
 			toast.open();
 		}
-		if(ajax.loading) {
-			ajax.lastRequest.completes.then(function(request) {
-				return ajax.generateRequest().completes;
-			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
-		} else {
+		if(!ocsHealth.loading) {
+			ocsHealth.loading = true;
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
 	}
