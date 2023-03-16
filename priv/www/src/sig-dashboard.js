@@ -53,6 +53,10 @@ class dashBoard extends PolymerElement {
 						icon="ocs-icons:vright"
 						on-click="_orderRightSched">
 				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:clear"
+						on-click="_clearSched">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="diaCard"
@@ -76,6 +80,10 @@ class dashBoard extends PolymerElement {
 						icon="ocs-icons:vright"
 						on-click="_orderRightDia">
 				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:clear"
+						on-click="_clearDia">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="subsCard"
@@ -94,6 +102,10 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						icon="ocs-icons:vright"
 						on-click="_orderRightSubs">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:clear"
+						on-click="_clearSubs">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -114,6 +126,10 @@ class dashBoard extends PolymerElement {
 						icon="ocs-icons:vright"
 						on-click="_orderRightCredit">
 				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:clear"
+						on-click="_clearCredit">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="upCard"
@@ -132,6 +148,10 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						icon="ocs-icons:vright"
 						on-click="_orderRightUp">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:clear"
+						on-click="_clearUp">
 				</paper-icon-button>
 			</paper-card>
 			<iron-ajax
@@ -219,20 +239,6 @@ class dashBoard extends PolymerElement {
 		}
 	}
 
-	_toggleDia() {
-		var card = document.body.querySelector('sig-app')
-				.shadowRoot.querySelector('sig-dashboard').shadowRoot
-				.querySelector("#diaCard");
-		var flex = getComputedStyle(card).flex;
-		if(flex == "1 0 100%") {
-			this.$.diaCardButton.icon="ocs-icons:vcolumn";
-			card.style.flex = "1 0 15%";
-		} else {
-			this.$.diaCardButton.icon="ocs-icons:vstream";
-			card.style.flex = "1 0 100%";
-		}
-	}
-
 	_orderLeftSched() {
 		var schedCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
@@ -292,6 +298,27 @@ class dashBoard extends PolymerElement {
 			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
 			cards[index].style.order = (++leftOrder).toString();
 			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_clearSched() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		card.style.display = "none";
+	}
+
+	_toggleDia() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var flex = getComputedStyle(card).flex;
+		if(flex == "1 0 100%") {
+			this.$.diaCardButton.icon="ocs-icons:vcolumn";
+			card.style.flex = "1 0 15%";
+		} else {
+			this.$.diaCardButton.icon="ocs-icons:vstream";
+			card.style.flex = "1 0 100%";
 		}
 	}
 
@@ -357,6 +384,13 @@ class dashBoard extends PolymerElement {
 		}
 	}
 
+	_clearDia() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		card.style.display = "none";
+	}
+
 	_orderLeftSubs() {
 		var schedCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
@@ -417,6 +451,13 @@ class dashBoard extends PolymerElement {
 			cards[index].style.order = (++leftOrder).toString();
 			cards[index + 1].style.order = (--rightOrder).toString();
 		}
+	}
+
+	_clearSubs() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		card.style.display = "none";
 	}
 
 	_orderLeftCredit() {
@@ -481,6 +522,13 @@ class dashBoard extends PolymerElement {
 		}
 	}
 
+	_clearCredit() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		card.style.display = "none";
+	}
+
 	_orderLeftUp() {
 		var schedCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
@@ -541,6 +589,13 @@ class dashBoard extends PolymerElement {
 			cards[index].style.order = (++leftOrder).toString();
 			cards[index + 1].style.order = (--rightOrder).toString();
 		}
+	}
+
+	_clearUp() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		card.style.display = "none";
 	}
 
 	_healthChart() {
