@@ -1223,9 +1223,9 @@ class dashBoard extends PolymerElement {
 						.duration('50')
 						.style("opacity", 1);
 					var numm = name + "=" + d[0]
-							+ " min=" + Math.round(yScale.invert(max(d[1])))
-							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
-							+ ", max=" + Math.round(yScale.invert(min(d[1])));
+							+ " min=" + Math.abs(Math.round(yScale.invert(max(d[1]))))
+							+ ", mean=" + Math.abs(Math.round(yScale.invert(mean(d[1]))))
+							+ ", max=" + Math.abs(Math.round(yScale.invert(min(d[1]))));
 					div.html(numm)
 						.style("left", (event.pageX + 10) + "px")
 						.style("top", (event.pageY - 15) + "px");
@@ -1354,9 +1354,9 @@ class dashBoard extends PolymerElement {
 						.duration('50')
 						.style("opacity", 1);
 					var numm = name + "=" + d[0]
-							+ " min=" + Math.round(yScale.invert(max(d[1])))
-							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
-							+ ", max=" + Math.round(yScale.invert(min(d[1])));
+							+ " min=" + Math.abs(Math.round(yScale.invert(max(d[1]))))
+							+ ", mean=" + Math.abs(Math.round(yScale.invert(mean(d[1]))))
+							+ ", max=" + Math.abs(Math.round(yScale.invert(min(d[1]))));
 					div.html(numm)
 						.style("left", (event.pageX + 10) + "px")
 						.style("top", (event.pageY - 15) + "px");
