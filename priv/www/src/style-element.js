@@ -281,6 +281,9 @@ styleElement.innerHTML = `<template>
 				border-radius: 8px;
 			};
 		}
+		paper-icon-button.hide-button {
+			float: right;
+		}
 		#schedCard {
 			flex-direction: row;
 			flex: 1 0 100%;

@@ -54,6 +54,7 @@ class dashBoard extends PolymerElement {
 						on-click="_orderRightSched">
 				</paper-icon-button>
 				<paper-icon-button
+						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearSched">
 				</paper-icon-button>
@@ -81,6 +82,7 @@ class dashBoard extends PolymerElement {
 						on-click="_orderRightDia">
 				</paper-icon-button>
 				<paper-icon-button
+						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearDia">
 				</paper-icon-button>
@@ -104,6 +106,7 @@ class dashBoard extends PolymerElement {
 						on-click="_orderRightSubs">
 				</paper-icon-button>
 				<paper-icon-button
+						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearSubs">
 				</paper-icon-button>
@@ -127,6 +130,7 @@ class dashBoard extends PolymerElement {
 						on-click="_orderRightCredit">
 				</paper-icon-button>
 				<paper-icon-button
+						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearCredit">
 				</paper-icon-button>
@@ -150,6 +154,7 @@ class dashBoard extends PolymerElement {
 						on-click="_orderRightUp">
 				</paper-icon-button>
 				<paper-icon-button
+						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearUp">
 				</paper-icon-button>
