@@ -312,6 +312,10 @@ styleElement.innerHTML = `<template>
 			flex-direction: row;
 			order: 5;
 		}
+		#staCard {
+			flex-direction: row;
+			order: 4;
+		}
 	</style>
 </template>`;
 

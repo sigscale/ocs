@@ -159,6 +159,30 @@ class dashBoard extends PolymerElement {
 						on-click="_clearUp">
 				</paper-icon-button>
 			</paper-card>
+			<paper-card
+					id="staCard"
+					heading="AAA Requests">
+				<div
+						class="card-content">
+					<svg
+							width="410"
+							height="130">
+					</svg>
+				</div>
+				<paper-icon-button
+						icon="ocs-icons:vleft"
+						on-click="_orderLeftSta">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:vright"
+						on-click="_orderRightSta">
+				</paper-icon-button>
+				<paper-icon-button
+						class="hide-button"
+						icon="ocs-icons:clear"
+						on-click="_clearSta">
+				</paper-icon-button>
+			</paper-card>
 			<iron-ajax
 					id="getHealthDashAjax"
 					headers='{"Accept": "application/health+json"}'
@@ -260,7 +284,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -291,7 +318,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -343,7 +373,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -374,7 +407,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -412,7 +448,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -443,7 +482,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -481,7 +523,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -512,7 +557,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -550,7 +598,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -581,7 +632,10 @@ class dashBoard extends PolymerElement {
 		var diaCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#diaCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard];
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -600,6 +654,81 @@ class dashBoard extends PolymerElement {
 		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#upCard");
+		card.style.display = "none";
+	}
+
+	_orderLeftSta() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'staCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightSta() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'staCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_clearSta() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
 		card.style.display = "none";
 	}
 
@@ -844,6 +973,24 @@ class dashBoard extends PolymerElement {
 					ocsHealth.draw_up(svgUp, ocsHealth.uptime);
 					var svgCredit = select(root).select("#creditCard div.card-content svg");
 					ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
+
+					if(request.response.checks["diameter-sta:counters"]) {
+						var staCounters = request.response.checks["diameter-sta:counters"];
+						for(var indexSta in staCounters) {
+							if(staCounters[indexSta].componentId == "DEA Result-Code: 2001") {
+								var sta2001 = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 1001") {
+								var sta1001 = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5001") {
+								var sta5001 = staCounters[indexSta].observedValue;
+							} else if(staCounters[indexSta].componentId == "DEA Result-Code: 5012") {
+								var sta5012 = staCounters[indexSta].observedValue;
+							}
+						}
+					}
+					var svgSta = select(root).select("#staCard div.card-content svg");
+					ocsHealth.draw_sta(svgSta, sta2001, sta1001, sta5001, sta5012);
+
 					if(maxAge > 0) {
 						ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 					} else {
@@ -864,6 +1011,126 @@ class dashBoard extends PolymerElement {
 			ocsHealth.loading = true;
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	draw_sta(svg, sta2001, sta1001, sta5001, sta5012) {
+		var g1 = svg.append('g');
+		var g2 = svg.append('g');
+		var g3 = svg.append('g');
+		var g4 = svg.append('g');
+		g1.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '140')
+			.attr('y', '22')
+			.attr("text-anchor", "end")
+			.text(sta2001)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g1.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '285')
+			.attr('y', '22')
+			.attr("text-anchor", "middle")
+			.text('SUCCESS')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '140')
+			.attr('y', '54')
+			.attr("text-anchor", "end")
+			.text(sta1001)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '285')
+			.attr('y', '54')
+			.attr("text-anchor", "middle")
+			.text('MULTI_ROUND_AUTH')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '140')
+			.attr('y', '86')
+			.attr("text-anchor", "end")
+			.text(sta5001)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '285')
+			.attr('y', '86')
+			.attr("text-anchor", "middle")
+			.text('USER_UNKNOWN')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 96)
+			.style('fill', '#f05545');
+		g4.append('text')
+			.attr('x', '140')
+			.attr('y', '118')
+			.attr("text-anchor", "end")
+			.text(sta5012)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 96)
+			.style('fill', '#f05545');
+		g4.append('text')
+			.attr('x', '285')
+			.attr('y', '118')
+			.attr("text-anchor", "middle")
+			.text('UNABLE TO COMPLY')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		return svg.node();
 	}
 
 	draw_credit(svg, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012) {
@@ -1124,6 +1391,7 @@ class dashBoard extends PolymerElement {
 	}
 
 	draw_sched(svg, data, width, height) {
+console.log(data);
 		var rs = getComputedStyle(document.querySelector(':root'));
 		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
 			rs.getPropertyValue('--paper-green-900'),
@@ -1227,10 +1495,12 @@ class dashBoard extends PolymerElement {
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
+console.log(d[1]);
+console.log(max(d[1]));
 					var numm = name + "=" + d[0]
-							+ " min=" + Math.abs(Math.round(yScale.invert(max(d[1]))))
-							+ ", mean=" + Math.abs(Math.round(yScale.invert(mean(d[1]))))
-							+ ", max=" + Math.abs(Math.round(yScale.invert(min(d[1]))));
+							+ " min=" + Math.round(yScale.invert(max(d[1])))
+							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
+							+ ", max=" + Math.round(yScale.invert(min(d[1])));
 					div.html(numm)
 						.style("left", (event.pageX + 10) + "px")
 						.style("top", (event.pageY - 15) + "px");
