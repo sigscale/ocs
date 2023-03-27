@@ -147,8 +147,10 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 								balance = BucketRefs} = Product] ->
 							Now = erlang:system_time(millisecond),
 							case mnesia:dirty_read(offer, OfferId) of
-								[#offer{char_value_use = CharValueUse, end_date = EndDate, start_date = StartDate} = Offer]
-										when ((StartDate =< Now) or (StartDate == undefined)), ((EndDate > Now) or ( EndDate == undefined)) ->
+								[#offer{char_value_use = CharValueUse,
+												end_date = EndDate, start_date = StartDate} = Offer]
+										when ((StartDate =< Now) or (StartDate == undefined)),
+												((EndDate > Now) or (EndDate == undefined)) ->
 									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 											|| Id <- BucketRefs]),
 									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
@@ -170,7 +172,8 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 											{rate1(Protocol, Service, ServiceId, Product, NewBuckets,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, ServiceType,
-													get_session_id(SessionAttributes), ChargingKey, ServiceNetwork), RedirectServerAddress};
+													get_session_id(SessionAttributes), ChargingKey,
+															ServiceNetwork), RedirectServerAddress};
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
@@ -310,17 +313,17 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	F = fun(#price{type = tariff, units = octets,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = usage,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = #pla_ref{},
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
@@ -341,17 +344,17 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	F = fun(#price{type = tariff, units = seconds,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = usage, units = seconds,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = #pla_ref{},
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
@@ -373,22 +376,22 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	F = fun(#price{type = usage, units = messages,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = usage, units = cents,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = tariff, units = messages,
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(#price{type = #pla_ref{},
 					start_date = StartDate, end_date = EndDate})
 					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
+					((EndDate > Now) or (EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
