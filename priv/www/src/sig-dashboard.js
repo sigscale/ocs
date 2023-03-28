@@ -1391,7 +1391,6 @@ class dashBoard extends PolymerElement {
 	}
 
 	draw_sched(svg, data, width, height) {
-console.log(data);
 		var rs = getComputedStyle(document.querySelector(':root'));
 		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
 			rs.getPropertyValue('--paper-green-900'),
@@ -1495,8 +1494,6 @@ console.log(data);
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
-console.log(d[1]);
-console.log(max(d[1]));
 					var numm = name + "=" + d[0]
 							+ " min=" + Math.round(yScale.invert(max(d[1])))
 							+ ", mean=" + Math.round(yScale.invert(mean(d[1])))
