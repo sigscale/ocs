@@ -56,6 +56,56 @@ class prefixList extends PolymerElement {
 					</template>
 					<template>[[item.rate]]</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+               <template class="header">
+                  <div class="grouptitle">Initial Period</div>
+               </template>
+					<vaadin-grid-column width="15ex">
+						<template class="header">
+								Seconds
+						</template>
+						<template>
+							<div class="cell numeric">
+								[[item.seconds]]
+							</div>
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="15ex">
+						<template class="header">
+								Rate
+						</template>
+						<template>
+							<div class="cell numeric">
+								[[item.rate]]
+							</div>
+						</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
+				<vaadin-grid-column-group>
+               <template class="header">
+                  <div class="grouptitle">Additional Period</div>
+               </template>
+					<vaadin-grid-column width="15ex">
+						<template class="header">
+								Seconds
+						</template>
+						<template>
+							<div class="cell numeric">
+								[[item.seconds]]
+							</div>
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="15ex">
+						<template class="header">
+								Rate
+						</template>
+						<template>
+							<div class="cell numeric">
+								[[item.rate]]
+							</div>
+						</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<paper-dialog
 					class="dialog"
