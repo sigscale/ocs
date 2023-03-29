@@ -1289,17 +1289,22 @@ specification_ref([], _, Acc) ->
 
 %% @hidden
 match(Key, Complex, Query) ->
-	case lists:keyfind(Key, 1, Complex) of
-		{_, like, [Value]} ->
-			{like, Value};
-		{_, exact, [Value]} ->
-			{exact, Value};
-		false ->
-			case lists:keyfind(Key, 1, Query) of
-				{_, Value} ->
-					{exact, Value};
-				false ->
-					'_'
-			end
-	end.
+	match1(Key, lists:keyfind(Key, 1, Complex), Query).
+%% @hidden
+match1(Key, {_, like, [Value]}, _Query) ->
+	{like, Value};
+match1(Key, {_, exact, [Value]}, _Query) ->
+	{exact, Value};
+match1(Key, false, Query) ->
+	match2(lists:keyfind(Key, 1, Query)).
+%% @hidden
+match2({_, Value}) ->
+	match3(string:lexemes(Value, [$,]), []);
+match2(false) ->
+	'_'.
+%% @hidden
+match3([H | T], Acc) ->
+	match3(T, [{exact, H} | Acc]);
+match3([], Acc) ->
+	lists:reverse(Acc).
 
