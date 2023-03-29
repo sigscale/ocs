@@ -50,12 +50,6 @@ class prefixList extends PolymerElement {
 					</template>
 					<template>[[item.description]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="15ex">
-					<template class="header">
-							Rate
-					</template>
-					<template>[[item.rate]]</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column-group>
                <template class="header">
                   <div class="grouptitle">Initial Period</div>
