@@ -1201,7 +1201,7 @@ dia_acct_to_ecs(_Config) ->
 	Server = {{0, 0, 0, 0}, ServerPort},
 	OriginHost = <<"10.0.0.1">>,
 	Username = ocs:generate_identity(),
-	ServiceContextId = <<"10.32251.3gpp.org">>,
+	ServiceContextId = <<"10.32251@3gpp.org">>,
 	OriginRealm = <<"app.sigscale.net">>,
 	DesRealm = "sigscale.com",
 	Requested = rand:uniform(100000),
@@ -1409,7 +1409,7 @@ fill_acct(N, Protocal) ->
 			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
 			fill_acct(N - 1, radius);
 		diameter ->
-			ServiceContextId = <<"10.32251.3gpp.org">>,
+			ServiceContextId = <<"10.32251@3gpp.org">>,
 			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
 			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
