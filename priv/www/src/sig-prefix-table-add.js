@@ -54,7 +54,7 @@ class tablePrefixAdd extends PolymerElement {
 				</div>
             <div>
                <paper-dropdown-menu
-                     value="{{prefixiTableRate}}"
+                     value="{{prefixTableRate}}"
                      no-animations="true"
                      label="Table Type">
                   <paper-listbox
@@ -127,6 +127,9 @@ class tablePrefixAdd extends PolymerElement {
 			description: {
 				type: String
 			},
+			prefixTableRate: {
+				type: String
+			},
 			startDateTime: {
 				type: String
 			},
@@ -153,7 +156,7 @@ class tablePrefixAdd extends PolymerElement {
 		var taSpec = new Object();
 		taSpec.id = "1";
 		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
-		taSpec.name = "TariffTable";
+		taSpec.name = this.prefixTableRate;
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -173,6 +176,7 @@ class tablePrefixAdd extends PolymerElement {
 		}
 		this.tableName = null;
 		this.description = null;
+		this.prefixTableRate = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
