@@ -52,6 +52,23 @@ class tablePrefixAdd extends PolymerElement {
 						Tariff table description.
 					</paper-tooltip>
 				</div>
+            <div>
+               <paper-dropdown-menu
+                     value="{{prefixiTableRate}}"
+                     no-animations="true"
+                     label="Table Type">
+                  <paper-listbox
+                        id="addTableType"
+                        slot="dropdown-content">
+                     <paper-item>
+                        Prefix Rates
+                     </paper-item>
+                     <paper-item>
+                        Prefix Period Rates
+                     </paper-item>
+                  </paper-listbox>
+               </paper-dropdown-menu>
+            </div>
 				<div>
 					<paper-input
 							value="{{startDateTime}}"
