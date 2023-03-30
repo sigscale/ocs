@@ -1856,7 +1856,9 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		MatchName :: Match,
 		MatchResSpecId :: Match,
 		MatchRelName :: Match,
-		Match :: {exact, string()} | {like, string()} | '_',
+		Match :: MatchExact | [MatchExact] | MatchLike | '_',
+		MatchExact :: {exact, string()},
+		MatchLike :: {like, string()},
 		Result :: {Cont1, [#resource{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -1887,8 +1889,9 @@ query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId, MatchRelName)
          MatchHead1#resource{name = String}
 	end,
    query_resource2(Cont, MatchHead2, MatchResSpecId, MatchRelName).
+%% @hidden
 query_resource2(Cont, MatchHead, '_', MatchRelName) ->
-	query_resource3(Cont, MatchHead, MatchRelName);
+	query_resource3(Cont, MatchHead, [], MatchRelName);
 query_resource2(Cont, MatchHead1, {Op, String}, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead2 = case lists:last(String) of
@@ -1899,11 +1902,20 @@ query_resource2(Cont, MatchHead1, {Op, String}, MatchRelName)
          MatchHead1#resource{specification
 					= #specification_ref{id = String, _ = '_'}}
 	end,
-   query_resource3(Cont, MatchHead2, MatchRelName).
-query_resource3(Cont, MatchHead, '_') ->
-	MatchSpec = [{MatchHead, [], ['$_']}],
+   query_resource3(Cont, MatchHead2, [], MatchRelName);
+query_resource2(Cont, MatchHead1, MatchResSpecId, MatchRelName)
+		when is_list(MatchResSpecId) ->
+	MatchHead2 = MatchHead1#resource{specification = #specification_ref{
+			id = '$1', _ = '_'}},
+	Alternatives = [{'==', '$1', String}
+			|| {exact, String} <- MatchResSpecId],
+	MatchConditions = [list_to_tuple(['or' | Alternatives])],
+   query_resource3(Cont, MatchHead2, MatchConditions, MatchRelName).
+%% @hidden
+query_resource3(Cont, MatchHead, MatchConditions, '_') ->
+	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
 	query_resource4(Cont, MatchSpec);
-query_resource3(Cont, MatchHead1, {Op, String})
+query_resource3(Cont, MatchHead1, MatchConditions, {Op, String})
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead2 = case lists:last(String) of
 		$% when Op == like ->
@@ -1913,8 +1925,9 @@ query_resource3(Cont, MatchHead1, {Op, String})
          MatchHead1#resource{related
 					= [#resource_rel{name = String, _ = '_'}]}
 	end,
-	MatchSpec = [{MatchHead2, [], ['$_']}],
+	MatchSpec = [{MatchHead2, MatchConditions, ['$_']}],
    query_resource4(Cont, MatchSpec).
+%% @hidden
 query_resource4(start, MatchSpec) ->
 	F = fun() ->
 			mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read)
