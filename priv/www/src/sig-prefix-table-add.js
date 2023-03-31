@@ -154,9 +154,16 @@ class tablePrefixAdd extends PolymerElement {
 			var endDateTime = this.endDateTime;
 		}
 		var taSpec = new Object();
-		taSpec.id = "1";
-		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
-		taSpec.name = this.prefixTableRate;
+		if(this.prefixTableRate == "Prefix Rates") {
+			taSpec.id = "1";
+			taSpec.name = "TariffTable";
+			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
+		}
+		if(this.prefixTableRate == "Prefix Period Rates") {
+			taSpec.id = "5";
+			taSpec.name = "TariffPeriodsTable";
+			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/5";
+		}
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
