@@ -54,7 +54,7 @@ class tablePrefixAdd extends PolymerElement {
 				</div>
             <div>
                <paper-dropdown-menu
-                     value="{{prefixTableRate}}"
+                     value="{{prefixTableType}}"
                      no-animations="true"
                      label="Table Type">
                   <paper-listbox
@@ -65,6 +65,9 @@ class tablePrefixAdd extends PolymerElement {
                      </paper-item>
                      <paper-item>
                         Prefix Period Rates
+                     </paper-item>
+                     <paper-item>
+                        Roaming Tariffs
                      </paper-item>
                   </paper-listbox>
                </paper-dropdown-menu>
@@ -127,7 +130,7 @@ class tablePrefixAdd extends PolymerElement {
 			description: {
 				type: String
 			},
-			prefixTableRate: {
+			prefixTableType: {
 				type: String
 			},
 			startDateTime: {
@@ -154,15 +157,20 @@ class tablePrefixAdd extends PolymerElement {
 			var endDateTime = this.endDateTime;
 		}
 		var taSpec = new Object();
-		if(this.prefixTableRate == "Prefix Rates") {
+		if(this.prefixTableType == "Prefix Rates") {
 			taSpec.id = "1";
 			taSpec.name = "TariffTable";
 			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
 		}
-		if(this.prefixTableRate == "Prefix Period Rates") {
+		if(this.prefixTableType == "Prefix Period Rates") {
 			taSpec.id = "5";
 			taSpec.name = "TariffPeriodsTable";
 			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/5";
+		}
+		if(this.prefixTableType == "Roaming Tariffs") {
+			taSpec.id = "7";
+			taSpec.name = "RoamingTable";
+			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/7";
 		}
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
@@ -183,7 +191,7 @@ class tablePrefixAdd extends PolymerElement {
 		}
 		this.tableName = null;
 		this.description = null;
-		this.prefixTableRate = null;
+		this.prefixTableType = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
