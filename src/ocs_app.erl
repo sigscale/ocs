@@ -1253,38 +1253,57 @@ add_example_bundles3(PriceInstall) ->
 %% @doc Create mnesia table.
 %% @private
 create_table(client, Nodes) when is_list(Nodes) ->
-	create_table1(client, mnesia:create_table(client, [{disc_copies, Nodes},
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
 			{attributes, record_info(fields, client)},
-			{index, [#client.identifier]}]));
+			{index, [#client.identifier]}],
+	create_table1(client, mnesia:create_table(client,Options));
 create_table(service, Nodes) when is_list(Nodes) ->
-	create_table1(service, mnesia:create_table(service, [{disc_copies, Nodes},
-			{attributes, record_info(fields, service)}]));
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, service)}],
+	create_table1(service, mnesia:create_table(service, Options));
 create_table(product, Nodes) when is_list(Nodes) ->
-	create_table1(product, mnesia:create_table(product, [{disc_copies, Nodes},
-			{attributes, record_info(fields, product)}]));
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, product)}],
+	create_table1(product, mnesia:create_table(product, Options));
 create_table(resource, Nodes) when is_list(Nodes) ->
-	create_table1(resource, mnesia:create_table(resource, [{disc_copies, Nodes},
-			{attributes, record_info(fields, resource)}]));
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, resource)}],
+	create_table1(resource, mnesia:create_table(resource, Options));
 create_table(offer, Nodes) when is_list(Nodes) ->
-	create_table1(offer, mnesia:create_table(offer, [{disc_copies, Nodes},
-			{attributes, record_info(fields, offer)}]));
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, offer)}],
+	create_table1(offer, mnesia:create_table(offer, Options));
 create_table(bucket, Nodes) when is_list(Nodes) ->
-	create_table1(bucket, mnesia:create_table(bucket, [{disc_copies, Nodes},
-			{attributes, record_info(fields, bucket)}]));
+	Options = [{disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, bucket)}],
+	create_table1(bucket, mnesia:create_table(bucket, Options));
 create_table(httpd_user, Nodes) when is_list(Nodes) ->
-	create_table1(httpd_user, mnesia:create_table(httpd_user, [{type, bag},
-			{disc_copies, Nodes}, {attributes, record_info(fields, httpd_user)}]));
+	Options = [{type, bag}, {disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, httpd_user)}],
+	create_table1(httpd_user, mnesia:create_table(httpd_user, Options));
 create_table(httpd_group, Nodes) when is_list(Nodes) ->
-	create_table1(httpd_group, mnesia:create_table(httpd_group,
-			[{type, bag}, {disc_copies, Nodes},
-			{attributes, record_info(fields, httpd_group)}]));
+	Options = [{type, bag}, {disc_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, httpd_group)}],
+	create_table1(httpd_group, mnesia:create_table(httpd_group, Options));
 create_table(session, Nodes) ->
-	create_table1(session, mnesia:create_table(session, [{ram_copies, Nodes},
+	Options = [{ram_copies, Nodes},
+			{user_properties, [{ocs, true}]},
 			{attributes, record_info(fields, session)},
-			{index, [#session.imsi]}]));
+			{index, [#session.imsi]}],
+	create_table1(session, mnesia:create_table(session, Options));
 create_table(nrf_ref, Nodes) ->
-	create_table1(nrf_ref, mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
-			{attributes, record_info(fields, nrf_ref)}])).
+	Options = [{ram_copies, Nodes},
+			{user_properties, [{ocs, true}]},
+			{attributes, record_info(fields, nrf_ref)}],
+	create_table1(nrf_ref, mnesia:create_table(nrf_ref, Options)).
 %% @hidden
 create_table1(Table, {atomic, ok}) ->
 	error_logger:info_msg("Created new ~w table.~n", [Table]),
