@@ -91,6 +91,16 @@ get_resource_spec("6") ->
 	Body = mochijson:encode(ResourceSpec),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
+get_resource_spec("7") ->
+	ResourceSpec = roaming_table_spec(),
+	Body = mochijson:encode(ResourceSpec),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
+get_resource_spec("8") ->
+	ResourceSpec = roaming_row_spec(),
+	Body = mochijson:encode(ResourceSpec),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
 get_resource_spec(_) ->
 	{error, 404}.
 
@@ -819,6 +829,46 @@ tariff_periods_row_spec() ->
 					[{"name", "rateAdditional"},
 					{"description", "Rated price for each additional period"},
 					{"valueType", "Number"}]}]},
+	Characteristic = {"resourceSpecCharacteristic", Chars},
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
+			Category, Characteristic]}.
+
+%% @hidden
+tariff_table_spec() ->
+	Id = {"id", "7"},
+	Href = {"href", ?specPath "7"},
+	Name = {"name", "RoamingTable"},
+	Description = {"description", "Visited network roaming tariffs table"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2023-04-01"},
+	Category = {"category", "TariffTable"},
+	{struct, [Id, Href, Name, Description, Version, Status,
+			LastUpdate, Category]}.
+
+%% @hidden
+tariff_row_spec() ->
+	Id = {"id", "8"},
+	Href = {"href", ?specPath "8"},
+	Name = {"name", "RoamingTableRow"},
+	Description = {"description", "Visited network roaming tariff row"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2023-04-01"},
+	Category = {"category", "TariffRow"},
+	Chars = {array,
+			[{struct,
+					[{"name", "prefix"},
+					{"description", "Visited network MCCMNC prefix"},
+					{"valueType", "String"}]},
+			{struct,
+					[{"name", "description"},
+					{"description", "Prefix description"},
+					{"valueType", "String"}]},
+			{struct,
+					[{"name", "tariff"},
+					{"description", "Tariff table name suffix"},
+					{"valueType", "String"}]}]},
 	Characteristic = {"resourceSpecCharacteristic", Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
 			Category, Characteristic]}.
