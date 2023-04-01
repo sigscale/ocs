@@ -834,7 +834,7 @@ tariff_periods_row_spec() ->
 			Category, Characteristic]}.
 
 %% @hidden
-tariff_table_spec() ->
+roaming_table_spec() ->
 	Id = {"id", "7"},
 	Href = {"href", ?specPath "7"},
 	Name = {"name", "RoamingTable"},
@@ -847,7 +847,7 @@ tariff_table_spec() ->
 			LastUpdate, Category]}.
 
 %% @hidden
-tariff_row_spec() ->
+roaming_row_spec() ->
 	Id = {"id", "8"},
 	Href = {"href", ?specPath "8"},
 	Name = {"name", "RoamingTableRow"},
