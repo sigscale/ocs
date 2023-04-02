@@ -1168,36 +1168,44 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 	end.
 %% @hidden
 add_example_voice_offers() ->
-	TariffResource = #resource{name = "example", state = "created",
-			description = "Example voice tariff",
-			specification = #specification_ref{id = "1",
-			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
-			name = "TariffTable"}},
-	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
+	PriceUsage = #price{name = "Usage",
+			description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
-			specification = "3", values = [#char_value{value = "example"}]}]},
+					specification = "3",
+					values = [#char_value{value = "example"}]}]},
 	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
 			specification = "9", price = [PriceUsage]},
-	case ocs:add_offer(Offer) of
-		{ok, #offer{}} ->
-			case code:priv_dir(ocs) of
-				PrivDir when is_list(PrivDir) ->
-					TariffPath = PrivDir ++ "/examples/tariff-rates.csv",
-					try ocs_gtt:import(TariffPath) of
-						ok ->
+	add_example_voice_offers1(ocs:add_offer(Offer)).
+%% @hidden
+add_example_voice_offers1({ok, #offer{}}) ->
+	TariffResource = #resource{name = "tariff-rates",
+			description = "Example tariff rates table",
+			specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+					name = "TariffTable"}},
+	case code:priv_dir(ocs) of
+		PrivDir when is_list(PrivDir) ->
+			TariffPath = PrivDir ++ "/examples/tariff-rates.csv",
+			try ocs_gtt:import(TariffPath) of
+				ok ->
+					case ocs:add_resource(TariffResource) of
+						{ok, #resource{}} ->
 							error_logger:info_msg("Imported example tariff rates table: "
-									++ TariffPath ++ "~n")
-					catch
-						_:Reason ->
+									++ TariffPath ++ "~n"),
+							ok;
+						{error, Reason} ->
 							{error, Reason}
-					end;
-				{error, _Reason} ->
-					ok
+					end
+			catch
+				_:Reason ->
+					{error, Reason}
 			end;
-		{error, Reason} ->
-			{error, Reason}
-	end.
+		{error, _Reason} ->
+			ok
+	end;
+add_example_voice_offers1({error, Reason}) ->
+	{error, Reason}.
 %% @hidden
 add_example_bundles() ->
 	PriceInstall = #price{name = "Installation",
