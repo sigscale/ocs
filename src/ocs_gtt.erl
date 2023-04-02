@@ -350,6 +350,7 @@ import2(Table, Records) ->
 	case mnesia:create_table(Table,
 			[{disc_copies, [node() | nodes()]},
 			{attributes, record_info(fields, gtt)},
+			{user_properties, [{ocs, true}]},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
 			import3(Table, Records);
