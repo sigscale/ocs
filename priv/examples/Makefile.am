@@ -3,5 +3,6 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-examples_DATA = example.csv
+examples_DATA = tariff-rates.csv \
+		tariff-periods.csv
 

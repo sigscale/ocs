@@ -1183,10 +1183,10 @@ add_example_voice_offers() ->
 		{ok, #offer{}} ->
 			case code:priv_dir(ocs) of
 				PrivDir when is_list(PrivDir) ->
-					TariffPath = PrivDir ++ "/examples/example.csv",
+					TariffPath = PrivDir ++ "/examples/tariff-rates.csv",
 					try ocs_gtt:import(TariffPath) of
 						ok ->
-							error_logger:info_msg("Imported example tariff table: "
+							error_logger:info_msg("Imported example tariff rates table: "
 									++ TariffPath ++ "~n")
 					catch
 						_:Reason ->
