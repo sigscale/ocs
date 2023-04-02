@@ -73,6 +73,7 @@ new(Table, Options) when is_list(Table) ->
 new(Table, Options) when is_list(Options) ->
 	case mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
+			{user_properties, [{ocs, true}]},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
 			ok;
@@ -104,6 +105,7 @@ new(Table, Options, Items) when is_list(Table) ->
 new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
+			{user_properties, [{ocs, true}]},
 			{record_name, gtt}]),
 	Threshold = mnesia:system_info(dump_log_write_threshold) - 1,
 	Ftran = fun(F, [{Number, Value} | T], N) when is_integer(Number) ->
