@@ -40,7 +40,9 @@ class tablePrefixAdd extends PolymerElement {
 							value="{{tableName}}">
 					</paper-input>
 					<paper-tooltip>
-						Tariff table name.
+						Tariff table name.<br />
+						Note: An underlying <tt>mnesia</tt> table must have been
+						previously created by your system administrator.
 					</paper-tooltip>
 				</div>
 				<div>
