@@ -164,7 +164,7 @@ class prefixList extends PolymerElement {
 			</iron-ajax>
 			<iron-ajax
 					id="getPrefixTables"
-					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1,5"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1,5,7"
 					on-response="_getTablesResponse"
 					on-error="_getTablesError">
 			</iron-ajax>
