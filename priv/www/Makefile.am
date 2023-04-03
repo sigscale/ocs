@@ -24,10 +24,10 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-sub-add.js \
 		sig-sub-list.js \
 		sig-sub-update.js \
-		sig-prefix-list.js \
-		sig-prefix-update.js \
-		sig-prefix-table-add.js \
-		sig-prefix-add.js \
+		sig-tariff-rate-list.js \
+		sig-tariff-rate-update.js \
+		sig-tariff-table-add.js \
+		sig-tariff-rate-add.js \
 		sig-offer-list.js \
 		sig-offer-update.js \
 		sig-offer-add.js \

@@ -375,13 +375,13 @@ class prefixList extends PolymerElement {
 	}
 
 	_tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
 	}
 
 	showAddPrefixModal() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('addPrefixModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-add').shadowRoot.getElementById('addPrefixModal').open();
 	}
 }
 
-window.customElements.define('sig-prefix-list', prefixList);
+window.customElements.define('sig-tariff-rate-list', prefixList);
 

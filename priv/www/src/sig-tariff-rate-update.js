@@ -237,4 +237,4 @@ class tableUpdate extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-prefix-update', tableUpdate);
+window.customElements.define('sig-tariff-rate-update', tableUpdate);

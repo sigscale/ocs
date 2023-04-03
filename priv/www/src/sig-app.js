@@ -144,13 +144,13 @@ class SigApp extends PolymerElement {
 								loading="{{httpLoading}}"
 								name="httpView">
 						</sig-http-list>
-						<sig-prefix-list
+						<sig-tariff-rate-list
 								id="prefixList"
 								active-item="{{activePrefixItem}}"
 								active-table-name="{{prefixTable}}"
 								loading="{{prefixLoading}}"
 								name="prefixView">
-						</sig-prefix-list>
+						</sig-tariff-rate-list>
 						<sig-balance-list
 								id="balanceList"
 								loading="{{balanceLoading}}"
@@ -332,9 +332,9 @@ class SigApp extends PolymerElement {
 			<sig-offer-update id="updateOffer" offers="[[offers]]" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
-			<sig-prefix-table-add></sig-prefix-table-add>
-			<sig-prefix-add></sig-prefix-add>
-			<sig-prefix-update active-item="[[activePrefixItem]]"></sig-prefix-update>
+			<sig-tariff-table-add></sig-tariff-table-add>
+			<sig-tariff-rate-add></sig-tariff-rate-add>
+			<sig-tariff-rate-update active-item="[[activePrefixItem]]"></sig-tariff-rate-update>
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 			<sig-policy-add id="policyAdd"></sig-policy-add>
@@ -425,7 +425,7 @@ class SigApp extends PolymerElement {
 			}
 		}
 		if(this.$.load.selected == "prefixView") {
-			var prefix = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
+			var prefix = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list');
 			if (!prefix.loading) {
 				prefix.shadowRoot.getElementById('tableList').open();
 				prefix.shadowRoot.getElementById('prefixGrid').clearCache();
@@ -704,10 +704,10 @@ class SigApp extends PolymerElement {
 				import('./sig-http-list.js');
 				break;
 			case 'prefixView':
-				import('./sig-prefix-list.js');
-				import('./sig-prefix-add.js');
-				import('./sig-prefix-table-add.js');
-				import('./sig-prefix-update.js');
+				import('./sig-tariff-rate-list.js');
+				import('./sig-tariff-rate-add.js');
+				import('./sig-tariff-table-add.js');
+				import('./sig-tariff-rate-update.js');
 				break;
 			case 'policyView':
 				import('./sig-policy-list.js');

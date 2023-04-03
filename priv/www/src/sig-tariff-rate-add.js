@@ -186,4 +186,4 @@ class prefixAdd extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-prefix-add', prefixAdd);
+window.customElements.define('sig-tariff-rate-add', prefixAdd);

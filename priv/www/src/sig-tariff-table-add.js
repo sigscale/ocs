@@ -219,4 +219,4 @@ class tablePrefixAdd extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-prefix-table-add', tablePrefixAdd);
+window.customElements.define('sig-tariff-table-add', tablePrefixAdd);
