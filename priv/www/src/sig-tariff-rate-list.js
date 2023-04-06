@@ -247,7 +247,7 @@ class prefixList extends PolymerElement {
 	_tableOk() {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
-			var grid = this.shadowRoot.getElementById('prefixGrid');
+			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
 		}
 		if(this.activeSpecId == "1") {
 			var grid = this.shadowRoot.getElementById('prefixGrid');
