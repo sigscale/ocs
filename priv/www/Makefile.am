@@ -28,6 +28,7 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-tariff-rate-update.js \
 		sig-tariff-table-add.js \
 		sig-tariff-rate-add.js \
+		sig-tariff-periods-list.js \
 		sig-offer-list.js \
 		sig-offer-update.js \
 		sig-offer-add.js \
