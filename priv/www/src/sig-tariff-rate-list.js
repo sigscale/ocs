@@ -203,6 +203,9 @@ class prefixList extends PolymerElement {
 			activeItem: {
 				type: Object,
 				notify: true
+			},
+			activeSpecId: {
+				type: String,
 			}
 		}
 	}
@@ -222,14 +225,33 @@ class prefixList extends PolymerElement {
 			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
+			tableRecord.specId = results[indexTable].resourceSpecification.id;
 			this.push('tables', tableRecord);
 		}
 		this.shadowRoot.getElementById('tableItems').notifyPath('items');
 	}
 
+	_tableSelection(e) {
+		if(e.model.item && e.model.item.id) {
+			this.activeTableName = e.model.item.name;
+			this.activeTableId = e.model.item.id;
+			this.activeSpecId = e.model.item.specId;
+			this.$.tabOkButton.disabled = false;
+		} else {
+			this.activeTableName = null;
+			this.activeTableId = null;
+			this.$.tabOkButton.disabled = true;
+		}
+	}
+
 	_tableOk() {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
-		var grid = this.shadowRoot.getElementById('prefixGrid');
+		if(this.activeSpecId == "5") {
+			var grid = this.shadowRoot.getElementById('prefixGrid');
+		}
+		if(this.activeSpecId == "1") {
+			var grid = this.shadowRoot.getElementById('prefixGrid');
+		}
 		grid.dataProvider = this._getPrefixTable;
 		grid.clearCache();
 		this.$.tableList.close();
@@ -256,18 +278,6 @@ class prefixList extends PolymerElement {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
-	}
-
-	_tableSelection(e) {
-		if(e.model.item && e.model.item.id) {
-			this.activeTableName = e.model.item.name;
-			this.activeTableId = e.model.item.id;
-			this.$.tabOkButton.disabled = false;
-		} else {
-			this.activeTableName = null;
-			this.activeTableId = null;
-			this.$.tabOkButton.disabled = true;
-		}
 	}
 
 	_getPrefixTable(params, callback) {
