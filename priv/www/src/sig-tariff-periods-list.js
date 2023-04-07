@@ -20,12 +20,12 @@ import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js'
 
-class prefixList extends PolymerElement {
+class periodList extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
 			<vaadin-grid
-					id="prefixGrid"
+					id="periodGrid"
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
@@ -101,52 +101,6 @@ class prefixList extends PolymerElement {
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
-			<paper-dialog
-					class="dialog"
-					id="tableList">
-				<app-toolbar>
-					List of Tables
-				</app-toolbar>
-				<template
-						id="tableItems"
-						is="dom-repeat"
-						items="[[tables]]">
-					<paper-item
-							id="pagePrefix"
-							class="menuitem"
-							on-focused-changed="_tableSelection">
-						<iron-icon icon="icons:view-list" item-icon></iron-icon>
-							{{item.name}}
-					</paper-item>
-				</template>
-				<div class="buttons">
-					<paper-button
-							raised
-							id="tabOkButton"
-							disabled
-							on-tap="_tableOk"
-							class="submit-button">
-						Ok
-					</paper-button>
-					<paper-button
-							dialog-dismiss
-							class="cancel-button">
-						Cancel
-					</paper-button>
-					<paper-button
-							raised
-							on-tap="_tableAdd"
-							class="submit-button">
-						Add
-					</paper-button>
-					<paper-button
-							raised
-							on-tap="_tableDelete"
-							class="delete-button">
-						Delete
-					</paper-button>
-				</div>
-			</paper-dialog>
 			<div class="add-button">
 				<paper-fab
 						icon="add"
@@ -154,19 +108,7 @@ class prefixList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-					id="getPrefixRows">
-			</iron-ajax>
-			<iron-ajax
-					id="deletePrefixTable"
-					method="DELETE"
-					on-response="_deleteTableResponse"
-					on-error="_deleteTableError">
-			</iron-ajax>
-			<iron-ajax
-					id="getPrefixTables"
-					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1,5,7"
-					on-response="_getTablesResponse"
-					on-error="_getTablesError">
+					id="getPeriodRows">
 			</iron-ajax>
 		`;
 	}
@@ -185,14 +127,6 @@ class prefixList extends PolymerElement {
 				type: Boolean,
 				observer: '_filterChanged'
 			},
-			tables: {
-				type: Array,
-				readOnly: true,
-				notify: true,
-				value: function() {
-					return []
-				}
-			},
 			activeTableName: {
 				type: String,
 				notify: true
@@ -203,91 +137,26 @@ class prefixList extends PolymerElement {
 			activeItem: {
 				type: Object,
 				notify: true
-			},
-			activeSpecId: {
-				type: String,
 			}
 		}
 	}
 
 	ready() {
 		super.ready();
-		var ajax = this.shadowRoot.getElementById('getPrefixTables');
-		ajax.generateRequest();
-		this.$.tableList.open();
-	}
-
-	_getTablesResponse(event) {
-		var results = event.detail.xhr.response;
-		this.splice("tables", 0, this.tables.length)
-		for (var indexTable in results) {
-			var tableRecord = new Object();
-			tableRecord.name = results[indexTable].name;
-			tableRecord.id = results[indexTable].id;
-			tableRecord.href = results[indexTable].href;
-			tableRecord.specId = results[indexTable].resourceSpecification.id;
-			this.push('tables', tableRecord);
-		}
-		this.shadowRoot.getElementById('tableItems').notifyPath('items');
-	}
-
-	_tableSelection(e) {
-		if(e.model.item && e.model.item.id) {
-			this.activeTableName = e.model.item.name;
-			this.activeTableId = e.model.item.id;
-			this.activeSpecId = e.model.item.specId;
-			this.$.tabOkButton.disabled = false;
-		} else {
-			this.activeTableName = null;
-			this.activeTableId = null;
-			this.$.tabOkButton.disabled = true;
-		}
-	}
-
-	_tableOk() {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
-		if(this.activeSpecId == "5") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
-		}
-		if(this.activeSpecId == "1") {
-			var grid = this.shadowRoot.getElementById('prefixGrid');
-		}
-		grid.dataProvider = this._getPrefixTable;
+		var grid = this.shadowRoot.getElementById('periodGrid');
+		grid.dataProvider = this._getPeriodTable;
 		grid.clearCache();
-		this.$.tableList.close();
-	} 
-
-	_tableDelete() {
-		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
-		this.$.deletePrefixTable.generateRequest();
-		this.activeTableName = null;
-		this.activeTableId = null;
 	}
 
-	_deleteTableResponse(event) {
-		this.shadowRoot.getElementById('getPrefixTables').generateRequest();
-	}
-
-	_getTablesError(event) {
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
-	}
-
-	_deleteTableError(event) {
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
-	}
-
-	_getPrefixTable(params, callback) {
+	_getPeriodTable(params, callback) {
 		var grid = this;
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
-		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.activeTableName;
+		var periodList = document.body.querySelector('sig-app').shadowRoot.getElementById('periodList');
+		var ajax = periodList.shadowRoot.getElementById('getPeriodRows');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=6&resourceRelationship.resource.name=" + periodList.activeTableName;
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"
@@ -306,7 +175,7 @@ class prefixList extends PolymerElement {
 		}
 		var handleAjaxResponse = function(request) {
 			if(request) {
-				prefixList.etag = request.xhr.getResponseHeader('ETag');
+				periodList.etag = request.xhr.getResponseHeader('ETag');
 				var range = request.xhr.getResponseHeader('Content-Range');
 				var range1 = range.split("/");
 				var range2 = range1[0].split("-");
@@ -344,7 +213,7 @@ class prefixList extends PolymerElement {
 			}
 		};
 		var handleAjaxError = function(error) {
-			prefixList.etag = null;
+			periodList.etag = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Error";
 			toast.open();
@@ -358,8 +227,8 @@ class prefixList extends PolymerElement {
 				var startRange = params.page * params.pageSize + 1;
 				var endRange = startRange + params.pageSize - 1;
 				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-				if (prefixList.etag && params.page > 0) {
-					ajax.headers['If-Range'] = prefixList.etag;
+				if (periodList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = periodList.etag;
 				} else {
 					delete ajax.headers['If-Range'];
 				}
@@ -369,8 +238,8 @@ class prefixList extends PolymerElement {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;
 			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (prefixList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = prefixList.etag;
+			if (periodList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = periodList.etag;
 			} else {
 				delete ajax.headers['If-Range'];
 			}
@@ -380,12 +249,8 @@ class prefixList extends PolymerElement {
 
 	_filterChanged(filter) {
 		this.etag = null;
-		var grid = this.shadowRoot.getElementById('prefixGrid');
+		var grid = this.shadowRoot.getElementById('periodGrid');
 		grid.size = 0;
-	}
-
-	_tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
 	}
 
 	showAddPrefixModal() {
@@ -393,5 +258,4 @@ class prefixList extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-rate-list', prefixList);
-
+window.customElements.define('sig-tariff-periods-list', periodList);

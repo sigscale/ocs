@@ -448,7 +448,8 @@ add_resource(RequestBody) ->
 		resource(mochijson:decode(RequestBody))
 	of
 		#resource{name = Name, specification = #specification_ref{id = SpecId}}
-				= Resource when SpecId == "1"; SpecId == "3" ->
+				= Resource when SpecId == "1"; SpecId == "3"; SpecId == "5";
+				SpecId == "7" ->
 			F = fun F(eof, Acc) ->
 						lists:flatten(Acc);
 					F(Cont1, Acc) ->

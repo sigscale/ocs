@@ -151,6 +151,13 @@ class SigApp extends PolymerElement {
 								loading="{{prefixLoading}}"
 								name="prefixView">
 						</sig-tariff-rate-list>
+						<sig-tariff-periods-list
+								id="periodsList"
+								active-item="{{activePeriodItem}}"
+								active-table-name="{{periodTable}}"
+								loading="{{periodLoading}}"
+								name="periodView">
+						</sig-tariff-periods-list>
 						<sig-balance-list
 								id="balanceList"
 								loading="{{balanceLoading}}"
@@ -433,6 +440,14 @@ class SigApp extends PolymerElement {
 				console.log('Have patience dude!');
 			}
 		}
+		if(this.$.load.selected == "periodsView") {
+			var periods = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list');
+			if (!periods.loading) {
+				periods.shadowRoot.getElementById('periodGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
+		}
 		if(this.$.load.selected == "policyView") {
 		var policy = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 			if (!policy.loading) {
@@ -555,6 +570,9 @@ class SigApp extends PolymerElement {
 			prefixLoading: {
 				type: Boolean
 			},
+			periodLoading: {
+				type: Boolean
+			},
 			balanceLoading: {
 				type: Boolean
 			},
@@ -579,7 +597,7 @@ class SigApp extends PolymerElement {
 	static get observers() {
 		return [
 			'_routePageChanged(routeData.page)',
-			'_loadingChanged(dashLoading, offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, balanceLoading, productLoading, bucketLoading)'
+			'_loadingChanged(dashLoading, offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, periodLoading, balanceLoading, productLoading, bucketLoading)'
 		];
 	}
 
@@ -709,6 +727,9 @@ class SigApp extends PolymerElement {
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-rate-update.js');
 				break;
+			case 'periodView':
+				import('./sig-tariff-periods-list.js');
+				break;
 			case 'policyView':
 				import('./sig-policy-list.js');
 				import('./sig-policy-table-add.js');
@@ -730,7 +751,7 @@ class SigApp extends PolymerElement {
 	}
 
 	_loadingChanged() {
-		if(this.dashLoading || this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
+		if(this.dashLoading || this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.periodLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
 			this.loading = true;
 		} else {
 			this.loading = false;
