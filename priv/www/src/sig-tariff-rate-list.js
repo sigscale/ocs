@@ -249,6 +249,9 @@ class prefixList extends PolymerElement {
 		if(this.activeSpecId == "5") {
 			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
 		}
+		if(this.activeSpecId == "7") {
+			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('roamingGrid');
+		}
 		if(this.activeSpecId == "1") {
 			var grid = this.shadowRoot.getElementById('prefixGrid');
 		}
