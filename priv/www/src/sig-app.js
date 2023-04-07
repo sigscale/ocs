@@ -158,6 +158,13 @@ class SigApp extends PolymerElement {
 								loading="{{periodLoading}}"
 								name="periodView">
 						</sig-tariff-periods-list>
+						<sig-tariff-roaming-list
+								id="roamingList"
+								active-item="{{activeRoamingItem}}"
+								active-table-name="{{roamingTable}}"
+								loading="{{roamingLoading}}"
+								name="roamingView">
+						</sig-tariff-roaming-list>
 						<sig-balance-list
 								id="balanceList"
 								loading="{{balanceLoading}}"
@@ -448,6 +455,14 @@ class SigApp extends PolymerElement {
 				console.log('Have patience dude!');
 			}
 		}
+		if(this.$.load.selected == "roamingView") {
+			var roaming = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list');
+			if (!roaming.loading) {
+				roaming.shadowRoot.getElementById('roamingGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
+		}
 		if(this.$.load.selected == "policyView") {
 		var policy = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 			if (!policy.loading) {
@@ -729,6 +744,9 @@ class SigApp extends PolymerElement {
 				break;
 			case 'periodView':
 				import('./sig-tariff-periods-list.js');
+				break;
+			case 'roamingView':
+				import('./sig-tariff-roaming-list.js');
 				break;
 			case 'policyView':
 				import('./sig-policy-list.js');
