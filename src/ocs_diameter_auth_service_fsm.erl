@@ -397,7 +397,13 @@ service_options(Options) ->
 							'Auth-Application-Id' = [?S6b_APPLICATION_ID]}]}
 					| Options3]
 	end,
-	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options5 = case lists:keymember('Inband-Security-Id', 1, Options4) of
+		true ->
+			Options4;
+		false ->
+			[{'Inband-Security-Id', [0]} | Options4]
+	end,
+	Options5 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},

@@ -354,7 +354,13 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options2]
 	end,
-	Options3 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options4 = case lists:keymember('Inband-Security-Id', 1, Options3) of
+		true ->
+			Options3;
+		false ->
+			[{'Inband-Security-Id', [0]} | Options3]
+	end,
+	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
