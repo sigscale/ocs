@@ -374,11 +374,12 @@ service_options(Options) ->
 					?S6b_APPLICATION_ID],
 			[{'Auth-Application-Id', ApplicationIds} | Options2]
 	end,
-	Options4 = case lists:keymember('Auth-Application-Id', 1, Options3) of
+	Options4 = case lists:keymember('Vendor-Specific-Application-Id',
+			1, Options3) of
 		true ->
 			Options3;
 		false ->
-			{'Vendor-Specific-Application-Id',
+			[{'Vendor-Specific-Application-Id',
 					[#'diameter_base_Vendor-Specific-Application-Id'{
 							'Vendor-Id' = ?IANA_PEN_3GPP,
 							'Auth-Application-Id' = [?STa_APPLICATION_ID]},
@@ -394,8 +395,15 @@ service_options(Options) ->
 					#'diameter_base_Vendor-Specific-Application-Id'{
 							'Vendor-Id' = ?IANA_PEN_3GPP,
 							'Auth-Application-Id' = [?S6b_APPLICATION_ID]}]}
+					| Options3]
 	end,
-	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options5 = case lists:keymember('Inband-Security-Id', 1, Options4) of
+		true ->
+			Options4;
+		false ->
+			[{'Inband-Security-Id', [0]} | Options4]
+	end,
+	Options5 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
