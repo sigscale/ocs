@@ -154,7 +154,7 @@ class periodList extends PolymerElement {
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var periodList = document.body.querySelector('sig-app').shadowRoot.getElementById('periodList');
+		var periodList = document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList');
 		var ajax = periodList.shadowRoot.getElementById('getPeriodRows');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=6&resourceRelationship.resource.name=" + periodList.activeTableName;
 		delete ajax.params['filter'];

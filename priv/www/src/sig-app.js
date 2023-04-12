@@ -156,14 +156,14 @@ class SigApp extends PolymerElement {
 								active-item="{{activePeriodItem}}"
 								active-table-name="{{periodTable}}"
 								loading="{{periodLoading}}"
-								name="periodView">
+								name="prefixView">
 						</sig-tariff-periods-list>
 						<sig-tariff-roaming-list
 								id="roamingList"
 								active-item="{{activeRoamingItem}}"
 								active-table-name="{{roamingTable}}"
 								loading="{{roamingLoading}}"
-								name="roamingView">
+								name="prefixView">
 						</sig-tariff-roaming-list>
 						<sig-balance-list
 								id="balanceList"
@@ -440,23 +440,19 @@ class SigApp extends PolymerElement {
 		}
 		if(this.$.load.selected == "prefixView") {
 			var prefix = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list');
+			var periods = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list');
+			var roaming = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list');
 			if (!prefix.loading) {
 				prefix.shadowRoot.getElementById('tableList').open();
 				prefix.shadowRoot.getElementById('prefixGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
 			}
-		}
-		if(this.$.load.selected == "periodsView") {
-			var periods = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list');
 			if (!periods.loading) {
 				periods.shadowRoot.getElementById('periodGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
 			}
-		}
-		if(this.$.load.selected == "roamingView") {
-			var roaming = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list');
 			if (!roaming.loading) {
 				roaming.shadowRoot.getElementById('roamingGrid').clearCache();
 			} else {
@@ -741,11 +737,7 @@ class SigApp extends PolymerElement {
 				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-rate-update.js');
-				break;
-			case 'periodView':
 				import('./sig-tariff-periods-list.js');
-				break;
-			case 'roamingView':
 				import('./sig-tariff-roaming-list.js');
 				break;
 			case 'policyView':
