@@ -1260,6 +1260,10 @@
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
             } ]
+          },
+          "apn" : {
+            "description" : "Access Point Name (APN)",
+            "type" : "string"
           }
         },
         "required" : [ "sgsnMccMnc" ]
