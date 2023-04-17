@@ -248,14 +248,16 @@ class prefixList extends PolymerElement {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
 			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
 		}
 		if(this.activeSpecId == "7") {
 			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('roamingGrid');
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
 		}
 		if(this.activeSpecId == "1") {
 			var grid = this.shadowRoot.getElementById('prefixGrid');
+			grid.dataProvider = this._getPrefixTable;
 		}
-		grid.dataProvider = this._getPrefixTable;
 		grid.clearCache();
 		this.$.tableList.close();
 	} 

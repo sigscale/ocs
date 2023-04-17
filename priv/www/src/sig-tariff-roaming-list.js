@@ -156,7 +156,7 @@ class roamingList extends PolymerElement {
 		}
 		var roamingList = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList');
 		var ajax = roamingList.shadowRoot.getElementById('getRoamingRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=6&resourceRelationship.resource.name=" + roamingList.activeTableName;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=8&resourceRelationship.resource.name=" + roamingList.activeTableName;
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"
