@@ -1264,6 +1264,11 @@
           "apn" : {
             "description" : "Access Point Name (APN)",
             "type" : "string"
+          },
+          "chargingCharacteristics" : {
+            "description" : "Charging Characteristics (GTP IE)",
+            "type" : "string",
+            "pattern" : "^[A-Fa-f0-9]{6}$"
           }
         },
         "required" : [ "sgsnMccMnc" ]
