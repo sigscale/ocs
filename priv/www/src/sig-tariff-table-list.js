@@ -172,7 +172,7 @@ class tableList extends PolymerElement {
 			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
 		}
 		if(this.activeSpecId == "1") {
-			var grid = this.shadowRoot.getElementById('prefixGrid');
+			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('prefixGrid');
 			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
 		}
 		grid.clearCache();
