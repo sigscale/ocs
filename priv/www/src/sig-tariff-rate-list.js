@@ -101,52 +101,6 @@ class prefixList extends PolymerElement {
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
-			<paper-dialog
-					class="dialog"
-					id="tableList">
-				<app-toolbar>
-					List of Tables
-				</app-toolbar>
-				<template
-						id="tableItems"
-						is="dom-repeat"
-						items="[[tables]]">
-					<paper-item
-							id="pagePrefix"
-							class="menuitem"
-							on-focused-changed="_tableSelection">
-						<iron-icon icon="icons:view-list" item-icon></iron-icon>
-							{{item.name}}
-					</paper-item>
-				</template>
-				<div class="buttons">
-					<paper-button
-							raised
-							id="tabOkButton"
-							disabled
-							on-tap="_tableOk"
-							class="submit-button">
-						Ok
-					</paper-button>
-					<paper-button
-							dialog-dismiss
-							class="cancel-button">
-						Cancel
-					</paper-button>
-					<paper-button
-							raised
-							on-tap="_tableAdd"
-							class="submit-button">
-						Add
-					</paper-button>
-					<paper-button
-							raised
-							on-tap="_tableDelete"
-							class="delete-button">
-						Delete
-					</paper-button>
-				</div>
-			</paper-dialog>
 			<div class="add-button">
 				<paper-fab
 						icon="add"
@@ -155,18 +109,6 @@ class prefixList extends PolymerElement {
 			</div>
 			<iron-ajax
 					id="getPrefixRows">
-			</iron-ajax>
-			<iron-ajax
-					id="deletePrefixTable"
-					method="DELETE"
-					on-response="_deleteTableResponse"
-					on-error="_deleteTableError">
-			</iron-ajax>
-			<iron-ajax
-					id="getPrefixTables"
-					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1,5,7"
-					on-response="_getTablesResponse"
-					on-error="_getTablesError">
 			</iron-ajax>
 		`;
 	}
@@ -212,75 +154,10 @@ class prefixList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		var ajax = this.shadowRoot.getElementById('getPrefixTables');
-		ajax.generateRequest();
-		this.$.tableList.open();
-	}
-
-	_getTablesResponse(event) {
-		var results = event.detail.xhr.response;
-		this.splice("tables", 0, this.tables.length)
-		for (var indexTable in results) {
-			var tableRecord = new Object();
-			tableRecord.name = results[indexTable].name;
-			tableRecord.id = results[indexTable].id;
-			tableRecord.href = results[indexTable].href;
-			tableRecord.specId = results[indexTable].resourceSpecification.id;
-			this.push('tables', tableRecord);
-		}
-		this.shadowRoot.getElementById('tableItems').notifyPath('items');
-	}
-
-	_tableSelection(e) {
-		if(e.model.item && e.model.item.id) {
-			this.activeTableName = e.model.item.name;
-			this.activeTableId = e.model.item.id;
-			this.activeSpecId = e.model.item.specId;
-			this.$.tabOkButton.disabled = false;
-		} else {
-			this.activeTableName = null;
-			this.activeTableId = null;
-			this.$.tabOkButton.disabled = true;
-		}
-	}
-
-	_tableOk() {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
-		if(this.activeSpecId == "5") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
-		}
-		if(this.activeSpecId == "7") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('roamingGrid');
-		}
-		if(this.activeSpecId == "1") {
-			var grid = this.shadowRoot.getElementById('prefixGrid');
-		}
-		grid.dataProvider = this._getPrefixTable;
-		grid.clearCache();
-		this.$.tableList.close();
-	} 
-
-	_tableDelete() {
-		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
-		this.$.deletePrefixTable.generateRequest();
-		this.activeTableName = null;
-		this.activeTableId = null;
-	}
-
-	_deleteTableResponse(event) {
-		this.shadowRoot.getElementById('getPrefixTables').generateRequest();
-	}
-
-	_getTablesError(event) {
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
-	}
-
-	_deleteTableError(event) {
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
+      var grid = this.shadowRoot.getElementById('prefixGrid');
+      grid.dataProvider = this._getPrefixTable;
+      grid.clearCache();
 	}
 
 	_getPrefixTable(params, callback) {

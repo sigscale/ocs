@@ -347,6 +347,7 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
+			<sig-tariff-table-list></sig-tariff-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
 			<sig-tariff-rate-update active-item="[[activePrefixItem]]"></sig-tariff-rate-update>
 			<sig-bucket-add></sig-bucket-add>
@@ -734,6 +735,7 @@ class SigApp extends PolymerElement {
 				break;
 			case 'prefixView':
 				import('./sig-tariff-rate-list.js');
+				import('./sig-tariff-table-list.js');
 				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-rate-update.js');
