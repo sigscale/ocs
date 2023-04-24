@@ -253,7 +253,7 @@
 -type resource_rel() :: #resource_rel{}.
 
 -record(specification_ref,
-		{id :: string() | undefined | '_',
+		{id :: string() | undefined | '_' | '$1',
 		href :: string() | undefined | '_',
 		name :: string() | undefined | '_',
 		version :: string() | undefined | '_'}).
