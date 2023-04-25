@@ -145,25 +145,25 @@ class SigApp extends PolymerElement {
 								name="httpView">
 						</sig-http-list>
 						<sig-tariff-rate-list
-								id="prefixList"
+								id="rateList"
 								active-item="{{activePrefixItem}}"
-								active-table-name="{{prefixTable}}"
-								loading="{{prefixLoading}}"
-								name="prefixView">
+								active-table-name="{{rateTable}}"
+								loading="{{rateLoading}}"
+								name="rateView">
 						</sig-tariff-rate-list>
 						<sig-tariff-periods-list
 								id="periodsList"
 								active-item="{{activePeriodItem}}"
 								active-table-name="{{periodTable}}"
 								loading="{{periodLoading}}"
-								name="prefixView">
+								name="periodView">
 						</sig-tariff-periods-list>
 						<sig-tariff-roaming-list
 								id="roamingList"
 								active-item="{{activeRoamingItem}}"
 								active-table-name="{{roamingTable}}"
 								loading="{{roamingLoading}}"
-								name="prefixView">
+								name="roamingView">
 						</sig-tariff-roaming-list>
 						<sig-balance-list
 								id="balanceList"
@@ -228,12 +228,32 @@ class SigApp extends PolymerElement {
 								</paper-icon-button>
 								Offerings
 							</a>
-							<a name="prefixView" href="[[rootPath]]prefixView">
+							<a href="" on-click="_collapseTariff">
 								<paper-icon-button
 										icon="ocs-icons:table">
 								</paper-icon-button>
 								Tariff
 							</a>
+							<iron-collapse id="tariff">
+								<a name="rateView" href="[[rootPath]]rateView">
+									<paper-icon-button
+											icon="ocs-icons:table">
+									</paper-icon-button>
+									Rate
+								</a>
+								<a name="periodView" href="[[rootPath]]periodView">
+									<paper-icon-button
+											icon="ocs-icons:table">
+									</paper-icon-button>
+									Period
+								</a>
+								<a name="roamingView" href="[[rootPath]]roamingView">
+									<paper-icon-button
+											icon="ocs-icons:table">
+									</paper-icon-button>
+									Roaming
+								</a>
+							</iron-collapse>
 							<a name="policyView" href="[[rootPath]]policyView">
 								<paper-icon-button
 										icon="icons:verified-user">
@@ -432,32 +452,33 @@ class SigApp extends PolymerElement {
 			}
 		}
 		if(this.$.load.selected == "httpView") {
-		var http = 	document.body.querySelector('sig-app').shadowRoot.getElementById('httpList');
+		var http = document.body.querySelector('sig-app').shadowRoot.getElementById('httpList');
 			if (!http.loading) {
 				http.shadowRoot.getElementById('getHttp').generateRequest();
 			} else {
 				console.log('Have patience dude!');
 			}
 		}
-		if(this.$.load.selected == "prefixView") {
-			var prefix = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list');
-			var periods = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list');
-			var roaming = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list');
-			if (!prefix.loading) {
-				prefix.shadowRoot.getElementById('tableList').open();
-				prefix.shadowRoot.getElementById('prefixGrid').clearCache();
+		if(this.$.load.selected == "rateView") {
+			var rate = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list');
+			var tab = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list');
+			if (!rate.loading) {
+				tab.shadowRoot.getElementById('tableList').open();
+				rate.shadowRoot.getElementById('prefixGrid').clearCache();
 			} else {
-				console.log('Have patience dude!');
+            console.log('Have patience dude!');
+         }
+		}
+		if(this.$.load.selected == "periodView") {
+			var period = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list');
+			if (!period.loading) {
+				period.shadowRoot.getElementById('periodGrid').clearCache();
 			}
-			if (!periods.loading) {
-				periods.shadowRoot.getElementById('periodGrid').clearCache();
-			} else {
-				console.log('Have patience dude!');
-			}
-			if (!roaming.loading) {
-				roaming.shadowRoot.getElementById('roamingGrid').clearCache();
-			} else {
-				console.log('Have patience dude!');
+		}
+		if(this.$.load.selected == "roamingView") {
+			var roam = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list');
+			if (!roam.loading) {
+				roam.shadowRoot.getElementById('roamingGrid').clearCache();
 			}
 		}
 		if(this.$.load.selected == "policyView") {
@@ -501,6 +522,15 @@ class SigApp extends PolymerElement {
 			cat.show();
 		} else {
 			cat.hide();
+		}
+	}
+
+	_collapseTariff(event) {
+		var tar = document.body.querySelector('sig-app').shadowRoot.getElementById('tariff');
+		if(tar.opened == false) {
+			tar.show();
+		} else {
+			tar.hide();
 		}
 	}
 
@@ -579,7 +609,13 @@ class SigApp extends PolymerElement {
 			httpLoading: {
 				type: Boolean
 			},
-			prefixLoading: {
+			rateLoading: {
+				type: Boolean
+			},
+			periodLoading: {
+				type: Boolean
+			},
+			roamingLoading: {
 				type: Boolean
 			},
 			periodLoading: {
@@ -597,7 +633,13 @@ class SigApp extends PolymerElement {
 			dashLoading: {
 				type: Boolean
 			},
-			prefixTable: {
+			rateTable: {
+				type: String
+			},
+			periodTable: {
+				type: String
+			},
+			roamingTable: {
 				type: String
 			},
 			policyTable: {
@@ -609,7 +651,7 @@ class SigApp extends PolymerElement {
 	static get observers() {
 		return [
 			'_routePageChanged(routeData.page)',
-			'_loadingChanged(dashLoading, offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, periodLoading, balanceLoading, productLoading, bucketLoading)'
+			'_loadingChanged(dashLoading, offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, rateLoading, periodLoading, roamingLoading, balanceLoading, productLoading, bucketLoading)'
 		];
 	}
 
@@ -621,7 +663,7 @@ class SigApp extends PolymerElement {
 		if(this.page == undefined){
 			this.page = 'dashView';
 		}
-		if (['dashView', 'offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+		if (['dashView', 'offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'rateView', 'periodView', 'roamView','policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
@@ -658,9 +700,23 @@ class SigApp extends PolymerElement {
 			case 'httpView':
 				this.viewTitle = 'HTTP Log';
 				break;
-			case 'prefixView':
-				if(this.prefixTable) {
-					this.viewTitle = 'Tariff: ' + this.prefixTable;
+			case 'rateView':
+				if(this.rateTable) {
+					this.viewTitle = 'Tariff: ' + this.rateTable;
+				} else {
+					this.viewTitle = 'Tariff Tables';
+				}
+				break;
+			case 'periodView':
+				if(this.periodTable) {
+					this.viewTitle = 'Tariff: ' + this.periodTable;
+				} else {
+					this.viewTitle = 'Tariff Tables';
+				}
+				break;
+			case 'roamingView':
+				if(this.roamingTable) {
+					this.viewTitle = 'Tariff: ' + this.roamingTable;
 				} else {
 					this.viewTitle = 'Tariff Tables';
 				}
@@ -733,13 +789,21 @@ class SigApp extends PolymerElement {
 			case 'httpView':
 				import('./sig-http-list.js');
 				break;
-			case 'prefixView':
-				import('./sig-tariff-rate-list.js');
+			case 'rateView':
 				import('./sig-tariff-table-list.js');
-				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-table-add.js');
+				import('./sig-tariff-rate-list.js');
+				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-rate-update.js');
+				break;
+			case 'periodView':
+				import('./sig-tariff-table-list.js');
+				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-periods-list.js');
+				break;
+			case 'roamingView':
+				import('./sig-tariff-table-list.js');
+				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-roaming-list.js');
 				break;
 			case 'policyView':
@@ -763,7 +827,7 @@ class SigApp extends PolymerElement {
 	}
 
 	_loadingChanged() {
-		if(this.dashLoading || this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.periodLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
+		if(this.dashLoading || this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.rateLoading || this.periodLoading || this.roamingLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
 			this.loading = true;
 		} else {
 			this.loading = false;

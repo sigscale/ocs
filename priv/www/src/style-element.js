@@ -103,6 +103,9 @@ styleElement.innerHTML = `<template>
 		.drawer-list iron-collapse#ipdr {
 			padding-left: 36px;
 		}
+		.drawer-list iron-collapse#tariff {
+			padding-left: 40px;
+		}
 		paper-tabs.details {
 			--paper-tabs-selection-bar-color: var(--app-primary-color);
 		}
