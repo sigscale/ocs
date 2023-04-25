@@ -95,10 +95,6 @@ class tableList extends PolymerElement {
 				type: String,
 				value: null
 			},
-			_filterPrefix: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
 			tables: {
 				type: Array,
 				readOnly: true,
