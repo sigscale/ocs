@@ -77,8 +77,20 @@ class tableList extends PolymerElement {
 					on-error="_deleteTableError">
 			</iron-ajax>
 			<iron-ajax
-					id="getPrefixTables"
-					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1,5,7"
+					id="getRateTables"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1"
+					on-response="_getTablesResponse"
+					on-error="_getTablesError">
+			</iron-ajax>
+			<iron-ajax
+					id="getPeriodTables"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=5"
+					on-response="_getTablesResponse"
+					on-error="_getTablesError">
+			</iron-ajax>
+			<iron-ajax
+					id="getroamingTables"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=7"
 					on-response="_getTablesResponse"
 					on-error="_getTablesError">
 			</iron-ajax>
@@ -122,9 +134,6 @@ class tableList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		var ajax = this.shadowRoot.getElementById('getPrefixTables');
-		ajax.generateRequest();
-		this.$.tableList.open();
 	}
 
 	_getTablesResponse(event) {
@@ -180,7 +189,7 @@ class tableList extends PolymerElement {
 	}
 
 	_deleteTableResponse(event) {
-		this.shadowRoot.getElementById('getPrefixTables').generateRequest();
+		this.shadowRoot.getElementById('getRateTables').generateRequest();
 	}
 
 	_getTablesError(event) {
