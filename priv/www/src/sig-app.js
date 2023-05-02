@@ -149,7 +149,7 @@ class SigApp extends PolymerElement {
 								active-item="{{activePrefixItem}}"
 								active-table-name="{{rateTable}}"
 								loading="{{rateLoading}}"
-								on-click="rateAcc"
+								on-click="rateList"
 								name="rateView">
 						</sig-tariff-rate-list>
 						<sig-tariff-periods-list
@@ -157,7 +157,7 @@ class SigApp extends PolymerElement {
 								active-item="{{activePeriodItem}}"
 								active-table-name="{{periodTable}}"
 								loading="{{periodLoading}}"
-								on-click="periodAcc"
+								on-click="periodList"
 								name="periodView">
 						</sig-tariff-periods-list>
 						<sig-tariff-roaming-list
@@ -165,7 +165,7 @@ class SigApp extends PolymerElement {
 								active-item="{{activeRoamingItem}}"
 								active-table-name="{{roamingTable}}"
 								loading="{{roamingLoading}}"
-								on-click="roamAcc"
+								on-click="roamList"
 								name="roamingView">
 						</sig-tariff-roaming-list>
 						<sig-balance-list
@@ -518,17 +518,17 @@ class SigApp extends PolymerElement {
 		}
 	}
 
-	rateAcc(event) {
+	rateList(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
 	}
 
-	periodAcc(event) {
+	periodList(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getPeriodTables').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
 	}
 
-	roamAcc(event) {
+	roamList(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getroamingTables').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
 	}
