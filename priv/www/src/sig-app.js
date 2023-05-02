@@ -370,7 +370,9 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
-			<sig-tariff-table-list></sig-tariff-table-list>
+			<sig-rate-table-list></sig-rate-table-list>
+			<sig-period-table-list></sig-period-table-list>
+			<sig-roaming-table-list></sig-roaming-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
 			<sig-tariff-rate-update active-item="[[activePrefixItem]]"></sig-tariff-rate-update>
 			<sig-bucket-add></sig-bucket-add>
@@ -519,18 +521,18 @@ class SigApp extends PolymerElement {
 	}
 
 	rateList(event) {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('tariffRateList').open();
 	}
 
 	periodList(event) {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getPeriodTables').generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list').shadowRoot.getElementById('getPeriodTables').generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list').shadowRoot.getElementById('tariffPeriodList').open();
 	}
 
 	roamList(event) {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('getroamingTables').generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-list').shadowRoot.getElementById('tableList').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list').shadowRoot.getElementById('getroamingTables').generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list').shadowRoot.getElementById('tariffRoamingList').open();
 	}
 
 	_collapseCatalog(event) {
@@ -806,19 +808,19 @@ class SigApp extends PolymerElement {
 				import('./sig-http-list.js');
 				break;
 			case 'rateView':
-				import('./sig-tariff-table-list.js');
+				import('./sig-rate-table-list.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-rate-list.js');
 				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-rate-update.js');
 				break;
 			case 'periodView':
-				import('./sig-tariff-table-list.js');
+				import('./sig-period-table-list.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-periods-list.js');
 				break;
 			case 'roamingView':
-				import('./sig-tariff-table-list.js');
+				import('./sig-roaming-table-list.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-roaming-list.js');
 				break;
