@@ -1177,7 +1177,7 @@
             } ]
           }
         },
-        "required" : [ "serviceId", "resultCode" ]
+        "required" : [ "resultCode" ]
       },
       "OriginationId" : {
         "type" : "object",
