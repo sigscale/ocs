@@ -105,7 +105,8 @@ class tariffRateList extends PolymerElement {
 			},
 			activeTableName: {
 				type: String,
-				notify: true
+				notify: true,
+				readOnly: true
 			},
 			activeTableId: {
 				type: String
@@ -140,12 +141,12 @@ class tariffRateList extends PolymerElement {
 
 	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			this.activeTableName = e.model.item.name;
+			this._setActiveTableName(e.model.item.name);
 			this.activeTableId = e.model.item.id;
 			this.activeSpecId = e.model.item.specId;
 			this.$.tabOkButton.disabled = false;
 		} else {
-			this.activeTableName = null;
+			this._setActiveTableName(null);
 			this.activeTableId = null;
 			this.$.tabOkButton.disabled = true;
 		}

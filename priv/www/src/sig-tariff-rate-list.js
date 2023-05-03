@@ -136,8 +136,7 @@ class prefixList extends PolymerElement {
 				}
 			},
 			activeTableName: {
-				type: String,
-				notify: true
+				type: String
 			},
 			activeTableId: {
 				type: String
@@ -147,14 +146,13 @@ class prefixList extends PolymerElement {
 				notify: true
 			},
 			activeSpecId: {
-				type: String,
+				type: String
 			}
 		}
 	}
 
 	ready() {
 		super.ready();
-		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
       var grid = this.shadowRoot.getElementById('prefixGrid');
       grid.dataProvider = this._getPrefixTable;
       grid.clearCache();
@@ -165,9 +163,9 @@ class prefixList extends PolymerElement {
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList');
 		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.activeTableName;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').activeTableName;
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"

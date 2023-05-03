@@ -147,15 +147,15 @@ class SigApp extends PolymerElement {
 						<sig-tariff-rate-list
 								id="rateList"
 								active-item="{{activePrefixItem}}"
-								active-table-name="{{rateTable}}"
+								active-table-name="[[rateTable]]"
 								loading="{{rateLoading}}"
-								on-click="rateList"
+								on-click="ratList"
 								name="rateView">
 						</sig-tariff-rate-list>
 						<sig-tariff-periods-list
 								id="periodsList"
 								active-item="{{activePeriodItem}}"
-								active-table-name="{{periodTable}}"
+								active-table-name="[[periodTable]]"
 								loading="{{periodLoading}}"
 								on-click="periodList"
 								name="periodView">
@@ -163,7 +163,7 @@ class SigApp extends PolymerElement {
 						<sig-tariff-roaming-list
 								id="roamingList"
 								active-item="{{activeRoamingItem}}"
-								active-table-name="{{roamingTable}}"
+								active-table-name="[[roamingTable]]"
 								loading="{{roamingLoading}}"
 								on-click="roamList"
 								name="roamingView">
@@ -370,7 +370,7 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
-			<sig-rate-table-list></sig-rate-table-list>
+			<sig-rate-table-list active-table-name="{{rateTable}}"></sig-rate-table-list>
 			<sig-period-table-list></sig-period-table-list>
 			<sig-roaming-table-list></sig-roaming-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
@@ -520,7 +520,7 @@ class SigApp extends PolymerElement {
 		}
 	}
 
-	rateList(event) {
+	ratList(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('tariffRateList').open();
 	}
