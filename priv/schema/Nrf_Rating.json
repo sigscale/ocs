@@ -1771,7 +1771,7 @@
             } ]
           }
         },
-        "required" : [ "unitValue" ]
+        "required" : [ "amount" ]
       },
       "Tariff" : {
         "description" : "Set of parameters defining the network utilization charges for the use of a particular bearer/session/service.",
