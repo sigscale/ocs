@@ -108,7 +108,9 @@ class periodList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-					id="getPeriodRows">
+					id="getPeriodRows"
+					url="/resourceInventoryManagement/v1/resource"
+					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;
 	}
@@ -128,8 +130,7 @@ class periodList extends PolymerElement {
 				observer: '_filterChanged'
 			},
 			activeTableName: {
-				type: String,
-				notify: true
+				type: String
 			},
 			activeTableId: {
 				type: String
@@ -143,10 +144,13 @@ class periodList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		var grid = this.shadowRoot.getElementById('periodGrid');
 		grid.dataProvider = this._getPeriodTable;
 		grid.clearCache();
+	}
+
+	_getParams(tableName) {
+		return {'resourceSpecification.id': '6',  'resourceRelationship.resource.name': tableName};
 	}
 
 	_getPeriodTable(params, callback) {
@@ -156,7 +160,11 @@ class periodList extends PolymerElement {
 		}
 		var periodList = document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList');
 		var ajax = periodList.shadowRoot.getElementById('getPeriodRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=6&resourceRelationship.resource.name=" + periodList.activeTableName;
+		var periodTableName = periodList.activeTableName;
+		if(!periodTableName) {
+			grid.size = 0;
+			return callback([]);
+		}
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"
@@ -174,6 +182,7 @@ class periodList extends PolymerElement {
 			ajax.params['filter'] += "]}]\"";
 		}
 		var handleAjaxResponse = function(request) {
+console.log("alert");
 			if(request) {
 				periodList.etag = request.xhr.getResponseHeader('ETag');
 				var range = request.xhr.getResponseHeader('Content-Range');
