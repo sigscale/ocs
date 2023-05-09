@@ -108,7 +108,9 @@ class roamingList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-					id="getRoamingRows">
+					id="getRoamingRows"
+					url="/resourceInventoryManagement/v1/resource"
+					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;
 	}
@@ -128,8 +130,7 @@ class roamingList extends PolymerElement {
 				observer: '_filterChanged'
 			},
 			activeTableName: {
-				type: String,
-				notify: true
+				type: String
 			},
 			activeTableId: {
 				type: String
@@ -143,11 +144,14 @@ class roamingList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		var grid = this.shadowRoot.getElementById('roamingGrid');
 		grid.dataProvider = this._getRoamingTable;
 		grid.clearCache();
 	}
+
+   _getParams(tableName) {
+         return {'resourceSpecification.id': '8',  'resourceRelationship.resource.name': tableName};
+  }
 
 	_getRoamingTable(params, callback) {
 		var grid = this;
@@ -156,7 +160,11 @@ class roamingList extends PolymerElement {
 		}
 		var roamingList = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList');
 		var ajax = roamingList.shadowRoot.getElementById('getRoamingRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=8&resourceRelationship.resource.name=" + roamingList.activeTableName;
+		var roamingTableName = roamingList.activeTableName;
+		if(!roamingTableName) {
+			grid.size = 0;
+			return callback([]);
+		}
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"

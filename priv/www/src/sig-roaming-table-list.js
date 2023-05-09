@@ -68,9 +68,6 @@ class tariffRoamingList extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="getPrefixRows">
-			</iron-ajax>
-			<iron-ajax
 					id="deletePrefixTable"
 					method="DELETE"
 					on-response="_deleteTableResponse"
@@ -105,7 +102,8 @@ class tariffRoamingList extends PolymerElement {
 			},
 			activeTableName: {
 				type: String,
-				notify: true
+				notify: true,
+				readOnly: true
 			},
 			activeTableId: {
 				type: String
@@ -140,32 +138,29 @@ class tariffRoamingList extends PolymerElement {
 
 	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			this.activeTableName = e.model.item.name;
+			this._setActiveTableName(e.model.item.name);
 			this.activeTableId = e.model.item.id;
 			this.activeSpecId = e.model.item.specId;
 			this.$.tabOkButton.disabled = false;
 		} else {
-			this.activeTableName = null;
+			this._setActiveTableName(null);
 			this.activeTableId = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
 
 	_tableOk() {
+		var sigApp = document.body.querySelector('sig-app');
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
+			sigApp.shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
 		}
 		if(this.activeSpecId == "7") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('roamingGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
+			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
 		}
 		if(this.activeSpecId == "1") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('prefixGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
+			sigApp.shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
 		}
-		grid.clearCache();
 		this.$.tariffRoamingList.close();
 	} 
 
