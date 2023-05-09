@@ -68,9 +68,6 @@ class tariffRateList extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="getPrefixRows">
-			</iron-ajax>
-			<iron-ajax
 					id="deletePrefixTable"
 					method="DELETE"
 					on-response="_deleteTableResponse"
@@ -153,20 +150,15 @@ class tariffRateList extends PolymerElement {
 	}
 
 	_tableOk() {
-		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
+		var sigApp = document.body.querySelector('sig-app'); 
+		sigApp.viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('periodGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
+			sigApp.shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
+		} else if(this.activeSpecId == "7") {
+			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
+		} else if(this.activeSpecId == "1") {
+			sigApp.shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
 		}
-		if(this.activeSpecId == "7") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('roamingGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
-		}
-		if(this.activeSpecId == "1") {
-			var grid = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('prefixGrid');
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
-		}
-		grid.clearCache();
 		this.$.tariffRateList.close();
 	} 
 

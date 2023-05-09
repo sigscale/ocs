@@ -108,7 +108,9 @@ class prefixList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-					id="getPrefixRows">
+					id="getPrefixRows"
+					url="/resourceInventoryManagement/v1/resource"
+					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;
 	}
@@ -158,6 +160,10 @@ class prefixList extends PolymerElement {
       grid.clearCache();
 	}
 
+	_getParams(tableName) {
+			return {'resourceSpecification.id': '2',  'resourceRelationship.resource.name': tableName};
+  }
+
 	_getPrefixTable(params, callback) {
 		var grid = this;
 		if(!grid.size) {
@@ -165,7 +171,11 @@ class prefixList extends PolymerElement {
 		}
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList');
 		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').activeTableName;
+		var tableName = prefixList.activeTableName;
+		if(!tableName) {
+			grid.size = 0;
+			return callback([]);
+		}
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "prefix"
