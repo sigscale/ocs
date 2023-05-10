@@ -1852,22 +1852,22 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		MatchResSpecId, MatchRelName) -> Result
 	when
 		Cont :: start | any(),
-		MatchId :: Match,
-		MatchName :: Match,
-		MatchResSpecId :: Match,
-		MatchRelName :: Match,
-		Match :: MatchExact | [MatchExact] | MatchLike | '_',
-		MatchExact :: {exact, string()},
-		MatchLike :: {like, string()},
+		MatchId :: match() | [match()] | '_',
+		MatchName :: match() | [match()] | '_',
+		MatchResSpecId :: match() | [match()] | '_',
+		MatchRelName :: match() | [match()] | '_',
 		Result :: {Cont1, [#resource{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query resources
-query_resource(Cont, '_', MatchName, MatchResSpecId, MatchRelName) ->
+query_resource(Cont, '_',
+		MatchName, MatchResSpecId, MatchRelName) ->
 	MatchHead = #resource{_ = '_'},
-	query_resource1(Cont, MatchHead, MatchName,
-			MatchResSpecId, MatchRelName);
-query_resource(Cont, {Op, String}, MatchName, MatchResSpecId, MatchRelName)
+	MatchCond = [],
+	query_resource2(Cont, MatchHead, MatchCond,
+			MatchName, MatchResSpecId, MatchRelName);
+query_resource(Cont, {Op, String},
+		MatchName, MatchResSpecId, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
 		$% when Op == like ->
@@ -1875,73 +1875,167 @@ query_resource(Cont, {Op, String}, MatchName, MatchResSpecId, MatchRelName)
 		_ ->
          #resource{id = String, _ = '_'}
 	end,
-   query_resource1(Cont, MatchHead, MatchName,
+	query_resource2(Cont, MatchHead, [],
+			MatchName, MatchResSpecId, MatchRelName);
+query_resource(Cont, MatchId,
+		MatchName, MatchResSpecId, MatchRelName)
+		when is_tuple(MatchId) ->
+	query_resource(Cont, [MatchId],
+			MatchName, MatchResSpecId, MatchRelName);
+query_resource(Cont, MatchId,
+		MatchName, MatchResSpecId, MatchRelName)
+		when is_list(MatchId) ->
+	MatchHead = #resource{id = '$1', _ = '_'},
+	query_resource1(Cont, MatchHead, [], MatchId,
+			MatchName, MatchResSpecId, MatchRelName).
+%% @hidden
+query_resource1(Cont, MatchHead, MatchIdCond, [H | T],
+		MatchName, MatchResSpecId, MatchRelName) ->
+	MatchIdCond1 = [match_condition('$1', H) | MatchIdCond],
+	query_resource1(Cont, MatchHead, MatchIdCond1, T,
+			MatchName, MatchResSpecId, MatchRelName);
+query_resource1(Cont, MatchHead, MatchIdCond, [],
+		MatchName, MatchResSpecId, MatchRelName)
+		when length(MatchIdCond) > 1 ->
+	MatchCond = [list_to_tuple(['or' | lists:reverse(MatchIdCond)])],
+	query_resource2(Cont, MatchHead, MatchCond,
+			MatchName, MatchResSpecId, MatchRelName).
+%% @hidden
+query_resource2(Cont, MatchHead, MatchCond, '_',
+		MatchResSpecId, MatchRelName) ->
+	query_resource4(Cont, MatchHead, MatchCond,
+			MatchResSpecId, MatchRelName);
+query_resource2(Cont, MatchHead, MatchCond, {Op, String},
+		MatchResSpecId, MatchRelName)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead1 = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead#resource{name = lists:droplast(String) ++ '_'};
+		_ ->
+         MatchHead#resource{name = String}
+	end,
+   query_resource4(Cont, MatchHead1, MatchCond,
+			MatchResSpecId, MatchRelName);
+query_resource2(Cont, MatchHead, MatchCond,
+		MatchName, MatchResSpecId, MatchRelName)
+		when is_tuple(MatchName) ->
+   query_resource2(Cont, MatchHead, MatchCond,
+			[MatchName], MatchResSpecId, MatchRelName);
+query_resource2(Cont, MatchHead, MatchCond,
+		MatchName, MatchResSpecId, MatchRelName)
+		when is_list(MatchName) ->
+	MatchHead1 = MatchHead#resource{name = '$2'},
+   query_resource3(Cont, MatchHead1, MatchCond, [],
+			MatchName, MatchResSpecId, MatchRelName).
+%% @hidden
+query_resource3(Cont, MatchHead, MatchCond, MatchNameCond,
+		[H | T], MatchResSpecId, MatchRelName) ->
+	MatchNameCond1 = [match_condition('$2', H) | MatchNameCond],
+	query_resource3(Cont, MatchHead, MatchCond, MatchNameCond1,
+		T, MatchResSpecId, MatchRelName);
+query_resource3(Cont, MatchHead, MatchCond, MatchNameCond,
+		[], MatchResSpecId, MatchRelName) ->
+	MatchNameCond1 = list_to_tuple(['or'
+			| lists:reverse(MatchNameCond)]),
+	MatchCond1 = [MatchNameCond1 | MatchCond],
+	query_resource4(Cont, MatchHead, MatchCond1,
 			MatchResSpecId, MatchRelName).
 %% @hidden
-query_resource1(Cont, MatchHead, '_', MatchResSpecId, MatchRelName) ->
-	query_resource2(Cont, MatchHead, MatchResSpecId, MatchRelName);
-query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId, MatchRelName)
+query_resource4(Cont, MatchHead, MatchCond, '_',
+		MatchRelName) ->
+	query_resource6(Cont, MatchHead, MatchCond,
+			MatchRelName);
+query_resource4(Cont, MatchHead, MatchCond, {Op, String},
+		MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
-	MatchHead2 = case lists:last(String) of
+	MatchHead1 = case lists:last(String) of
 		$% when Op == like ->
-			MatchHead1#resource{name = lists:droplast(String) ++ '_'};
-		_ ->
-         MatchHead1#resource{name = String}
-	end,
-   query_resource2(Cont, MatchHead2, MatchResSpecId, MatchRelName).
-%% @hidden
-query_resource2(Cont, MatchHead, '_', MatchRelName) ->
-	query_resource3(Cont, MatchHead, [], MatchRelName);
-query_resource2(Cont, MatchHead1, {Op, String}, MatchRelName)
-		when is_list(String), ((Op == exact) orelse (Op == like)) ->
-	MatchHead2 = case lists:last(String) of
-		$% when Op == like ->
-			MatchHead1#resource{specification = #specification_ref{id
+			MatchHead#resource{specification = #specification_ref{id
 					= lists:droplast(String) ++ '_', _ = '_'}};
 		_ ->
-         MatchHead1#resource{specification
+         MatchHead#resource{specification
 					= #specification_ref{id = String, _ = '_'}}
 	end,
-   query_resource3(Cont, MatchHead2, [], MatchRelName);
-query_resource2(Cont, MatchHead1, MatchResSpecId, MatchRelName)
+   query_resource6(Cont, MatchHead1, MatchCond, MatchRelName);
+query_resource4(Cont, MatchHead, MatchCond, MatchResSpecId,
+		MatchRelName)
+		when is_tuple(MatchResSpecId) ->
+	query_resource4(Cont, MatchHead, MatchCond,
+			[MatchResSpecId], MatchRelName);
+query_resource4(Cont, MatchHead, MatchCond, MatchResSpecId,
+		MatchRelName)
 		when is_list(MatchResSpecId) ->
-	MatchHead2 = MatchHead1#resource{specification = #specification_ref{
-			id = '$1', _ = '_'}},
-	Alternatives = [{'==', '$1', String}
-			|| {exact, String} <- MatchResSpecId],
-	MatchConditions = [list_to_tuple(['or' | Alternatives])],
-   query_resource3(Cont, MatchHead2, MatchConditions, MatchRelName).
+	MatchHead1 = MatchHead#resource{specification
+			= #specification_ref{id = '$3', _ = '_'}},
+	query_resource5(Cont, MatchHead1, MatchCond, [],
+			MatchResSpecId, MatchRelName).
 %% @hidden
-query_resource3(Cont, MatchHead, MatchConditions, '_') ->
-	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
-	query_resource4(Cont, MatchSpec);
-query_resource3(Cont, MatchHead1, MatchConditions, {Op, String})
+query_resource5(Cont, MatchHead, MatchCond,
+		MatchResSpecIdCond, [H | T], MatchRelName) ->
+	MatchResSpecIdCond1 = [match_condition('$3', H) | MatchResSpecIdCond],
+	query_resource5(Cont, MatchHead, MatchCond,
+			MatchResSpecIdCond1, T, MatchRelName);
+query_resource5(Cont, MatchHead, MatchCond,
+		MatchResSpecIdCond, [], MatchRelName) ->
+	MatchResSpecIdCond1 = list_to_tuple(['or'
+			| lists:reverse(MatchResSpecIdCond)]),
+	MatchCond1 = [MatchResSpecIdCond1 | MatchCond],
+	query_resource6(Cont, MatchHead, MatchCond1, MatchRelName).
+%% @hidden
+query_resource6(Cont, MatchHead, MatchCond, '_') ->
+	MatchCond1 = [list_to_tuple(['and'
+			| lists:reverse(MatchCond)])],
+	MatchSpec = [{MatchHead, MatchCond1, ['$_']}],
+	query_resource8(Cont, MatchSpec);
+query_resource6(Cont, MatchHead, MatchCond, {Op, String})
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
-	MatchHead2 = case lists:last(String) of
+	MatchHead1 = case lists:last(String) of
 		$% when Op == like ->
-			MatchHead1#resource{related = [#resource_rel{name
+			MatchHead#resource{related = [#resource_rel{name
 					= lists:droplast(String) ++ '_', _ = '_'}]};
 		_ ->
-         MatchHead1#resource{related
+         MatchHead#resource{related
 					= [#resource_rel{name = String, _ = '_'}]}
 	end,
-	MatchSpec = [{MatchHead2, MatchConditions, ['$_']}],
-   query_resource4(Cont, MatchSpec).
+	MatchCond1 = [list_to_tuple(['and'
+			| lists:reverse(MatchCond)])],
+	MatchSpec = [{MatchHead1, MatchCond1, ['$_']}],
+   query_resource8(Cont, MatchSpec);
+query_resource6(Cont, MatchHead, MatchCond, MatchResSpecId)
+		when is_tuple(MatchResSpecId) ->
+	query_resource6(Cont, MatchHead, MatchCond, [MatchResSpecId]);
+query_resource6(Cont, MatchHead, MatchCond, MatchResSpecId)
+		when is_list(MatchResSpecId) ->
+	MatchHead1 = MatchHead#resource{related
+			= [#resource_rel{name = '$4', _ = '_'}]},
+	query_resource7(Cont, MatchHead1, MatchCond, [], MatchResSpecId).
 %% @hidden
-query_resource4(start, MatchSpec) ->
+query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond, [H | T]) ->
+	MatchRelNameCond1 = [match_condition('$4', H) | MatchRelNameCond],
+	query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond1, T);
+query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond, []) ->
+	MatchRelNameCond1 = list_to_tuple(['or'
+			| lists:reverse(MatchRelNameCond)]),
+	MatchCond1 = [MatchRelNameCond1 | MatchCond],
+	MatchCond2 = [list_to_tuple(['and'
+			| lists:reverse(MatchCond1)])],
+	MatchSpec = [{MatchHead, MatchCond2, ['$_']}],
+	query_resource8(Cont, MatchSpec).
+%% @hidden
+query_resource8(start, MatchSpec) ->
 	F = fun() ->
 			mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	query_resource5(mnesia:ets(F));
-query_resource4(Cont, _MatchSpec) ->
+	query_resource9(mnesia:ets(F));
+query_resource8(Cont, _MatchSpec) ->
 	F = fun() ->
          mnesia:select(Cont)
    end,
-	query_resource5(mnesia:ets(F)).
+	query_resource9(mnesia:ets(F)).
 %% @hidden
-query_resource5({Resources, Cont}) ->
+query_resource9({Resources, Cont}) ->
 	{Cont, Resources};
-query_resource5('$end_of_table') ->
+query_resource9('$end_of_table') ->
 		{eof, []}.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
@@ -2954,10 +3048,7 @@ gregorian_datetime_to_system_time(DateTime) ->
 	(calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH) * 1000.
 
 -type match() :: {exact, term()} | {notexact, term()} | {lt, term()}
-		| {lte, term()} | {gt, term()} | {gte, term()} | {regex, term()}
-		| {like, [term()]} | {notlike, [term()]} | {in, [term()]}
-		| {notin, [term()]} | {contains, [term()]} | {notcontain, [term()]}
-		| {containsall, [term()]} | '_'.
+		| {lte, term()} | {gt, term()} | {gte, term()} | {like, [term()]}.
 
 -spec match_condition(MatchVariable, Match) -> MatchCondition
 	when

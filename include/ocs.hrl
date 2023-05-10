@@ -224,9 +224,9 @@
 		last_modified :: tuple() | undefined | '_'}).
 
 -record(resource,
-		{id :: string() | undefined | '_',
+		{id :: string() | undefined | '$1' | '_',
 		href :: string() | undefined | '_',
-		name :: string() | undefined | '_',
+		name :: string() | undefined | '_' | '$2',
 		description :: string() | undefined | '_',
 		category :: string() | undefined | '_',
 		class_type :: string() | undefined | '_',
@@ -247,13 +247,13 @@
 -record(resource_rel,
 		{id :: string() | undefined | '_',
 		href :: string() | undefined | '_',
-		name :: string() | undefined | '_',
+		name :: string() | undefined | '$4' | '_',
 		type :: string() | undefined | '_',
 		referred_type :: string() | undefined | '_'}).
 -type resource_rel() :: #resource_rel{}.
 
 -record(specification_ref,
-		{id :: string() | undefined | '_' | '$1',
+		{id :: string() | undefined | '_' | '$3',
 		href :: string() | undefined | '_',
 		name :: string() | undefined | '_',
 		version :: string() | undefined | '_'}).
