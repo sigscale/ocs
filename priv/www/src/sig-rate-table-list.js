@@ -105,7 +105,7 @@ class tariffRateList extends PolymerElement {
 				notify: true,
 				readOnly: true
 			},
-			activeTableId: {
+			activeTable: {
 				type: String
 			},
 			activeItem: {
@@ -139,12 +139,12 @@ class tariffRateList extends PolymerElement {
 	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
 			this._setActiveTableName(e.model.item.name);
-			this.activeTableId = e.model.item.id;
+			this.activeTable = e.model.item.id;
 			this.activeSpecId = e.model.item.specId;
 			this.$.tabOkButton.disabled = false;
 		} else {
 			this._setActiveTableName(null);
-			this.activeTableId = null;
+			this.activeTable = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
@@ -163,10 +163,10 @@ class tariffRateList extends PolymerElement {
 	} 
 
 	_tableDelete() {
-		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
+		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
 		this.$.deletePrefixTable.generateRequest();
 		this.activeTableName = null;
-		this.activeTableId = null;
+		this.activeTable = null;
 	}
 
 	_deleteTableResponse(event) {

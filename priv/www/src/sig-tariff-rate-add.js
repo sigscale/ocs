@@ -115,16 +115,16 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_tableRow(event) {
-		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var rateTable = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list')
 		var ajax = this.$.addTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
 		var tar = new Object();
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = prefixList.activeTableId;
+		relObj.id = rateTable.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = prefixList.activeTableName;
+		relObj.name = rateTable.activeTableName;
 		var relObj1 = new Object();
 		relObj1.relationshipType = "contained";
 		relObj1.resource = relObj
@@ -154,12 +154,12 @@ class prefixAdd extends PolymerElement {
 		ajax.body = tar;
 		ajax.generateRequest();
 		this.$.addPrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_addTableResponse(event) {
 		this.$.addPrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
