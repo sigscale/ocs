@@ -1895,9 +1895,15 @@ query_resource1(Cont, MatchHead, MatchIdCond, [H | T],
 	query_resource1(Cont, MatchHead, MatchIdCond1, T,
 			MatchName, MatchResSpecId, MatchRelName);
 query_resource1(Cont, MatchHead, MatchIdCond, [],
-		MatchName, MatchResSpecId, MatchRelName)
-		when length(MatchIdCond) > 1 ->
-	MatchCond = [list_to_tuple(['or' | lists:reverse(MatchIdCond)])],
+		MatchName, MatchResSpecId, MatchRelName) ->
+	MatchCond = case MatchIdCond of
+		[] ->
+			[];
+		[Cond] ->
+			[Cond];
+		_ ->
+			[list_to_tuple(['or' | lists:reverse(MatchIdCond)])]
+	end,
 	query_resource2(Cont, MatchHead, MatchCond,
 			MatchName, MatchResSpecId, MatchRelName).
 %% @hidden
@@ -1935,9 +1941,15 @@ query_resource3(Cont, MatchHead, MatchCond, MatchNameCond,
 		T, MatchResSpecId, MatchRelName);
 query_resource3(Cont, MatchHead, MatchCond, MatchNameCond,
 		[], MatchResSpecId, MatchRelName) ->
-	MatchNameCond1 = list_to_tuple(['or'
-			| lists:reverse(MatchNameCond)]),
-	MatchCond1 = [MatchNameCond1 | MatchCond],
+	MatchCond1 = case MatchNameCond of
+		[] ->
+			MatchCond;
+		[Cond] ->
+			[Cond | MatchCond];
+		_ ->
+			[list_to_tuple(['or' | lists:reverse(MatchNameCond)])
+					| MatchCond]
+	end,
 	query_resource4(Cont, MatchHead, MatchCond1,
 			MatchResSpecId, MatchRelName).
 %% @hidden
@@ -1977,15 +1989,25 @@ query_resource5(Cont, MatchHead, MatchCond,
 			MatchResSpecIdCond1, T, MatchRelName);
 query_resource5(Cont, MatchHead, MatchCond,
 		MatchResSpecIdCond, [], MatchRelName) ->
-	MatchResSpecIdCond1 = list_to_tuple(['or'
-			| lists:reverse(MatchResSpecIdCond)]),
-	MatchCond1 = [MatchResSpecIdCond1 | MatchCond],
+	MatchCond1 = case MatchResSpecIdCond of
+		[] ->
+			MatchCond;
+		[Cond] ->
+			[Cond | MatchCond];
+		_ ->
+			[list_to_tuple(['or' | lists:reverse(MatchResSpecIdCond)])
+					| MatchCond]
+	end,
 	query_resource6(Cont, MatchHead, MatchCond1, MatchRelName).
 %% @hidden
-query_resource6(Cont, MatchHead, MatchCond, '_') ->
+query_resource6(Cont, MatchHead, MatchCond, '_')
+		when length(MatchCond) > 1 ->
 	MatchCond1 = [list_to_tuple(['and'
 			| lists:reverse(MatchCond)])],
 	MatchSpec = [{MatchHead, MatchCond1, ['$_']}],
+	query_resource8(Cont, MatchSpec);
+query_resource6(Cont, MatchHead, MatchCond, '_') ->
+	MatchSpec = [{MatchHead, MatchCond, ['$_']}],
 	query_resource8(Cont, MatchSpec);
 query_resource6(Cont, MatchHead, MatchCond, {Op, String})
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
@@ -1997,8 +2019,12 @@ query_resource6(Cont, MatchHead, MatchCond, {Op, String})
          MatchHead#resource{related
 					= [#resource_rel{name = String, _ = '_'}]}
 	end,
-	MatchCond1 = [list_to_tuple(['and'
-			| lists:reverse(MatchCond)])],
+	MatchCond1 = case length(MatchCond) of
+		N when N > 1 ->
+			[list_to_tuple(['and' | lists:reverse(MatchCond)])];
+		_N ->
+			MatchCond
+	end,
 	MatchSpec = [{MatchHead1, MatchCond1, ['$_']}],
    query_resource8(Cont, MatchSpec);
 query_resource6(Cont, MatchHead, MatchCond, MatchResSpecId)
@@ -2014,11 +2040,21 @@ query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond, [H | T]) ->
 	MatchRelNameCond1 = [match_condition('$4', H) | MatchRelNameCond],
 	query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond1, T);
 query_resource7(Cont, MatchHead, MatchCond, MatchRelNameCond, []) ->
-	MatchRelNameCond1 = list_to_tuple(['or'
-			| lists:reverse(MatchRelNameCond)]),
-	MatchCond1 = [MatchRelNameCond1 | MatchCond],
-	MatchCond2 = [list_to_tuple(['and'
-			| lists:reverse(MatchCond1)])],
+	MatchCond1 = case MatchRelNameCond of
+		[] ->
+			MatchCond;
+		[Cond] ->
+			[Cond | MatchCond];
+		_ ->
+			[list_to_tuple(['or' | lists:reverse(MatchRelNameCond)])
+					| MatchCond]
+	end,
+	MatchCond2 = case length(MatchCond1) of
+		N when N > 1 ->
+			[list_to_tuple(['and' | lists:reverse(MatchCond1)])];
+		_N ->
+			MatchCond
+	end,
 	MatchSpec = [{MatchHead, MatchCond2, ['$_']}],
 	query_resource8(Cont, MatchSpec).
 %% @hidden
