@@ -798,7 +798,7 @@ tariff_periods_table_spec() ->
 %% @hidden
 tariff_periods_row_spec() ->
 	Id = {"id", "6"},
-	Href = {"href", ?specPath "2"},
+	Href = {"href", ?specPath "6"},
 	Name = {"name", "TariffPeriodsTableRow"},
 	Description = {"description", "Voice call rating, with initial and additional periods, tariff row"},
 	Status = {"lifecycleStatus", "Active"},
