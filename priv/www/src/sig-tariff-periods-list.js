@@ -104,7 +104,7 @@ class periodList extends PolymerElement {
 			<div class="add-button">
 				<paper-fab
 						icon="add"
-						on-tap="showAddPrefixModal">
+						on-tap="showAddPeriodModal">
 				</paper-fab>
 			</div>
 			<iron-ajax
@@ -262,8 +262,8 @@ console.log("alert");
 		grid.size = 0;
 	}
 
-	showAddPrefixModal() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-add').shadowRoot.getElementById('addPrefixModal').open();
+	showAddPeriodModal() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-period-add').shadowRoot.getElementById('addPeriodModal').open();
 	}
 }
 
