@@ -196,13 +196,10 @@ class tablePrefixAdd extends PolymerElement {
 		this.prefixTableType = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_addTableResponse(event) {
 		this.$.addPrefixTableModal.close();
-		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('getPrefixTables');
-		ajax.generateRequest();
 	}
 
 	_addTableError(event) {
