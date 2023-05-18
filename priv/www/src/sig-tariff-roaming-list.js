@@ -64,7 +64,7 @@ class roamingList extends PolymerElement {
 			<div class="add-button">
 				<paper-fab
 						icon="add"
-						on-tap="showAddPrefixModal">
+						on-tap="showAddRoamingModal">
 				</paper-fab>
 			</div>
 			<iron-ajax
@@ -221,8 +221,8 @@ class roamingList extends PolymerElement {
 		grid.size = 0;
 	}
 
-	showAddPrefixModal() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-add').shadowRoot.getElementById('addPrefixModal').open();
+	showAddRoamingModal() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-add').shadowRoot.getElementById('addRoamingModal').open();
 	}
 }
 

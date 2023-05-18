@@ -372,6 +372,7 @@ class SigApp extends PolymerElement {
 			<sig-roaming-table-list active-table-name="{{roamingTable}}"></sig-roaming-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
 			<sig-tariff-period-add></sig-tariff-period-add>
+			<sig-tariff-roaming-add></sig-tariff-roaming-add>
 			<sig-tariff-rate-update active-item="[[activePrefixItem]]"></sig-tariff-rate-update>
 			<sig-tariff-period-update active-item="[[activePeriodItem]]"></sig-tariff-period-update>
 			<sig-bucket-add></sig-bucket-add>
@@ -819,6 +820,7 @@ class SigApp extends PolymerElement {
 				import('./sig-roaming-table-list.js');
 				import('./sig-tariff-table-add.js');
 				import('./sig-tariff-roaming-list.js');
+				import('./sig-tariff-roaming-add.js');
 				break;
 			case 'policyView':
 				import('./sig-policy-list.js');
