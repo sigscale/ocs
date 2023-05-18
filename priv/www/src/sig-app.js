@@ -661,7 +661,7 @@ class SigApp extends PolymerElement {
 		if(this.page == undefined){
 			this.page = 'dashView';
 		}
-		if (['dashView', 'offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'rateView', 'periodView', 'roamView','policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+		if (['dashView', 'offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'rateView', 'periodView', 'roamingView','policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
