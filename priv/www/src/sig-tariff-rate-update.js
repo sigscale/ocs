@@ -96,14 +96,14 @@ class tableUpdate extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-			<iron-ajax id="updateTableRowAjax"
-					on-response="_updateTableRowResponse"
-					on-error="_updateTableRowError"
+			<iron-ajax id="updateRateRowAjax"
+					on-response="_updateRateRowResponse"
+					on-error="_updateRateRowError"
 					on-loading-changed="_onLoadingChanged">
 			</iron-ajax>
-			<iron-ajax id="deleteTableRowAjax"
-				on-response="_deleteTableRowResponse"
-				on-error="_deleteTableRowError">
+			<iron-ajax id="deleteRateRowAjax"
+				on-response="_deleteRateRowResponse"
+				on-error="_deleteRateRowError">
 			</iron-ajax>
 		`;
 	}
@@ -161,7 +161,7 @@ class tableUpdate extends PolymerElement {
 	}
 
 	UpdateButton(event) {
-		var Ajax = this.$.updateTableRowAjax;
+		var Ajax = this.$.updateRateRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
 		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').activeTableName;
@@ -191,12 +191,12 @@ class tableUpdate extends PolymerElement {
 		this.$.upRate = null;
 	}
 
-	_updateTableRowResponse(event) {
+	_updateRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
-	_updateTableRowError(event) {
+	_updateRateRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -205,18 +205,18 @@ class tableUpdate extends PolymerElement {
 	deleteUpdate(event) {
 		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
 		var Id = this.upPrefix;
-		this.$.deleteTableRowAjax.method = "DELETE";
-		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
-		this.$.deleteTableRowAjax.generateRequest();
+		this.$.deleteRateRowAjax.method = "DELETE";
+		this.$.deleteRateRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
+		this.$.deleteRateRowAjax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
-	_deleteTableRowResponse(event) {
+	_deleteRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
-	_deleteTableRowError(event) {
+	_deleteRateRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -229,7 +229,7 @@ class tableUpdate extends PolymerElement {
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.updateTableRowAjax.loading) {
+		if (this.$.updateRateRowAjax.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;
