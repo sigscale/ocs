@@ -68,16 +68,16 @@ class tariffRoamingList extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="deletePrefixTable"
+					id="deleteRoamingTable"
 					method="DELETE"
-					on-response="_deleteTableResponse"
-					on-error="_deleteTableError">
+					on-response="_deleteRoamingResponse"
+					on-error="_deleteRoamingError">
 			</iron-ajax>
 			<iron-ajax
 					id="getroamingTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=7"
-					on-response="_getTablesResponse"
-					on-error="_getTablesError">
+					on-response="_getRoamingResponse"
+					on-error="_getRoamingError">
 			</iron-ajax>
 		`;
 	}
@@ -122,7 +122,7 @@ class tariffRoamingList extends PolymerElement {
 		super.ready();
 	}
 
-	_getTablesResponse(event) {
+	_getRoamingResponse(event) {
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
@@ -165,23 +165,23 @@ class tariffRoamingList extends PolymerElement {
 	} 
 
 	_tableDelete() {
-		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
-		this.$.deletePrefixTable.generateRequest();
+		this.$.deleteRoamingTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
+		this.$.deleteRoamingTable.generateRequest();
 		this.activeTableName = null;
 		this.activeTable = null;
 	}
 
-	_deleteTableResponse(event) {
+	_deleteRoamingResponse(event) {
 		this.shadowRoot.getElementById('getRateTables').generateRequest();
 	}
 
-	_getTablesError(event) {
+	_getRoamingError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	_deleteTableError(event) {
+	_deleteRoamingError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();

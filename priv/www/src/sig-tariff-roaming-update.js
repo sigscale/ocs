@@ -21,13 +21,13 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class tableUpdate extends PolymerElement {
+class roamingUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog class="dialog" id="updatePrefixModal" modal>
+			<paper-dialog class="dialog" id="updateRoamingModal" modal>
 				<app-toolbar>
-					<h2>Update Prefix</h2>
+					<h2>Update Roaming</h2>
 				</app-toolbar>
 				<paper-progress
 						id="progressId"
@@ -96,14 +96,14 @@ class tableUpdate extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-			<iron-ajax id="updateRateRowAjax"
-					on-response="_updateRateRowResponse"
-					on-error="_updateRateRowError"
+			<iron-ajax id="updateRoamingRowAjax"
+					on-response="_updateRoamingRowResponse"
+					on-error="_updateRoamingRowError"
 					on-loading-changed="_onLoadingChanged">
 			</iron-ajax>
-			<iron-ajax id="deleteRateRowAjax"
-				on-response="_deleteRateRowResponse"
-				on-error="_deleteRateRowError">
+			<iron-ajax id="deleteRoamingRowAjax"
+				on-response="_deleteRoamingRowResponse"
+				on-error="_deleteRoamingRowError">
 			</iron-ajax>
 		`;
 	}
@@ -118,7 +118,7 @@ class tableUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
-			storeTariff: {
+			storeRoaming: {
 				type: Array,
 				readOnly: true,
 				notify: true,
@@ -147,7 +147,7 @@ class tableUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = current.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').rowId = current.id;
 			this.upPrefix = current.prefix;
 			this.upDesc = current.description;
 			this.upRate = current.rate;
@@ -155,28 +155,28 @@ class tableUpdate extends PolymerElement {
 			arrObj.prefix = this.upPrefix;
 			arrObj.description = this.upDesc;
 			arrObj.rate = this.upRate;
-			this.storeTariff.push(arrObj);
-			this.$.updatePrefixModal.open();
+			this.storeRoaming.push(arrObj);
+			this.$.updateRoamingModal.open();
 		}
 	}
 
 	UpdateButton(event) {
-		var Ajax = this.$.updateRateRowAjax;
+		var Ajax = this.$.updateRoamingRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').activeTableName;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').activeTableName;
 		var Id = this.upPrefix;
 		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
-		for(var indexx in this.storeTariff) {
-			if(this.upDesc != this.storeTariff[indexx].description) {
+		for(var indexx in this.storeRoaming) {
+			if(this.upDesc != this.storeRoaming[indexx].description) {
 				var Desc = new Object(); 
 				Desc.op = "replace";
 				Desc.path = "/resourceCharacteristic/1/value";
 				Desc.value = this.upDesc;
 				ResArray.push(Desc);
 			}
-			if(this.upRate != this.storeTariff[indexx].rate) {
+			if(this.upRate != this.storeRoaming[indexx].rate) {
 				var Rate = new Object();
 				Rate.op = "replace";
 				Rate.path = "/resourceCharacteristic/2/value";
@@ -191,32 +191,32 @@ class tableUpdate extends PolymerElement {
 		this.$.upRate = null;
 	}
 
-	_updateRateRowResponse(event) {
-		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+	_updateRoamingRowResponse(event) {
+		this.$.updateRoamingModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
-	_updateRateRowError(event) {
+	_updateRoamingRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
 	deleteUpdate(event) {
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid');
 		var Id = this.upPrefix;
-		this.$.deleteRateRowAjax.method = "DELETE";
-		this.$.deleteRateRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
-		this.$.deleteRateRowAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		this.$.deleteRoamingRowAjax.method = "DELETE";
+		this.$.deleteRoamingRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;
+		this.$.deleteRoamingRowAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
-	_deleteRateRowResponse(event) {
-		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+	_deleteRoamingRowResponse(event) {
+		this.$.updateRoamingModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
-	_deleteRateRowError(event) {
+	_deleteRoamingRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -229,7 +229,7 @@ class tableUpdate extends PolymerElement {
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.updateRateRowAjax.loading) {
+		if (this.$.updateRoamingRowAjax.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;
@@ -237,4 +237,4 @@ class tableUpdate extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-rate-update', tableUpdate);
+window.customElements.define('sig-tariff-roaming-update', roamingUpdate);
