@@ -68,16 +68,16 @@ class tariffPeriodList extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="deletePrefixTable"
+					id="deletePeriodTable"
 					method="DELETE"
-					on-response="_deleteTableResponse"
-					on-error="_deleteTableError">
+					on-response="_deletePeriodResponse"
+					on-error="_deletePeriodError">
 			</iron-ajax>
 			<iron-ajax
 					id="getPeriodTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=5"
-					on-response="_getTablesResponse"
-					on-error="_getTablesError">
+					on-response="_getPeriodResponse"
+					on-error="_getPeriodError">
 			</iron-ajax>
 		`;
 	}
@@ -122,7 +122,7 @@ class tariffPeriodList extends PolymerElement {
 		super.ready();
 	}
 
-	_getTablesResponse(event) {
+	_getPeriodResponse(event) {
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
@@ -163,23 +163,23 @@ class tariffPeriodList extends PolymerElement {
 	} 
 
 	_tableDelete() {
-		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
-		this.$.deletePrefixTable.generateRequest();
+		this.$.deletePeriodTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
+		this.$.deletePeriodTable.generateRequest();
 		this.activeTableName = null;
 		this.activeTable = null;
 	}
 
-	_deleteTableResponse(event) {
+	_deletePeriodResponse(event) {
 		this.shadowRoot.getElementById('getRateTables').generateRequest();
 	}
 
-	_getTablesError(event) {
+	_getPeriodError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	_deleteTableError(event) {
+	_deletePeriodError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
