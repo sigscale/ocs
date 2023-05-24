@@ -43,14 +43,16 @@
 
 -spec content_types_accepted() -> ContentTypes
 	when
-		ContentTypes :: list().
+		ContentTypes :: [ContentType],
+		ContentType :: string().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
 	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
-		ContentTypes :: list().
+		ContentTypes :: [ContentType],
+		ContentType :: string().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/problem+json"].
@@ -58,7 +60,10 @@ content_types_provided() ->
 -spec get_resource_spec(ID) -> Result
 	when
 		ID :: string(),
-		Result :: {struct, [tuple()]} | {error, 404}.
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 404.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification/{id}'.
 %%		Retrieve a resource specification.
 get_resource_spec("1") ->
@@ -104,12 +109,13 @@ get_resource_spec("8") ->
 get_resource_spec(_) ->
 	{error, 404}.
 
--spec get_resource_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_resource_specs(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
 %% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
@@ -124,7 +130,10 @@ get_resource_specs(_Query) ->
 -spec get_resource_category(ID) -> Result
 	when
 		ID :: string(),
-		Result :: {struct, [tuple()]} | {error, 404}.
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 404.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory/{id}'.
 %% 	Retrieve a Resource category by Id.
 get_resource_category("1") ->
@@ -140,12 +149,13 @@ get_resource_category("2") ->
 get_resource_category(_) ->
 	{error, 404}.
 
--spec get_resource_categories(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_resource_categories(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory'.
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
@@ -159,7 +169,10 @@ get_resource_categories(_Query) ->
 -spec get_resource_candidate(ID) -> Result
 	when
 		ID :: string(),
-		Result :: {struct, [tuple()]} | {error, 404}.
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 404.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCandidate/{id}'.
 %%		Get Resource Candidate by ID.
 get_resource_candidate("1") ->
@@ -170,12 +183,13 @@ get_resource_candidate("1") ->
 get_resource_candidate(_) ->
 	{error, 404}.
 
--spec get_resource_candidates(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_resource_candidates(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400.
 %% @doc Respond to `GET /catalogManagement/v2/resourceCandidate'.
 %% 	Retrieve all Resource candidate.
 get_resource_candidates([] = _Query) ->
@@ -189,7 +203,10 @@ get_resource_candidates(_Query) ->
 -spec get_resource_catalog(ID) -> Result
 	when
 		ID :: string(),
-		Result :: {struct, [tuple()]} | {error, 404}.
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 404.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog/{id}'.
 %%		Get Resource Catalog by ID.
 get_resource_catalog("1") ->
@@ -200,12 +217,13 @@ get_resource_catalog("1") ->
 get_resource_catalog(_) ->
 	{error, 404}.
 
--spec get_resource_catalogs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_resource_catalogs(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog'.
 %% 	Retrieve all Resource catalogs.
 get_resource_catalogs([] = _Query) ->
@@ -222,7 +240,7 @@ get_resource_catalogs(_Query) ->
 		Result   :: {ok, Headers, Body} | {error, Status},
 		Headers  :: [tuple()],
 		Body     :: iolist(),
-		Status   :: 400 | 404 | 500.
+		Status   :: 404 | 500.
 %% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
 %%    Retrieve resource from inventory management.
 get_resource(Id) ->
@@ -256,8 +274,10 @@ get_resource(Id) ->
 
 -spec head_resource() -> Result
 	when
-		Result :: {ok, [], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result   :: {ok, Headers, Body} | {error, Status},
+		Headers  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 500.
 %% @doc Body producing function for
 %% 	`HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
@@ -272,14 +292,15 @@ head_resource() ->
 		_:_Reason ->
 			{error, 500}
 	end.
-	
 
--spec get_resource(Query, Headers) -> Result
+-spec get_resource(Query, RequestHeaders) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
-		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		RequestHeaders :: [tuple()],
+		Result   :: {ok, ReplyHeaders, Body} | {error, Status},
+		ReplyHeaders  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 400.
 %% @doc Body producing function for
 %% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
@@ -436,10 +457,10 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 -spec add_resource(RequestBody) -> Result
 	when
 		RequestBody :: [tuple()],
-		Result   :: {ok, Headers, Body} | {error, Status},
-		Headers  :: [tuple()],
-		Body     :: iolist(),
-		Status   :: 400 | 500 .
+		Result   :: {ok, ReplyHeaders, ReplyBody} | {error, Status},
+		ReplyHeaders  :: [tuple()],
+		ReplyBody     :: iolist(),
+		Status   :: 400.
 %% @doc Respond to
 %% 	`POST /resourceInventoryManagement/v1/resource'.
 %%    Add a new resource in inventory.
@@ -500,12 +521,13 @@ add_resource1({ok, #resource{href = Href, last_modified = LM} = Resource}) ->
 add_resource1({error, _Reason}) ->
 	{error, 400}.
 
--spec get_pla_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_pla_specs(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
 %% 	Retrieve all Pricing Logic Algorithm (PLA) specifications.
 get_pla_specs([] = _Query) ->
@@ -520,8 +542,10 @@ get_pla_specs(_Query) ->
 -spec delete_resource(Id) -> Result
    when
       Id :: string(),
-      Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-            | {error, ErrorCode :: integer()} .
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404.
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
@@ -586,7 +610,7 @@ delete_resource2([]) ->
 		Result	:: {ok, Headers, Body} | {error, Status},
 		Headers	:: [tuple()],
 		Body		:: iolist(),
-		Status	:: 400 | 404 | 500 .
+		Status	:: 400 | 404 | 412 | 500.
 %% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{id}'.
 %% 	Update a table row using JSON patch method.
 patch_resource(Id, Etag, ReqData) ->
