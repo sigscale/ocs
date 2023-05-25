@@ -154,6 +154,7 @@ class tariffRateList extends PolymerElement {
 		sigApp.viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
 			sigApp.shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
+			sigApp.shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 		} else if(this.activeSpecId == "7") {
 			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
 		} else if(this.activeSpecId == "1") {
