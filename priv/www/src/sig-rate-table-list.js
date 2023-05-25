@@ -158,6 +158,7 @@ class tariffRateList extends PolymerElement {
 			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
 		} else if(this.activeSpecId == "1") {
 			sigApp.shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
+			sigApp.shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 		}
 		this.$.tariffRateList.close();
 	} 
