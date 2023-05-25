@@ -61,8 +61,44 @@ class periodAdd extends PolymerElement {
 								allowed-pattern="[0-9.]"
 								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
-								label="Rate"
-								value="{{addPreRate}}">
+								label="Initial Period Duration"
+								value="{{iniPerDuration}}">
+						</paper-input>
+						<paper-tooltip>
+							Price per unit to apply when this prefix matches an address.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								allowed-pattern="[0-9.]"
+								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
+								label="Initial Period Rate"
+								value="{{iniPerRate}}">
+						</paper-input>
+						<paper-tooltip>
+							Price per unit to apply when this prefix matches an address.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								allowed-pattern="[0-9.]"
+								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
+								label="Additional Period Duration"
+								value="{{addPerDuration}}">
+						</paper-input>
+						<paper-tooltip>
+							Price per unit to apply when this prefix matches an address.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								allowed-pattern="[0-9.]"
+								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
+								label="Additional Period Rate"
+								value="{{addPerRate}}">
 						</paper-input>
 						<paper-tooltip>
 							Price per unit to apply when this prefix matches an address.
@@ -104,8 +140,17 @@ class periodAdd extends PolymerElement {
 			addPreDesc: {
 				type: String,
 			},
-			addPreRate: {
-				type: String,
+			iniPerDuration: {
+				type: Number,
+			},
+			iniPerRate: {
+				type: Number,
+			},
+			addPerDuration: {
+				type: Number,
+			},
+			addPerRate: {
+				type: Number,
 			}
 		}
 	}
@@ -118,7 +163,7 @@ class periodAdd extends PolymerElement {
 		var periodTable = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list')
 		var ajax = this.$.addPeriodTableRow;
 		ajax.method = "POST";
-		ajax.url = "/resourceInventoryManagement/v1/resource/";
+		ajax.url = "/resourceInventoryManagement/v1/resource";
 		var tar = new Object();
 		var rel = new Array();
 		var relObj = new Object();
@@ -140,10 +185,22 @@ class periodAdd extends PolymerElement {
 		resDes.name = "description";
 		resDes.value = this.addPreDesc;
 		resource.push(resDes);
-		var resRate = new Object();
-		resRate.name = "rate";
-		resRate.value = this.addPreRate;
-		resource.push(resRate);
+		var resIniDuration = new Object();
+		resIniDuration.name = "periodInitial";
+		resIniDuration.value = parseInt(this.iniPerDuration);
+		resource.push(resIniDuration);
+		var resIniRate = new Object();
+		resIniRate.name = "rateInitial";
+		resIniRate.value = parseInt(this.iniPerRate);
+		resource.push(resIniRate);
+		var resAddDuration = new Object();
+		resAddDuration.name = "periodAdditional";
+		resAddDuration.value = parseInt(this.addPerDuration);
+		resource.push(resAddDuration);
+		var resAddRate = new Object();
+		resAddRate.name = "rateAdditional";
+		resAddRate.value = parseInt(this.addPerRate);
+		resource.push(resAddRate);
 		tar.resourceCharacteristic = resource;
 
 		var spec = new Object();
@@ -153,7 +210,7 @@ class periodAdd extends PolymerElement {
 		tar.resourceSpecification = spec;
 		ajax.body = tar;
 		ajax.generateRequest();
-		this.$.addPrefixModal.close();
+		this.$.addPeriodModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
