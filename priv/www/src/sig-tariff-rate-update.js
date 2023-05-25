@@ -147,7 +147,7 @@ class tableUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = current.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').rowId = current.id;
 			this.upPrefix = current.prefix;
 			this.upDesc = current.description;
 			this.upRate = current.rate;
@@ -164,7 +164,7 @@ class tableUpdate extends PolymerElement {
 		var Ajax = this.$.updateRateRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').activeTableName;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').activeTableName;
 		var Id = this.upPrefix;
 		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
@@ -193,7 +193,7 @@ class tableUpdate extends PolymerElement {
 
 	_updateRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_updateRateRowError(event) {
@@ -203,17 +203,17 @@ class tableUpdate extends PolymerElement {
 	}
 
 	deleteUpdate(event) {
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList');
 		var Id = this.upPrefix;
 		this.$.deleteRateRowAjax.method = "DELETE";
 		this.$.deleteRateRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
 		this.$.deleteRateRowAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_deleteRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_deleteRateRowError(event) {
