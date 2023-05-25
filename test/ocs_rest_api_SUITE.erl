@@ -4743,14 +4743,14 @@ post_tariff_resource() ->
 post_tariff_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Table = "tariff_table4",
+	Table = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(Table, []),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = "Tariff",
-	Description = "tariff resource",
+	Description = random_string(rand:uniform(20) + 8),
 	Version = random_string(3),
 	ClassType = "LogicalResource",
-	ClassSchema = "/resourceInventoryManagement/v3/"
+	ClassSchema = "/resourceInventoryManagement/v1/"
 			"schema/resourceInventoryManagement",
 	BaseType = "Resource",
 	Category = "tariff",
@@ -4762,7 +4762,12 @@ post_tariff_resource(Config) ->
 	ResourceRelHref = "/resourceInventoryManagement/v1/resource/"
 			++ ResourceRelId,
 	CharPrefix = "125",
-	CharDes = "test",
+	CharDes = random_string(rand:uniform(10) + 5),
+	Rate = rand:uniform(1000000),
+	CharRate = ocs_rest:millionths_out(Rate),
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
 	RequestBody = "{\n"
 			++ "\t\"name\": \"" ++ Name ++ "\",\n"
 			++ "\t\"description\": \"" ++ Description ++ "\",\n"
@@ -4772,8 +4777,8 @@ post_tariff_resource(Config) ->
 			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
 			++ "\t\"version\": \"" ++ Version ++ "\",\n"
 			++ "\t\"validFor\": {\n"
-			++ "\t\t\"startDateTime\": \"2021-01-20T00:00\",\n"
-			++ "\t\t\"endDateTime\": \"2021-12-31T23:59\"\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
 			++ "\t},\n"
 			++ "\t\"lifecycleState\": \"In Test\",\n"
 			++ "\t\"resourceSpecification\": {\n"
@@ -4802,7 +4807,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t},\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"rate\",\n"
-			++ "\t\t\t\"value\": \"250\"\n"
+			++ "\t\t\t\"value\": \"" ++ CharRate ++ "\"\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
 			++ "}\n",
@@ -4817,8 +4822,7 @@ post_tariff_resource(Config) ->
 	{_, URI} = lists:keyfind("location", 1, Headers),
 	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
 			= httpd_util:split_path(URI),
-	[Table, CharPrefix] = string:tokens(Id, "-"),
-	{CharDes, 250000000, _} = ocs_gtt:lookup_first(Table, CharPrefix).
+	{CharDes, Rate, _} = ocs_gtt:lookup_first(Table, CharPrefix).
 
 delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
@@ -4826,9 +4830,10 @@ delete_tariff_resource() ->
 delete_tariff_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ok = ocs_gtt:new(tariff_table3, []),
-	{ok, #resource{id = Id}}
-			= add_resource("1", "tariff table", "tariff", "tariff_table3"),
+	Table = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table, []),
+	Description = random_string(rand:uniform(20) + 8),
+	{ok, #resource{id = Id}} = add_resource("1", Description, "tariff", Table),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),

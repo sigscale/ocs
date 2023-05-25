@@ -268,7 +268,7 @@
 
 -record(gtt,
 		{num :: string() | '_' | '$1',
-		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined | '_' | '$2'}).
+		value :: tuple() | undefined | '_' | '$2'}).
 
 -record(session,
 		{id :: diameter:'OctetString'() | radius_attributes:attributes(),

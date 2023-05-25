@@ -456,70 +456,47 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 
 -spec add_resource(RequestBody) -> Result
 	when
-		RequestBody :: [tuple()],
-		Result   :: {ok, ReplyHeaders, ReplyBody} | {error, Status},
-		ReplyHeaders  :: [tuple()],
-		ReplyBody     :: iolist(),
-		Status   :: 400.
+		RequestBody :: string(),
+		Result   :: {ok, Headers, Body} | {error, Status},
+		Headers  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 400 | 500.
 %% @doc Respond to
 %% 	`POST /resourceInventoryManagement/v1/resource'.
 %%    Add a new resource in inventory.
 add_resource(RequestBody) ->
 	try
-		resource(mochijson:decode(RequestBody))
+		ocs:add_resource(resource(mochijson:decode(RequestBody)))
 	of
-		#resource{name = Name, specification = #specification_ref{id = SpecId}}
-				= Resource when SpecId == "1"; SpecId == "3"; SpecId == "5";
-				SpecId == "7" ->
-			F = fun F(eof, Acc) ->
-						lists:flatten(Acc);
-					F(Cont1, Acc) ->
-						{Cont2, L} = ocs:query_resource(Cont1, '_', {exact, Name},
-								{exact, SpecId}, '_'),
-						F(Cont2, [L | Acc])
-			end,
-			case F(start, []) of
-				[] ->
-					add_resource1(ocs:add_resource(Resource));
-				[#resource{} | _] ->
-					{error, 400}
-			end;
-		#resource{specification = #specification_ref{id = "2"},
-				related = [#resource_rel{name = Table}],
-				characteristic = Chars} = Resource1 ->
-			F = fun(CharName) ->
-						case lists:keyfind(CharName, #resource_char.name, Chars) of
-							#resource_char{value = Value} ->
-								Value;
-							false ->
-								{error, 400}
-						end
-			end,
-			Prefix = F("prefix"),
-			{ok, #gtt{value = {_, _, LM}}} = ocs_gtt:insert(Table, Prefix,
-					{F("description"), ocs_rest:millionths_in(F("rate"))}),
-			Id = Table ++ "-" ++ Prefix,
-			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
-			Resource2 = Resource1#resource{id = Id, href = F("prefix"),
-					last_modified = LM},
-			Headers = [{content_type, "application/json"},
+		{ok, #resource{href = Href, last_modified = LM} = Resource} ->
+			ReplyHeaders = [{content_type, "application/json"},
 					{location, Href}, {etag, ocs_rest:etag(LM)}],
-			Body = mochijson:encode(resource(Resource2)),
-			{ok, Headers, Body};
-		#resource{specification = #specification_ref{id = "4"}} = Resource ->
-			add_resource1(ocs:add_resource(Resource))
+			ReplyBody = mochijson:encode(resource(Resource)),
+			{ok, ReplyHeaders, ReplyBody};
+		{error, table_not_found} ->
+			Problem = #{type => "/doc/ocs.html#add_resource-1",
+					title => "Table not found",
+					detail => "The underying mnesia table must first be created"},
+			{error, 400, Problem};
+		{error, table_exists} ->
+			Problem = #{type => "/doc/ocs.html#add_resource-1",
+					title => "Table already exists",
+					detail => "The table resource already exists in the inventory"},
+			{error, 400, Problem};
+		{error, missing_char} ->
+			Problem = #{type => "/doc/ocs.html#add_resource-1",
+					title => "Missing resource characteristics",
+					detail => "A mandatory resource characteristic was missing"},
+			{error, 400, Problem};
+		{error, _Reason} ->
+			Problem = #{type => "/doc/ocs.html#add_resource-1",
+					title => "Server error",
+					detail => "An error occurred adding the resource"},
+			{error, 500, Problem}
 	catch
 		_:_Reason ->
 			{error, 400}
 	end.
-%% @hidden
-add_resource1({ok, #resource{href = Href, last_modified = LM} = Resource}) ->
-	Headers = [{content_type, "application/json"},
-			{location, Href}, {etag, ocs_rest:etag(LM)}],
-	Body = mochijson:encode(resource(Resource)),
-	{ok, Headers, Body};
-add_resource1({error, _Reason}) ->
-	{error, 400}.
 
 -spec get_pla_specs(Query) -> Result
 	when
