@@ -234,8 +234,14 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
-	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
+	notify_diameter_acct_log,
+	get_resources, get_tariff_table, get_tariff_row, get_periods_table,
+	get_periods_row, get_roaming_table, get_roaming_row,
+	post_tariff_table, post_tariff_row, post_periods_table, post_periods_row,
+	post_roaming_table, post_roaming_row,
+	delete_tariff_table, delete_tariff_row, delete_periods_table,
+	delete_periods_row, delete_roaming_table, delete_roaming_row,
+	update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
 	delete_policy_table, oauth_authentication,
 	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub,
@@ -4670,62 +4676,16 @@ notify_diameter_acct_log(Config) ->
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
-get_tariff_resource() ->
-	[{userdata, [{doc,"Get tariff resource with given resource
-			inventory reference"}]}].
-
-get_tariff_resource(Config) ->
-	HostUrl = ?config(host_url, Config),
-	HttpOpt = ?config(http_options, Config),
-	ok = ocs_gtt:new(tariff_table1, []),
-	Schema = "/resourceInventoryManagement/v1/schema/"
-			"resourceInventoryManagement#/definitions/resource",
-	ResourceRelID = ocs:generate_identity(),
-	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			schema = Schema, description = "tariff row resource",
-			category = "tariff", state = "Active",
-			start_date = erlang:system_time(millisecond),
-			end_date = erlang:system_time(millisecond) + 2678400000,
-			related = [#resource_rel{id = ResourceRelID,
-					href = "/resourceInventoryManagement/v1/resource/"
-					++ ResourceRelID, type = "contained", name = "tariff_table1"}],
-			specification = #specification_ref{id = "2", name = "tariff spec",
-					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
-			characteristic  = [#resource_char{name = "prefix", value = "125"},
-					#resource_char{name = "description", value = "test"},
-					#resource_char{name = "rate", value = 250}]},
-	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
-	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/" ++ Id,
-			[Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
-	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, Id} = lists:keyfind("id", 1, Object),
-	{_, "/resourceInventoryManagement/v1/resource/" ++ Id}
-			= lists:keyfind("href", 1, Object),
-	{_, "tariff"} = lists:keyfind("category", 1, Object),
-	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
-	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
-	{_, {array, [{struct, RelList}]}}
-			= lists:keyfind("resourceRelationship", 1, Object),
-	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
-	{_, "tariff_table1"} = lists:keyfind("name", 1, ObjList),
-	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
-	3 = length(CharList).
-
-get_tariff_resources() ->
+get_resources() ->
 	[{userdata, [{doc, "GET Resource collection"}]}].
 
-get_tariff_resources(Config) ->
+get_resources(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ok = ocs_gtt:new(tariff_table2, []),
-	{ok, #resource{}}
-			= add_resource("1", "tariff table", "tariff", "tariff_table2"),
-	{ok, #resource{}}
-			= add_resource("2", "tariff row", "tariff", "tariff_table2"),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("1", "tariff table", TableName),
+	{ok, #resource{id = _RowId}} = add_row("2", "tariff row", TableId, TableName),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()]},
@@ -4737,16 +4697,461 @@ get_tariff_resources(Config) ->
 	{array, Objects} = mochijson:decode(ResponseBody),
 	true = length(Objects) >= 2.
 
-post_tariff_resource() ->
-	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
+get_tariff_table() ->
+	[{userdata, [{doc,"Get tariff table resource"}]}].
 
-post_tariff_resource(Config) ->
+get_tariff_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "1",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/1",
+	SpecName = "TariffTable",
+	Resource = #resource{name = TableName,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName}},
+	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, ResList),
+	{_, Href} = lists:keyfind("href", 1, ResList),
+	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, ClassType} = lists:keyfind("@type", 1, ResList),
+	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
+	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList).
+
+get_tariff_row() ->
+	[{userdata, [{doc,"Get tariff table row resource"}]}].
+
+get_tariff_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, TableResource} = add_table("1", "tariff table", TableName),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "2",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/2",
+	SpecName = "TariffTableRow",
+	RelId = TableResource#resource.id,
+	RelHref = TableResource#resource.href,
+	RelName = TableResource#resource.name,
+	RelType = "contained",
+	Prefix = random_dn(rand:uniform(5) + 2),
+	Rate = rand:uniform(1000000),
+	Resource = #resource{name = Prefix,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			related = [#resource_rel{id = RelId, href = RelHref,
+					name = RelName, type = RelType}],
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
+					#resource_char{name = "description", value = Description},
+					#resource_char{name = "rate", value = Rate}]},
+	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, RowId} = lists:keyfind("id", 1, ResList),
+	{_, RowHref} = lists:keyfind("href", 1, ResList),
+	{_, Prefix} = lists:keyfind("name", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, ResList),
+	{_, RelType} = lists:keyfind("relationshipType", 1, RelList),
+	{_, {struct, RelResList}} = lists:keyfind("resource", 1, RelList),
+	{_, RelId} = lists:keyfind("id", 1, RelResList),
+	{_, RelHref} = lists:keyfind("href", 1, RelResList),
+	{_, RelName} = lists:keyfind("name", 1, RelResList),
+	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	3 = length(CharList).
+
+get_periods_table() ->
+	[{userdata, [{doc,"Get tariff periods table resource"}]}].
+
+get_periods_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "5",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/5",
+	SpecName = "TariffPeriodsTable",
+	Resource = #resource{name = TableName,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName}},
+	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, ResList),
+	{_, Href} = lists:keyfind("href", 1, ResList),
+	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, ClassType} = lists:keyfind("@type", 1, ResList),
+	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
+	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList).
+
+get_periods_row() ->
+	[{userdata, [{doc,"Get tariff periods table row resource"}]}].
+
+get_periods_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, TableResource} = add_table("5", "tariff periods table", TableName),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "6",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/6",
+	SpecName = "TariffPeriodsTableRow",
+	RelId = TableResource#resource.id,
+	RelHref = TableResource#resource.href,
+	RelName = TableResource#resource.name,
+	RelType = "contained",
+	Prefix = random_dn(rand:uniform(5) + 2),
+	PeriodInitial = rand:uniform(1000000),
+	RateInitial = rand:uniform(1000000),
+	PeriodAdditional = rand:uniform(1000000),
+	RateAdditional = rand:uniform(1000000),
+	Resource = #resource{name = Prefix,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			related = [#resource_rel{id = RelId, href = RelHref,
+					name = RelName, type = RelType}],
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
+					#resource_char{name = "description", value = Description},
+					#resource_char{name = "periodInitial", value = PeriodInitial},
+					#resource_char{name = "rateInitial", value = RateInitial},
+					#resource_char{name = "periodAdditional", value = PeriodAdditional},
+					#resource_char{name = "rateAdditional", value = RateAdditional}]},
+	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, RowId} = lists:keyfind("id", 1, ResList),
+	{_, RowHref} = lists:keyfind("href", 1, ResList),
+	{_, Prefix} = lists:keyfind("name", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, ResList),
+	{_, RelType} = lists:keyfind("relationshipType", 1, RelList),
+	{_, {struct, RelResList}} = lists:keyfind("resource", 1, RelList),
+	{_, RelId} = lists:keyfind("id", 1, RelResList),
+	{_, RelHref} = lists:keyfind("href", 1, RelResList),
+	{_, RelName} = lists:keyfind("name", 1, RelResList),
+	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	6 = length(CharList).
+
+get_roaming_table() ->
+	[{userdata, [{doc,"Get roaming tariff table resource"}]}].
+
+get_roaming_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "7",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/7",
+	SpecName = "RoamingTable",
+	Resource = #resource{name = TableName,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName}},
+	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, ResList),
+	{_, Href} = lists:keyfind("href", 1, ResList),
+	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, ClassType} = lists:keyfind("@type", 1, ResList),
+	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
+	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList).
+
+get_roaming_row() ->
+	[{userdata, [{doc,"Get roaming tariff table row resource"}]}].
+
+get_roaming_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, TableResource} = add_table("7", "roaming table", TableName),
+	ClassType = "LogicalResource",
+	BaseType = "Resource",
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Description = random_string(20),
+	Category = "tariff",
+	State = "Active",
+	Start = erlang:system_time(millisecond),
+	End = erlang:system_time(millisecond) + 2678400000,
+	SpecId = "8",
+	SpecHref = "/resourceCatalogManagement/v2/resourceSpecification/8",
+	SpecName = "RoamingTableRow",
+	RelId = TableResource#resource.id,
+	RelHref = TableResource#resource.href,
+	RelName = TableResource#resource.name,
+	RelType = "contained",
+	Prefix = random_dn(rand:uniform(5) + 2),
+	TariffTableName = random_string(rand:uniform(10) + 3),
+	Resource = #resource{name = Prefix,
+			class_type = ClassType, base_type = BaseType,
+			schema = Schema, description = Description,
+			category = Category, state = State,
+			start_date = Start, end_date = End,
+			related = [#resource_rel{id = RelId, href = RelHref,
+					name = RelName, type = RelType}],
+			specification = #specification_ref{id = SpecId,
+					href = SpecHref, name = SpecName},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
+					#resource_char{name = "description", value = Description},
+					#resource_char{name = "tariff", value = TariffTableName}]},
+	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, ResList} = mochijson:decode(ResponseBody),
+	{_, RowId} = lists:keyfind("id", 1, ResList),
+	{_, RowHref} = lists:keyfind("href", 1, ResList),
+	{_, Prefix} = lists:keyfind("name", 1, ResList),
+	{_, Description} = lists:keyfind("description", 1, ResList),
+	{_, Category} = lists:keyfind("category", 1, ResList),
+	{_, State} = lists:keyfind("lifecycleState", 1, ResList),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, ResList),
+	{_, {struct, ValidList}} = lists:keyfind("validFor", 1, ResList),
+	StartDateTime = ocs_rest:iso8601(Start),
+	{_, StartDateTime} = lists:keyfind("startDateTime", 1, ValidList),
+	EndDateTime = ocs_rest:iso8601(End),
+	{_, EndDateTime} = lists:keyfind("endDateTime", 1, ValidList),
+	{_, SpecId} = lists:keyfind("id", 1, SpecList),
+	{_, SpecHref} = lists:keyfind("href", 1, SpecList),
+	{_, SpecName} = lists:keyfind("name", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, ResList),
+	{_, RelType} = lists:keyfind("relationshipType", 1, RelList),
+	{_, {struct, RelResList}} = lists:keyfind("resource", 1, RelList),
+	{_, RelId} = lists:keyfind("id", 1, RelResList),
+	{_, RelHref} = lists:keyfind("href", 1, RelResList),
+	{_, RelName} = lists:keyfind("name", 1, RelResList),
+	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	3 = length(CharList).
+
+post_tariff_table() ->
+	[{userdata, [{doc,"Add tariff table resource"}]}].
+
+post_tariff_table(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Table = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(Table, []),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
-	Name = "Tariff",
+	Description = random_string(rand:uniform(20) + 8),
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v1/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "1",
+	ResSpecName = "TariffTable",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Table ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t}\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
+			= httpd_util:split_path(URI).
+
+post_tariff_row() ->
+	[{userdata, [{doc,"Add tariff table row resource"}]}].
+
+post_tariff_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table, []),
+	{ok, TableResource} = add_table("1", "Tariff table", Table),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Name = random_string(rand:uniform(10) + 2),
 	Description = random_string(rand:uniform(20) + 8),
 	Version = random_string(3),
 	ClassType = "LogicalResource",
@@ -4758,13 +5163,12 @@ post_tariff_resource(Config) ->
 	ResSpecName = "TariffTableRow",
 	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
 			++ ResSpecId,
-	ResourceRelId = ocs:generate_identity(),
-	ResourceRelHref = "/resourceInventoryManagement/v1/resource/"
-			++ ResourceRelId,
-	CharPrefix = "125",
-	CharDes = random_string(rand:uniform(10) + 5),
+	ResourceRelId = TableResource#resource.id,
+	ResourceRelHref = TableResource#resource.href,
+	ResourceRelName = TableResource#resource.name,
+	Prefix = random_dn(rand:uniform(5) + 2),
 	Rate = rand:uniform(1000000),
-	CharRate = ocs_rest:millionths_out(Rate),
+	RateS = ocs_rest:millionths_out(Rate),
 	Now = erlang:system_time(millisecond),
 	Start = ocs_rest:iso8601(Now),
 	End = ocs_rest:iso8601(Now + 31557600000),
@@ -4791,7 +5195,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t\t\"resource\": {\n"
 			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
 			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\t\"name\": \"" ++ Table ++ "\"\n"
+			++ "\t\t\t\t\"name\": \"" ++ ResourceRelName ++ "\"\n"
 			++ "\t\t\t\t},\n"
 			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
@@ -4799,15 +5203,15 @@ post_tariff_resource(Config) ->
 			++ "\t\"resourceCharacteristic\": [\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"prefix\",\n"
-			++ "\t\t\t\"value\": \"" ++ CharPrefix ++ "\"\n"
+			++ "\t\t\t\"value\": \"" ++ Prefix ++ "\"\n"
 			++ "\t\t},\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"description\",\n"
-			++ "\t\t\t\"value\": \"" ++ CharDes ++ "\"\n"
+			++ "\t\t\t\"value\": \"" ++ Description ++ "\"\n"
 			++ "\t\t},\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"rate\",\n"
-			++ "\t\t\t\"value\": \"" ++ CharRate ++ "\"\n"
+			++ "\t\t\t\"value\": \"" ++ RateS ++ "\"\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
 			++ "}\n",
@@ -4820,26 +5224,406 @@ post_tariff_resource(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
 			= httpd_util:split_path(URI),
-	{CharDes, Rate, _} = ocs_gtt:lookup_first(Table, CharPrefix).
+	{Description, Rate, _} = ocs_gtt:lookup_first(Table, Prefix).
 
-delete_tariff_resource() ->
-	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
+post_periods_table() ->
+	[{userdata, [{doc,"Add tariff periods table resource"}]}].
 
-delete_tariff_resource(Config) ->
+post_periods_table(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Table = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(Table, []),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Description = random_string(rand:uniform(20) + 8),
-	{ok, #resource{id = Id}} = add_resource("1", Description, "tariff", Table),
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v1/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "5",
+	ResSpecName = "TariffPeriodsTable",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Table ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t}\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
+			= httpd_util:split_path(URI).
+
+post_periods_row() ->
+	[{userdata, [{doc,"Add tariff periods table row resource"}]}].
+
+post_periods_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table, []),
+	{ok, TableResource} = add_table("5", "Tariff periods table", Table),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Name = random_string(rand:uniform(10) + 2),
+	Description = random_string(rand:uniform(20) + 8),
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v1/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "6",
+	ResSpecName = "TariffPeriodsTableRow",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	ResourceRelId = TableResource#resource.id,
+	ResourceRelHref = TableResource#resource.href,
+	ResourceRelName = TableResource#resource.name,
+	Prefix = random_dn(rand:uniform(5) + 2),
+	PeriodInitial = rand:uniform(300),
+	InitialRate = rand:uniform(1000000),
+	RateInitialS = ocs_rest:millionths_out(InitialRate),
+	PeriodAdditional = rand:uniform(300),
+	AdditionalRate = rand:uniform(1000000),
+	RateAdditionalS = ocs_rest:millionths_out(AdditionalRate),
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Name ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\"resourceRelationship\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"resource\": {\n"
+			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\t\"name\": \"" ++ ResourceRelName ++ "\"\n"
+			++ "\t\t\t\t},\n"
+			++ "\t\t\t\"relationshipType\": \"contained\"\n"
+			++ "\t\t}\n"
+			++ "\t],\n"
+			++ "\t\"resourceCharacteristic\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"prefix\",\n"
+			++ "\t\t\t\"value\": \"" ++ Prefix ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"description\",\n"
+			++ "\t\t\t\"value\": \"" ++ Description ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"periodInitial\",\n"
+			++ "\t\t\t\"value\": " ++ integer_to_list(PeriodInitial) ++ "\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"rateInitial\",\n"
+			++ "\t\t\t\"value\": \"" ++ RateInitialS ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"periodAdditional\",\n"
+			++ "\t\t\t\"value\": " ++ integer_to_list(PeriodAdditional) ++ "\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"rateAdditional\",\n"
+			++ "\t\t\t\"value\": \"" ++ RateAdditionalS ++ "\"\n"
+			++ "\t\t}\n"
+			++ "\t]\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
+			= httpd_util:split_path(URI),
+	{Description, PeriodInitial, InitialRate,
+			PeriodAdditional, AdditionalRate, _} = ocs_gtt:lookup_first(Table, Prefix).
+
+post_roaming_table() ->
+	[{userdata, [{doc,"Add roaming table resource"}]}].
+
+post_roaming_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table, []),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Description = random_string(rand:uniform(20) + 8),
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v1/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "7",
+	ResSpecName = "RoamingTable",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Table ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t}\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
+			= httpd_util:split_path(URI).
+
+post_roaming_row() ->
+	[{userdata, [{doc,"Add tariff table row resource"}]}].
+
+post_roaming_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table, []),
+	{ok, TableResource} = add_table("1", "Roaming table", Table),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Name = random_string(rand:uniform(10) + 2),
+	Description = random_string(rand:uniform(20) + 8),
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v1/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "8",
+	ResSpecName = "RoamingTableRow",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	ResourceRelId = TableResource#resource.id,
+	ResourceRelHref = TableResource#resource.href,
+	ResourceRelName = TableResource#resource.name,
+	Prefix = random_dn(rand:uniform(5) + 2),
+	TariffTableName = random_string(rand:uniform(10) + 3),
+	Now = erlang:system_time(millisecond),
+	Start = ocs_rest:iso8601(Now),
+	End = ocs_rest:iso8601(Now + 31557600000),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Name ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"" ++ Start ++ "\",\n"
+			++ "\t\t\"endDateTime\": \"" ++ End ++ "\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\"resourceRelationship\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"resource\": {\n"
+			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\t\"name\": \"" ++ ResourceRelName ++ "\"\n"
+			++ "\t\t\t\t},\n"
+			++ "\t\t\t\"relationshipType\": \"contained\"\n"
+			++ "\t\t}\n"
+			++ "\t],\n"
+			++ "\t\"resourceCharacteristic\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"prefix\",\n"
+			++ "\t\t\t\"value\": \"" ++ Prefix ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"description\",\n"
+			++ "\t\t\t\"value\": \"" ++ Description ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"tariff\",\n"
+			++ "\t\t\t\"value\": \"" ++ TariffTableName  ++ "\"\n"
+			++ "\t\t}\n"
+			++ "\t]\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ _Id, _}
+			= httpd_util:split_path(URI),
+	{Description, TariffTableName, _} = ocs_gtt:lookup_first(Table, Prefix).
+
+delete_tariff_table() ->
+	[{userdata, [{doc,"Delete tariff table"}]}].
+
+delete_tariff_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = Id}} = add_table("1", "", TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:get_resource(Id).
+
+delete_tariff_row() ->
+	[{userdata, [{doc,"Delete tariff table row"}]}].
+
+delete_tariff_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("1", "", TableName),
+	{ok, #resource{id = RowId}} = add_row("2", "", TableId, TableName),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(RowId).
+
+delete_periods_table() ->
+	[{userdata, [{doc,"Delete tariff periods table"}]}].
+
+delete_periods_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = Id}} = add_table("5", "", TableName),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(Id).
+
+delete_periods_row() ->
+	[{userdata, [{doc,"Delete tariff periods table row"}]}].
+
+delete_periods_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("5", "", TableName),
+	{ok, #resource{id = RowId}} = add_row("6", "", TableId, TableName),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(RowId).
+
+delete_roaming_table() ->
+	[{userdata, [{doc,"Delete roaming tariff table"}]}].
+
+delete_roaming_table(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = Id}} = add_table("7", "", TableName),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(Id).
+
+delete_roaming_row() ->
+	[{userdata, [{doc,"Delete roaming tariff table row"}]}].
+
+delete_roaming_row(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("7", "", TableName),
+	{ok, #resource{id = RowId}} = add_row("8", "", TableId, TableName),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(RowId).
 
 update_tariff_resource() ->
 	[{userdata, [{doc, "Use PATCH for update tariff resource entity"}]}].
@@ -5793,33 +6577,90 @@ add_bucket(ProdRef, Units, RA) ->
 	BId.
 
 %% @hidden
-add_resource("1", Description, Category, TableName) ->
-	Schema = "/resourceInventoryManagement/v1/schema/"
-			"resourceInventoryManagement#/definitions/resource",
+add_table("1", Description, TableName) ->
 	Resource = #resource{name = TableName, class_type = "LogicalResource",
-			base_type = "Resource", description = Description, category = Category,
-			state = "Active", schema = Schema,
+			base_type = "Resource", description = Description,
+			category = "tariff", state = "In Test",
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2678400000,
 			specification = #specification_ref{id = "1", name = "TariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
 	ocs:add_resource(Resource);
-add_resource("2", Description, Category, TableName) ->
-	Schema = "/resourceInventoryManagement/v1/schema/"
-			"resourceInventoryManagement#/definitions/resource",
-	ResourceRelID = ocs:generate_identity(),
-	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			schema = Schema, description = Description, category = Category,
+add_table("5", Description, TableName) ->
+	Resource = #resource{name = TableName, class_type = "LogicalResource",
+			base_type = "Resource", description = Description,
+			category = "tariff", state = "In Test",
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2678400000,
-			related = [#resource_rel{id = ResourceRelID,
+			specification = #specification_ref{id = "5", name = "TariffPeriodsTable",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/5"}},
+	ocs:add_resource(Resource);
+add_table("7", Description, TableName) ->
+	Resource = #resource{name = TableName, class_type = "LogicalResource",
+			base_type = "Resource", description = Description,
+			category = "tariff", state = "In Test",
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
+			specification = #specification_ref{id = "7", name = "RoamingTable",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/7"}},
+	ocs:add_resource(Resource).
+
+%% @hidden
+add_row("2", Description, TableId, TableName) ->
+	Prefix = random_dn(rand:uniform(5) + 2),
+	Rate = rand:uniform(1000000),
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			description = Description, category = "tariff", state = "In Test",
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
+			related = [#resource_rel{id = TableId,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ ResourceRelID, referred_type = "contained", name = TableName}],
+					++ TableId, referred_type = "contained", name = TableName}],
 			specification = #specification_ref{id = "2", name = "TariffTableRow",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
-			characteristic  = [#resource_char{name = "prefix", value = "125"},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
 					#resource_char{name = "description", value = "test"},
-					#resource_char{name = "rate", value = 250}]},
+					#resource_char{name = "rate", value = Rate}]},
+	ocs:add_resource(Resource);
+add_row("6", Description, TableId, TableName) ->
+	Prefix = random_dn(rand:uniform(5) + 2),
+	PeriodInitial = rand:uniform(300),
+	RateInitial = rand:uniform(1000000),
+	PeriodAdditional = rand:uniform(120),
+	RateAdditional = rand:uniform(1000000),
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			description = Description, category = "tariff", state = "In Test",
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
+			related = [#resource_rel{id = TableId,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ TableId, referred_type = "contained", name = TableName}],
+			specification = #specification_ref{id = "6",
+					name = "TariffPeriodsTableRow",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/6"},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
+					#resource_char{name = "description", value = "test"},
+					#resource_char{name = "periodInitial", value = PeriodInitial},
+					#resource_char{name = "rateInitial", value = RateInitial},
+					#resource_char{name = "periodAdditional", value = PeriodAdditional},
+					#resource_char{name = "rateAdditional", value = RateAdditional}]},
+	ocs:add_resource(Resource);
+add_row("8", Description, TableId, TableName) ->
+	Prefix = random_dn(rand:uniform(5) + 2),
+	TariffTableName = random_string(10),
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			description = Description, category = "tariff", state = "In Test",
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
+			related = [#resource_rel{id = TableId,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ TableId, referred_type = "contained", name = TableName}],
+			specification = #specification_ref{id = "8",
+					name = "RoamingTableRow",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/8"},
+			characteristic  = [#resource_char{name = "prefix", value = Prefix},
+					#resource_char{name = "description", value = "test"},
+					#resource_char{name = "tariff", value = TariffTableName}]},
 	ocs:add_resource(Resource).
 
 %% @hidden
@@ -5846,8 +6687,16 @@ fill_related(N, Acc) ->
 	fill_related(N - 1, [Related | Acc]).
 
 %% @hidden
+random_dn(Length) ->
+	Charset = lists:seq($0, $1),
+	random_string(Length, Charset).
+
+%% @hidden
 random_string(Length) ->
 	Charset = lists:seq($a, $z),
+	random_string(Length, Charset).
+%% @hidden
+random_string(Length, Charset) ->
 	NumChars = length(Charset),
 	Random = crypto:strong_rand_bytes(Length),
 	random_string(Random, Charset, NumChars,[]).
