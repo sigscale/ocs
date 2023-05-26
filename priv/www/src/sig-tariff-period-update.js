@@ -147,7 +147,7 @@ class periodUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-			document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList').rowId = current.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').rowId = current.id;
 			this.upPrefix = current.prefix;
 			this.upDesc = current.description;
 			this.upRate = current.rate;
@@ -164,7 +164,7 @@ class periodUpdate extends PolymerElement {
 		var Ajax = this.$.updatePeriodRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList').activeTableName;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').activeTableName;
 		var Id = this.upPrefix;
 		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
@@ -193,7 +193,7 @@ class periodUpdate extends PolymerElement {
 
 	_updatePeriodRowResponse(event) {
 		this.$.updatePeriodModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList').shadowRoot.getElementById('periodGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
 	_updatePeriodRowError(event) {
@@ -213,7 +213,7 @@ class periodUpdate extends PolymerElement {
 
 	_deletePeriodRowResponse(event) {
 		this.$.updatePeriodModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('periodsList').shadowRoot.getElementById('periodGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
 	_deletePeriodRowError(event) {

@@ -152,7 +152,7 @@ class SigApp extends PolymerElement {
 								name="rateView">
 						</sig-tariff-rate-list>
 						<sig-tariff-periods-list
-								id="periodsList"
+								id="periodList"
 								active-item="{{activePeriodItem}}"
 								active-table-name="[[periodTable]]"
 								loading="{{periodLoading}}"
