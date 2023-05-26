@@ -65,8 +65,8 @@
 -define(POLICY_ROW_SPEC,    "4").
 -define(PERIOD_TABLE_SPEC,  "5").
 -define(PERIOD_ROW_SPEC,    "6").
--define(ROAMING_TABLE_SPEC, "5").
--define(ROAMING_ROW_SPEC,   "6").
+-define(ROAMING_TABLE_SPEC, "7").
+-define(ROAMING_ROW_SPEC,   "8").
 
 %%----------------------------------------------------------------------
 %%  The ocs public API
@@ -1893,7 +1893,7 @@ add_resource(#resource{id = undefined, href = undefined,
 				{Description, PeriodInitial, RateInitial,
 				PeriodAdditional, RateAdditional})
 	of
-		{ok, #gtt{value = {_, _, _, _, _, _, {TS, N} = LM}}} ->
+		{ok, #gtt{value = {_, _, _, _, _, {TS, N} = LM}}} ->
 			Id = integer_to_list(TS) ++ integer_to_list(N),
 			Href = ?PathResInv ++ "resource/" ++ Id,
 			NewResource = Resource#resource{id = Id,
