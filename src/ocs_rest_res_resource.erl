@@ -29,7 +29,7 @@
 -export([get_resource/1, get_resource/2, add_resource/1, patch_resource/3,
 		delete_resource/1, head_resource/0]).
 -export([get_pla_specs/1]).
--export([resource/1, gtt/2]).
+-export([resource/1]).
 
 -include("ocs.hrl").
 
@@ -245,29 +245,18 @@ get_resource_catalogs(_Query) ->
 %%    Retrieve resource from inventory management.
 get_resource(Id) ->
 	try
-		string:tokens(Id, "-")
-	of
-		[Table, Prefix] ->
-			{Description, Rate, LM} = ocs_gtt:lookup_first(Table, Prefix),
-			Headers = [{content_type, "application/json"},
-					{etag, ocs_rest:etag(LM)}],
-			Body = mochijson:encode(gtt(Table, {Prefix, Description, Rate})),
-			{ok, Headers, Body};
-		_ ->
-			case ocs:get_resource(Id) of
-				{ok, #resource{last_modified = LM} = Resource} ->
-					Headers = [{content_type, "application/json"},
-							{etag, ocs_rest:etag(LM)}],
-					Body = mochijson:encode(resource(Resource)),
-					{ok, Headers, Body};
-				{error, not_found} ->
-					{error, 404};
-				{error, _Reason} ->
-					{error, 500}
-			end
+		case ocs:get_resource(Id) of
+			{ok, #resource{last_modified = LM} = Resource} ->
+				Headers = [{content_type, "application/json"},
+						{etag, ocs_rest:etag(LM)}],
+				Body = mochijson:encode(resource(Resource)),
+				{ok, Headers, Body};
+			{error, not_found} ->
+				{error, 404};
+			{error, _Reason} ->
+				{error, 500}
+		end
 	catch
-		error:badarg ->
-			{error, 404};
 		_:_Reason1 ->
 			{error, 500}
 	end.
@@ -314,27 +303,20 @@ get_resource(Query, Headers) ->
 						MatchId = match("id", Complex, Query),
 						MatchCategory = match("category", Complex, Query),
 						MatchSpecId = match("resourceSpecification.id", Complex, Query),
-						MatchRelName
-								= match("resourceRelationship.resource.name", Complex, Query),
-						MatchPrefix = match("resourceCharacteristic.prefix", Complex, Query),
-						{Query1, [MatchId, MatchCategory, MatchSpecId, MatchRelName, MatchPrefix]}
+						MatchRelName = match("resourceRelationship.resource.name", Complex, Query),
+						{Query1, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 				end;
 			false ->
 					MatchId = match("id", [], Query),
 					MatchCategory = match("category", [], Query),
 					MatchSpecId = match("resourceSpecification.id", [], Query),
-					MatchRelName
-							= match("resourceRelationship.resource.name", [], Query),
-					MatchPrefix = match("resourceCharacteristic.prefix", [], Query),
-					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName, MatchPrefix]}
+					MatchRelName = match("resourceRelationship.resource.name", [], Query),
+					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 		end
 	of
-		{Query2, [_, _, {exact, "2"}, {exact, Table}, MatchPrefix1]} ->
-			Codec = fun gtt/2,
-			query_filter({ocs_gtt, query, [list_to_existing_atom(Table), MatchPrefix1]}, Codec, Query2, Headers);
-		{Query2, [ResId, ResName, SpecId, RelName, _]} ->
+		{Query2, QueryArgs} ->
 			Codec = fun resource/1,
-			query_filter({ocs, query_resource, [ResId, ResName, SpecId, RelName]}, Codec, Query2, Headers)
+			query_filter({ocs, query_resource, QueryArgs}, Codec, Query2, Headers)
 	catch
 		_ ->
 			{error, 400}
@@ -411,23 +393,6 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{[#gtt{} | _] = Result, ContentRange} ->
-			case lists:keyfind("resourceRelationship.resource.name", 1,
-					Query) of
-				{_, Table} ->
-					Objects = [gtt(Table, {Prefix, Description, Rate})
-							|| #gtt{num = Prefix, value = {Description, Rate, _}}
-							<- Result],
-					JsonObj = query_page1(Objects, Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body};
-				false ->
-					{error, 400}
-			end;
 		{Result, ContentRange} ->
 			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
 			JsonArray = {array, JsonObj},
@@ -526,58 +491,14 @@ get_pla_specs(_Query) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
-	try
-		case string:tokens(Id, "-") of
-			[Table, Prefix] ->
-				Name = list_to_existing_atom(Table),
-				ok = ocs_gtt:delete(Name, Prefix),
-				{ok, [], []};
-			[Id] ->
-				delete_resource1(ocs:get_resource(Id))
-		end
-	catch
-		error:badarg ->
-			{error, 404};
-		_:_ ->
-			{error, 400}
-	end.
-%% @hidden
-delete_resource1({ok, #resource{id = Id, name = Name,
-		specification = #specification_ref{id = "3"}}}) ->
-	F = fun F(eof, Acc) ->
-				Acc;
-			F(Cont1, Acc) ->
-				case ocs:query_resource(Cont1, '_', '_',
-						{exact, "4"}, {exact, Name}) of
-					{error, _Reason} ->
-						{error, 400};
-					{Cont2, L} ->
-						Fid = fun(#resource{id = RId}) ->
-									RId
-						end,
-						F(Cont2, lists:map(Fid, L) ++ Acc)
-				end
-	end,
-	case F(start, []) of
-		[] ->
-			delete_resource2([Id]);
-		[ResId | _] = ResIdList when is_list(ResId) ->
-			delete_resource2(ResIdList ++ [Id])
-	end;
-delete_resource1({ok, #resource{id = Id}}) ->
-	delete_resource2([Id]);
-delete_resource1({error, _Reason}) ->
-	{error, 400}.
-%% @hidden
-delete_resource2([Id | T]) ->
 	case ocs:delete_resource(Id) of
 		ok ->
-			delete_resource2(T);
-		{error, _Reason} ->
-			{error, 400}
-	end;
-delete_resource2([]) ->
-	{ok, [], []}.
+			{ok, [], []};
+		{error, not_found} ->
+			{error, 404};
+		{error, Reason} ->
+			{error, 500}
+	end.
 
 -spec patch_resource(Id, Etag, ReqData) -> Result
 	when

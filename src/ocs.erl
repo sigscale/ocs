@@ -2022,7 +2022,7 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 							{mnesia:delete(resource, ResourceID, write),
 									Resource, TableName, Prefix};
 						false ->
-							throw(missing_char)
+							{mnesia:delete(resource, ResourceID, write), Resource}
 					end;
 				[#resource{} = Resource] ->
 					{mnesia:delete(resource, ResourceID, write), Resource};
@@ -2033,13 +2033,6 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 	case mnesia:transaction(F) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, {ok, #resource{name = TableName,
-				specification = #specification_ref{id = SpecId}} = Resource}}
-				when SpecId == ?TARIFF_TABLE_SPEC;
-				SpecId == ?PERIOD_TABLE_SPEC;
-				SpecId == ?ROAMING_TABLE_SPEC ->
-			ok = ocs_gtt:clear_table(TableName),
-			ocs_event:notify(delete_resource, Resource, resource);
 		{atomic, {ok, Resource, TableName, Prefix}} ->
 			ok = ocs_gtt:delete(TableName, Prefix),
 			ocs_event:notify(delete_resource, Resource, resource);
