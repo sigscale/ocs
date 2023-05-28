@@ -126,8 +126,6 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == query_service_notification;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
 		TestCase == query_offer_notification;
-		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
-		TestCase == query_gtt_notification;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
@@ -168,8 +166,6 @@ end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == query_service_notification;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
 		TestCase == query_offer_notification;
-		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
-		TestCase == query_gtt_notification;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
@@ -231,7 +227,6 @@ all() ->
 	notify_create_offer, notify_delete_offer, query_offer_notification,
 	post_hub_inventory, delete_hub_inventory, get_inventory_hubs,
 	get_inventory_hub,
-	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log,
@@ -4261,145 +4256,6 @@ get_inventory_hub(Config) ->
 	Href = PathHub ++ Id,
 	{_, Href} = lists:keyfind("href", 1, HubList).
 
-notify_insert_gtt() ->
-	[{userdata, [{doc, "Receive resource creation notification."}]}].
-
-notify_insert_gtt(Config) ->
-	HostUrl = ?config(host_url, Config),
-	HttpOpt = ?config(http_options, Config),
-	CollectionUrl = HostUrl ++ ?PathResourceHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyinsertgtt",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
-	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = "tariff_table9",
-	ok = ocs_gtt:new(Table, []),
-	receive
-		Input ->
-		{struct, GttTableEvent} = mochijson:decode(Input),
-		{_, "ResourceCreationNotification"}
-				= lists:keyfind("eventType", 1, GttTableEvent),
-		{_, {struct, GttTableList}} = lists:keyfind("event", 1, GttTableEvent),
-		{_, Table} = lists:keyfind("name", 1, GttTableList)
-	end,		
-	Prefix = "1519240",
-	Description = "Bell Mobility",
-	Amount = 10000,
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
-	receive
-		Input1 ->
-			{struct, GttEvent} = mochijson:decode(Input1),
-			{_, "ResourceCreationNotification"}
-					= lists:keyfind("eventType", 1, GttEvent),
-			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			ResId = Table ++ "-" ++ Prefix,
-			{_, ResId} = lists:keyfind("id", 1, GttList)
-	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
-	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
-
-notify_delete_gtt() ->
-	[{userdata, [{doc, "Receive resource deletion notification."}]}].
-
-notify_delete_gtt(Config) ->
-	HostUrl = ?config(host_url, Config),
-	HttpOpt = ?config(http_options, Config),
-	CollectionUrl = HostUrl ++ ?PathResourceHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifydeletegtt",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
-	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = "tariff_table7",
-	ok = ocs_gtt:new(Table, []),
-	receive
-		Input ->
-		{struct, GttTableEvent} = mochijson:decode(Input),
-		{_, "ResourceCreationNotification"}
-				= lists:keyfind("eventType", 1, GttTableEvent),
-		{_, {struct, GttTableList}} = lists:keyfind("event", 1, GttTableEvent),
-		{_, Table} = lists:keyfind("name", 1, GttTableList)
-	end,		
-	Prefix = "1519240",
-	Description = "Bell Mobility",
-	Amount = 10000,
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
-	ResId = Table ++ "-" ++ Prefix,
-	receive
-		Receive1 ->
-			{struct, GttEvent1} = mochijson:decode(Receive1),
-			{_, "ResourceCreationNotification"}
-					= lists:keyfind("eventType", 1, GttEvent1),
-			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
-			{_, ResId} = lists:keyfind("id", 1, GttList1)
-	end,
-	ok = ocs_gtt:delete(Table, Prefix),
-	receive
-		Receive2 ->
-			{struct, GttEvent2} = mochijson:decode(Receive2),
-			{_, "ResourceRemoveNotification"}
-					= lists:keyfind("eventType", 1, GttEvent2),
-			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
-			{_, ResId} = lists:keyfind("id", 1, GttList2)
-	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
-	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
-
-query_gtt_notification() ->
-	[{userdata, [{doc, "Query gtt notifications"}]}].
-
-query_gtt_notification(Config) ->
-	HostUrl = ?config(host_url, Config),
-	HttpOpt = ?config(http_options, Config),
-	CollectionUrl = HostUrl ++ ?PathResourceHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/querygttnotification",
-	Prefix = "1519240",
-	Query = "eventType=ResourceRemoveNotification&id=" ++ Prefix,
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "\t\"query\": \"" ++ Query ++ "\"\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
-	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = "tariff_table8",
-	ok = ocs_gtt:new(Table, []),
-	Description = "Bell Mobility",
-	Amount = 10000,
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
-	ok = ocs_gtt:delete(Table, Prefix),
-	receive
-		Receive ->
-			{struct, GttEvent} = mochijson:decode(Receive),
-			{_, "ResourceRemoveNotification"}
-					= lists:keyfind("eventType", 1, GttEvent),
-			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			ResId = Table ++ "-" ++ Prefix,
-			{_, ResId} = lists:keyfind("id", 1, GttList)
-	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
-	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
-
 notify_add_resource() ->
 	[{userdata, [{doc, "Receive resource creation notification."}]}].
 
@@ -6241,27 +6097,6 @@ notifydeleteoffer(SessionID, _Env, Input) ->
 queryoffernotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	query_offer_notification ! Input.
-
--spec notifyinsertgtt(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for notify_insert_gtt test case.
-notifyinsertgtt(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_insert_gtt ! Input.
-
--spec notifydeletegtt(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for notify_delete_gtt test case.
-notifydeletegtt(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_delete_gtt ! Input.
-
--spec querygttnotification(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for query_gtt_notification test case.
-querygttnotification(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	query_gtt_notification ! Input.
 
 -spec notifyaddresource(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().

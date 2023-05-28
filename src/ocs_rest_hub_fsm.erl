@@ -169,11 +169,9 @@ register1(Category, #statedata{id = Id} = State) ->
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
 				| create_offer | delete_offer | create_resource | delete_resource
-				| insert_gtt | delete_gtt | log_acct,
+				| log_acct,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #resource{}
-				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}]
-				| ocs_log:acct_event(),
-		Table :: atom(),
+				| [#adjustment{}] | [#acc_balance{}] | ocs_log:acct_event(),
 		Category :: balance | product | service | resource | usage,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
@@ -407,13 +405,7 @@ event(Resource, Category) ->
 		service ->
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
-			case Resource of
-				#resource{} ->
-					ocs_rest_res_resource:resource(Resource);
-				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
-					ocs_rest_res_resource:gtt(atom_to_list(Table),
-							{Prefix, Description, Rate})
-			end;
+			ocs_rest_res_resource:resource(Resource);
 		usage ->
 			ocs_rest_res_usage:usage_aaa_acct(Resource, [])
 	end.
@@ -431,8 +423,6 @@ get_resource_id(Resource) ->
 			Id;
 		#resource{id = Id} ->
 			Id;
-		{_, #gtt{num = Num}} ->
-			Num;
 		_ ->
 			[]
 	end.
@@ -462,10 +452,6 @@ event_type(Type) ->
 			"ProductOfferingCreationNotification";
 		delete_offer ->
 			"ProductOfferingRemoveNotification";
-		insert_gtt ->
-			"ResourceCreationNotification";
-		delete_gtt ->
-			"ResourceRemoveNotification";
 		create_resource ->
 			"ResourceCreationNotification";
 		delete_resource ->

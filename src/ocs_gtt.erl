@@ -145,7 +145,6 @@ insert(Table, Number, Value) when is_atom(Table), is_list(Number) ->
 	F = fun() -> insert(Table, Number, Value, []) end,
 	case mnesia:transaction(F) of
 		{atomic, {_NumWrites, Gtt}} ->
-			ocs_event:notify(insert_gtt, {Table, Gtt}, resource),
 			{ok, Gtt};
 		{aborted, Reason} ->
 			exit(Reason)
@@ -181,15 +180,14 @@ delete(Table, Number) when is_list(Table) ->
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
 	Fun = fun() ->
 			case mnesia:read(Table, Number) of
-				[#gtt{} = Gtt] ->
-					{mnesia:delete(Table, Number, write), Gtt};
+				[#gtt{}] ->
+					mnesia:delete(Table, Number, write);
 				[] ->
 					mnesia:abort(not_found)
 			end
 	end,
 	case mnesia:transaction(Fun) of
-		{atomic, {ok, Gtt}} ->
-			ocs_event:notify(delete_gtt, {Table, Gtt}, resource),
+		{atomic, ok} ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)

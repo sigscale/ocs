@@ -94,7 +94,7 @@ all() ->
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product,
 	ignore_delete_product, add_offer_event,
-	delete_offer_event, gtt_insert_event, gtt_delete_event, add_resource_event,
+	delete_offer_event, add_resource_event,
 	delete_resource_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
@@ -705,42 +705,6 @@ delete_offer_event(_Config) ->
 	receive
 		{delete_offer, Offer2, product} ->
 			OfferName = Offer2#offer.name
-	end.
-
-gtt_insert_event() ->
-	[{userdata, [{doc, "Event received on inserting resource"}]}].
-
-gtt_insert_event(_Config) ->
-	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	Table = notification,
-	ok = ocs_gtt:new(Table, []),
-	Prefix = "1519240",
-	Description = "Bell Mobility",
-	Amount = 10000,
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
-	receive
-		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
-			{Description, Amount, _} = Value
-	end.
-
-gtt_delete_event() ->
-	[{userdata, [{doc, "Event received on deleting resource"}]}].
-
-gtt_delete_event(_Config) ->
-	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	Table = notification,
-	Prefix = "1519241",
-	Description = "Bell Mobility",
-	Amount = 10000,
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
-	receive
-		{insert_gtt, {Table, #gtt{num = Prefix, value = Value1}}, resource} ->
-		{Description, Amount, _} = Value1
-	end,
-	ok = ocs_gtt:delete(Table, Prefix),
-	receive
-		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
-			{Description, Amount, _} = Value2
 	end.
 
 add_resource_event() ->
