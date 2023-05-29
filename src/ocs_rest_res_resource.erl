@@ -303,7 +303,7 @@ get_resource(Query, Headers) ->
 						MatchId = match("id", Complex, Query),
 						MatchCategory = match("category", Complex, Query),
 						MatchSpecId = match("resourceSpecification.id", Complex, Query),
-						MatchRelName = match("resourceRelationship.resource.name", Complex, Query),
+						MatchRelName = match("resourceRelationship", Complex, []),
 						{Query1, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 				end;
 			false ->
@@ -1268,6 +1268,8 @@ match1(Key, {_, like, [Value]}, _Query) ->
 	{like, Value};
 match1(Key, {_, exact, [Value]}, _Query) ->
 	{exact, Value};
+match1(Key, {_, contains, [{complex, Complex}]}, _Query) ->
+	match4(Key, Complex);
 match1(Key, false, Query) ->
 	match2(lists:keyfind(Key, 1, Query)).
 %% @hidden
@@ -1280,4 +1282,16 @@ match3([H | T], Acc) ->
 	match3(T, [{exact, H} | Acc]);
 match3([], Acc) ->
 	lists:reverse(Acc).
+%% @hidden
+match4("resourceRelationship", Complex) ->
+	match5(lists:keyfind("resource.name", 1, Complex));
+match4(_Key, _Complex) ->
+	'_'.
+%% @hidden
+match5({_, exact, [Value]}) ->
+	{exact, Value};
+match5({_, like, [Value]}) ->
+	{like, Value};
+match5(false) ->
+	'_'.
 

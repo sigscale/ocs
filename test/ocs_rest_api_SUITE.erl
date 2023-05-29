@@ -230,7 +230,9 @@ all() ->
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log,
-	get_resources, get_tariff_table, get_tariff_row, get_periods_table,
+	get_resources, get_tariff_tables, get_tariff_rows, get_periods_tables,
+	get_periods_rows, get_roaming_tables, get_roaming_rows,
+	get_tariff_table, get_tariff_row, get_periods_table,
 	get_periods_row, get_roaming_table, get_roaming_row,
 	post_tariff_table, post_tariff_row, post_periods_table, post_periods_row,
 	post_roaming_table, post_roaming_row,
@@ -4553,6 +4555,174 @@ get_resources(Config) ->
 	{array, Objects} = mochijson:decode(ResponseBody),
 	true = length(Objects) >= 2.
 
+get_tariff_tables() ->
+	[{userdata, [{doc, "Query resource collection for tariff tables"}]}].
+
+get_tariff_tables(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table1 = random_string(rand:uniform(10) + 3),
+	Table2 = random_string(rand:uniform(10) + 3),
+	Table3 = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table1, []),
+	ok = ocs_gtt:new(Table2, []),
+	ok = ocs_gtt:new(Table3, []),
+	{ok, #resource{id = Id1}} = add_table("1", "Tariff table 1", Table1),
+	{ok, #resource{id = Id2}} = add_table("1", "Tariff table 2", Table2),
+	{ok, #resource{id = Id3}} = add_table("1", "Tariff table 3", Table3),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=1",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(Id1, Objects),
+	true = is_id_present(Id2, Objects),
+	true = is_id_present(Id3, Objects).
+
+get_periods_tables() ->
+	[{userdata, [{doc, "Query resource collection for tariff periods tables"}]}].
+
+get_periods_tables(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table1 = random_string(rand:uniform(10) + 3),
+	Table2 = random_string(rand:uniform(10) + 3),
+	Table3 = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table1, []),
+	ok = ocs_gtt:new(Table2, []),
+	ok = ocs_gtt:new(Table3, []),
+	{ok, #resource{id = Id1}} = add_table("5", "Tariff periods table 1", Table1),
+	{ok, #resource{id = Id2}} = add_table("5", "Tariff periods table 2", Table2),
+	{ok, #resource{id = Id3}} = add_table("5", "Tariff periods table 3", Table3),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=5",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(Id1, Objects),
+	true = is_id_present(Id2, Objects),
+	true = is_id_present(Id3, Objects).
+
+get_roaming_tables() ->
+	[{userdata, [{doc, "Query resource collection for roaming tariff tables"}]}].
+
+get_roaming_tables(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Table1 = random_string(rand:uniform(10) + 3),
+	Table2 = random_string(rand:uniform(10) + 3),
+	Table3 = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(Table1, []),
+	ok = ocs_gtt:new(Table2, []),
+	ok = ocs_gtt:new(Table3, []),
+	{ok, #resource{id = Id1}} = add_table("7", "Roaming tariff table 1", Table1),
+	{ok, #resource{id = Id2}} = add_table("7", "Roaming tariff table 2", Table2),
+	{ok, #resource{id = Id3}} = add_table("7", "Roaming tariff table 3", Table3),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=7",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(Id1, Objects),
+	true = is_id_present(Id2, Objects),
+	true = is_id_present(Id3, Objects).
+
+get_tariff_rows() ->
+	[{userdata, [{doc, "Query resource collection for rows of a tariff table"}]}].
+
+get_tariff_rows(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("1", "Tariff table", TableName),
+	{ok, #resource{id = RowId1}} = add_row("2", "", TableId, TableName),
+	{ok, #resource{id = RowId2}} = add_row("2", "", TableId, TableName),
+	{ok, #resource{id = RowId3}} = add_row("2", "", TableId, TableName),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=2",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(RowId1, Objects),
+	true = is_id_present(RowId2, Objects),
+	true = is_id_present(RowId3, Objects),
+	true = is_all_spec("2", Objects).
+
+get_periods_rows() ->
+	[{userdata, [{doc, "Query resource collection for rows of a tariff periods table"}]}].
+
+get_periods_rows(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("5", "Tariff periods table", TableName),
+	{ok, #resource{id = RowId1}} = add_row("6", "", TableId, TableName),
+	{ok, #resource{id = RowId2}} = add_row("6", "", TableId, TableName),
+	{ok, #resource{id = RowId3}} = add_row("6", "", TableId, TableName),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=6",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(RowId1, Objects),
+	true = is_id_present(RowId2, Objects),
+	true = is_id_present(RowId3, Objects),
+	true = is_all_spec("6", Objects).
+
+get_roaming_rows() ->
+	[{userdata, [{doc, "Query resource collection for rows of a roaming tariff table"}]}].
+
+get_roaming_rows(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	TableName = random_string(rand:uniform(10) + 3),
+	ok = ocs_gtt:new(TableName, []),
+	{ok, #resource{id = TableId}} = add_table("7", "Roaming tariff table", TableName),
+	{ok, #resource{id = RowId1}} = add_row("8", "", TableId, TableName),
+	{ok, #resource{id = RowId2}} = add_row("8", "", TableId, TableName),
+	{ok, #resource{id = RowId3}} = add_row("8", "", TableId, TableName),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
+	Query = "?resourceSpecification.id=8",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = is_id_present(RowId1, Objects),
+	true = is_id_present(RowId2, Objects),
+	true = is_id_present(RowId3, Objects),
+	true = is_all_spec("8", Objects).
+
 get_tariff_table() ->
 	[{userdata, [{doc,"Get tariff table resource"}]}].
 
@@ -4591,7 +4761,7 @@ get_tariff_table(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, ResList),
 	{_, Href} = lists:keyfind("href", 1, ResList),
-	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, TableName} = lists:keyfind("name", 1, ResList),
 	{_, ClassType} = lists:keyfind("@type", 1, ResList),
 	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
 	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
@@ -4719,7 +4889,7 @@ get_periods_table(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, ResList),
 	{_, Href} = lists:keyfind("href", 1, ResList),
-	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, TableName} = lists:keyfind("name", 1, ResList),
 	{_, ClassType} = lists:keyfind("@type", 1, ResList),
 	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
 	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
@@ -4853,7 +5023,7 @@ get_roaming_table(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, ResList),
 	{_, Href} = lists:keyfind("href", 1, ResList),
-	{_, Tablename} = lists:keyfind("name", 1, ResList),
+	{_, TableName} = lists:keyfind("name", 1, ResList),
 	{_, ClassType} = lists:keyfind("@type", 1, ResList),
 	{_, BaseType} = lists:keyfind("@baseType", 1, ResList),
 	{_, Schema} = lists:keyfind("@schemaLocation", 1, ResList),
@@ -6685,4 +6855,31 @@ char_pairs([{struct, Attributes} | T], Acc) ->
 	char_pairs(T, [{Name, Value} | Acc]);
 char_pairs([], Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+is_id_present(Id, [{struct, Attributes} | T]) ->
+	case lists:keyfind("id", 1, Attributes) of
+		{_, Id} ->
+			true;
+		_ ->
+			is_id_present(Id, T)
+	end;
+is_id_present(_, []) ->
+	false.
+
+%% @hidden
+is_all_spec(SpecId, [{struct, Attributes} | T]) ->
+	case lists:keyfind("resourceSpecification", 1, Attributes) of
+		{_, {struct, Attributes1}} ->
+			case lists:keyfind("id", 1, Attributes1) of
+				{_, SpecId} ->
+					is_all_spec(SpecId, T);
+				_ ->
+					false
+			end;
+		_ ->
+			is_all_spec(SpecId, T)
+	end;
+is_all_spec(_, []) ->
+	true.
 
