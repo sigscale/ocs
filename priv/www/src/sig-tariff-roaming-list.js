@@ -52,11 +52,11 @@ class roamingList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-							Rate
+							Tariff Table Name
 					</template>
 					<template>
 						<div class="cell numeric">
-							[[item.rate]]
+							[[item.TariffTableName]]
 						</div>
 					</template>
 				</vaadin-grid-column>
@@ -169,7 +169,7 @@ class roamingList extends PolymerElement {
 							tabObj.description = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "rate") {
-							tabObj.rate = resChar[indexRes].value;
+							tabObj.TariffTableName = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}
