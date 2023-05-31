@@ -65,7 +65,7 @@ class periodAdd extends PolymerElement {
 								value="{{iniPerDuration}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Length of initial period in seconds
 						</paper-tooltip>
 					</div>
 					<div>
@@ -77,7 +77,7 @@ class periodAdd extends PolymerElement {
 								value="{{iniPerRate}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Rated price for the initial period
 						</paper-tooltip>
 					</div>
 					<div>
@@ -89,7 +89,7 @@ class periodAdd extends PolymerElement {
 								value="{{addPerDuration}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Length of additional period in seconds
 						</paper-tooltip>
 					</div>
 					<div>
@@ -101,7 +101,7 @@ class periodAdd extends PolymerElement {
 								value="{{addPerRate}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Rated price for each additional period
 						</paper-tooltip>
 					</div>
 				<div class="buttons">

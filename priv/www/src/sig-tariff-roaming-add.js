@@ -65,7 +65,7 @@ class roamingAdd extends PolymerElement {
 								value="{{addPreTariffTableName}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Roaming tariff table to apply for rating in the selected VPLMN
 						</paper-tooltip>
 					</div>
 				<div class="buttons">
