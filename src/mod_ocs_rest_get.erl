@@ -299,7 +299,7 @@ do_get(Resource, ModData, ["productCatalogManagement", "v2", "catalog"], Query) 
 do_get(Resource, ModData, ["productCatalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["productCatalogManagement", "v2", "category"], Query) ->
-	do_response(ModData, Resource:get_categorys(Query));
+	do_response(ModData, Resource:get_categories(Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productCatalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_offers(Query, Headers));
