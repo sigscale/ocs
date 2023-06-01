@@ -61,11 +61,11 @@ class roamingAdd extends PolymerElement {
 								allowed-pattern="[0-9.]"
 								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
-								label="Rate"
-								value="{{addPreRate}}">
+								label="Tariff Table Name"
+								value="{{addPreTariffTableName}}">
 						</paper-input>
 						<paper-tooltip>
-							Price per unit to apply when this prefix matches an address.
+							Roaming tariff table to apply for rating in the selected VPLMN
 						</paper-tooltip>
 					</div>
 				<div class="buttons">
@@ -104,7 +104,7 @@ class roamingAdd extends PolymerElement {
 			addPreDesc: {
 				type: String,
 			},
-			addPreRate: {
+			addPreTariffTableName: {
 				type: String,
 			}
 		}
@@ -142,7 +142,7 @@ class roamingAdd extends PolymerElement {
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "rate";
-		resRate.value = this.addPreRate;
+		resRate.value = this.addPreTariffTableName;
 		resource.push(resRate);
 		tar.resourceCharacteristic = resource;
 
