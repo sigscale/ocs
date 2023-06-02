@@ -26,8 +26,8 @@
 		delete_hub_catalog/1, get_catalog_hubs/0, get_catalog_hub/1]).
 -export([hub/1]).
 
--define(PathProductHub, "/productInventory/v2/hub/").
--define(PathCatalogHub, "/productCatalog/v2/hub/").
+-define(PathProductHub, "/productInventoryManagement/v2/hub/").
+-define(PathCatalogHub, "/productCatalogManagement/v2/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -54,7 +54,7 @@ content_types_provided() ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Delete by id.
-%% @doc Respond to `POST /productInventory/v2/hub/{id}'
+%% @doc Respond to `POST /productInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -65,7 +65,7 @@ delete_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /productInventory/v2/hub/'
+%% @doc Respond to `POST /productInventoryManagement/v2/hub/'
 post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
@@ -102,7 +102,7 @@ post_hub(ReqBody, Authorization) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productInventory/v2/hub/'
+%% 	`GET|HEAD /productInventoryManagement/v2/hub/'
 get_product_hubs() ->
 	get_product_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
@@ -124,7 +124,7 @@ get_product_hubs([], Acc) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productInventory/v2/hub/{id}'
+%% 	`GET|HEAD /productInventoryManagement/v2/hub/{id}'
 %% 	requests.
 get_product_hub(Id) ->
 	case global:whereis_name(Id) of
@@ -147,7 +147,7 @@ get_product_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Delete by id.
-%% @doc Respond to `POST /productCatalog/v2/hub/{id}'
+%% @doc Respond to `POST /productCatalogManagement/v2/hub/{id}'
 delete_hub_catalog(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -158,7 +158,7 @@ delete_hub_catalog(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /productCatalog/v2/hub'
+%% @doc Respond to `POST /productCatalogManagement/v2/hub'
 post_hub_catalog(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
@@ -195,7 +195,7 @@ post_hub_catalog(ReqBody, Authorization) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productCatalog/v2/hub/'
+%% 	`GET|HEAD /productCatalogManagement/v2/hub/'
 get_catalog_hubs() ->
 	get_catalog_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
@@ -217,7 +217,7 @@ get_catalog_hubs([], Acc) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productCatalog/v2/hub/{id}'
+%% 	`GET|HEAD /productCatalogManagement/v2/hub/{id}'
 get_catalog_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->

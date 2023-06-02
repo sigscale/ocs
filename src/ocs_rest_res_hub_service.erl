@@ -25,7 +25,7 @@
 		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
--define(PathServiceHub, "/serviceInventory/v2/hub/").
+-define(PathServiceHub, "/serviceInventoryManagement/v2/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -52,7 +52,7 @@ content_types_provided() ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Delete by id.
-%% @doc Respond to `POST /serviceInventory/v2/hub/{id}'
+%% @doc Respond to `POST /serviceInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -63,7 +63,7 @@ delete_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /serviceInventory/v2/hub'
+%% @doc Respond to `POST /serviceInventoryManagement/v2/hub'
 post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
@@ -100,7 +100,7 @@ post_hub(ReqBody, Authorization) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /serviceInventory/v2/hub/'
+%% 	`GET|HEAD /serviceInventoryManagement/v2/hub/'
 get_hubs() ->
 	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
@@ -122,7 +122,7 @@ get_hubs([], Acc) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /serviceInventory/v2/hub/{id}'
+%% 	`GET|HEAD /serviceInventoryManagement/v2/hub/{id}'
 get_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->

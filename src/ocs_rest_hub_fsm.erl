@@ -135,25 +135,30 @@ init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 %% @doc Handle event received in `register' state.
 %% @private
 register(timeout,
-		#statedata{href = "/balanceManagement/v1/hub/" ++ _Id} = State) ->
+		#statedata{href = "/balanceManagement" ++ _} = State) ->
 	register1(balance, State);
 register(timeout,
-		#statedata{href = "/resourceInventory/v1/hub/" ++ _Id} = State) ->
-	register1(resource, State);
-register(timeout,
-		#statedata{href = "/usageManagement/v1/hub/" ++ _Id} = State) ->
+		#statedata{href = "/usageManagement" ++ _} = State) ->
 	register1(usage, State);
 register(timeout,
-		#statedata{href = "/partyManagement/v1/hub/" ++ _Id} = State) ->
+		#statedata{href = "/partyManagement" ++ _} = State) ->
 	register1(user, State);
 register(timeout,
-		#statedata{href = "/partyRoleManagement/v4/hub/" ++ _Id} = State) ->
+		#statedata{href = "/partyRoleManagement" ++ _} = State) ->
 	register1(role, State);
 register(timeout,
-		#statedata{href = "/serviceInventory/v2/hub/" ++ _Id} = State) ->
-	register1(service, State);
-register(timeout, #statedata{href = "/product" ++ _} = State) ->
-	register1(product, State).
+		#statedata{href = "/productCatalog" ++ _} = State) ->
+	register1(product, State);
+register(timeout,
+		#statedata{href = "/productInventory" ++ _} = State) ->
+	register1(product, State);
+register(timeout,
+		#statedata{href = "/resourceInventory" ++ _} = State) ->
+	register1(resource, State);
+register(timeout,
+		#statedata{href = "/serviceInventory" ++ _} = State) ->
+	register1(service, State).
+%% @hidden
 register1(Category, #statedata{id = Id} = State) ->
 	case gen_event:add_sup_handler(ocs_event,
 			{ocs_event, Id}, [self(), Id, Category]) of
