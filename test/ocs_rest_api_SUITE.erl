@@ -40,11 +40,11 @@
 -include_lib("common_test/include/ct.hrl").
 
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
--define(PathProductHub, "/productInventory/v2/hub/").
--define(PathServiceHub, "/serviceInventory/v2/hub/").
+-define(PathProductHub, "/productInventoryManagement/v2/hub/").
+-define(PathServiceHub, "/serviceInventoryManagement/v2/hub/").
 -define(PathUserHub, "/partyManagement/v1/hub/").
--define(PathCatalogHub, "/productCatalog/v2/hub/").
--define(PathResourceHub, "/resourceInventory/v1/hub/").
+-define(PathCatalogHub, "/productCatalogManagement/v2/hub/").
+-define(PathResourceHub, "/resourceInventoryManagement/v1/hub/").
 -define(PathUsageHub, "/usageManagement/v1/hub/").
 -define(PathRole, "/partyRoleManagement/v4/").
 
@@ -5651,10 +5651,10 @@ delete_roaming_row(Config) ->
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:get_resource(RowId).
 
-update_tariff_resource() ->
-	[{userdata, [{doc, "Use PATCH for update tariff resource entity"}]}].
+update_tariff_table() ->
+	[{userdata, [{doc, "PATCH of tariff table resource"}]}].
 
-update_tariff_resource(Config) ->
+update_tariff_table(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ResourceHref = "/resourceInventoryManagement/v1/resource/",

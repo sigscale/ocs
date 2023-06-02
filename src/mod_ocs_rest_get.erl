@@ -305,9 +305,15 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_offers(Query, Headers));
 do_get(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Id], []) ->
 	do_response(ModData, Resource:get_offer(Id));
-do_get(Resource, ModData, ["productCatalog", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_catalog_hubs());
+do_get(Resource, ModData, ["productCatalog", "v2", "hub"], []) ->
+		% @todo: deprecate legacy basename error
+	do_response(ModData, Resource:get_catalog_hubs());
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_catalog_hub(Id));
 do_get(Resource, ModData, ["productCatalog", "v2", "hub", Id], []) ->
+		% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_catalog_hub(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
@@ -366,9 +372,15 @@ do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate
 	do_response(ModData, Resource:get_resource_candidate(Id));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate"], Query) ->
 	do_response(ModData, Resource:get_resource_candidates(Query));
-do_get(Resource, ModData, ["resourceInventory", "v1", "hub"], []) ->
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["resourceInventory", "v1", "hub"], []) ->
+	% @todo: deprecate legacy basename error
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["resourceInventory", "v1", "hub", Id], []) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
@@ -383,9 +395,15 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2"], Query) ->
 	do_response(ModData, Resource:get_inventories(Query, Headers));
-do_get(Resource, ModData, ["productInventory", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["productInventoryManagement", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_product_hubs());
+do_get(Resource, ModData, ["productInventory", "v2", "hub"], []) ->
+	% @todo: deprecate legacy basename error
+	do_response(ModData, Resource:get_product_hubs());
+do_get(Resource, ModData, ["productInventoryManagement", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_product_hub(Id));
 do_get(Resource, ModData, ["productInventory", "v2", "hub", Id], []) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_product_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2", "service"], Query) ->
@@ -395,8 +413,14 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
 	do_response(ModData, Resource:get_inventory(Id));
-do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
+	% @todo: deprecate legacy basename error
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["serviceInventoryInventory", "v2", "hub", Id], []) ->
+	% @todo: deprecate legacy basename error
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub", Id], []) ->
 	do_response(ModData, Resource:get_hub(Id));
 do_get(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _, _) ->

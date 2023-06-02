@@ -151,24 +151,44 @@ do_post(Resource, ModData, Body, ["productCatalogManagement", "v2", "syncOffer"]
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		["productInventoryManagement", "v2", "hub"]) ->
+	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
+	do_response(ModData, Resource:post_hub(Body, Authorization));
+do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		% @todo: deprecate legacy basename error
 		["productInventory", "v2", "hub"]) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, ModData, Body, ["serviceInventoryManagement", "v2", "service"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		["serviceInventoryManagement", "v2", "hub"]) ->
+	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
+	do_response(ModData, Resource:post_hub(Body, Authorization));
+do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		% @todo: deprecate legacy basename error
 		["serviceInventory", "v2", "hub"]) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
 	do_response(ModData, Resource:add_pla(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		["productCatalogManagement", "v2", "hub"]) ->
+	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
+	do_response(ModData, Resource:post_hub_catalog(Body, Authorization));
+do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		% @todo: deprecate legacy basename error
 		["productCatalog", "v2", "hub"]) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub_catalog(Body, Authorization));
 do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "resource"]) ->
 	do_response(ModData, Resource:add_resource(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		["resourceInventoryManagement", "v1", "hub"]) ->
+	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
+	do_response(ModData, Resource:post_hub(Body, Authorization));
+do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
+		% @todo: deprecate legacy basename error
 		["resourceInventory", "v1", "hub"]) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));

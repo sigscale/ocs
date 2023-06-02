@@ -134,21 +134,33 @@ do_delete(Resource, ModData, ["partyRoleManagement", "v4", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
+do_delete(Resource, ModData, ["productInventoryInventory", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventory", "v2", "hub", Identity]) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
+do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["serviceInventory", "v2", "hub", Identity]) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "resource", Identity]) ->
 	do_response(ModData, Resource:delete_resource(Identity));
+do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["resourceInventory", "v1", "hub", Identity]) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["balanceManagement", "v1", "bucket", Identity]) ->
 	do_response(ModData, Resource:delete_bucket(Identity));
+do_delete(Resource, ModData, ["productCatalogManagement", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub_catalog(Identity));
 do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
+	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub_catalog(Identity));
 do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Identity]) ->
 	do_response(ModData, Resource:delete_offer(Identity));
