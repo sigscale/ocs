@@ -248,9 +248,9 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 check_content_type_header(Module,
 		#mod{method = Method, parsed_header = RequestHeaders, data = Data} = ModData) ->
 	case lists:keyfind("content-type", 1, RequestHeaders) of
-		false when Method == "DELETE"; Method == "GET" ->
+		false when Method == "DELETE"; Method == "GET"; Method == "HEAD" ->
 			check_accept_header(Module, ModData#mod{data = [{resource, Module} | Data]});
-		{_Other, []} when Method == "DELETE"; Method == "GET" ->
+		{_Other, []} when Method == "DELETE"; Method == "GET"; Method == "HEAD" ->
 			check_accept_header(Module, ModData#mod{data = [{resource, Module} | Data]});
 		{_Other, RequestContentType} ->
 			F = fun(AcceptedType) ->

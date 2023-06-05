@@ -342,22 +342,21 @@ get_user(Config) ->
 	{ok, Locale} = F(F, Characteristic, "locale").
 
 head_user() ->
-	[{userdata, [{doc,"head user in rest interface"}]}].
+	[{userdata, [{doc,"HEAD operation on user collection"}]}].
 
 head_user(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ContentType = "application/json",
 	ID = "head",
 	Password = "request",
 	Locale = "es",
 	UserData = [{locale, Locale}],
 	{ok, _} = ocs:add_user(ID, Password, UserData),
-	Accept = {"accept", "application/json"},
-	Request2 = {HostUrl ++ "/partyManagement/v1/individual", [auth_header()], ContentType},
-	{ok, Result1} = httpc:request(head, Request2, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	Request = {HostUrl ++ "/partyManagement/v1/individual", RequestHeaders},
+	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, ResultHeaders, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, ResultHeaders).
 
 delete_user() ->
 	[{userdata, [{doc,"Delete user in rest interface"}]}].
@@ -692,7 +691,7 @@ get_clients_filter(Config) ->
 	true = lists:all(Fall, ClientsList).
 
 head_client() ->
-	[{userdata, [{doc,"Head client in rest interface"}]}].
+	[{userdata, [{doc,"HEAD operation on client collection"}]}].
 
 head_client(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -705,15 +704,16 @@ head_client(Config) ->
 	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	Request1 = {HostUrl ++ "/ocs/v1/client",
+			RequestHeaders, ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ "/ocs/v1/client", [auth_header()], ContentType},
+	Request2 = {HostUrl ++ "/ocs/v1/client", RequestHeaders},
 	{ok, Result1} = httpc:request(head, Request2, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+	{{"HTTP/1.1", 204, _NoContent}, ResultHeaders, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, ResultHeaders).
 
 delete_client() ->
 	[{userdata, [{doc,"Delete client in rest interface"}]}].
@@ -1062,21 +1062,21 @@ update_product_realizing_service(Config) ->
 	true = lists:all(F3, RealizeingServices).
 
 head_product() ->
-	[{userdata, [{doc,"Head product inventory"}]}].
+	[{userdata, [{doc,"HEAD operation on product collection"}]}].
 
 head_product(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ContentType = "application/json",
 	P2 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
 	OfferId1 = offer_add([P2], 4),
 	ProdRef1 = product_add(OfferId1),
 	{_, #product{}} = ocs:find_product(ProdRef1),
 	URI = "/productInventoryManagement/v2/product",
-	Request = {HostUrl ++ URI, [auth_header()], ContentType},
+	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers).
+	{{"HTTP/1.1", 204, _NoContent}, ResultHeaders, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, ResultHeaders).
 
 delete_product() ->
 	[{userdata, [{doc,"Delete product inventory"}]}].
@@ -1417,7 +1417,7 @@ get_service_inventory(Config) ->
 	true = lists:all(F, Chars).
 
 head_service_inventory() ->
-	[{userdata, [{doc,"head service invetory"}]}].
+	[{userdata, [{doc,"HEAD operation on service collection"}]}].
 
 head_service_inventory(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -1431,13 +1431,14 @@ head_service_inventory(Config) ->
 	AcctInterimInterval = rand:uniform(500),
 	Attributes = [{?SessionTimeout, SessionTimeout},
 			{?AcctInterimInterval, AcctInterimInterval}],
-	{ok, #service{}} = ocs:add_service(ID, Password, State, ProdRef, [], Attributes, true, false),
-	ContentType = "application/json",
-	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [auth_header()],
-		ContentType},
+	{ok, #service{}} = ocs:add_service(ID, Password,
+			State, ProdRef, [], Attributes, true, false),
+	URI = "/serviceInventoryManagement/v2/service/",
+	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+	{{"HTTP/1.1", 204, _NoContent}, ResultHeaders, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, ResultHeaders).
 
 get_service_not_found() ->
 	[{userdata, [{doc, "Get service notfound for given service id"}]}].
@@ -2662,7 +2663,7 @@ query_buckets(Config) ->
 	true = lists:all(F1, BucketStructs).
 
 head_bucket() ->
-	[{userdata, [{doc,"Head balance buckets"}]}].
+	[{userdata, [{doc,"HEAD operation on bucket collection"}]}].
 
 head_bucket(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -2679,13 +2680,12 @@ head_bucket(Config) ->
 	ProdRef2 = product_add(OfferId2),
 	B3 = b(cents, 450000),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef2, B3),
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
 	URI = "/balanceManagement/v1/bucket",
-	Request = {HostUrl ++ URI, [auth_header()], ContentType},
+	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers).
+	{{"HTTP/1.1", 204, _NoContent}, ResultHeaders, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, ResultHeaders).
 
 simultaneous_updates_on_client_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH requests on client resource must fail
