@@ -320,10 +320,10 @@ terminate(Reason, _StateName, _StateData)
 terminate({shutdown, Reason}, StateName, StateData) ->
 	terminate(Reason, StateName, StateData);
 terminate(Reason, StateName,
-		#statedata{id = Id, query = Query, callback = Callback}) ->
+		#statedata{href = Href, query = Query, callback = Callback}) ->
 	error_logger:warning_report(["Notification subscription cancelled",
 			{reason, Reason}, {pid, self()}, {state, StateName},
-			{id, Id}, {query, Query}, {callback, Callback}]).
+			{href, Href}, {query, Query}, {callback, Callback}]).
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when
