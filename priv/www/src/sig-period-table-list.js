@@ -170,7 +170,7 @@ class tariffPeriodList extends PolymerElement {
 	}
 
 	_deletePeriodResponse(event) {
-		this.shadowRoot.getElementById('getRateTables').generateRequest();
+		this.shadowRoot.getElementById('getPeriodTables').generateRequest();
 	}
 
 	_getPeriodError(event) {
