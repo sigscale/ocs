@@ -196,7 +196,14 @@ class tablePrefixAdd extends PolymerElement {
 		this.prefixTableType = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
+console.log(tabName.resourceSpecification);
+		if(tabName.resourceSpecification.id == "1") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
+		} else if (tabName.resourceSpecification.id == "5") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list').shadowRoot.getElementById('getPeriodTables').generateRequest();
+		} else if(tabName.resourceSpecification.id == "7") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list').shadowRoot.getElementById('getroamingTables').generateRequest();
+		}
 	}
 
 	_addTableResponse(event) {
