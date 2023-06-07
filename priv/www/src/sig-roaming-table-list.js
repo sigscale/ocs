@@ -172,7 +172,7 @@ class tariffRoamingList extends PolymerElement {
 	}
 
 	_deleteRoamingResponse(event) {
-		this.shadowRoot.getElementById('getRateTables').generateRequest();
+		this.shadowRoot.getElementById('getroamingTables').generateRequest();
 	}
 
 	_getRoamingError(event) {
