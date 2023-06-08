@@ -598,6 +598,10 @@ of the first response, and specify the next page with the `Range' header:
 If-Match: 1643855624410-7330
 Range: items=1001-2000
 '''
+
+<img id="pagination" class="diagram"
+		src="pagination-msc.svg" alt="Pagination MSC" />
+
 See `rest_page_size' and `rest_page_timeout' in the Configuration section
 below.
 

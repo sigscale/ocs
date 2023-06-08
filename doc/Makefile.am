@@ -150,7 +150,8 @@ doc_DATA = overview.edoc $(modhtml) \
 		product-specifications.svg \
 		disk_logs.svg \
 		event_log.svg \
-		pub_sub_events.svg
+		pub_sub_events.svg \
+		pagination-msc.svg
 
 overview.edoc: overview.edoc-in
 	sed -e 's!%VERSION%!$(VERSION)!' \
@@ -180,6 +181,7 @@ overview.edoc: overview.edoc-in
 	-cp -n $(top_srcdir)/doc/disk_logs.svg .
 	-cp -n $(top_srcdir)/doc/event_log.svg .
 	-cp -n $(top_srcdir)/doc/pub_sub_events.svg .
+	-cp -n $(top_srcdir)/doc/pagination-msc.svg .
 
 CLEANFILES = overview.edoc \
 		edoc-info \
@@ -196,9 +198,12 @@ CLEANFILES = overview.edoc \
 		interfaces.svg \
 		non-3gpp-trusted.svg \
 		non-3gpp-untrusted.svg \
+		oas-logo.svg \
+		swaggerhub-logo.svg \
 		disk_logs.svg \
 		event_log.svg \
 		pub_sub_events.svg \
+		pagination-msc.svg \
 		schema.svg \
 		product-specifications.svg \
 		sigscale-logo.png
