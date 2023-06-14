@@ -1,0 +1,34 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequence {
+ParticipantBorderColor #f57f17
+ParticipantBackgroundColor white
+LifeLineBorderColor #f57f17
+LifeLineBackgroundColor white
+}
+participant BSS as bss
+participant OCS as ocs
+hide footbox
+
+bss -> ocs : GET <CollectionURL>[?<QueryPortion>]
+activate ocs
+bss <- ocs : 200 OK\nContent-Range: items 1-1000/*\nAccept-Ranges: items\nEtag: 1643855624410-7330
+deactivate ocs
+
+bss -> ocs : GET <CollectionURL>[?<QueryPortion>]\nIf-Match: 1643855624410-7330\nRange: items=1001-2000
+activate ocs
+bss <- ocs : 200 OK\nContent-Range: items 1001-2000/*\nAccept-Ranges: items\nEtag: 1643855624410-7330
+deactivate ocs
+
+bss -> ocs : GET <CollectionURL>[?<QueryPortion>]\nIf-Match: 1643855624410-7330\nRange: items=2001-3000
+activate ocs
+bss <- ocs : 200 OK\nContent-Range: items 2001-3000/*\nAccept-Ranges: items\nEtag: 1643855624410-7330
+deactivate ocs
+
+bss -> ocs : GET <CollectionURL>[?<QueryPortion>]\nIf-Match: 1643855624410-7330\nRange: items=3001-4000
+activate ocs
+bss <- ocs : 200 OK\nContent-Range: items 3001-3768/3768\nAccept-Ranges: items\nEtag: 1643855624410-7330
+deactivate ocs
+
+@enduml
