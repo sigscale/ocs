@@ -58,8 +58,6 @@ class roamingAdd extends PolymerElement {
 					</div>
 					<div>
 						<paper-input
-								allowed-pattern="[0-9.]"
-								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
 								label="Tariff Table Name"
 								value="{{addPreTariffTableName}}">
@@ -141,7 +139,7 @@ class roamingAdd extends PolymerElement {
 		resDes.value = this.addPreDesc;
 		resource.push(resDes);
 		var resRate = new Object();
-		resRate.name = "rate";
+		resRate.name = "tariff";
 		resRate.value = this.addPreTariffTableName;
 		resource.push(resRate);
 		tar.resourceCharacteristic = resource;
