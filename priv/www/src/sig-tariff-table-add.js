@@ -208,7 +208,6 @@ class tablePrefixAdd extends PolymerElement {
 
 	_addTableResponse(event) {
 		this.$.addPrefixTableModal.close();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('tariffRateList').open();
 	}
 
 	_addTableError(event) {
