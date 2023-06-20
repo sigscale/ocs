@@ -3,7 +3,7 @@
 	{@link //ocs. ocs} application.
 
 The supervision heirachy is depicted in
-<a href="supervision.png">Figure 1-1</a> as a directed graph starting
+<a href="supervision.svg">Figure 1-1</a> as a directed graph starting
 from the top. The {@link //stdlib/supervisor. supervisor} behaviour
 nodes are depicted as blue boxes while
 {@link //stdlib/gen_server. gen_server} and {@link //stdlib/gen_fsm. gen_fsm}
