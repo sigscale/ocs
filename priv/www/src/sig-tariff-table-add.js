@@ -194,9 +194,9 @@ class tablePrefixAdd extends PolymerElement {
 		this.tableName = null;
 		this.description = null;
 		this.prefixTableType = null;
+		this.$.addTableType.selected = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
-console.log(tabName.resourceSpecification);
 		if(tabName.resourceSpecification.id == "1") {
 			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list').shadowRoot.getElementById('getRateTables').generateRequest();
 		} else if (tabName.resourceSpecification.id == "5") {
