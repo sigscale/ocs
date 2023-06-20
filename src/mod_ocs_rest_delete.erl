@@ -134,7 +134,7 @@ do_delete(Resource, ModData, ["partyRoleManagement", "v4", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
-do_delete(Resource, ModData, ["productInventoryInventory", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData, ["productInventoryManagement", "v2", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventory", "v2", "hub", Identity]) ->
 	% @todo: deprecate legacy basename error
@@ -158,15 +158,15 @@ do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
 do_delete(Resource, ModData, ["balanceManagement", "v1", "bucket", Identity]) ->
 	do_response(ModData, Resource:delete_bucket(Identity));
 do_delete(Resource, ModData, ["productCatalogManagement", "v2", "hub", Identity]) ->
-	do_response(ModData, Resource:delete_hub_catalog(Identity));
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:delete_hub_catalog(Identity));
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Identity]) ->
 	do_response(ModData, Resource:delete_offer(Identity));
 do_delete(Resource, ModData, ["usageManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
+do_delete(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _Path) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",

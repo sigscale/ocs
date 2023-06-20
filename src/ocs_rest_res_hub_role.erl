@@ -85,7 +85,15 @@ post_hub1({error, _Reason}, _HubRecord) ->
 %% Delete by id.
 %% @doc Respond to `POST /partyRoleManagement/v4/hub/{id}'
 delete_hub(Id) ->
-	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
+	try
+		gen_fsm:sync_send_all_state_event({global, Id}, delete)
+	of
+		ok ->
+			{ok, [], []}
+	catch
+		_:_ ->
+			{error, 500}
+	end.
 
 -spec get_hubs() -> Result
 	when
@@ -97,10 +105,15 @@ get_hubs() ->
 	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
 get_hubs([{_, Pid, _, _} | T], Acc) ->
-	case gen_fsm:sync_send_all_state_event(Pid, get) of
+	try
+		gen_fsm:sync_send_all_state_event(Pid, get)
+	of
 		#hub{href = ?PathRoleHub ++ _} = Hub ->
 			get_hubs(T, [Hub | Acc]);
 		_Hub ->
+			get_hubs(T, Acc)
+	catch
+		_:_Reason ->
 			get_hubs(T, Acc)
 	end;
 get_hubs([], Acc) ->

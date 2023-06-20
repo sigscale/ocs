@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
 		delete_hub/1, get_product_hubs/0, get_product_hub/1, post_hub_catalog/2,
-		delete_hub_catalog/1, get_catalog_hubs/0, get_catalog_hub/1]).
+		get_catalog_hubs/0, get_catalog_hub/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventoryManagement/v2/hub/").
@@ -55,7 +55,15 @@ content_types_provided() ->
 %% Delete by id.
 %% @doc Respond to `POST /productInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
-	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
+	try
+		gen_fsm:sync_send_all_state_event({global, Id}, delete)
+	of
+		ok ->
+			{ok, [], []}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
 
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
@@ -106,10 +114,15 @@ get_product_hubs() ->
 	get_product_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
 get_product_hubs([{_, Pid, _, _} | T], Acc) ->
-	case gen_fsm:sync_send_all_state_event(Pid, get) of
+	try
+		gen_fsm:sync_send_all_state_event(Pid, get)
+	of
 		#hub{href = ?PathProductHub ++ _} = Hub ->
 			get_product_hubs(T, [Hub | Acc]);
 		_Hub ->
+			get_product_hubs(T, Acc)
+	catch
+		_:_Reason ->
 			get_product_hubs(T, Acc)
 	end;
 get_product_hubs([], Acc) ->
@@ -139,16 +152,6 @@ get_product_hub(Id) ->
 		undefined ->
 			{error, 404}
 	end.
-
--spec delete_hub_catalog(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
-%% Delete by id.
-%% @doc Respond to `POST /productCatalogManagement/v2/hub/{id}'
-delete_hub_catalog(Id) ->
-	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
 -spec post_hub_catalog(ReqBody, Authorization) -> Result
 	when

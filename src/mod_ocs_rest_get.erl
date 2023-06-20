@@ -235,9 +235,9 @@ do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_usagespec(Id, Query));
 do_get(Resource, ModData, ["usageManagement", "v1", "hub"], []) ->
-	do_response(ModData, Resource:get_usage_hubs());
+	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["usageManagement", "v1", "hub", Id], []) ->
-	do_response(ModData, Resource:get_usage_hub(Id));
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
 	do_response(ModData, Resource:get_ipdr(Type, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
@@ -418,7 +418,7 @@ do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub"], []) ->
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_hubs());
-do_get(Resource, ModData, ["serviceInventoryInventory", "v2", "hub", Id], []) ->
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub", Id], []) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub", Id], []) ->

@@ -195,8 +195,9 @@ registered({Type, [#acc_balance{} | _] = Resource, Category},
 		length(Query) > 0 ->
 	case string:tokens(Query, "&=") of
 		["totalBalance.units", Units, "totalBalance.amount.lt", Threshold] ->
-			U = list_to_existing_atom(Units),
-			F = fun(#acc_balance{total_balance = [#quantity{units = U}]}) ->
+			UnitsA = list_to_existing_atom(Units),
+			F = fun(#acc_balance{total_balance = [#quantity{units = U}]})
+							when U == UnitsA ->
 						true;
 					(_) ->
 						false
@@ -283,7 +284,9 @@ handle_sync_event(get, _From, StateName,
 		#statedata{id = Id, query = Query, callback = Callback,
 		href = Href} = StateData) ->
 	Hub = #hub{id = Id, query = Query, callback = Callback, href = Href},
-	{reply, Hub, StateName, StateData}.
+	{reply, Hub, StateName, StateData};
+handle_sync_event(delete, _From, StateName, StateData) ->
+	{stop, shutdown, ok, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
