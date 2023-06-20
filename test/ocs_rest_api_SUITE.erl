@@ -129,7 +129,6 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
-	gen_event:delete_handler(ocs_event, ocs_event, []),
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, ocs:generate_identity()},
@@ -154,21 +153,31 @@ end_per_testcase(oauth_authentication, _Config) ->
 	ok = set_inet_mod(),
 	application:stop(inets),
 	application:start(inets);
-end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
+end_per_testcase(TestCase, Config)
+		when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance_threshold;
 		TestCase == query_accumulated_balance_notification;
-		TestCase == query_bucket_notification; TestCase == notify_product_charge;
-		TestCase == notify_create_product; TestCase == notify_delete_product;
+		TestCase == query_bucket_notification;
+		TestCase == notify_product_charge;
+		TestCase == notify_create_product;
+		TestCase == notify_delete_product;
 		TestCase == query_product_notification;
-		TestCase == notify_create_service; TestCase == notify_delete_service;
+		TestCase == notify_create_service;
+		TestCase == notify_delete_service;
 		TestCase == query_service_notification;
-		TestCase == notify_create_offer; TestCase == notify_delete_offer;
+		TestCase == notify_create_offer;
+		TestCase == notify_delete_offer;
 		TestCase == query_offer_notification;
-		TestCase == notify_add_resource; TestCase == notify_delete_resource;
+		TestCase == notify_add_resource;
+		TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
+	Fhub = fun({_, Fsm, _, _}) ->
+			catch gen_fsm:sync_send_all_state_event(Fsm, delete)
+	end,
+	lists:foreach(Fhub, supervisor:which_children(ocs_rest_hub_sup)),
 	case lists:keyfind(listener_pid, 1, Config) of
 		{listener_pid, Pid} ->
 			case inets:stop(httpd, Pid) of
@@ -180,6 +189,43 @@ end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		false ->
 			{error, pid_not_found}
 	end;
+end_per_testcase(TestCase, Config)
+		when TestCase == post_hub_balance;
+		TestCase == post_hub_catalog;
+		TestCase == post_hub_product;
+		TestCase == post_hub_inventory;
+		TestCase == post_hub_role;
+		TestCase == post_hub_service;
+		TestCase == post_hub_usage;
+		TestCase == post_hub_user;
+		TestCase == get_balance_hub;
+		TestCase == get_catalog_hub;
+		TestCase == get_product_hub;
+		TestCase == get_inventory_hub;
+		TestCase == get_role_hub;
+		TestCase == get_service_hub;
+		TestCase == get_usage_hub;
+		TestCase == get_user_hub;
+		TestCase == get_balance_hubs;
+		TestCase == get_catalog_hubs;
+		TestCase == get_product_hubs;
+		TestCase == get_inventory_hubs;
+		TestCase == get_role_hubs;
+		TestCase == get_service_hubs;
+		TestCase == get_usage_hubs;
+		TestCase == get_user_hubs;
+		TestCase == delete_hub_balance;
+		TestCase == delete_hub_catalog;
+		TestCase == delete_hub_product;
+		TestCase == delete_hub_inventory;
+		TestCase == delete_hub_role;
+		TestCase == delete_hub_service;
+		TestCase == delete_hub_usage;
+		TestCase == delete_hub_user ->
+	F = fun({_, Fsm, _, _} = _ChildSpec) ->
+			catch gen_fsm:sync_send_all_state_event(Fsm, delete)
+	end,
+	lists:foreach(F, supervisor:which_children(ocs_rest_hub_sup));
 end_per_testcase(_TestCase, _Config) ->
 	ok.
 
@@ -2927,7 +2973,7 @@ get_balance_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -3368,7 +3414,7 @@ delete_hub_product(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
+	{ok, {{_, 201, _}, _ResponseHeaders, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
@@ -3428,7 +3474,7 @@ get_product_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -3757,7 +3803,7 @@ get_service_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -3915,7 +3961,7 @@ get_user_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4026,7 +4072,7 @@ get_catalog_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4246,7 +4292,7 @@ get_inventory_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4460,7 +4506,7 @@ get_usage_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -5979,7 +6025,7 @@ delete_role(Config) ->
 	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(delete, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers2, []} = Result2,
-	{ok, {{"HTTP/1.1", 404, "Object Not Found"}, _Headers3, _ResponseBody3}}
+	{ok, {{"HTTP/1.1", 404, _NotFound}, _Headers3, _ResponseBody3}}
 			= httpc:request(get, Request2, HttpOpt, []).
 
 get_roles() ->
@@ -6137,7 +6183,7 @@ get_role_hub(Config) ->
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
