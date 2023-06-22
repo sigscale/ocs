@@ -154,10 +154,7 @@ class tariffPeriodList extends PolymerElement {
 		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "5") {
 			sigApp.shadowRoot.querySelector('sig-tariff-periods-list').shadowRoot.getElementById('getPeriodRows').generateRequest();
-		} else if(this.activeSpecId == "7") {
-			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
-		} else if(this.activeSpecId == "1") {
-			sigApp.shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
+			sigApp.shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 		}
 		this.$.tariffPeriodList.close();
 	} 
