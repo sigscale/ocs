@@ -1,4 +1,4 @@
-%%% ocs.erl
+%% ocs.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2022 SigScale Global Inc.
@@ -36,8 +36,8 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
-		query_resource/5]).
+-export([add_resource/1, update_resource/1, get_resources/0,
+		get_resource/1, delete_resource/1, query_resource/5]).
 -export([clean_services/1, clean_buckets/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
@@ -1661,7 +1661,7 @@ get_offers() ->
 		Result :: ok.
 %% @doc Delete an entry from the offer table.
 delete_offer(OfferID) ->
-	Ftransaction = fun() ->
+	Ftrans = fun() ->
 			case mnesia:read(offer, OfferID, write) of
 				[#offer{} = Offer] ->
 					Fselect = fun F(start) ->
@@ -1680,7 +1680,7 @@ delete_offer(OfferID) ->
 					mnesia:abort(not_found)
 			end
 	end,
-	case mnesia:transaction(Ftransaction) of
+	case mnesia:transaction(Ftrans) of
 		{atomic, {ok, Offer}} ->
 			ok = ocs_event:notify(delete_offer, Offer, product),
 			ok;
@@ -1739,7 +1739,6 @@ query_offer2('$end_of_table', _Description, _Status, _STD, _EDT, _Price) ->
 		Result :: {ok, Resource} | {error, Reason},
 		Reason :: table_not_found | table_exists | missing_char | term().
 %% @doc Create a new Resource.
-%% @hidden
 add_resource(#resource{id = undefined,
 		specification = #specification_ref{id = SpecId},
 		last_modified = undefined} = Resource)
@@ -1784,11 +1783,11 @@ add_resource(#resource{name = TableName,
 					Href = ?PathResInv ++ "resource/" ++ Id,
 					NewResource = Resource#resource{id = Id,
 							href = Href, last_modified = LM},
-					Ftran = fun() ->
+					Ftrans = fun() ->
 								ok = mnesia:write(NewResource),
 								NewResource
 					end,
-					add_resource1(mnesia:transaction(Ftran));
+					add_resource1(mnesia:transaction(Ftrans));
 				[#resource{} | _] ->
 					{error, table_exists}
 			end;
@@ -1813,7 +1812,7 @@ add_resource(#resource{id = undefined, href = undefined,
 			#resource_char{value = Char2} when is_list(Char2) ->
 				Char2;
 			_ ->
-				throw(missing_char)
+				undefined
 		end,
 		Rate = case lists:keyfind("rate",
 				#resource_char.name, Chars) of
@@ -1830,11 +1829,11 @@ add_resource(#resource{id = undefined, href = undefined,
 			Href = ?PathResInv ++ "resource/" ++ Id,
 			NewResource = Resource#resource{id = Id,
 					href = Href, last_modified = LM},
-			Ftran = fun() ->
+			Ftrans = fun() ->
 						ok = mnesia:write(NewResource),
 						NewResource
 			end,
-			add_resource1(mnesia:transaction(Ftran))
+			add_resource1(mnesia:transaction(Ftrans))
 	catch
 		_:Reason ->
 			{error, Reason}
@@ -1857,7 +1856,7 @@ add_resource(#resource{id = undefined, href = undefined,
 			#resource_char{value = Char2} when is_list(Char2) ->
 				Char2;
 			_ ->
-				throw(missing_char)
+				undefined
 		end,
 		PeriodInitial = case lists:keyfind("periodInitial",
 				#resource_char.name, Chars) of
@@ -1898,11 +1897,11 @@ add_resource(#resource{id = undefined, href = undefined,
 			Href = ?PathResInv ++ "resource/" ++ Id,
 			NewResource = Resource#resource{id = Id,
 					href = Href, last_modified = LM},
-			Ftran = fun() ->
+			Ftrans = fun() ->
 						ok = mnesia:write(NewResource),
 						NewResource
 			end,
-			add_resource1(mnesia:transaction(Ftran))
+			add_resource1(mnesia:transaction(Ftrans))
 	catch
 		_:Reason ->
 			{error, Reason}
@@ -1925,7 +1924,7 @@ add_resource(#resource{id = undefined, href = undefined,
 			#resource_char{value = Char2} when is_list(Char2) ->
 				Char2;
 			_ ->
-				throw(missing_char)
+				undefined
 		end,
 		Tariff = case lists:keyfind("tariff",
 				#resource_char.name, Chars) of
@@ -1941,11 +1940,11 @@ add_resource(#resource{id = undefined, href = undefined,
 			Href = ?PathResInv ++ "resource/" ++ Id,
 			NewResource = Resource#resource{id = Id,
 					href = Href, last_modified = LM},
-			Ftran = fun() ->
+			Ftrans = fun() ->
 						ok = mnesia:write(NewResource),
 						NewResource
 			end,
-			add_resource1(mnesia:transaction(Ftran))
+			add_resource1(mnesia:transaction(Ftrans))
 	catch
 		_:Reason ->
 			{error, Reason}
@@ -1955,6 +1954,284 @@ add_resource1({atomic, #resource{} = Resource}) ->
 	ok = ocs_event:notify(create_resource, Resource, resource),
 	{ok, Resource};
 add_resource1({aborted, Reason}) ->
+	{error, Reason}.
+
+-spec update_resource(Resource) -> Result
+	when
+		Result :: {ok, Resource} | {error, Reason},
+		Reason :: not_found | not_allowed | stale | missing_char | term().
+%% @doc Update an existing Resource.
+update_resource(#resource{id = Id, href = Href,
+		specification = #specification_ref{id = SpecId},
+		last_modified = LM} = Resource)
+		when is_list(Id), is_list(Href), is_tuple(LM),
+		((SpecId == ?POLICY_TABLE_SPEC)
+				orelse (SpecId == ?POLICY_ROW_SPEC)) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	NewLM = {TS, N},
+	Ftrans = fun() ->
+				case mnesia:read(resource, Id, write) of
+					[#resource{specification = #specification_ref{id = SpecId},
+							last_modified = LM}] ->
+						Resource1 = Resource#resource{last_modified = NewLM},
+						ok = mnesia:write(Resource1),
+						Resource1;
+					[#resource{specification = #specification_ref{id = SpecId}}] ->
+						mnesia:abort(stale);
+					[#resource{}] ->
+						mnesia:abort(not_allowed);
+					[] ->
+						mnesia:abort(not_found)
+				end
+	end,
+   update_resource1(mnesia:transaction(Ftrans));
+update_resource(#resource{id = Id, href = Href,
+		specification = #specification_ref{id = SpecId},
+		name = TableName, last_modified = LM} = Resource)
+		when is_list(Id), is_list(Href), is_list(TableName),
+		is_tuple(LM), ((SpecId == ?TARIFF_TABLE_SPEC)
+				orelse (SpecId == ?PERIOD_TABLE_SPEC)
+				orelse (SpecId == ?ROAMING_TABLE_SPEC)) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	NewLM = {TS, N},
+	Ftrans = fun() ->
+				case mnesia:read(resource, Id, write) of
+					[#resource{name = TableName,
+							specification = #specification_ref{id = SpecId},
+							last_modified = LM}] ->
+						Resource1 = Resource#resource{last_modified = NewLM},
+						ok = mnesia:write(Resource1),
+						Resource1;
+					[#resource{name = TableName,
+							specification = #specification_ref{id = SpecId}}] ->
+						mnesia:abort(stale);
+					[#resource{}] ->
+						mnesia:abort(not_allowed);
+					[] ->
+						mnesia:abort(not_found)
+				end
+	end,
+   update_resource1(mnesia:transaction(Ftrans));
+update_resource(#resource{id = Id, href = Href,
+		specification = #specification_ref{id = SpecId},
+		related = [#resource_rel{name = TableName} | _],
+		last_modified = LM, characteristic = Chars} = Resource)
+		when is_list(Id), is_list(Href), is_list(TableName),
+		is_list(Chars), is_tuple(LM), SpecId == ?TARIFF_ROW_SPEC ->
+	try
+		Prefix = case lists:keyfind("prefix",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char1} when is_list(Char1) ->
+				Char1;
+			_ ->
+				throw(missing_char)
+		end,
+		Description = case lists:keyfind("description",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char2} when is_list(Char2) ->
+				Char2;
+			_ ->
+				undefined
+		end,
+		Rate = case lists:keyfind("rate",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char3}
+					when is_list(Char3); is_integer(Char3); is_float(Char3)  ->
+				ocs_rest:millionths_in(Char3);
+			_ ->
+				throw(missing_char)
+		end,
+		{Resource, Prefix, Description, Rate}
+	of
+		{Resource1, Prefix1, Description1, Rate1} ->
+			Ftrans = fun() ->
+					case mnesia:read(resource, Id, write) of
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _],
+								characteristic = Chars1, last_modified = LM}] ->
+							case lists:keyfind("prefix",
+									#resource_char.name, Chars1) of
+								#resource_char{value = Prefix1} ->
+									{ok, #gtt{value = {_, _, NewLM}}}
+											= ocs_gtt:insert(TableName,
+											Prefix1, {Description1, Rate1}),
+									Resource2 = Resource1#resource{last_modified = NewLM},
+									ok = mnesia:write(Resource2),
+									Resource2;
+								#resource_char{} ->
+									mnesia:abort(not_allowed)
+							end;
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _]}] ->
+							mnesia:abort(stale);
+						[#resource{}] ->
+							mnesia:abort(not_allowed);
+						[] ->
+							mnesia:abort(not_found)
+					end
+			end,
+			update_resource1(mnesia:transaction(Ftrans))
+	catch
+		_:Reason ->
+			{error, Reason}
+	end;
+update_resource(#resource{id = Id, href = Href,
+		specification = #specification_ref{id = SpecId},
+		related = [#resource_rel{name = TableName} | _],
+		characteristic = Chars, last_modified = LM} = Resource)
+		when is_list(Id), is_list(Href), is_list(TableName),
+		is_list(Chars), is_tuple(LM), SpecId == ?PERIOD_ROW_SPEC->
+	try
+		Prefix = case lists:keyfind("prefix",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char1} when is_list(Char1) ->
+				Char1;
+			_ ->
+				throw(missing_char)
+		end,
+		Description = case lists:keyfind("description",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char2} when is_list(Char2) ->
+				Char2;
+			_ ->
+				undefined
+		end,
+		PeriodInitial = case lists:keyfind("periodInitial",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char3} when is_integer(Char3) ->
+				Char3;
+			_ ->
+				throw(missing_char)
+		end,
+		RateInitial = case lists:keyfind("rateInitial",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char4}
+					when is_list(Char4); is_integer(Char4); is_float(Char4)  ->
+				ocs_rest:millionths_in(Char4);
+			_ ->
+				throw(missing_char)
+		end,
+		PeriodAdditional = case lists:keyfind("periodAdditional",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char5} when is_integer(Char5) ->
+				Char5;
+			_ ->
+				throw(missing_char)
+		end,
+		RateAdditional = case lists:keyfind("rateAdditional",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char6}
+					when is_list(Char6); is_integer(Char6); is_float(Char6)  ->
+				ocs_rest:millionths_in(Char6);
+			_ ->
+				throw(missing_char)
+		end,
+		{Resource, Prefix, Description, PeriodInitial, RateInitial, PeriodAdditional, RateAdditional}
+	of
+		{Resource1, Prefix1, Description1,
+				PeriodInitial1, RateInitial1, PeriodAdditional1, RateAdditional1} ->
+			Ftrans = fun() ->
+					case mnesia:read(resource, Id, write) of
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _],
+								characteristic = Chars1, last_modified = LM}] ->
+							case lists:keyfind("prefix",
+									#resource_char.name, Chars1) of
+								#resource_char{value = Prefix1} ->
+									{ok, #gtt{value = {_, _, _, _, _, NewLM}}}
+											= ocs_gtt:insert(TableName, Prefix1,
+											{Description1, PeriodInitial1, RateInitial1,
+											PeriodAdditional1, RateAdditional1}),
+									Resource2 = Resource1#resource{last_modified = NewLM},
+									ok = mnesia:write(Resource2),
+									Resource2;
+								#resource_char{} ->
+									mnesia:abort(not_allowed)
+							end;
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _]}] ->
+							mnesia:abort(stale);
+						[#resource{}] ->
+							mnesia:abort(not_allowed);
+						[] ->
+							mnesia:abort(not_found)
+					end
+			end,
+			update_resource1(mnesia:transaction(Ftrans))
+	catch
+		_:Reason ->
+			{error, Reason}
+	end;
+update_resource(#resource{id = Id, href = Href,
+		specification = #specification_ref{id = SpecId},
+		related = [#resource_rel{name = TableName} | _],
+		characteristic = Chars, last_modified = LM} = Resource)
+		when is_list(Id), is_list(Href), is_list(TableName),
+		is_list(Chars), is_tuple(LM), SpecId == ?ROAMING_ROW_SPEC->
+	try
+		Prefix = case lists:keyfind("prefix",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char1} when is_list(Char1) ->
+				Char1;
+			_ ->
+				throw(missing_char)
+		end,
+		Description = case lists:keyfind("description",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char2} when is_list(Char2) ->
+				Char2;
+			_ ->
+				undefined
+		end,
+		Tariff = case lists:keyfind("tariff",
+				#resource_char.name, Chars) of
+			#resource_char{value = Char3} when is_list(Char3) ->
+				Char3;
+			_ ->
+				throw(missing_char)
+		end,
+		{Resource, Prefix, Description, Tariff}
+	of
+		{Resource1, Prefix1, Description1, Tariff1} ->
+			Ftrans = fun() ->
+					case mnesia:read(resource, Id, write) of
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _],
+								characteristic = Chars1, last_modified = LM}] ->
+							case lists:keyfind("prefix",
+									#resource_char.name, Chars1) of
+								#resource_char{value = Prefix1} ->
+									{ok, #gtt{value = {_, _, NewLM}}}
+											= ocs_gtt:insert(TableName,
+													Prefix1, {Description1, Tariff1}),
+									Resource2 = Resource1#resource{last_modified = NewLM},
+									ok = mnesia:write(Resource2),
+									Resource2;
+								#resource_char{} ->
+									mnesia:abort(not_allowed)
+							end;
+						[#resource{specification = #specification_ref{id = SpecId},
+								related = [#resource_rel{name = TableName} | _]}] ->
+							mnesia:abort(stale);
+						[#resource{}] ->
+							mnesia:abort(not_allowed);
+						[] ->
+							mnesia:abort(not_found)
+					end
+			end,
+			update_resource1(mnesia:transaction(Ftrans))
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+%% @hidden
+%% @todo update_resource event
+update_resource1({atomic, #resource{} = Resource}) ->
+	ok = ocs_event:notify(create_resource, Resource, resource),
+	{ok, Resource};
+update_resource1({aborted, Reason}) ->
 	{error, Reason}.
 
 -spec get_resources() -> Result

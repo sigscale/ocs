@@ -450,7 +450,7 @@ add_resource(RequestBody) ->
 			{error, 400, Problem};
 		{error, missing_char} ->
 			Problem = #{type => "/doc/ocs.html#add_resource-1",
-					title => "Missing resource characteristics",
+					title => "Missing resource characteristic(s)",
 					detail => "A mandatory resource characteristic was missing"},
 			{error, 400, Problem};
 		{error, _Reason} ->
@@ -519,81 +519,66 @@ patch_resource(Id, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		case string:tokens(Id, "-") of
-			[Id] ->
-				{Id, Etag1, mochijson:decode(ReqData)};
-			[Table, Prefix] ->
-				Table1 = list_to_existing_atom(Table),
-				{Table1, Prefix, Etag1, mochijson:decode(ReqData)}
-		end
+		{Id, Etag1, mochijson:decode(ReqData)}
 	of
 		{Id, Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(resource, Id, write) of
-						[Resource1] when
-								Resource1#resource.last_modified == Etag2;
-								Etag2 == undefined ->
+						[#resource{last_modified = LM1} = Resource1]
+								when LM1 == Etag2; Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations,
 									resource(Resource1)) of
 								{struct, _} = Resource2 ->
 									Resource3 = resource(Resource2),
-									TS = erlang:system_time(millisecond),
-									N = erlang:unique_integer([positive]),
-									LM = {TS, N},
-									Resource4 = Resource3#resource{last_modified = LM},
-									ok = mnesia:write(Resource4),
-									{Resource2, LM};
+									Resource4 = Resource3#resource{last_modified = LM1},
+									ocs:update_resource(Resource4);
 								_ ->
-									throw(bad_request)
+									mnesia:abort(bad_request)
 							end;
 						[#resource{}] ->
-							throw(precondition_failed);
+							{error, stale};
 						[] ->
-							throw(not_found)
+							{error, not_found}
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Resource, Etag3}} ->
-					Location = "/resourceInventoryManagement/v1/resource/" ++ Id,
-					Headers = [{content_type, "application/json"},
-							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Resource),
-					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
+				{atomic, {ok, #resource{href = Href,
+						last_modified = LM2} = Resource3}} ->
+					ReplyHeaders = [{content_type, "application/json"},
+							{location, Href}, {etag, ocs_rest:etag(LM2)}],
+					ReplyBody = mochijson:encode(resource(Resource3)),
+					{ok, ReplyHeaders, ReplyBody};
+				{atomic, {error, not_found}} ->
+					Problem = #{type => "/doc/ocs.html#update_resource-1",
+							title => "Resource not found",
+							detail => "The id was not found in the resource table"},
+					{error, 404, Problem};
+				{atomic, {error, not_allowed}} ->
+					Problem = #{type => "/doc/ocs.html#update_resource-1",
+							title => "Resource update not allowed",
+							detail => "An attribute or characteristic which may not be modified"},
+					{error, 400, Problem};
+				{atomic, {error, missing_char}} ->
+					Problem = #{type => "/doc/ocs.html#update_resource-1",
+							title => "Missing resource characteristic(s)",
+							detail => "A mandatory resource characteristic was missing"},
+					{error, 400, Problem};
+				{atomic, {error, stale}} ->
+					Problem = #{type => "/doc/ocs.html#update_resource-1",
+							title => "Resource modified after read",
+							detail => "ETag value did not match last modified time"},
+					{error, 412, Problem};
+				{atomic, {error, _Reason}} ->
+					Problem = #{type => "/doc/ocs.html#update_resource-1",
+							title => "Server error",
+							detail => "An error occurred patching the resource"},
+					{error, 500, Problem};
+				{aborted, bad_request} ->
 					{error, 400};
-				{aborted, {throw, not_found}} ->
-					{error, 404};
-				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
 				{aborted, _Reason} ->
 					{error, 500}
-			end;
-		{Table2, Prefix1, Etag2, {array, _} = Operations} ->
-			case catch ocs_gtt:lookup_last(Table2, Prefix1) of
-				{'EXIT', _} ->
-					throw(not_found);
-				{Description, Rate, LastModified1} when LastModified1 == Etag2;
-						Etag2 == undefined ->
-					case catch ocs_rest:patch(Operations,
-							gtt(atom_to_list(Table2), {Prefix1, Description, Rate})) of
-						{struct, _} = Res ->
-							{Prefix1, Description1, Rate1} = gtt(Prefix1, Res),
-							{ok, #gtt{value = {_, _, LastModified2}}}
-									= ocs_gtt:insert(Table2, Prefix1,
-											{Description1, Rate1}),
-							Location = ?inventoryPath ++ atom_to_list(Table2)
-									++ "-" ++ Prefix1,
-							Headers = [{content_type, "application/json"},
-									{location, Location}, {etag, ocs_rest:etag(LastModified2)}],
-							Body = mochijson:encode(Res),
-							{ok, Headers, Body};
-						_ ->
-							throw(bad_request)
-					end
 			end
 	catch
-		throw:not_found ->
-			{error, 404};
 		_:_ ->
 			{error, 400}
 	end.
@@ -849,50 +834,6 @@ tariff_table_catalog() ->
 	Category = {"category", {array, [{struct, [{"id", "1"}, {"href", ?categoryPath "1"},
 		{"version", "1.0"}, {"name", "TariffTableCategory"}]}]}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category]}.
-
--spec gtt(Table, Gtt) -> Gtt
-	when
-		Table :: string(),
-		Gtt :: {Prefix, Description, Rate} | {struct, [tuple()]},
-		Prefix :: string(),
-		Description :: string(),
-		Rate :: non_neg_integer().
-%% @doc CODEC for gtt.
-%% @private
-gtt(Table, {Prefix, Description, Rate} = _Gtt) ->
-	Id = Table ++ "-" ++ Prefix,
-	SpecId = {"id", "2"},
-   SpecHref = {"href", ?specPath "2"},
-   SpecName = {"name", "TariffTableRow"},
-	{struct, [{"id", Id},
-			{"href", ?inventoryPath ++ Id},
-			{"resourceSpecification", {struct, [SpecId, SpecHref, SpecName]}},
-			{"resourceCharacteristic", {array,
-			[{struct, [{"name", "prefix"}, {"value", Prefix}]},
-			{struct, [{"name", "description"}, {"value", Description}]},
-			{struct, [{"name", "rate"}, {"value", ocs_rest:millionths_out(Rate)}]}]}}]};
-gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	gtt1(ObjectMembers, {undefined, [], undefined}).
-%% @hidden
-gtt1([{"resourceCharacteristic", {array, L}} | T], Acc) ->
-   gtt1(T, gtt2(L, Acc));
-gtt1([_ | T], Acc) ->
-	gtt1(T, Acc);
-gtt1([], {Prefix, Desc, Rate} = _Acc)
-		when is_list(Prefix)->
-   {Prefix, Desc, ocs_rest:millionths_in(Rate)}.
-%% @hidden
-gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
-	case lists:keytake("name", 1, L) of
-		{value, {"name", "prefix"}, [{"value", Prefix1}]} ->
-			gtt2(T, {Prefix1, Desc, Rate});
-		{value, {"name", "description"}, [{"value", Desc1}]} ->
-			gtt2(T, {Prefix, Desc1, Rate});
-		{value, {"name", "rate"}, [{"value", Rate1}]} ->
-			gtt2(T, {Prefix, Desc, Rate1})
-	end;
-gtt2([], Acc) ->
-	Acc.
 
 %% @hidden
 spec_pla_once() ->
