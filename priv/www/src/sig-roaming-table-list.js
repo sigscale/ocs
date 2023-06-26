@@ -74,7 +74,7 @@ class tariffRoamingList extends PolymerElement {
 					on-error="_deleteRoamingError">
 			</iron-ajax>
 			<iron-ajax
-					id="getroamingTables"
+					id="getRoamingTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=7"
 					on-response="_getRoamingResponse"
 					on-error="_getRoamingError">
@@ -167,7 +167,7 @@ class tariffRoamingList extends PolymerElement {
 	}
 
 	_deleteRoamingResponse(event) {
-		this.shadowRoot.getElementById('getroamingTables').generateRequest();
+		this.shadowRoot.getElementById('getRoamingTables').generateRequest();
 	}
 
 	_getRoamingError(event) {
