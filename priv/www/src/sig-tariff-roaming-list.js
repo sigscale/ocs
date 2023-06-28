@@ -56,7 +56,7 @@ class roamingList extends PolymerElement {
 					</template>
 					<template>
 						<div class="cell numeric">
-							[[item.TariffTableName]]
+							[[item.tariff]]
 						</div>
 					</template>
 				</vaadin-grid-column>
