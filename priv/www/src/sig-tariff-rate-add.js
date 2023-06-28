@@ -21,7 +21,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class prefixAdd extends PolymerElement {
+class rateAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
@@ -154,12 +154,12 @@ class prefixAdd extends PolymerElement {
 		ajax.body = tar;
 		ajax.generateRequest();
 		this.$.addPrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
 	_addTableResponse(event) {
 		this.$.addPrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
@@ -186,4 +186,4 @@ class prefixAdd extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-rate-add', prefixAdd);
+window.customElements.define('sig-tariff-rate-add', rateAdd);

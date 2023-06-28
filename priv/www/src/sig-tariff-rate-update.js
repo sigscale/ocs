@@ -21,7 +21,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class tableUpdate extends PolymerElement {
+class rateUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
@@ -200,7 +200,7 @@ class tableUpdate extends PolymerElement {
 			var rate = new Object();
 			rate.op = "replace";
 			rate.path = "/resourceCharacteristic/" + index + "/value";
-			rate.value = this.rateRowrate;
+			rate.value = this.rateRowRate;
 			patch.push(rate);
 		}
 		ajax.body = JSON.stringify(patch);
@@ -213,7 +213,7 @@ class tableUpdate extends PolymerElement {
 
 	_updateRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
 	_updateRateRowError(event) {
@@ -225,14 +225,14 @@ class tableUpdate extends PolymerElement {
 	_deleteRateRow(event) {
 		var ajax = this.$.deleteRateRowAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.rateRowPrefix;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.rateRowId;
 		ajax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
 	_deleteRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
 	_deleteRateRowError(event) {
@@ -257,4 +257,4 @@ class tableUpdate extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-rate-update', tableUpdate);
+window.customElements.define('sig-tariff-rate-update', rateUpdate);

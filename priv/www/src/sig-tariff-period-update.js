@@ -348,9 +348,9 @@ class periodUpdate extends PolymerElement {
 	_deletePeriodRow(event) {
 		var ajax = this.$.deletePeriodRowAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.periodRowPrefix;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.periodRowId;
 		ajax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
 	_deletePeriodRowResponse(event) {

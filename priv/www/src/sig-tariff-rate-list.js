@@ -20,12 +20,12 @@ import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js'
 
-class prefixList extends PolymerElement {
+class rateList extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
 			<vaadin-grid
-					id="prefixGrid"
+					id="rateGrid"
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
@@ -115,7 +115,7 @@ class prefixList extends PolymerElement {
 
 	ready() {
 		super.ready();
-      var grid = this.shadowRoot.getElementById('prefixGrid');
+      var grid = this.shadowRoot.getElementById('rateGrid');
       grid.dataProvider = this._getPrefixTable;
       grid.clearCache();
 	}
@@ -129,9 +129,9 @@ class prefixList extends PolymerElement {
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList');
-		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
-		var tableName = prefixList.activeTableName;
+		var rateList = document.body.querySelector('sig-app').shadowRoot.getElementById('rateList');
+		var ajax = rateList.shadowRoot.getElementById('getPrefixRows');
+		var tableName = rateList.activeTableName;
 		if(!tableName) {
 			grid.size = 0;
 			return callback([]);
@@ -154,7 +154,7 @@ class prefixList extends PolymerElement {
 		}
 		var handleAjaxResponse = function(request) {
 			if(request) {
-				prefixList.etag = request.xhr.getResponseHeader('ETag');
+				rateList.etag = request.xhr.getResponseHeader('ETag');
 				var range = request.xhr.getResponseHeader('Content-Range');
 				var range1 = range.split("/");
 				var range2 = range1[0].split("-");
@@ -192,7 +192,7 @@ class prefixList extends PolymerElement {
 			}
 		};
 		var handleAjaxError = function(error) {
-			prefixList.etag = null;
+			rateList.etag = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Error";
 			toast.open();
@@ -206,8 +206,8 @@ class prefixList extends PolymerElement {
 				var startRange = params.page * params.pageSize + 1;
 				var endRange = startRange + params.pageSize - 1;
 				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-				if (prefixList.etag && params.page > 0) {
-					ajax.headers['If-Range'] = prefixList.etag;
+				if (rateList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = rateList.etag;
 				} else {
 					delete ajax.headers['If-Range'];
 				}
@@ -217,8 +217,8 @@ class prefixList extends PolymerElement {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;
 			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (prefixList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = prefixList.etag;
+			if (rateList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = rateList.etag;
 			} else {
 				delete ajax.headers['If-Range'];
 			}
@@ -228,7 +228,7 @@ class prefixList extends PolymerElement {
 
 	_filterChanged(filter) {
 		this.etag = null;
-		var grid = this.shadowRoot.getElementById('prefixGrid');
+		var grid = this.shadowRoot.getElementById('rateGrid');
 		grid.size = 0;
 	}
 
@@ -241,5 +241,5 @@ class prefixList extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-rate-list', prefixList);
+window.customElements.define('sig-tariff-rate-list', rateList);
 

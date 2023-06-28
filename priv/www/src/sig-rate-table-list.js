@@ -154,7 +154,7 @@ class tariffRateList extends PolymerElement {
 		sigApp.viewTitle = 'Tariff: ' + this.activeTableName;
 		if(this.activeSpecId == "1") {
 			sigApp.shadowRoot.querySelector('sig-tariff-rate-list').shadowRoot.getElementById('getPrefixRows').generateRequest();
-			sigApp.shadowRoot.getElementById('rateList').shadowRoot.getElementById('prefixGrid').clearCache();
+			sigApp.shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 		}
 		this.$.tariffRateList.close();
 	} 
