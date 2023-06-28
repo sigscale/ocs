@@ -169,7 +169,7 @@ class roamingList extends PolymerElement {
 							tabObj.description = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "tariff") {
-							tabObj.TariffTableName = resChar[indexRes].value;
+							tabObj.tariff = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}

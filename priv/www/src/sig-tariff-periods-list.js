@@ -182,7 +182,6 @@ class periodList extends PolymerElement {
 			ajax.params['filter'] += "]}]\"";
 		}
 		var handleAjaxResponse = function(request) {
-console.log("alert");
 			if(request) {
 				periodList.etag = request.xhr.getResponseHeader('ETag');
 				var range = request.xhr.getResponseHeader('Content-Range');
@@ -209,8 +208,17 @@ console.log("alert");
 						if(resChar[indexRes].name == "description") {
 							tabObj.description = resChar[indexRes].value;
 						}
-						if(resChar[indexRes].name == "rate") {
-							tabObj.rate = resChar[indexRes].value;
+						if(resChar[indexRes].name == "periodInitial") {
+							tabObj.periodInitial= resChar[indexRes].value;
+						}
+						if(resChar[indexRes].name == "rateInitial") {
+							tabObj.rateInitial= resChar[indexRes].value;
+						}
+						if(resChar[indexRes].name == "periodAdditional") {
+							tabObj.periodAdditional= resChar[indexRes].value;
+						}
+						if(resChar[indexRes].name == "rateAdditional") {
+							tabObj.rateAdditional = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}

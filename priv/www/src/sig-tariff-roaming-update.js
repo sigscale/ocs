@@ -35,62 +35,65 @@ class roamingUpdate extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-						id="updatePrefix"
-						name="Prefix"
-						allowed-pattern="[+0-9]"
-						pattern="^[+]?[0-9]+"
-						auto-validate
-						label="Prefix"
-						value="{{upPrefix}}"
-						disabled>
-				</paper-input>
-				<paper-tooltip
-						for="updatePrefix"
-						offset="0">
-					Value to update prefix number
-				</paper-tooltip>
-				<paper-input
-						id="updateDescription"
-						name="Description"
-						label="Description"
-						value="{{upDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="updateDescription"
-						offset="0">
-					Value to update prefix description
-				</paper-tooltip>
-				<paper-input
-						id="updateRate"
-						name="rateUpdate"
-						allowed-pattern="[0-9.]"
-						pattern="^[0-9]+\.?[0-9]{0,6}$"
-						auto-validate
-						label="Rate"
-						value="{{upRate}}">
-				</paper-input>
-				<paper-tooltip
-						for="updateRate"
-						offset="0">
-					Value to update prefix rate
-				</paper-tooltip>
+				<div>
+					<paper-input
+							id="updatePrefix"
+							name="Prefix"
+							allowed-pattern="[+0-9]"
+							pattern="^[+]?[0-9]+"
+							auto-validate
+							label="Prefix"
+							value="{{roamingRowPrefix}}"
+							disabled>
+					</paper-input>
+					<paper-tooltip
+							for="updatePrefix"
+							offset="0">
+						Prefix to match
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="updateDescription"
+							name="Description"
+							label="Description"
+							value="{{roamingRowDescription}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateDescription"
+							offset="0">
+						Description of the prefix
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="updateTariff"
+							name="tariffUpdate"
+							label="Tariff Table Name"
+							value="{{roamingRowTariff}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateTariff"
+							offset="0">
+						Name of the roaming tariff table applied for the prefix
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
 							class="update-button"
-							on-tap="UpdateButton">
+							on-tap="_updateRoamingRow">
 						Update
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
 							dialog-dismiss
-							on-tap="cancelUpdate">
+							on-tap="_cancelRoamingRow">
 						Cancel
 					</paper-button>
 					<paper-button toggles
 							raised
-							on-tap="deleteUpdate"
+							on-tap="_deleteRoamingRow"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -118,18 +121,16 @@ class roamingUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
-			storeRoaming: {
-				type: Array,
-				readOnly: true,
-				notify: true,
-				value: function() {
-					return []
-				}
+			roamingRowId: {
+				type:String
 			},
-			upPrefix: {
+			roamingRowPrefix: {
 				type: String
 			},
-			upDesc: {
+			roamingRowDescription: {
+				type: String
+			},
+			roamingRowTariff: {
 				type: String
 			}
 		}
@@ -147,48 +148,69 @@ class roamingUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-			document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').rowId = current.id;
-			this.upPrefix = current.prefix;
-			this.upDesc = current.description;
-			this.upRate = current.rate;
-			var arrObj = new Object();
-			arrObj.prefix = this.upPrefix;
-			arrObj.description = this.upDesc;
-			arrObj.rate = this.upRate;
-			this.storeRoaming.push(arrObj);
+			this.roamingRowId = current.id;
+			this.roamingRowPrefix = current.prefix;
+			this.roamingRowDescription = current.description;
+			this.roamingRowTariff = current.rate;
 			this.$.updateRoamingModal.open();
 		}
 	}
 
-	UpdateButton(event) {
-		var Ajax = this.$.updateRoamingRowAjax;
-		Ajax.method = "PATCH";
-		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').activeTableName;
-		var Id = this.upPrefix;
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
-		var ResArray = new Array();
-		for(var indexx in this.storeRoaming) {
-			if(this.upDesc != this.storeRoaming[indexx].description) {
-				var Desc = new Object(); 
-				Desc.op = "replace";
-				Desc.path = "/resourceCharacteristic/1/value";
-				Desc.value = this.upDesc;
-				ResArray.push(Desc);
-			}
-			if(this.upRate != this.storeRoaming[indexx].rate) {
-				var Rate = new Object();
-				Rate.op = "replace";
-				Rate.path = "/resourceCharacteristic/2/value";
-				Rate.value = this.upRate;
-				ResArray.push(Rate);
+	_updateRoamingRow(event) {
+		var ajax = this.$.updateRoamingRowAjax;
+		ajax.method = "PATCH";
+		ajax.contentType = "application/json-patch+json";
+		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').activeTableName;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.roamingRowId;
+		var patch = new Array();
+		function isDescription(element) {
+			if(element.name == "description") {
+				return true;
+			} else {
+				return false;
 			}
 		}
-		Ajax.body = JSON.stringify(ResArray);
-		Ajax.generateRequest();
-		this.$.upPrefix = null;
-		this.$.upDesc = null;
-		this.$.upRate = null;
+		var index = this.activeItem.resourceCharacteristic.findIndex(isDescription);
+		if(index === -1) {
+			var description = new Object();
+			description.op = "add";
+			description.path = "/resourceCharacteristic/-";
+			description.value = {name: "description", value: this.roamingRowDescription};
+			patch.push(description);
+		} else {
+			var description = new Object();
+			description.op = "replace";
+			description.path = "/resourceCharacteristic/" + index + "/value";
+			description.value = this.roamingRowDescription;
+			patch.push(description);
+		}
+		function isTariff(element) {
+			if(element.name == "tariff") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isTariff);
+		if(index === -1) {
+			var tariff = new Object();
+			tariff.op = "add";
+			tariff.path = "/resourceCharacteristic/-";
+			tariff.value = {name: "tariff", value: this.roamingRowTariff};
+			patch.push(tariff);
+		} else {
+			var tariff = new Object();
+			tariff.op = "replace";
+			tariff.path = "/resourceCharacteristic/" + index + "/value";
+			tariff.value = this.roamingRowTariff/
+			patch.push(tariff);
+		}
+		ajax.body = JSON.stringify(patch);
+		ajax.generateRequest();
+		this.$.roamingRowId = null;
+		this.$.roamingRowPrefix = null;
+		this.$.roamingRowDescription = null;
+		this.$.roamingRowTariff = null;
 	}
 
 	_updateRoamingRowResponse(event) {
@@ -202,12 +224,11 @@ class roamingUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	deleteUpdate(event) {
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid');
-		var Id = this.upPrefix;
-		this.$.deleteRoamingRowAjax.method = "DELETE";
-		this.$.deleteRoamingRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;
-		this.$.deleteRoamingRowAjax.generateRequest();
+	_deleteRoamingRow(event) {
+		var ajax = this.$.deleteRoamingRowAjax;
+		ajax.method = "DELETE";
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.roamingRowPrefix;
+		ajax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
@@ -222,10 +243,11 @@ class roamingUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	cancelUpdate() {
-		this.$.upPrefix = null;
-		this.$.upDesc = null;
-		this.$.upRate = null;
+	_cancelRoamingRow() {
+		this.$.roamingRowId = null;
+		this.$.roamingRowPrefix = null;
+		this.$.roamingRowDescription = null;
+		this.$.roamingRowTariff = null;
 	}
 
 	_onLoadingChanged(event) {

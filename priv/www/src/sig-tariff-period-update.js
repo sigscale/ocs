@@ -35,62 +35,116 @@ class periodUpdate extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-						id="updatePrefix"
-						name="Prefix"
-						allowed-pattern="[+0-9]"
-						pattern="^[+]?[0-9]+"
-						auto-validate
-						label="Prefix"
-						value="{{upPrefix}}"
-						disabled>
-				</paper-input>
-				<paper-tooltip
-						for="updatePrefix"
-						offset="0">
-					Value to update prefix number
-				</paper-tooltip>
-				<paper-input
-						id="updateDescription"
-						name="Description"
-						label="Description"
-						value="{{upDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="updateDescription"
-						offset="0">
-					Value to update prefix description
-				</paper-tooltip>
-				<paper-input
-						id="updateRate"
-						name="rateUpdate"
-						allowed-pattern="[0-9.]"
-						pattern="^[0-9]+\.?[0-9]{0,6}$"
-						auto-validate
-						label="Rate"
-						value="{{upRate}}">
-				</paper-input>
-				<paper-tooltip
-						for="updateRate"
-						offset="0">
-					Value to update prefix rate
-				</paper-tooltip>
+				<div>
+					<paper-input
+							id="updatePrefix"
+							name="Prefix"
+							allowed-pattern="[+0-9]"
+							pattern="^[+]?[0-9]+"
+							auto-validate
+							label="Prefix"
+							value="{{periodRowPrefix}}"
+							disabled>
+					</paper-input>
+					<paper-tooltip
+							for="updatePrefix"
+							offset="0">
+						Prefix to match
+					</paper-tooltip>
+				<div>
+				</div>
+					<paper-input
+							id="updateDescription"
+							name="Description"
+							label="Description"
+							value="{{periodRowDescription}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateDescription"
+							offset="0">
+						Description of the prefix
+					</paper-tooltip>
+				<div>
+				</div>
+					<paper-input
+							id="updateInitialPeriod"
+							name="rateInitalUpdate"
+							allowed-pattern="[0-9]"
+							pattern="^[0-9]+$"
+							auto-validate
+							label="Initial Period"
+							value="{{periodRowInitialPeriod}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateInitialPeriod"
+							offset="0">
+						Length of the initial period
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="updateInitialRate"
+							name="rateInitalUpdate"
+							allowed-pattern="[0-9.]"
+							pattern="^[0-9]+\.?[0-9]{0,6}$"
+							auto-validate
+							label="Rate for Initial Initial Period"
+							value="{{periodRowInitialRate}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateInitialRate"
+							offset="0">
+						Rate for the initial period
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="updateAddditionalPeriod"
+							name="rateInitalUpdate"
+							allowed-pattern="[0-9]"
+							pattern="^[0-9]+$"
+							auto-validate
+							label="Addditional Period"
+							value="{{periodRowAddditionalPeriod}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateAddditionalPeriod"
+							offset="0">
+						Length of the additional period
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="updateAdditionalRate"
+							name="rateAdditionalUpdate"
+							allowed-pattern="[0-9.]"
+							pattern="^[0-9]+\.?[0-9]{0,6}$"
+							auto-validate
+							label="Rate for Additional Period"
+							value="{{periodRowAdditionalRate}}">
+					</paper-input>
+					<paper-tooltip
+							for="updateAdditionalRate"
+							offset="0">
+						Rate for the additional period
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
 							class="update-button"
-							on-tap="UpdateButton">
+							on-tap="_updatePeriodRow">
 						Update
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
 							dialog-dismiss
-							on-tap="cancelUpdate">
+							on-tap="_cancelPeriodRow">
 						Cancel
 					</paper-button>
 					<paper-button toggles
 							raised
-							on-tap="deleteUpdate"
+							on-tap="_deletePeriodRow"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -118,18 +172,25 @@ class periodUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
-			storePeriod: {
-				type: Array,
-				readOnly: true,
-				notify: true,
-				value: function() {
-					return []
-				}
-			},
-			upPrefix: {
+			periodRowId: {
 				type: String
 			},
-			upDesc: {
+			periodRowPrefix: {
+				type: String
+			},
+			periodRowDescription: {
+				type: String
+			},
+			periodRowPeriodInitial: {
+				type: String
+			},
+			periodRowRateInitial: {
+				type: String
+			},
+			periodRowPeriodAdditional: {
+				type: String
+			},
+			periodRowRateAdditional: {
 				type: String
 			}
 		}
@@ -147,48 +208,130 @@ class periodUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-			document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').rowId = current.id;
-			this.upPrefix = current.prefix;
-			this.upDesc = current.description;
-			this.upRate = current.rate;
-			var arrObj = new Object();
-			arrObj.prefix = this.upPrefix;
-			arrObj.description = this.upDesc;
-			arrObj.rate = this.upRate;
-			this.storePeriod.push(arrObj);
+			this.periodRowId = current.id;
+			this.periodRowPrefix = current.prefix;
+			this.periodRowDescription = current.description;
+			this.periodRowPeriodInitial = current.periodInitial;
+			this.periodRowRateInitial = current.rateInitial;
+			this.periodRowPeriodAdditional = current.periodAdditional;
+			this.periodRowRateAdditional = current.rateAdditional;
 			this.$.updatePeriodModal.open();
 		}
 	}
 
-	UpdateButton(event) {
-		var Ajax = this.$.updatePeriodRowAjax;
-		Ajax.method = "PATCH";
-		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').activeTableName;
-		var Id = this.upPrefix;
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
-		var ResArray = new Array();
-		for(var indexx in this.storePeriod) {
-			if(this.upDesc != this.storePeriod[indexx].description) {
-				var Desc = new Object(); 
-				Desc.op = "replace";
-				Desc.path = "/resourceCharacteristic/1/value";
-				Desc.value = this.upDesc;
-				ResArray.push(Desc);
-			}
-			if(this.upRate != this.storePeriod[indexx].rate) {
-				var Rate = new Object();
-				Rate.op = "replace";
-				Rate.path = "/resourceCharacteristic/2/value";
-				Rate.value = this.upRate;
-				ResArray.push(Rate);
+	_updatePeriodRow(event) {
+		var ajax = this.$.updatePeriodRowAjax;
+		ajax.method = "PATCH";
+		ajax.contentType = "application/json-patch+json";
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.periodRowId;
+		var patch = new Array();
+		function isDescription(element) {
+			if(element.name == "description") {
+				return true;
+			} else {
+				return false;
 			}
 		}
-		Ajax.body = JSON.stringify(ResArray);
-		Ajax.generateRequest();
-		this.$.upPrefix = null;
-		this.$.upDesc = null;
-		this.$.upRate = null;
+		var index = this.activeItem.resourceCharacteristic.findIndex(isDescription);
+		if(index === -1) {
+			var description = new Object();
+			description.op = "add";
+			description.path = "/resourceCharacteristic/-";
+			description.value = {name: "description", value: this.periodRowDescription};
+			patch.push(description);
+		} else {
+			var description = new Object();
+			description.op = "replace";
+			description.path = "/resourceCharacteristic/" + index + "/value";
+			description.value = this.periodRowDescription;
+			patch.push(description);
+		}
+		function isInitialPeriod(element) {
+			if(element.name == "initialPeriod") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isInitialPeriod);
+		if(index === -1) {
+			var initialPeriod = new Object();
+			initialPeriod.op = "add";
+			initialPeriod.path = "/resourceCharacteristic/-";
+			initialPeriod.value = {name: "rate", value: this.periodRowInitialPeriod};
+			patch.push(initialPeriod);
+		} else {
+			var initialPeriod = new Object();
+			initialPeriod.op = "replace";
+			initialPeriod.path = "/resourceCharacteristic/" + index + "/value";
+			initialPeriod.value = this.periodRowInitialPeriod;
+			patch.push(initialPeriod);
+		}
+		function isInitialRate(element) {
+			if(element.name == "initialRate") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isInitialRate);
+		if(index === -1) {
+			var initialRate = new Object();
+			initialRate.op = "add";
+			initialRate.path = "/resourceCharacteristic/-";
+			initialR.value = {name: "rate", value: this.periodRowInitialRate};
+			patch.push(initialRate);
+		} else {
+			var initialRate = new Object();
+			initialRate.op = "replace";
+			initialRate.path = "/resourceCharacteristic/" + index + "/value";
+			initialRate.value = this.periodRowInitialRate;
+			patch.push(initialRate);
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isAdditionalPeriod);
+		if(index === -1) {
+			var additionalPeriod = new Object();
+			additionalPeriod.op = "add";
+			additionalPeriod.path = "/resourceCharacteristic/-";
+			additionalR.value = {name: "rate", value: this.periodRowAdditionalPeriod};
+			patch.push(additionalPeriod);
+		} else {
+			var additionalPeriod = new Object();
+			additionalPeriod.op = "replace";
+			additionalPeriod.path = "/resourceCharacteristic/" + index + "/value";
+			additionalPeriod.value = this.periodRowAdditionalPeriod;
+			patch.push(additionalPeriod);
+		}
+		function isAdditionalRate(element) {
+			if(element.name == "additionalRate") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isAdditionalRate);
+		if(index === -1) {
+			var additionalRate = new Object();
+			additionalRate.op = "add";
+			additionalRate.path = "/resourceCharacteristic/-";
+			additionalR.value = {name: "rate", value: this.periodRowAdditionalRate};
+			patch.push(additionalRate);
+		} else {
+			var additionalRate = new Object();
+			additionalRate.op = "replace";
+			additionalRate.path = "/resourceCharacteristic/" + index + "/value";
+			additionalRate.value = this.periodRowAdditionalRate;
+			patch.push(additionalRate);
+		}
+		ajax.body = JSON.stringify(patch);
+		ajax.generateRequest();
+		this.$.periodRowId = null;
+		this.$.periodRowPrefix = null;
+		this.$.periodRowDescription = null;
+		this.$.periodRowInitialPeriod = null;
+		this.$.periodRowInitialRate = null;
+		this.$.periodRowAdditionalPeriod = null;
+		this.$.periodRowAdditionalRate = null;
 	}
 
 	_updatePeriodRowResponse(event) {
@@ -202,12 +345,11 @@ class periodUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	deleteUpdate(event) {
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('periodGrid');
-		var Id = this.upPrefix;
-		this.$.deletePeriodRowAjax.method = "DELETE";
-		this.$.deletePeriodRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
-		this.$.deletePeriodRowAjax.generateRequest();
+	_deletePeriodRow(event) {
+		var ajax = this.$.deletePeriodRowAjax;
+		ajax.method = "DELETE";
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.periodRowPrefix;
+		ajax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
@@ -222,10 +364,11 @@ class periodUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	cancelUpdate() {
-		this.$.upPrefix = null;
-		this.$.upDesc = null;
-		this.$.upRate = null;
+	_cancelPeriodRow() {
+		this.$.periodRowId = null;
+		this.$.periodRowPrefix = null;
+		this.$.periodRowDescription = null;
+		this.$.periodRowRate = null;
 	}
 
 	_onLoadingChanged(event) {
