@@ -60,7 +60,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.seconds]]
+								[[item.initialSec]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -70,7 +70,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.rate]]
+								[[item.initialRate]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -85,7 +85,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.seconds]]
+								[[item.addSec]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -95,7 +95,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.rate]]
+								[[item.addRate]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -209,16 +209,16 @@ class periodList extends PolymerElement {
 							tabObj.description = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "periodInitial") {
-							tabObj.periodInitial= resChar[indexRes].value;
+							tabObj.initialSec = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "rateInitial") {
-							tabObj.rateInitial= resChar[indexRes].value;
+							tabObj.initialRate = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "periodAdditional") {
-							tabObj.periodAdditional= resChar[indexRes].value;
+							tabObj.addSec= resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "rateAdditional") {
-							tabObj.rateAdditional = resChar[indexRes].value;
+							tabObj.addRate = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}
