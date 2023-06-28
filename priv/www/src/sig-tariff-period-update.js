@@ -325,13 +325,13 @@ class periodUpdate extends PolymerElement {
 		}
 		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
-		this.$.periodRowId = null;
-		this.$.periodRowPrefix = null;
-		this.$.periodRowDescription = null;
-		this.$.periodRowInitialPeriod = null;
-		this.$.periodRowInitialRate = null;
-		this.$.periodRowAdditionalPeriod = null;
-		this.$.periodRowAdditionalRate = null;
+		this.periodRowId = null;
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowInitialPeriod = null;
+		this.periodRowInitialRate = null;
+		this.periodRowAdditionalPeriod = null;
+		this.periodRowAdditionalRate = null;
 	}
 
 	_updatePeriodRowResponse(event) {
@@ -348,7 +348,7 @@ class periodUpdate extends PolymerElement {
 	_deletePeriodRow(event) {
 		var ajax = this.$.deletePeriodRowAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.periodRowId;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.periodRowId;
 		ajax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
@@ -365,10 +365,10 @@ class periodUpdate extends PolymerElement {
 	}
 
 	_cancelPeriodRow() {
-		this.$.periodRowId = null;
-		this.$.periodRowPrefix = null;
-		this.$.periodRowDescription = null;
-		this.$.periodRowRate = null;
+		this.periodRowId = null;
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowRate = null;
 	}
 
 	_onLoadingChanged(event) {

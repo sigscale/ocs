@@ -159,7 +159,7 @@ class rateUpdate extends PolymerElement {
 		var ajax = this.$.updateRateRowAjax;
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.rateRowId;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.rateRowId;
 		var patch = new Array();
 		function isDescription(element) {
 			if(element.name == "description") {
@@ -205,10 +205,10 @@ class rateUpdate extends PolymerElement {
 		}
 		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
-		this.$.rateRowId = null;
-		this.$.rateRowPrefix = null;
-		this.$.rateRowDescription = null;
-		this.$.rateRowRate = null;
+		this.rateRowId = null;
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 	}
 
 	_updateRateRowResponse(event) {
@@ -225,7 +225,7 @@ class rateUpdate extends PolymerElement {
 	_deleteRateRow(event) {
 		var ajax = this.$.deleteRateRowAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.$.rateRowId;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.rateRowId;
 		ajax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
@@ -242,10 +242,10 @@ class rateUpdate extends PolymerElement {
 	}
 
 	_cancelRateRow() {
-		this.$.rateRowId = null;
-		this.$.rateRowPrefix = null;
-		this.$.rateRowDescription = null;
-		this.$.rateRowRate = null;
+		this.rateRowId = null;
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 	}
 
 	_onLoadingChanged(event) {
