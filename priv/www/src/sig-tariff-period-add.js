@@ -141,13 +141,13 @@ class periodAdd extends PolymerElement {
 				type: String,
 			},
 			iniPerDuration: {
-				type: Number,
+				type: String,
 			},
 			iniPerRate: {
 				type: Number,
 			},
 			addPerDuration: {
-				type: Number,
+				type: String,
 			},
 			addPerRate: {
 				type: Number,
