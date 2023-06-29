@@ -367,13 +367,14 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
+			<sig-rate-table-add></sig-rate-table-add>
 			<sig-rate-table-list active-table-name="{{rateTable}}"></sig-rate-table-list>
 			<sig-period-table-list active-table-name="{{periodTable}}"></sig-period-table-list>
 			<sig-roaming-table-list active-table-name="{{roamingTable}}"></sig-roaming-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
 			<sig-tariff-period-add></sig-tariff-period-add>
 			<sig-tariff-roaming-add></sig-tariff-roaming-add>
-			<sig-tariff-rate-update active-item="[[activePrefixItem]]"></sig-tariff-rate-update>
+			<sig-tariff-rate-update active-item="[[activePrefixItem]]" active-table-name="{{rateTable}}"></sig-tariff-rate-update>
 			<sig-tariff-period-update active-item="[[activePeriodItem]]"></sig-tariff-period-update>
 			<sig-tariff-roaming-update active-item="[[activeRoamingItem]]"></sig-tariff-roaming-update>
 			<sig-bucket-add></sig-bucket-add>
@@ -810,7 +811,7 @@ class SigApp extends PolymerElement {
 				import('./sig-http-list.js');
 				break;
 			case 'rateView':
-				import('./sig-tariff-table-add.js');
+				import('./sig-rate-table-add.js');
 				import('./sig-tariff-rate-list.js');
 				import('./sig-tariff-rate-add.js');
 				import('./sig-tariff-rate-update.js');
