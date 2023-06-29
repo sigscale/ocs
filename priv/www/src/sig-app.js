@@ -147,21 +147,21 @@ class SigApp extends PolymerElement {
 						<sig-tariff-rate-list
 								id="rateList"
 								active-item="{{activePrefixItem}}"
-								active-table-name="[[rateTable]]"
+								active-table-name="{{rateTable}}"
 								loading="{{rateLoading}}"
 								name="rateView">
 						</sig-tariff-rate-list>
 						<sig-tariff-periods-list
 								id="periodList"
 								active-item="{{activePeriodItem}}"
-								active-table-name="[[periodTable]]"
+								active-table-name="{{periodTable}}"
 								loading="{{periodLoading}}"
 								name="periodView">
 						</sig-tariff-periods-list>
 						<sig-tariff-roaming-list
 								id="roamingList"
 								active-item="{{activeRoamingItem}}"
-								active-table-name="[[roamingTable]]"
+								active-table-name="{{roamingTable}}"
 								loading="{{roamingLoading}}"
 								name="roamingView">
 						</sig-tariff-roaming-list>
@@ -367,9 +367,9 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
-			<sig-rate-table-list active-table-name="{{rateTable}}"></sig-rate-table-list>
-			<sig-period-table-list active-table-name="{{periodTable}}"></sig-period-table-list>
-			<sig-roaming-table-list active-table-name="{{roamingTable}}"></sig-roaming-table-list>
+			<sig-rate-table-list></sig-rate-table-list>
+			<sig-period-table-list></sig-period-table-list>
+			<sig-roaming-table-list></sig-roaming-table-list>
 			<sig-tariff-rate-add></sig-tariff-rate-add>
 			<sig-tariff-period-add></sig-tariff-period-add>
 			<sig-tariff-roaming-add></sig-tariff-roaming-add>
@@ -716,30 +716,30 @@ class SigApp extends PolymerElement {
 					this.viewTitle = 'Tariff: ' + this.rateTable;
 				} else {
 					this.viewTitle = 'Tariff Tables';
-					var rateTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list');
-					rateTableList.shadowRoot.getElementById('tariffRateList').open();
-					rateTableList.shadowRoot.getElementById('getRateTables').generateRequest();
 				}
+				var rateTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list');
+				rateTableList.shadowRoot.getElementById('tariffRateList').open();
+				rateTableList.shadowRoot.getElementById('getRateTables').generateRequest();
 				break;
 			case 'periodView':
 				if(this.periodTable) {
 					this.viewTitle = 'Tariff: ' + this.periodTable;
 				} else {
 					this.viewTitle = 'Tariff Tables';
-					var periodTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list');
-					periodTableList.shadowRoot.getElementById('tariffPeriodList').open();
-					periodTableList.shadowRoot.getElementById('getPeriodTables').generateRequest();
 				}
+				var periodTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list');
+				periodTableList.shadowRoot.getElementById('tariffPeriodList').open();
+				periodTableList.shadowRoot.getElementById('getPeriodTables').generateRequest();
 				break;
 			case 'roamingView':
 				if(this.roamingTable) {
 					this.viewTitle = 'Tariff: ' + this.roamingTable;
 				} else {
 					this.viewTitle = 'Tariff Tables';
-					var roamTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list');
-					roamTableList.shadowRoot.getElementById('tariffRoamingList').open();
-					roamTableList.shadowRoot.getElementById('getRoamingTables').generateRequest();
 				}
+				var roamTableList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list');
+				roamTableList.shadowRoot.getElementById('tariffRoamingList').open();
+				roamTableList.shadowRoot.getElementById('getRoamingTables').generateRequest();
 				break;
 			case 'productView':
 				this.viewTitle = 'Product Subscriptions';

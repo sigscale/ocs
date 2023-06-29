@@ -100,20 +100,14 @@ class tariffRoamingList extends PolymerElement {
 					return []
 				}
 			},
-			activeTableName: {
-				type: String,
-				notify: true,
-				readOnly: true
-			},
-			activeTable: {
+			activeTableId: {
 				type: String
 			},
-			activeItem: {
-				type: Object,
-				notify: true
+			activeTableHref: {
+				type: String
 			},
-			activeSpecId: {
-				type: String,
+			activeTableName: {
+				type: String
 			}
 		}
 	}
@@ -124,46 +118,47 @@ class tariffRoamingList extends PolymerElement {
 
 	_getRoamingResponse(event) {
 		var results = event.detail.xhr.response;
-		this.splice("tables", 0, this.tables.length)
-		for (var indexTable in results) {
-			var tableRecord = new Object();
-			tableRecord.name = results[indexTable].name;
-			tableRecord.id = results[indexTable].id;
-			tableRecord.href = results[indexTable].href;
-			tableRecord.specId = results[indexTable].resourceSpecification.id;
-			this.push('tables', tableRecord);
+		this.splice("tables", 0, this.tables.length);
+		for (var index in results) {
+			var table = new Object();
+			table.id = results[index].id;
+			table.href = results[index].href;
+			table.name = results[index].name;
+			this.push('tables', table);
 		}
 		this.shadowRoot.getElementById('tableItems').notifyPath('items');
 	}
 
 	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			this._setActiveTableName(e.model.item.name);
-			this.activeTable = e.model.item.id;
-			this.activeSpecId = e.model.item.specId;
+			this.activeTableId = e.model.item.id;
+			this.activeTableHref = e.model.item.href;
+			this.activeTableName = e.model.item.name;
 			this.$.tabOkButton.disabled = false;
 		} else {
-			this._setActiveTableName(null);
-			this.activeTable = null;
+			this.activeTableId = null;
+			this.activeTableHref = null;
+			this.activeTableName = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
 
 	_tableOk() {
-		var sigApp = document.body.querySelector('sig-app');
-		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
-		if(this.activeSpecId == "7") {
-			sigApp.shadowRoot.querySelector('sig-tariff-roaming-list').shadowRoot.getElementById('getRoamingRows').generateRequest();
-			sigApp.shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
-		}
+		var app = document.body.querySelector('sig-app');
+		app.viewTitle = 'Tariff: ' + this.activeTableName;
+		var roamingList = app.shadowRoot.getElementById('roamingList');
+		roamingList.activeTableId = this.activeTableId;
+		roamingList.activeTableName = this.activeTableName;
+		roamingList.shadowRoot.getElementById('roamingGrid').clearCache();
 		this.$.tariffRoamingList.close();
-	} 
+	}
 
 	_tableDelete() {
-		this.$.deleteRoamingTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTable;
+		this.$.deleteRoamingTable.url = this.activeTableHref;
 		this.$.deleteRoamingTable.generateRequest();
+		this.activeTableId = null;
+		this.activeTableHref = null;
 		this.activeTableName = null;
-		this.activeTable = null;
 	}
 
 	_deleteRoamingResponse(event) {
