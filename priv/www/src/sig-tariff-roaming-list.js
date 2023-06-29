@@ -90,7 +90,8 @@ class roamingList extends PolymerElement {
 				observer: '_filterChanged'
 			},
 			activeTableName: {
-				type: String
+				type: String,
+				notify: true
 			},
 			activeTableId: {
 				type: String
@@ -164,11 +165,9 @@ class roamingList extends PolymerElement {
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "prefix") {
 							tabObj.prefix = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "description") {
+						} else if(resChar[indexRes].name == "description") {
 							tabObj.description = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "tariff") {
+						} else if(resChar[indexRes].name == "tariff") {
 							tabObj.tariff = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;

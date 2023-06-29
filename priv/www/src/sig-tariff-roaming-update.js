@@ -151,7 +151,7 @@ class roamingUpdate extends PolymerElement {
 			this.roamingRowId = current.id;
 			this.roamingRowPrefix = current.prefix;
 			this.roamingRowDescription = current.description;
-			this.roamingRowTariff = current.rate;
+			this.roamingRowTariff = current.tariff;
 			this.$.updateRoamingModal.open();
 		}
 	}
@@ -177,7 +177,7 @@ class roamingUpdate extends PolymerElement {
 			description.path = "/resourceCharacteristic/-";
 			description.value = {name: "description", value: this.roamingRowDescription};
 			patch.push(description);
-		} else {
+		} else if(this.roamingRowDescription != this.activeItem.resourceCharacteristic[index].value) {
 			var description = new Object();
 			description.op = "replace";
 			description.path = "/resourceCharacteristic/" + index + "/value";
@@ -198,23 +198,23 @@ class roamingUpdate extends PolymerElement {
 			tariff.path = "/resourceCharacteristic/-";
 			tariff.value = {name: "tariff", value: this.roamingRowTariff};
 			patch.push(tariff);
-		} else {
+		} else if(this.roamingRowTariff != this.activeItem.resourceCharacteristic[index].value) {
 			var tariff = new Object();
 			tariff.op = "replace";
 			tariff.path = "/resourceCharacteristic/" + index + "/value";
-			tariff.value = this.roamingRowTariff/
+			tariff.value = this.roamingRowTariff;
 			patch.push(tariff);
 		}
 		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
-		this.roamingRowId = null;
-		this.roamingRowPrefix = null;
-		this.roamingRowDescription = null;
-		this.roamingRowTariff = null;
 	}
 
 	_updateRoamingRowResponse(event) {
 		this.$.updateRoamingModal.close();
+		this.roamingRowId = null;
+		this.roamingRowPrefix = null;
+		this.roamingRowDescription = null;
+		this.roamingRowTariff = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
@@ -227,13 +227,17 @@ class roamingUpdate extends PolymerElement {
 	_deleteRoamingRow(event) {
 		var ajax = this.$.deleteRoamingRowAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.roamingRowPrefix;
+		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.roamingRowId;
 		ajax.generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
 	_deleteRoamingRowResponse(event) {
 		this.$.updateRoamingModal.close();
+		this.roamingRowId = null;
+		this.roamingRowPrefix = null;
+		this.roamingRowDescription = null;
+		this.roamingRowTariff = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 

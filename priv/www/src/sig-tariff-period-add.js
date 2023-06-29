@@ -41,7 +41,7 @@ class periodAdd extends PolymerElement {
 								pattern="^[+]?[0-9]+"
 								auto-validate
 								label="Prefix"
-								value="{{addPre}}">
+								value="{{periodRowPrefix}}">
 						</paper-input>
 						<paper-tooltip>
 							Leading digits to match against an origination, destination or VPLMN address.
@@ -50,7 +50,7 @@ class periodAdd extends PolymerElement {
 					<div>
 						<paper-input
 								label="Description"
-								value="{{addPreDesc}}">
+								value="{{periodRowDescription}}">
 						</paper-input>
 						<paper-tooltip>
 							Description of addresses matching this prefix.
@@ -59,10 +59,10 @@ class periodAdd extends PolymerElement {
 					<div>
 						<paper-input
 								allowed-pattern="[0-9.]"
-								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								pattern="^[0-9]+$"
 								auto-validate
 								label="Initial Period Duration"
-								value="{{iniPerDuration}}">
+								value="{{periodRowPeriodInitial}}">
 						</paper-input>
 						<paper-tooltip>
 							Length of initial period in seconds
@@ -74,7 +74,7 @@ class periodAdd extends PolymerElement {
 								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
 								label="Initial Period Rate"
-								value="{{iniPerRate}}">
+								value="{{periodRowRateInitial}}">
 						</paper-input>
 						<paper-tooltip>
 							Rated price for the initial period
@@ -83,10 +83,10 @@ class periodAdd extends PolymerElement {
 					<div>
 						<paper-input
 								allowed-pattern="[0-9.]"
-								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								pattern="^[0-9]+$"
 								auto-validate
 								label="Additional Period Duration"
-								value="{{addPerDuration}}">
+								value="{{periodRowPeriodAdditional}}">
 						</paper-input>
 						<paper-tooltip>
 							Length of additional period in seconds
@@ -98,7 +98,7 @@ class periodAdd extends PolymerElement {
 								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
 								label="Additional Period Rate"
-								value="{{addPerRate}}">
+								value="{{periodRowRateAdditional}}">
 						</paper-input>
 						<paper-tooltip>
 							Rated price for each additional period
@@ -113,7 +113,7 @@ class periodAdd extends PolymerElement {
 					</paper-button>
 					<paper-button
 							class="cancel-button"
-							on-tap="_cancel"
+							on-tap="_cancelPeriodRow"
 							dialog-dismiss>
 						Cancel
 					</paper-button>
@@ -123,8 +123,8 @@ class periodAdd extends PolymerElement {
 					id="addPeriodTableRow"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
-					on-response="_addPeriodTableResponse"
-					on-error="_addPeriodTableError">
+					on-response="_addPeriodRowResponse"
+					on-error="_addPeriodRowError">
 			</iron-ajax>
 		`;
 	}
@@ -134,23 +134,23 @@ class periodAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			addPre: {
-				type: String,
+			periodRowPrefix: {
+				type: String
 			},
-			addPreDesc: {
-				type: String,
+			periodRowDescription: {
+				type: String
 			},
-			iniPerDuration: {
-				type: String,
+			periodRowPeriodInitial: {
+				type: Number
 			},
-			iniPerRate: {
-				type: Number,
+			periodRowRateInitial: {
+				type: Number
 			},
-			addPerDuration: {
-				type: String,
+			periodRowPeriodAdditional: {
+				type: Number
 			},
-			addPerRate: {
-				type: Number,
+			periodRowRateAdditional: {
+				type: Number
 			}
 		}
 	}
@@ -160,78 +160,85 @@ class periodAdd extends PolymerElement {
 	}
 
 	_periodTableRow(event) {
-		var periodTable = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list')
+		var periodList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list')
 		var ajax = this.$.addPeriodTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource";
-		var tar = new Object();
+		var row = new Object();
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = periodTable.activeTable;
+		relObj.id = periodList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = periodTable.activeTableName;
+		relObj.name = periodList.activeTableName;
 		var relObj1 = new Object();
 		relObj1.relationshipType = "contained";
 		relObj1.resource = relObj
 		rel.push(relObj1);
-		tar.resourceRelationship = rel
+		row.resourceRelationship = rel
 
 		var resource = new Array();
 		var resPre = new Object();
 		resPre.name = "prefix";
-		resPre.value = this.addPre;
+		resPre.value = this.periodRowPrefix;
 		resource.push(resPre);
 		var resDes = new Object();
 		resDes.name = "description";
-		resDes.value = this.addPreDesc;
+		resDes.value = this.periodRowDescription;
 		resource.push(resDes);
 		var resIniDuration = new Object();
 		resIniDuration.name = "periodInitial";
-		resIniDuration.value = parseInt(this.iniPerDuration);
+		resIniDuration.value = parseInt(this.periodRowPeriodInitial);
 		resource.push(resIniDuration);
 		var resIniRate = new Object();
 		resIniRate.name = "rateInitial";
-		resIniRate.value = parseInt(this.iniPerRate);
+		resIniRate.value = this.periodRowRateInitial;
 		resource.push(resIniRate);
 		var resAddDuration = new Object();
 		resAddDuration.name = "periodAdditional";
-		resAddDuration.value = parseInt(this.addPerDuration);
+		resAddDuration.value = parseInt(this.periodRowPeriodAdditional);
 		resource.push(resAddDuration);
 		var resAddRate = new Object();
 		resAddRate.name = "rateAdditional";
-		resAddRate.value = parseInt(this.addPerRate);
+		resAddRate.value = this.periodRowRateAdditional;
 		resource.push(resAddRate);
-		tar.resourceCharacteristic = resource;
+		row.resourceCharacteristic = resource;
 
 		var spec = new Object();
 		spec.id = "6";
 		spec.name = "TariffPeriodsTableRow";
 		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "6";
-		tar.resourceSpecification = spec;
-		ajax.body = tar;
+		row.resourceSpecification = spec;
+		ajax.body = row;
 		ajax.generateRequest();
-		this.$.addPeriodModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
-	_addPeriodTableResponse(event) {
+	_addPeriodRowResponse(event) {
 		this.$.addPeriodModal.close();
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowPeriodInitial = null;
+		this.periodRowRateInitial = null;
+		this.periodRowPeriodAdditional = null;
+		this.periodRowRateAdditional = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_addPeriodTableError(event) {
+	_addPeriodRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	_cancel() {
-		this.addPre = null;
-		this.addDesc = null;
-		this.addRateRow = null;
+	_cancelPeriodRow() {
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowPeriodInitial = null;
+		this.periodRowRateInitial = null;
+		this.periodRowPeriodAdditional = null;
+		this.periodRowRateAdditional = null;
 	}
 
 	_onLoadingChanged(event) {

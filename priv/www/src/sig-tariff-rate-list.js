@@ -98,7 +98,8 @@ class rateList extends PolymerElement {
 				}
 			},
 			activeTableName: {
-				type: String
+				type: String,
+				notify: true
 			},
 			activeTableId: {
 				type: String
@@ -175,11 +176,9 @@ class rateList extends PolymerElement {
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "prefix") {
 							tabObj.prefix = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "description") {
+						} else if(resChar[indexRes].name == "description") {
 							tabObj.description = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "rate") {
+						} else if(resChar[indexRes].name == "rate") {
 							tabObj.rate = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;

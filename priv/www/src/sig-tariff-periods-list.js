@@ -60,7 +60,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.initialSec]]
+								[[item.periodInitial]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -70,7 +70,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.initialRate]]
+								[[item.rateInitial]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -85,7 +85,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.addSec]]
+								[[item.periodAdditional]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -95,7 +95,7 @@ class periodList extends PolymerElement {
 						</template>
 						<template>
 							<div class="cell numeric">
-								[[item.addRate]]
+								[[item.rateAdditional]]
 							</div>
 						</template>
 					</vaadin-grid-column>
@@ -130,7 +130,8 @@ class periodList extends PolymerElement {
 				observer: '_filterChanged'
 			},
 			activeTableName: {
-				type: String
+				type: String,
+				notify: true
 			},
 			activeTableId: {
 				type: String
@@ -204,21 +205,16 @@ class periodList extends PolymerElement {
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "prefix") {
 							tabObj.prefix = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "description") {
+						} else if(resChar[indexRes].name == "description") {
 							tabObj.description = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "periodInitial") {
-							tabObj.initialSec = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "rateInitial") {
-							tabObj.initialRate = resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "periodAdditional") {
-							tabObj.addSec= resChar[indexRes].value;
-						}
-						if(resChar[indexRes].name == "rateAdditional") {
-							tabObj.addRate = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "periodInitial") {
+							tabObj.periodInitial = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "rateInitial") {
+							tabObj.rateInitial = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "periodAdditional") {
+							tabObj.periodAdditional = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "rateAdditional") {
+							tabObj.rateAdditional = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}

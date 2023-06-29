@@ -41,7 +41,7 @@ class rateAdd extends PolymerElement {
 								pattern="^[+]?[0-9]+"
 								auto-validate
 								label="Prefix"
-								value="{{addPre}}">
+								value="{{rateRowPrefix}}">
 						</paper-input>
 						<paper-tooltip>
 							Leading digits to match against an origination, destination or VPLMN address.
@@ -50,7 +50,7 @@ class rateAdd extends PolymerElement {
 					<div>
 						<paper-input
 								label="Description"
-								value="{{addPreDesc}}">
+								value="{{rateRowDescription}}">
 						</paper-input>
 						<paper-tooltip>
 							Description of addresses matching this prefix.
@@ -62,7 +62,7 @@ class rateAdd extends PolymerElement {
 								pattern="^[0-9]+\.?[0-9]{0,6}$"
 								auto-validate
 								label="Rate"
-								value="{{addPreRate}}">
+								value="{{rateRowRate}}">
 						</paper-input>
 						<paper-tooltip>
 							Rate tariff table to apply for rating in the selected VPLMN
@@ -77,7 +77,7 @@ class rateAdd extends PolymerElement {
 					</paper-button>
 					<paper-button
 							class="cancel-button"
-							on-tap="_cancel"
+							on-tap="_cancelRateRow"
 							dialog-dismiss>
 						Cancel
 					</paper-button>
@@ -87,8 +87,8 @@ class rateAdd extends PolymerElement {
 					id="addTableRow"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
-					on-response="_addTableResponse"
-					on-error="_addTableError">
+					on-response="_addRateRowResponse"
+					on-error="_addRateRowError">
 			</iron-ajax>
 		`;
 	}
@@ -98,14 +98,14 @@ class rateAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			addPre: {
-				type: String,
+			rateRowPrefix: {
+				type: String
 			},
-			addPreDesc: {
-				type: String,
+			rateRowDescription: {
+				type: String
 			},
-			addPreRate: {
-				type: String,
+			rateRowRate: {
+				type: Number
 			}
 		}
 	}
@@ -115,66 +115,67 @@ class rateAdd extends PolymerElement {
 	}
 
 	_tableRow(event) {
-		var rateTable = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-rate-table-list')
+		var rateList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-list')
 		var ajax = this.$.addTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
-		var tar = new Object();
+		var row = new Object();
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = rateTable.activeTableId;
+		relObj.id = rateList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = rateTable.activeTableName;
+		relObj.name = rateList.activeTableName;
 		var relObj1 = new Object();
 		relObj1.relationshipType = "contained";
 		relObj1.resource = relObj
 		rel.push(relObj1);
-		tar.resourceRelationship = rel
+		row.resourceRelationship = rel
 
 		var resource = new Array();
 		var resPre = new Object();
 		resPre.name = "prefix";
-		resPre.value = this.addPre;
+		resPre.value = this.rateRowPrefix;
 		resource.push(resPre);
 		var resDes = new Object();
 		resDes.name = "description";
-		resDes.value = this.addPreDesc;
+		resDes.value = this.rateRowDescription;
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "rate";
-		resRate.value = this.addPreRate;
+		resRate.value = this.rateRowRate;
 		resource.push(resRate);
-		tar.resourceCharacteristic = resource;
+		row.resourceCharacteristic = resource;
 
 		var spec = new Object();
 		spec.id = "2";
 		spec.name = "TariffTableRow";
 		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "2";
-		tar.resourceSpecification = spec;
-		ajax.body = tar;
+		row.resourceSpecification = spec;
+		ajax.body = row;
 		ajax.generateRequest();
-		this.$.addPrefixModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
-	_addTableResponse(event) {
+	_addRateRowResponse(event) {
 		this.$.addPrefixModal.close();
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_addTableError(event) {
+	_addRateRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	_cancel() {
-		this.addPre = null;
-		this.addDesc = null;
-		this.addRateRow = null;
+	_cancelRateRow() {
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 	}
 
 	_onLoadingChanged(event) {

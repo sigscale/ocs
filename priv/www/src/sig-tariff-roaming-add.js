@@ -41,7 +41,7 @@ class roamingAdd extends PolymerElement {
 								pattern="^[+]?[0-9]+"
 								auto-validate
 								label="Prefix"
-								value="{{addPre}}">
+								value="{{roamingRowPrefix}}">
 						</paper-input>
 						<paper-tooltip>
 							Leading digits to match against an origination, destination or VPLMN address.
@@ -50,7 +50,7 @@ class roamingAdd extends PolymerElement {
 					<div>
 						<paper-input
 								label="Description"
-								value="{{addPreDesc}}">
+								value="{{roamingRowDescription}}">
 						</paper-input>
 						<paper-tooltip>
 							Description of addresses matching this prefix.
@@ -60,7 +60,7 @@ class roamingAdd extends PolymerElement {
 						<paper-input
 								auto-validate
 								label="Tariff Table Name"
-								value="{{addPreTariffTableName}}">
+								value="{{roamingRowTariff}}">
 						</paper-input>
 						<paper-tooltip>
 							Roaming tariff table to apply for rating in the selected VPLMN
@@ -75,7 +75,7 @@ class roamingAdd extends PolymerElement {
 					</paper-button>
 					<paper-button
 							class="cancel-button"
-							on-tap="_cancel"
+							on-tap="_cancelRoamingRow"
 							dialog-dismiss>
 						Cancel
 					</paper-button>
@@ -85,8 +85,8 @@ class roamingAdd extends PolymerElement {
 					id="addRoamingRow"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
-					on-response="_addRoamingResponse"
-					on-error="_addRoamingError">
+					on-response="_addRoamingRowResponse"
+					on-error="_addRoamingRowError">
 			</iron-ajax>
 		`;
 	}
@@ -96,14 +96,14 @@ class roamingAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			addPre: {
-				type: String,
+			roamingRowPrefix: {
+				type: String
 			},
-			addPreDesc: {
-				type: String,
+			roamingRowDescription: {
+				type: String
 			},
-			addPreTariffTableName: {
-				type: String,
+			roamingRowTariff: {
+				type: String
 			}
 		}
 	}
@@ -113,66 +113,67 @@ class roamingAdd extends PolymerElement {
 	}
 
 	_roamingRow(event) {
-		var roamingTable = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list')
+		var roamingList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-roaming-list')
 		var ajax = this.$.addRoamingRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
-		var tar = new Object();
+		var row = new Object();
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = roamingTable.activeTable;
+		relObj.id = roamingList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = roamingTable.activeTableName;
+		relObj.name = roamingList.activeTableName;
 		var relObj1 = new Object();
 		relObj1.relationshipType = "contained";
 		relObj1.resource = relObj
 		rel.push(relObj1);
-		tar.resourceRelationship = rel
+		row.resourceRelationship = rel
 
 		var resource = new Array();
 		var resPre = new Object();
 		resPre.name = "prefix";
-		resPre.value = this.addPre;
+		resPre.value = this.roamingRowPrefix;
 		resource.push(resPre);
 		var resDes = new Object();
 		resDes.name = "description";
-		resDes.value = this.addPreDesc;
+		resDes.value = this.roamingRowDescription;
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "tariff";
-		resRate.value = this.addPreTariffTableName;
+		resRate.value = this.roamingRowTariff;
 		resource.push(resRate);
-		tar.resourceCharacteristic = resource;
+		row.resourceCharacteristic = resource;
 
 		var spec = new Object();
 		spec.id = "8";
 		spec.name = "RoamingTableRow";
 		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "8";
-		tar.resourceSpecification = spec;
-		ajax.body = tar;
+		row.resourceSpecification = spec;
+		ajax.body = row;
 		ajax.generateRequest();
-		this.$.addRoamingModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 	}
 
-	_addRoamingResponse(event) {
+	_addRoamingRowResponse(event) {
 		this.$.addRoamingModal.close();
+		this.roamingRowPrefix = null;
+		this.roamingRowDescription = null;
+		this.roamingRowTariff = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('roamingList').shadowRoot.getElementById('roamingGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_addRoamingError(event) {
+	_addRoamingRowError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	_cancel() {
-		this.addPre = null;
-		this.addDesc = null;
-		this.addRateRow = null;
+	_cancelRoamingRow() {
+		this.roamingRowPrefix = null;
+		this.roamingRowDescription = null;
+		this.roamingRowTariff = null;
 	}
 
 	_onLoadingChanged(event) {

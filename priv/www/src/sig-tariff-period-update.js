@@ -73,7 +73,7 @@ class periodUpdate extends PolymerElement {
 							pattern="^[0-9]+$"
 							auto-validate
 							label="Initial Period"
-							value="{{periodRowInitialPeriod}}">
+							value="{{periodRowPeriodInitial}}">
 					</paper-input>
 					<paper-tooltip
 							for="updateInitialPeriod"
@@ -89,7 +89,7 @@ class periodUpdate extends PolymerElement {
 							pattern="^[0-9]+\.?[0-9]{0,6}$"
 							auto-validate
 							label="Rate for Initial Initial Period"
-							value="{{periodRowInitialRate}}">
+							value="{{periodRowRateInitial}}">
 					</paper-input>
 					<paper-tooltip
 							for="updateInitialRate"
@@ -99,16 +99,16 @@ class periodUpdate extends PolymerElement {
 				</div>
 				<div>
 					<paper-input
-							id="updateAddditionalPeriod"
+							id="updateAdeitionalPeriod"
 							name="rateInitalUpdate"
 							allowed-pattern="[0-9]"
 							pattern="^[0-9]+$"
 							auto-validate
-							label="Addditional Period"
-							value="{{periodRowAddditionalPeriod}}">
+							label="Additional Period"
+							value="{{periodRowPeriodAdditional}}">
 					</paper-input>
 					<paper-tooltip
-							for="updateAddditionalPeriod"
+							for="updateAdditionalPeriod"
 							offset="0">
 						Length of the additional period
 					</paper-tooltip>
@@ -121,7 +121,7 @@ class periodUpdate extends PolymerElement {
 							pattern="^[0-9]+\.?[0-9]{0,6}$"
 							auto-validate
 							label="Rate for Additional Period"
-							value="{{periodRowAdditionalRate}}">
+							value="{{periodRowRateAdditional}}">
 					</paper-input>
 					<paper-tooltip
 							for="updateAdditionalRate"
@@ -182,16 +182,16 @@ class periodUpdate extends PolymerElement {
 				type: String
 			},
 			periodRowPeriodInitial: {
-				type: String
+				type: Number
 			},
 			periodRowRateInitial: {
-				type: String
+				type: Number
 			},
 			periodRowPeriodAdditional: {
-				type: String
+				type: Number
 			},
 			periodRowRateAdditional: {
-				type: String
+				type: Number
 			}
 		}
 	}
@@ -239,103 +239,110 @@ class periodUpdate extends PolymerElement {
 			description.path = "/resourceCharacteristic/-";
 			description.value = {name: "description", value: this.periodRowDescription};
 			patch.push(description);
-		} else {
+		} else if(this.periodRowDescription != this.activeItem.resourceCharacteristic[index].value) {
 			var description = new Object();
 			description.op = "replace";
 			description.path = "/resourceCharacteristic/" + index + "/value";
 			description.value = this.periodRowDescription;
 			patch.push(description);
 		}
-		function isInitialPeriod(element) {
-			if(element.name == "initialPeriod") {
+		function isPeriodInitial(element) {
+			if(element.name == "periodInitial") {
 				return true;
 			} else {
 				return false;
 			}
 		}
-		var index = this.activeItem.resourceCharacteristic.findIndex(isInitialPeriod);
+		var index = this.activeItem.resourceCharacteristic.findIndex(isPeriodInitial);
 		if(index === -1) {
 			var initialPeriod = new Object();
 			initialPeriod.op = "add";
 			initialPeriod.path = "/resourceCharacteristic/-";
-			initialPeriod.value = {name: "rate", value: this.periodRowInitialPeriod};
+			initialPeriod.value = {name: "periodInitial", value: this.periodRowPeriodInitial};
 			patch.push(initialPeriod);
-		} else {
+		} else if(this.periodRowPeriodInitial != this.activeItem.resourceCharacteristic[index].value) {
 			var initialPeriod = new Object();
 			initialPeriod.op = "replace";
 			initialPeriod.path = "/resourceCharacteristic/" + index + "/value";
-			initialPeriod.value = this.periodRowInitialPeriod;
+			initialPeriod.value = this.periodRowPeriodInitial;
 			patch.push(initialPeriod);
 		}
-		function isInitialRate(element) {
-			if(element.name == "initialRate") {
+		function isRateInitial(element) {
+			if(element.name == "rateInitial") {
 				return true;
 			} else {
 				return false;
 			}
 		}
-		var index = this.activeItem.resourceCharacteristic.findIndex(isInitialRate);
+		var index = this.activeItem.resourceCharacteristic.findIndex(isRateInitial);
 		if(index === -1) {
 			var initialRate = new Object();
 			initialRate.op = "add";
 			initialRate.path = "/resourceCharacteristic/-";
-			initialR.value = {name: "rate", value: this.periodRowInitialRate};
+			initialRate.value = {name: "rateInitial", value: this.periodRowRateInitial};
 			patch.push(initialRate);
-		} else {
+		} else if(this.periodRowRateInitial != this.activeItem.resourceCharacteristic[index].value) {
 			var initialRate = new Object();
 			initialRate.op = "replace";
 			initialRate.path = "/resourceCharacteristic/" + index + "/value";
-			initialRate.value = this.periodRowInitialRate;
+			initialRate.value = this.periodRowRateInitial;
 			patch.push(initialRate);
 		}
-		var index = this.activeItem.resourceCharacteristic.findIndex(isAdditionalPeriod);
-		if(index === -1) {
-			var additionalPeriod = new Object();
-			additionalPeriod.op = "add";
-			additionalPeriod.path = "/resourceCharacteristic/-";
-			additionalR.value = {name: "rate", value: this.periodRowAdditionalPeriod};
-			patch.push(additionalPeriod);
-		} else {
-			var additionalPeriod = new Object();
-			additionalPeriod.op = "replace";
-			additionalPeriod.path = "/resourceCharacteristic/" + index + "/value";
-			additionalPeriod.value = this.periodRowAdditionalPeriod;
-			patch.push(additionalPeriod);
-		}
-		function isAdditionalRate(element) {
-			if(element.name == "additionalRate") {
+		function isPeriodAdditional(element) {
+			if(element.name == "periodAdditional") {
 				return true;
 			} else {
 				return false;
 			}
 		}
-		var index = this.activeItem.resourceCharacteristic.findIndex(isAdditionalRate);
+		var index = this.activeItem.resourceCharacteristic.findIndex(isPeriodAdditional);
+		if(index === -1) {
+			var additionalPeriod = new Object();
+			additionalPeriod.op = "add";
+			additionalPeriod.path = "/resourceCharacteristic/-";
+			additionalPeriod.value = {name: "periodAdditional", value: this.periodRowPeriodAdditional};
+			patch.push(additionalPeriod);
+		} else if(this.periodRowPeriodAdditional != this.activeItem.resourceCharacteristic[index].value) {
+			var additionalPeriod = new Object();
+			additionalPeriod.op = "replace";
+			additionalPeriod.path = "/resourceCharacteristic/" + index + "/value";
+			additionalPeriod.value = this.periodRowPeriodAdditional;
+			patch.push(additionalPeriod);
+		}
+		function isRateAdditional(element) {
+			if(element.name == "rateAdditional") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		var index = this.activeItem.resourceCharacteristic.findIndex(isRateAdditional);
 		if(index === -1) {
 			var additionalRate = new Object();
 			additionalRate.op = "add";
 			additionalRate.path = "/resourceCharacteristic/-";
-			additionalR.value = {name: "rate", value: this.periodRowAdditionalRate};
+			additionalRate.value = {name: "rateAdditional", value: this.periodRowRateAdditional};
 			patch.push(additionalRate);
-		} else {
+		} else if(this.periodRowRateAdditional != this.activeItem.resourceCharacteristic[index].value) {
 			var additionalRate = new Object();
 			additionalRate.op = "replace";
 			additionalRate.path = "/resourceCharacteristic/" + index + "/value";
-			additionalRate.value = this.periodRowAdditionalRate;
+			additionalRate.value = this.periodRowRateAdditional;
 			patch.push(additionalRate);
 		}
 		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
-		this.periodRowId = null;
-		this.periodRowPrefix = null;
-		this.periodRowDescription = null;
-		this.periodRowInitialPeriod = null;
-		this.periodRowInitialRate = null;
-		this.periodRowAdditionalPeriod = null;
-		this.periodRowAdditionalRate = null;
 	}
 
 	_updatePeriodRowResponse(event) {
 		this.$.updatePeriodModal.close();
+		this.periodRowId = null;
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowPeriodInitial = null;
+		this.periodRowRateInitial = null;
+		this.periodRowPeriodAdditional = null;
+		this.periodRowRateAdditional = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
@@ -355,6 +362,13 @@ class periodUpdate extends PolymerElement {
 
 	_deletePeriodRowResponse(event) {
 		this.$.updatePeriodModal.close();
+		this.periodRowId = null;
+		this.periodRowPrefix = null;
+		this.periodRowDescription = null;
+		this.periodRowPeriodInitial = null;
+		this.periodRowRateInitial = null;
+		this.periodRowPeriodAdditional = null;
+		this.periodRowRateAdditional = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('periodList').shadowRoot.getElementById('periodGrid').clearCache();
 	}
 
@@ -368,7 +382,10 @@ class periodUpdate extends PolymerElement {
 		this.periodRowId = null;
 		this.periodRowPrefix = null;
 		this.periodRowDescription = null;
-		this.periodRowRate = null;
+		this.periodRowPeriodInitial = null;
+		this.periodRowRateInitial = null;
+		this.periodRowPeriodAdditional = null;
+		this.periodRowRateAdditional = null;
 	}
 
 	_onLoadingChanged(event) {

@@ -131,6 +131,9 @@ class rateUpdate extends PolymerElement {
 			},
 			rateRowDescription: {
 				type: String
+			},
+			rateRowrate: {
+				type: Number
 			}
 		}
 	}
@@ -175,7 +178,7 @@ class rateUpdate extends PolymerElement {
 			description.path = "/resourceCharacteristic/-";
 			description.value = {name: "description", value: this.rateRowDescription};
 			patch.push(description);
-		} else {
+		} else if(this.rateRowDescription != this.activeItem.resourceCharacteristic[index].value) {
 			var description = new Object();
 			description.op = "replace";
 			description.path = "/resourceCharacteristic/" + index + "/value";
@@ -196,7 +199,7 @@ class rateUpdate extends PolymerElement {
 			rate.path = "/resourceCharacteristic/-";
 			rate.value = {name: "rate", value: this.rateRowRate};
 			patch.push(rate);
-		} else {
+		} else if(this.rateRowRate != this.activeItem.resourceCharacteristic[index].value) {
 			var rate = new Object();
 			rate.op = "replace";
 			rate.path = "/resourceCharacteristic/" + index + "/value";
@@ -205,13 +208,13 @@ class rateUpdate extends PolymerElement {
 		}
 		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
+	}
+
+	_updateRateRowResponse(event) {
 		this.rateRowId = null;
 		this.rateRowPrefix = null;
 		this.rateRowDescription = null;
 		this.rateRowRate = null;
-	}
-
-	_updateRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
@@ -227,11 +230,19 @@ class rateUpdate extends PolymerElement {
 		ajax.method = "DELETE";
 		ajax.url = "/resourceInventoryManagement/v1/resource/" + this.rateRowId;
 		ajax.generateRequest();
+		this.rateRowId = null;
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
 	_deleteRateRowResponse(event) {
 		this.$.updatePrefixModal.close();
+		this.rateRowId = null;
+		this.rateRowPrefix = null;
+		this.rateRowDescription = null;
+		this.rateRowRate = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('rateList').shadowRoot.getElementById('rateGrid').clearCache();
 	}
 
