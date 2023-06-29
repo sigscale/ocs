@@ -33,6 +33,7 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-tariff-roaming-update.js \
 		sig-rate-table-add.js \
 		sig-period-table-add.js \
+		sig-roaming-table-add.js \
 		sig-tariff-rate-add.js \
 		sig-tariff-periods-list.js \
 		sig-tariff-period-add.js \
