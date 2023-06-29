@@ -366,7 +366,6 @@ class SigApp extends PolymerElement {
 			<sig-offer-update id="updateOffer" offers="[[offers]]" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
-			<sig-tariff-table-add></sig-tariff-table-add>
 			<sig-rate-table-add></sig-rate-table-add>
 			<sig-period-table-add></sig-period-table-add>
 			<sig-roaming-table-add></sig-roaming-table-add>
