@@ -368,6 +368,7 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-tariff-table-add></sig-tariff-table-add>
 			<sig-rate-table-add></sig-rate-table-add>
+			<sig-period-table-add></sig-period-table-add>
 			<sig-rate-table-list active-table-name="{{rateTable}}"></sig-rate-table-list>
 			<sig-period-table-list active-table-name="{{periodTable}}"></sig-period-table-list>
 			<sig-roaming-table-list active-table-name="{{roamingTable}}"></sig-roaming-table-list>
@@ -817,7 +818,7 @@ class SigApp extends PolymerElement {
 				import('./sig-tariff-rate-update.js');
 				break;
 			case 'periodView':
-				import('./sig-tariff-table-add.js');
+				import('./sig-period-table-add.js');
 				import('./sig-tariff-periods-list.js');
 				import('./sig-tariff-period-add.js');
 				import('./sig-tariff-period-update.js');
