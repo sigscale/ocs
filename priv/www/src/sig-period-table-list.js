@@ -178,7 +178,7 @@ class tariffPeriodList extends PolymerElement {
 	}
 
 	_tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-add').shadowRoot.getElementById('addPeriodTableModal').open();
 	}
 }
 

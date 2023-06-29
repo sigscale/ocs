@@ -231,10 +231,6 @@ class rateList extends PolymerElement {
 		grid.size = 0;
 	}
 
-	_tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-	}
-
 	showAddPrefixModal() {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-rate-add').shadowRoot.getElementById('addPrefixModal').open();
 	}

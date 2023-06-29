@@ -21,13 +21,13 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class tablePrefixAdd extends PolymerElement {
+class tableRoamingAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="addPrefixTableModal" modal>
+			<paper-dialog id="addRoamingTableModal" modal>
 				<app-toolbar>
-					<h2>Add Table</h2>
+					<h2>Add Period Table</h2>
 				</app-toolbar>
 				<paper-progress
 						indeterminate
@@ -54,26 +54,6 @@ class tablePrefixAdd extends PolymerElement {
 						Tariff table description.
 					</paper-tooltip>
 				</div>
-            <div>
-               <paper-dropdown-menu
-                     value="{{prefixTableType}}"
-                     no-animations="true"
-                     label="Table Type">
-                  <paper-listbox
-                        id="addTableType"
-                        slot="dropdown-content">
-                     <paper-item>
-                        Prefix Rates
-                     </paper-item>
-                     <paper-item>
-                        Prefix Period Rates
-                     </paper-item>
-                     <paper-item>
-                        Roaming Tariffs
-                     </paper-item>
-                  </paper-listbox>
-               </paper-dropdown-menu>
-            </div>
 				<div>
 					<paper-input
 							value="{{startDateTime}}"
@@ -132,9 +112,6 @@ class tablePrefixAdd extends PolymerElement {
 			description: {
 				type: String
 			},
-			prefixTableType: {
-				type: String
-			},
 			startDateTime: {
 				type: String
 			},
@@ -159,21 +136,9 @@ class tablePrefixAdd extends PolymerElement {
 			var endDateTime = this.endDateTime;
 		}
 		var taSpec = new Object();
-		if(this.prefixTableType == "Prefix Rates") {
-			taSpec.id = "1";
-			taSpec.name = "TariffTable";
-			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
-		}
-		if(this.prefixTableType == "Prefix Period Rates") {
-			taSpec.id = "5";
-			taSpec.name = "TariffPeriodsTable";
-			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/5";
-		}
-		if(this.prefixTableType == "Roaming Tariffs") {
-			taSpec.id = "7";
-			taSpec.name = "RoamingTable";
-			taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/7";
-		}
+		taSpec.id = "7";
+		taSpec.name = "RoamingTable";
+		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/7";
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -193,8 +158,6 @@ class tablePrefixAdd extends PolymerElement {
 		}
 		this.tableName = null;
 		this.description = null;
-		this.prefixTableType = null;
-		this.$.addTableType.selected = null;
 		this.startDateTime = null;
 		this.endDateTime = null;
 		if(tabName.resourceSpecification.id == "1") {
@@ -202,12 +165,12 @@ class tablePrefixAdd extends PolymerElement {
 		} else if (tabName.resourceSpecification.id == "5") {
 			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-period-table-list').shadowRoot.getElementById('getPeriodTables').generateRequest();
 		} else if(tabName.resourceSpecification.id == "7") {
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list').shadowRoot.getElementById('getroamingTables').generateRequest();
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-list').shadowRoot.getElementById('getRoamingTables').generateRequest();
 		}
 	}
 
 	_addTableResponse(event) {
-		this.$.addPrefixTableModal.close();
+		this.$.addRoamingTableModal.close();
 	}
 
 	_addTableError(event) {
@@ -224,4 +187,4 @@ class tablePrefixAdd extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-table-add', tablePrefixAdd);
+window.customElements.define('sig-roaming-table-add', tableRoamingAdd);

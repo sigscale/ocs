@@ -178,7 +178,7 @@ class tariffRoamingList extends PolymerElement {
 	}
 
 	_tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-roaming-table-add').shadowRoot.getElementById('addRoamingTableModal').open();
 	}
 }
 
