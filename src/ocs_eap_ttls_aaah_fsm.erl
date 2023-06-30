@@ -1,7 +1,7 @@
 %%% ocs_eap_ttls_aaah_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2022 SigScale Global Inc.
+%%% @copyright 2016 - 2023 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 %%% 	RFC5281 - EAP Tunneled Transport Layer Security (EAP-TTLS)</a>
 %%%
 -module(ocs_eap_ttls_aaah_fsm).
--copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2023 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 

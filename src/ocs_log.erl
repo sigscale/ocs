@@ -1,7 +1,7 @@
 %%% ocs_log.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2022 SigScale Global Inc.
+%%% @copyright 2016 - 2023 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@
 %%% @reference <a href="http://www.tmforum.org/ipdr/">IPDR Specifications</a>.
 %%%
 -module(ocs_log).
--copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2023 SigScale Global Inc.').
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/6, acct_close/0,
