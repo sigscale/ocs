@@ -1,5 +1,22 @@
-March 1,, 2023
---------------
+July 4, 2023
+------------
+	- Web Component for manageing tariff period tables
+	- Web Component for manageing roaming tables
+	- Document REST pagination with message sequence chart diagram
+	- Problem details (RFC7807) for REST hub operations
+	- Correct REST HEAD operations
+	- Ccorrect REST hub resource basenames
+	- Multiple logical match operators in REST query resource
+	- Include Inband-Security-Id in DIAMETER services
+	- Include Vendor-Specific-Application-Id in auth DIAMETER service
+	- Resource specifications for roaming table and row
+	- Resource specifications for tariff periods table and row
+	- AAA counters in dashboard
+	- Hide dashboard cards
+	- Correct dashboard health api polling timing (OCS-670)
+
+March 1, 2023
+-------------
 	- Graph DIAMETER transactions by application in dashboard
 	- Buttons on dashboard cards for resize and reorder
 	- Non-3GPP access with MCCMNC 000000 for tariff tables

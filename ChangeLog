@@ -1,3 +1,135 @@
+2023-07-04  Vance Shipley <vances@sigscale.org>
+
+  * remove public api for gtt table import, backup, restor
+  * update copyright date
+  * refactor tariff table row web components
+  * refactor tariff table selection in web components
+  * delete tariff table add module
+  * implement roaming table add seperatly
+  * implement add period table seperatly
+  * implement rate table add module seperatly
+  * correct observer type for add period row
+  * fix path in period list
+  * fix tariff table name column path
+  * correct property references in tariff update components
+  * refactor tariff table update components
+  * refactor tariff table selection and refresh
+  * add an update resource api; refactor patch resource rest api
+  * load request seperately accoding to the table
+  * cleanup after hub test cases
+  * synchronous delete of hubs
+  * remove unwanted open line from tableresponse
+  * fix dropdownmenu automatically selects previous selection
+  * include log event supervisor in supervision diagram
+  * fix tariff table name id & display value in tariff table name column
+  * add message sequence chart diagram for rest pagination
+  * fix delete table response request id
+  * load requests according to the specification id after add table
+  * fix period table delete response request id
+  * rfc7807 content provided for hub rest operations
+  * json patch content not accepted on hub operations
+  * log hub resource path on subscription cancellation
+  * correct rest head operations
+  * correct rest hub resource basenames
+  * typo in rest resourrce handler for product categories
+  * fixed after create table the table list update automatically
+  * fix tooltips
+  * fix label for add roaming
+  * change roaming list third columns label
+  * correct syntax in query resource collection
+  * refactor delete resource
+  * deprecate gtt events
+  * test cases: get, add, delete tariff, periods, roaming tables and rows
+  * correct add roaming and periods row
+  * add new characteristics in add period dialog
+  * add clearcache to update the grid view
+  * fix module id
+  * do clearcache to display rows when we load
+  * fixed url paths
+  * add resource for prefix table row
+  * correct type specifications for resource rest api functions
+  * fix labels
+  * fix iron ajax labels
+  * implement roaming update
+  * fix important typo
+  * implement roaming add dialog
+  * implement period Update dialog
+  * new module for period row add
+  * remove unwanted ajax request
+  * correct combining complex match conditions in resource query
+  * implement add period row modal
+  * correct period row spec id
+  * refactor atcivetable id in roaming and period
+  * fix activetableid in rate view
+  * multiple logical match operators in query resource api
+  * fix gridview columns
+  * fix table name undefined issue in roaming view
+  * fix table name undefined issue in period view
+  * fix table name undefined issue in rate views
+  * correct dataflow for activetablename & correct uri syntax
+  * add makefile
+  * create 3 seperate table-list modules for 3 grid views
+  * rename onlclick functions
+  * make separete ajax for each tariff submenu
+  * make onclick to open table list dialog
+  * make submenus under tarifff and refacor accordingly#
+  * remove unwanted object
+  * correct ql/4 to accept end range
+  * appease dialyzer on matchspec variable
+  * remove unwanted imports
+  * correct access path of URI
+  * make table list as seperate module
+  * fix spec id in url and access gridview
+  * charging characteristics in ps-information
+  * add apn to ps information
+  * fix grid view
+  * load roaming gridview with correct spec id
+  * create roaming grid view
+  * include inband security id in diameter services
+  * include vendor apecific application ids in auth diameter service
+  * add period gridview path
+  * determine which grid for which table using specification id
+  * create grid view for tariff periods
+  * match table ids
+  * add roaming spec id in get table list URI
+  * rename tariff modules
+  * add resource for example tariff rates table
+  * add example tariff rate periods table imnport csv file
+  * add user property to ocs gtt tables
+  * tooltip note on adding tables requires system administration
+  * add user property to ocs tables
+  * resource specs for roaming table and row (ocs-679)
+  * add roaming tariffs table type in add table dialog
+  * resource specs for roaming table and row (ocs-679)
+  * Revert "to add table match correct ids"
+  * correct URI for get table list
+  * fix json for add tariff table specification
+  * to add table match correct ids
+  * add table type in add table JSON
+  * add table type field in add table dialog
+  * query resources by multiple resource specification ids
+  * remove redundant rate column from tariff view
+  * resource specifications for tariff periods table and row
+  * use 3gpp compliant service-context-id in log test suite
+  * add columns in tariff grid view
+  * resize logos in rest api table
+  * implement paper-card svg for AAA counters in dashboard
+  * convert negative values
+  * right justify hide dash card button
+  * hide dashboard cards
+  * correct dashboard health api polling timing (ocs-670)
+  * make seperate functions for each line graphs
+  * increase width of subscriptions card to avoid truncating count labels
+  * invert scale for hover tooltip on graph lines
+  * use d3-scale for min, mean, max hover tooltip
+  * graph diameter base application count in each poll
+  * only graph diameter count when delta available
+  * correct removing tooltip for graph
+  * fix tooltip overriding issue on hover
+  * added support for all result codes and errors for di/2 in user_default
+  * fixed type spec of diameter_dictionaries/2 in health module
+  * added support for command code 268 with result code for di/2
+
 2023-03-01  Vance Shipley <vances@sigscale.org>
 
 	* refactor dashboard graphs; shift old time points out, calculate delta
