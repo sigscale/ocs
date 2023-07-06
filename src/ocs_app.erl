@@ -1186,13 +1186,15 @@ add_example_voice_offers1({ok, #offer{}}) ->
 					name = "TariffTable"}},
 	case code:priv_dir(ocs) of
 		PrivDir when is_list(PrivDir) ->
-			TariffPath = PrivDir ++ "/examples/tariff-rates.csv",
-			try ocs_gtt:import(TariffPath) of
+%			TariffPath = PrivDir ++ "/examples/tariff-rates.csv",
+%			try ocs_gtt:import(TariffPath) of
+			try ocs_gtt:new("tariff-rates",
+					[{disc_copies, [node() | nodes()]}]) of
 				ok ->
 					case ocs:add_resource(TariffResource) of
 						{ok, #resource{}} ->
-							error_logger:info_msg("Imported example tariff rates table: "
-									++ TariffPath ++ "~n"),
+%							error_logger:info_msg("Imported example tariff rates table: "
+%									++ TariffPath ++ "~n"),
 							ok;
 						{error, Reason} ->
 							{error, Reason}
