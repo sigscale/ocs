@@ -399,29 +399,3 @@ insert(Table, [H | T], Value, NumWrites, Acc) ->
 			insert(Table, T, Value, NumWrites + 1, Number)
 	end.
 
-%% @hidden
-is_key_number([$0 | T]) ->
-	is_key_number(T);
-is_key_number([$1 | T]) ->
-	is_key_number(T);
-is_key_number([$2 | T]) ->
-	is_key_number(T);
-is_key_number([$3 | T]) ->
-	is_key_number(T);
-is_key_number([$4 | T]) ->
-	is_key_number(T);
-is_key_number([$5 | T]) ->
-	is_key_number(T);
-is_key_number([$6 | T]) ->
-	is_key_number(T);
-is_key_number([$7 | T]) ->
-	is_key_number(T);
-is_key_number([$8 | T]) ->
-	is_key_number(T);
-is_key_number([$9 | T]) ->
-	is_key_number(T);
-is_key_number([]) ->
-	true;
-is_key_number(_) ->
-	false.
-
