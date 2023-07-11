@@ -1,3 +1,2331 @@
+2023-07-11  Vance Shipley <vances@sigscale.org>
+
+	* modernize getting event path in web componens
+	* test case adding balance bucket with price
+	* test case for balance topup by service identifier
+	* remove public api for gtt table import, backup, restore
+
+2023-07-06  Vance Shipley <vances@sigscale.org>
+
+	* remove deprecated gtt import from app install
+
+2023-07-04  Vance Shipley <vances@sigscale.org>
+
+  * remove public api for gtt table import, backup, restor
+  * update copyright date
+  * refactor tariff table row web components
+  * refactor tariff table selection in web components
+  * delete tariff table add module
+  * implement roaming table add seperatly
+  * implement add period table seperatly
+  * implement rate table add module seperatly
+  * correct observer type for add period row
+  * fix path in period list
+  * fix tariff table name column path
+  * correct property references in tariff update components
+  * refactor tariff table update components
+  * refactor tariff table selection and refresh
+  * add an update resource api; refactor patch resource rest api
+  * load request seperately accoding to the table
+  * cleanup after hub test cases
+  * synchronous delete of hubs
+  * remove unwanted open line from tableresponse
+  * fix dropdownmenu automatically selects previous selection
+  * include log event supervisor in supervision diagram
+  * fix tariff table name id & display value in tariff table name column
+  * add message sequence chart diagram for rest pagination
+  * fix delete table response request id
+  * load requests according to the specification id after add table
+  * fix period table delete response request id
+  * rfc7807 content provided for hub rest operations
+  * json patch content not accepted on hub operations
+  * log hub resource path on subscription cancellation
+  * correct rest head operations
+  * correct rest hub resource basenames
+  * typo in rest resourrce handler for product categories
+  * fixed after create table the table list update automatically
+  * fix tooltips
+  * fix label for add roaming
+  * change roaming list third columns label
+  * correct syntax in query resource collection
+  * refactor delete resource
+  * deprecate gtt events
+  * test cases: get, add, delete tariff, periods, roaming tables and rows
+  * correct add roaming and periods row
+  * add new characteristics in add period dialog
+  * add clearcache to update the grid view
+  * fix module id
+  * do clearcache to display rows when we load
+  * fixed url paths
+  * add resource for prefix table row
+  * correct type specifications for resource rest api functions
+  * fix labels
+  * fix iron ajax labels
+  * implement roaming update
+  * fix important typo
+  * implement roaming add dialog
+  * implement period Update dialog
+  * new module for period row add
+  * remove unwanted ajax request
+  * correct combining complex match conditions in resource query
+  * implement add period row modal
+  * correct period row spec id
+  * refactor atcivetable id in roaming and period
+  * fix activetableid in rate view
+  * multiple logical match operators in query resource api
+  * fix gridview columns
+  * fix table name undefined issue in roaming view
+  * fix table name undefined issue in period view
+  * fix table name undefined issue in rate views
+  * correct dataflow for activetablename & correct uri syntax
+  * add makefile
+  * create 3 seperate table-list modules for 3 grid views
+  * rename onlclick functions
+  * make separete ajax for each tariff submenu
+  * make onclick to open table list dialog
+  * make submenus under tarifff and refacor accordingly#
+  * remove unwanted object
+  * correct ql/4 to accept end range
+  * appease dialyzer on matchspec variable
+  * remove unwanted imports
+  * correct access path of URI
+  * make table list as seperate module
+  * fix spec id in url and access gridview
+  * charging characteristics in ps-information
+  * add apn to ps information
+  * fix grid view
+  * load roaming gridview with correct spec id
+  * create roaming grid view
+  * include inband security id in diameter services
+  * include vendor apecific application ids in auth diameter service
+  * add period gridview path
+  * determine which grid for which table using specification id
+  * create grid view for tariff periods
+  * match table ids
+  * add roaming spec id in get table list URI
+  * rename tariff modules
+  * add resource for example tariff rates table
+  * add example tariff rate periods table imnport csv file
+  * add user property to ocs gtt tables
+  * tooltip note on adding tables requires system administration
+  * add user property to ocs tables
+  * resource specs for roaming table and row (ocs-679)
+  * add roaming tariffs table type in add table dialog
+  * resource specs for roaming table and row (ocs-679)
+  * Revert "to add table match correct ids"
+  * correct URI for get table list
+  * fix json for add tariff table specification
+  * to add table match correct ids
+  * add table type in add table JSON
+  * add table type field in add table dialog
+  * query resources by multiple resource specification ids
+  * remove redundant rate column from tariff view
+  * resource specifications for tariff periods table and row
+  * use 3gpp compliant service-context-id in log test suite
+  * add columns in tariff grid view
+  * resize logos in rest api table
+  * implement paper-card svg for AAA counters in dashboard
+  * convert negative values
+  * right justify hide dash card button
+  * hide dashboard cards
+  * correct dashboard health api polling timing (ocs-670)
+  * make seperate functions for each line graphs
+  * increase width of subscriptions card to avoid truncating count labels
+  * invert scale for hover tooltip on graph lines
+  * use d3-scale for min, mean, max hover tooltip
+  * graph diameter base application count in each poll
+  * only graph diameter count when delta available
+  * correct removing tooltip for graph
+  * fix tooltip overriding issue on hover
+  * added support for all result codes and errors for di/2 in user_default
+  * fixed type spec of diameter_dictionaries/2 in health module
+  * added support for command code 268 with result code for di/2
+
+2023-03-01  Vance Shipley <vances@sigscale.org>
+
+	* refactor dashboard graphs; shift old time points out, calculate delta
+	* rename reused index variables in dashboard
+	* remove unused diameter counters in dashboard
+	* add order functionality to all graphs
+	* refactored flex box order change buttons
+	* diameter graph app name
+	* fixed diameter counters in health module
+	* remove unwanted ids
+	* literate naming for graph toggle buttons
+	* consistent graph card width; refactor ajax response handler
+	* change height for scheduler graph
+	* support non-3gpp access by assigning mncmnc 000000
+	* install aaa sta script
+	* get whole width when toggle graph
+	* implemented repeat and interval for sta escript
+	* change papercard name and hover
+	* change yaxis label
+	* Revert "fix error code bug for balance query"
+	* add style element for diameter application
+	* implement diamater application graph
+	* add sched to drawline function
+	* toggle diameter application graph
+	* implemente order feature in all graphs
+	* toggle schedule graph
+	* add toggle icon and order icon
+	* sta escript for auth diameter statistics
+
+2023-02-07  Vance Shipley <vances@sigscale.org>
+
+	* user-name avp is mandatory in swx rtr
+	* make clean deletes private key
+	* remove scheduler specific stuff from draw line function
+	* make default and clear existing values for client view
+	* refactor dashboard element selectors and svg size calculation
+	* refactor scheduler utilization statistics server for safe timeouts
+	* rename icon collection to match module
+	* correct license
+	* make trusted in seperate line and fix overlap issue in client update dialog
+	* make trusted on seperate line in add client view
+	* fix passwordless offset
+	* rename dashboard card as sibscriptions to relect refactor
+	* report # of cores in scheduler utilization dashboard card header
+	* resize and restyle the dashboard
+	* dashboard draw functions keep colors private
+	* add tooltip for trusted field
+	* fix sizes for trusted column
+	* update trusted in client
+	* add TWAN coloumn in client view
+	* add trusted wlan in client
+	* add trusted attribute in codec
+	* refactor the implemented method for pie chart
+	* consistent height for cards in dashboard
+	* manual purge of expired or stale buckets
+	* manual garbage collection of old sessions in service table
+	* export type for timestamp values
+	* refactor the pie char
+	* fix syntax error is systemd service name
+
+2023-01-20  Vance Shipley <vances@sigscale.org>
+
+	* ignore session list in final out-of-credit
+
+2023-01-19  Vance Shipley <vances@sigscale.org>
+
+	* handle mscc parse in data_session escript
+	* correct diameter health check parsing in dashboard
+	* change color and label
+	* fixed string of dia_count/3
+	* match on send statistics in diameter health checks
+	* command line options for diameter transport in data_session escript
+	* add command line arguments for data_session escript
+	* test client scripts connect to localhost
+	* implement credit control chart
+	* changed ocs_rest_res_health:get_diameter_statistics() to get_diameter_statistics()
+	* head service testcase
+	* added diameter counters to health check
+	* head testcase for bucket
+	* sync disk_log before close
+	* sms-information in nrf
+	* sms-information in nrf
+	* mms-information in nrf
+	* mms-information in nrf
+	* expand service-information in nrf examples
+	* expand service-information in nrf examples
+	* role of node in ims-information of nrf
+	* role of node in ims-information of nrf
+	* visited network in ims-information of nrf
+	* visited network in ims-information of nrf
+	* serving node type is ps-information of nrf
+	* serving node type is ps-information of nrf
+	* scur example of ps service information
+	* scur example of ps service information
+	* correct service rating in iec examples
+	* correct service rating in iec examples
+	* test suite: avoid race condition by waiting for log event
+	* fix error code bug for balance query
+	* correct math in uptime
+	* correct hours,minutes uptime calculation
+	* actual svg size in uptime paper-card
+	* uptime dashboard
+	* head product testcase
+	* head  user testcase
+	* head client testcase
+	* uptime for health
+	* auth statistics counts
+	* describe transport_config diameter option in edoc overview
+	* implment HEAD request for user
+	* implement HEAD request for productInventory
+	* support productCatalogManagement offer for HEAD
+	* implement HEAD Request for offering
+	* implement HEAD request for bucket
+	* implement HEAD method for service
+	* implement HEAD method for client
+	* shell command for uptime
+	* remove default value and refactor update path
+	* add price column in bucket view
+	* handle undefined methods
+	* add delete in service update view
+	* default value for lifecyclestatus
+	* fix console bugs
+	* place priceAlteration into the guard
+	* fix label & remove unwanted line
+	* fixed price bucket in bucket row detail
+	* change the order and clear value
+	* bucket price is always a string
+	* fixed price bucket support in tmf654 oas
+	* correct type of fixed price bucket
+	* support boolean char value type
+	* display fixedPriceBucket in balancebucket row detail
+	* update fixedpricebucket
+	* fixed price bucket in offer add dialog
+	* change prices to price
+	* rating and charging allowance buckets with fixed price
+	* subscription charges create buckets with fixed price set
+	* add price name attribute to rated record
+	* rename bucket attribute price
+	* correct service href in balance adjustment
+	* add price in bucket
+	* handle repaied log result and report a warning
+	* fixed automatically selected price
+	* remove duplicate alterations
+	* add multiple alteration
+	* implement HEAD request for resource
+	* describe product specification relationships in edoc
+	* document product specifications
+	* add fixed price bucket char in prepaid product spec
+	* correct alteration label in offer update dialog
+	* rename fixed quantity package product spec to usage volume
+	* move rate plan dependency to network product spec
+	* renamed rate plan product spec to match sid example
+	* move redirect server characteristic to network product spec
+	* include name in product spec relationships
+	* removed deprecated polymorphic schemas, update oas
+	* correct common name for ca cert in rest test suite
+	* refactor tariff table rating for price discrimination (ocs-833)
+	* refactor rate3/16 for order and consistency
+	* missing rating group attribute in service rating result
+	* add observer unbundled offer
+	* fix capitalization for status
+	* display changes automatically
+	* fix for balnace URI
+	* removed unused filter imports
+	* use literate property name
+	* correct date range in balance log; move date range function to rest lib
+	* correct imsi and msisdn column sizes in acct log view
+
+2022-10-12  Vance Shipley <vances@sigscale.org>
+
+	* fix 401 error on pwa version update
+	* add table of contents to edoc overview
+	* more content in edoc overview page
+	* mark private api function
+	* remove unused d3 graph function
+	* fix query
+	* remove extra padding in dialog lists
+	* remove misplaced function call
+	* add service context id usage characteristic
+	* handle unexpected error on open log
+	* get balance by unknown service id result is 404
+	* nrf api in edoc overview
+	* refactor and modernize edoc overview page
+	* config to fix svg image handing in inets httpd
+	* fix filter in accounting view
+	* allow /doc without service worker
+	* source workbox config from src dir
+	* remove unused clause
+	* make clean removes service worker
+	* block page manual refresh if still loading
+	* rename rootpath global
+	* modernize service worker with workbox
+	* correct dashboard module name
+	* dashboard landing page
+	* minor edoc formatting
+
+2022-10-03 Vance Shipley <vances@sigscale.org>
+
+	* ignore unimplemented eap checkcode
+	* do not add a (redundant) table resource on new/import
+	* rational get_reserve/2 arguments
+	* handle error count and request flag in diameter statistics shell command
+
+2022-09-20 Vance Shipley <vances@sigscale.org>
+
+	* fix bug for create price twice
+	* fix bug for display existing prices in offering
+	* correct reading charging key from price
+	* clear price and alteration dialogs with common functions
+	* fix tab switch on input bug
+	* remove unused div ids in offer update dialog
+	* fix status in service view
+	* fix codec
+	* non-ip addresses as binary; recipient received address avp
+
+2022-08-20 Vance Shipley <vances@sigscale.org>
+
+	* missing enumerations for sms message type
+	* e.164 address family not supported by diameter_codec
+	* iccid subscription identifier in nrf_rating
+
+2022-08-19 Vance Shipley <vances@sigscale.org>
+
+	* fix refunding unused reservation
+	* credit overrun leaves negative balance
+	* fix status type for service
+	* edoc private functions
+	* do not create session bucket when nothing charged
+	* declare ct_suite behaviour for all test suites
+	* test case: credit overrun leaves negative balance
+	* correct unit size in rating test case
+	* correct remain amount in interim and final voice rating test cases
+	* correct debit amount in rating interim debit test case
+	* correct debit amount in rating interim debit test case
+	* correct balance math in interim debit test cases
+	* correct product specifications in rating test suite
+	* remove bogus characteristics in rating test suite
+	* correct bucket amount calculation in rating suit test case for voice reservatione
+	* correct radius session attributes in rating test suite
+	* correct filter path for buket filter by product
+	* news on refactored balance buckets
+
+2022-08-01 Vance Shipley <vances@sigscale.org>
+
+	* handle rated in radius ipdr codec
+	* disconnect start_child handling of ignore retruned from child init
+
+2022-07-26 Vance Shipley <vances@sigscale.org>
+
+	* handle undefined rated in diameter protocol log
+	* support update status in service
+	* fix changing tab order contents in service update
+	* ignore if reservations are not included
+	* change radius attribute type number to string
+	* use ocs:parse_bucket/1
+	* refactor ocs:parse_bucket/1
+	* test: replace hardcoded remain amount with calculated
+	* start disconnect fsm synchronously
+	* correct error introduced in commit 3b9792abf
+	* fix status and arrange fields in add product GUI
+	* refactor status and arrange fields in add bucket dialog
+	* change order of button and tabs for update service
+	* refactor lifecycle stuff in service
+	* test: refund partially used reservation
+	* add unit type messages in offer update
+	* add date in service add GUI
+	* clear lifecycle status selection on add/update offer dialog cancel
+	* correct unit type selection in add/update offer dialog
+	* handle time of day in add offer dialog price update
+
+2022-07-16 Vance Shipley <vances@sigscale.org>
+
+	* refactor offer add/update web components with many corrections
+	* correct label in add service
+	* correct label name
+	* add start and end date for add product dialog
+	* add lifecycle status in add bucket
+	* add lifecycleStatus in product add dialog
+	* add lifecyclestatus in authorization service view
+	* handle state in GUI for product view
+	* handle states & time for offer
+	* handle terminal & correctable states in service row
+	* refactor handle states
+	* product add dialog reserve char value use (ocs-618)
+	* align radius reserve char value use with product specification
+	* correct json encoding in product spec
+	* remove unused exported functions
+	* argument mismatch in macro
+
+2022-07-01 Vance Shipley <vances@sigscale.org>
+
+	* ttls test suite expects pwd method preference
+	* fix end date format in gui
+	* handle state in service view
+	* portable socket handling in ttls aaah fsm
+	* portable cipher name handling
+	* refactor entity status property for buckets
+	* handle terminal state and correctable state for buckets
+	* add status in rest for bucket
+	* highlight expired buckets
+	* remove unused column in bucket view
+	* removed unused style module
+	* handle multipliers for session timeout and accounting interval
+	* support unit multipliers (d, h, m, s) & display existing values
+	* eliminate redundant mnesia read in rate
+	* deselect units after submit
+	* install svg supervision diagram
+	* replace session id if new is superset of any current
+	* common session attribute identifier handling
+	* avoid writing service if session id exists
+	* no disconnect-request after accounting-stop
+	* remove nas-port-type from  disconnect-request
+	* radius reserve session time and octets in add
+	* fix switching tab bug
+	* refactor otp portability macros for simplicity
+	* correct eap ttls test suite initialization
+	* use epp preprocessor for edoc
+	* handle out-of-credit in final session reap
+
+2022-05-31 Vance Shipley <vances@sigscale.org>
+
+	* input validation on rate amount
+	* handle decimal values in rating
+	* refactor rest api test suite to eliminate ssl warnings
+	* fix ttls test suite initialization
+	* implement prefix table filter
+	* fix error in query function
+
+2022-05-26 Vance Shipley <vances@sigscale.org>
+
+	* split http path before percent decode
+	* macros to conditionally use new crypto in aka where available
+	* macros to conditionally use new uri_string module when available
+	* implement query function for gtt resource
+	* test suite: radius reserve session time in offer
+	* test case: data radius auth fail
+	* convert unused session bucket to regular bucket
+	* refactore add client in simple auth test suite
+	* fix get table api function result
+	* add disable validation for reserve time and bytes
+	* support for radius reserve session octets in authorization
+	* radius reserve session accepts time and bytes
+	* getting radius reserve session time from offer instead of product
+	* rest query fields filters, id href mandatory in response
+	* fix get table api functions broken in commit 205fd6f8
+	* unit of measure in radius reserve session char value
+	* radius session reserve octets in product spec (ocs-589)
+
+2022-05-04 Vance Shipley <vances@sigscale.org>
+
+	* add plmn mcc/mnc of ondo
+
+2022-04-22 Refath Wadood <refath@sigscale.org>
+
+	* subscription id data can be in swx record type
+	* experimental result code macros
+	* correct s6a result when k/opc unavailable
+	* gui: allow + in tarrif prefix coloumn
+	* gui: fix pattern for tarrif prefix table
+
+2022-04-07 Refath Wadood <refath@sigscale.org>
+
+	* revert: eap fsm workers are transient
+	* support session-termination-request (str) by pgw
+	* correct diameter request and response record names
+	* gui: fix time of day range label
+	* test: diameter ocs_auth to ECS
+	* test: radius ocs_auth to ECS
+	* diameter and radius ocs_auth to ECS
+	* handle missing user-name in swm str with unknown seesion-id response
+	* test: convert diameter acct events to ECS
+	* convert diameter acct events to ECS
+	* catch exit (not default throw) in terminate fsm
+	* test: convert radius ocs_acct event to ECS
+	* test: validate event reference
+	* codec to convert radius ocs_acct event to ECS
+	* implement filter for prefix table in GUI
+	* add gen_event behaviour module to ship log events to elastic stack
+	* add gen_fsm to ship log events to elastic stack
+	* add application environment variable for ECS Shipper configuration
+	* add supervisor for ocs_event_log_fsm
+	* register ocs_event_log_sup and ocs_event_log under main supervisor
+	* start child of ocs_event_log_sup if elastic_shipper env is not undefined
+	* move lists reverse of result out of transaction
+	* acquire a write lock when reading before deletion
+	* no sticky locks
+	* revert: no sticky locks
+	* do not log prefix table tariff lookup failures
+	* radius session reserve in product characteristics (not service)
+	* defines elastic_shipper environment variable
+	* refactor gen_event behaviour module to have two callback functions
+	* introduce installed state and move to backoff state when timeout
+	* prevent deletion of product if service exists
+	* do not install ploymer-cli globally
+	* send only auth and acct log events to logstash
+	* correct version in product inventory path
+	* add rest hub event handlers with id
+	* refactor error logger messages
+	* set httpc options for the log profile
+
+2022-02-1  Refath Wadood <refath@sigscale.org>
+
+	* do not install generated source
+	* policy rule predfined char default value is false
+	* typos in 3gpp trigger-type avp enum
+	* missing tariff table names returns 400
+	* remove unimplemented xml and xdr ipdr exports
+	* add info report closed diameter event
+	* udpdate last modifed timestamp when resource is modifed (ocs-548)
+	* eap fsm workers are transient
+	* update supervision diagram for eap fsm change
+	* supervision diagram in scalable vector graphics
+
+2022-01-28  Refath Wadood <refath@sigscale.org>
+	
+	* align 3gpp 39.061 avp types with table 9a
+	* gui: updated policy shows value
+	* authenticate diameter acct peer during capabilities exchange (ocs-537)
+	* authenticate the diameter auth peer client during cer/cea negotiation (ocs-539)
+	* test: sucessful client authorization during capabilities exchange (ocs-538)
+	* test: unsucessful client authorization during capabilities exchange (ocs-538
+	* gui: remove default tab selection for detalis
+	* test: sucessfuly authenticate a known diameter auth peer
+	* test: failure to authenticate a unknown diameter auth peer
+	* remove redundant ocs:find_client/2 calls from callback 
+	* pretty print diameter statistics(ocs-488)
+	* add escript to export ipdr archive logs
+
+2022-01-21  Refath Wadood <refath@sigscale.org>
+
+	* create ipdr entries for each #rated{}
+	* handle diameter and radius events in ipdr log
+	* copy tariff tables in join
+	* handle multiple subscriber ids in request in ipdr log
+	* user default query gx in logs
+	* include ro/gx rar/raa in acct_log request/response types
+	* update 3gpp dictionary with avps 29.061 avps
+	* add an-gw-address, correct packet-filter-identifier avps in 3gpp dictionary
+	* gui: validate null value in offer
+	* add rating role in user (ocs-515)
+	* handle rating role in get view
+	* correct radius rat-type mapping for eap-aka
+
+2022-01-10  Refath Wadood <refath@sigscale.org>
+
+	* remove ambiguous map specs; non json map keys are atoms
+	* remove usu from cca in nrf callback handler
+	* idpr row elements can be strings or binary
+	* seperate session id ipdr row element using quotes
+	* ipdr charge ammount exlusive of taxes
+	* add missing ipdr_wlan fields in ipdr codec; include missing fields in ipdr export
+	* copy httpd_user and httpd_group tables if auth type is mnesia only
+	* add_user/3 will take a list of user_data properties as the 3rd argument
+	* set the default locale as en
+	* handle user_data property rating in post_user/1
+	* user_data is a list of properties
+	* add user_data for default user
+	* test: add locale as an user_data property in add_user
+	* handle user_data in update_user/3
+	* optimize mnesia table reads
+	* move prep work out of transactions
+	* remove redundant catch; typos
+	* replace mnesia:transaction/1 with mnesia:ets/1 for optimized table reads
+	* authorize users to use Re interface based on rating property in #httpd_user.user_data (ocs-513)
+	* add rating property to #httpd_user.user_data; improved testcase transition
+	* stop mnesia cleanly in install_tables.escript
+	* print ok and list of tables
+	* remove expiry date on specifications
+	* add aaa policy usage
+	* add charging rule install attribute to policy usage
+	* usage policy spec can be queried
+	* remove whitespace
+	* empty mscc in final should not be rated (ocs-547)
+	* add edoc overview for user_default module
+
+2021-12-21  Vance Shipley <vances@sigscale.org>
+
+	* correct attribute for actual time session began in nrf_rating api examples
+	* example offers should not be installed on already initialized table
+	* check mnesia auth type in all the directories
+	* refactor start to upgrade install session and nrf_ref tables if missing
+	* refactor for common table creation function
+	* inets mod_auth tables are type bag
+	* install voice and data diameter test scripts
+	* include escripts in Makefile
+	* add missing tables during application start
+	* escript to join node to a cluster
+	* add missing tables during join
+	* update new tariffs; remove display lines
+	* move join/1 to appear directly after install/1
+	* correct function spec
+	* remove emulator arguments
+	* escript for install tables
+	* join accepts only one node
+	* join should be re-entrant
+	* correct cca validation for ccr-t
+	* tariff must include unit size
+	* post nrf request when matching tariff is not found
+	* add escript file extension
+	* escript for data_session & voice_call
+	* session state is a list of maps during class a
+	* session state is a list of maps
+	* add lastModified element to tariff reference
+	* add ratingFunction element to tariff reference
+	* add apn as an configuration option for diameter auth service (ocs-525)
+	* refactor type specifications and edoc for ocs_log
+	* document sub_id_type app env var values
+	* remove unnecessary logging
+	* better guard handling
+	* subscriber id type is integer in charge function
+	* handle gx acct events in rest query; ignore unknown entries
+	* better single subscriber filtering
+	* check for valid rating group and service id
+	* default amounts is an empty list; typos
+	* differentiate between pla and amounts to be charged
+	* strip mochijson structure from destination id
+	* remove redundant values from pla
+	* ignore unknown log entries in ipdr codec
+	* install should be reentrant
+	* Merge branch 'nrf'
+	* log diameter nrf server error events
+	* fix variable caliing method
+	* accurate function naming
+	* test: add second rating group
+	* escript to send an sms with diameter
+	* fix variable shadowing in fun()
+	* match existing tariff price to mscc by rating group and service id
+	* test: differentiate by rating group
+	* update new and old products when service product is changed
+	* default product value in service is undefined
+	* describe uris in redirect server characteristic
+	* test: validate multiple msccs in the same diameter cca
+	* handle cud in diameter update
+	* test: add receive initial cud scur class b
+	* remove extra brackets
+	* find predefined characteristic value
+	* event based charging does not include reserved units
+	* get application enviroment variable of single diameter service
+	* get subscriber id types of single diameter service
+	* better document re interface configuration options
+	* incorrect attribute name for service id in ecur class a example
+	* log update and release diameter events in ocs_acct
+	* log successful nrf rating events to ocs_acct
+	* remove duplicate inheritance
+	* include missing avps
+	* correct enviroment variable name from class to nrf_class
+	* rename hub modules
+	* POST response body should include href
+	* basic auth is not required in party role management
+	* handle multiple httpd directories
+	* add role without basic auth in test
+	* fix delete client
+	* use [] as when amount when it is not provided in request
+	* add 3gpp gx interface types to ocs_acct spec
+	* return error 400 when service context id is invalid
+
+2021-11-24  Refath Wadood <refath@sigscale.org>
+
+	* restructure nrf table fields
+	* correct subscriber id handling; correct nrf ref record
+	* log diameter events on the gx interface
+	* return error 400 when service context id is invalid
+	* add 3gpp gx interface types to ocs_acct spec
+	* use [] as when amount when it is not provided in request
+	* fix delete client
+	* handle multiple httpd directories
+	* basic auth is not required in party role management
+	* POST response body should include href
+	* rename hub modules
+	* correct enviroment variable name from class to nrf_class
+	* include missing avps
+	* test: add role without basic auth in test
+
+2021-11-19  Refath Wadood <refath@sigscale.org>
+
+	* add debian stretch supported ascii values in spec
+	* add a guard for price time
+	* query shouldn't be included in response if it is null
+	* unit price must be integer in charge/13
+	* offering price of 0 is valid
+	* correct assignment of digit in plmn/1 spec
+	* do not decrement buckets when price is 0 (ocs-509)
+	* handle null & empty string in offer patch request
+	* fix big in offercheck null value
+	* test: validate price descrimination by rg in diameter_scur_price_descrimination_by_rg
+
+2021-11-01  Refath Wadood <refath@sigscale.org>
+
+	* faq and howto links in readme
+	* cache control in health response, use for polling time
+	* merge get option function into subscriber id function
+	* correct error code when input is invalid
+	* acc_balance.total_balance is a list of quantity() and units is also a list
+	* return total of all the bucket types in accumulated balance by product id
+	* add sub id type service option to overview edoc
+	* add diameter service options for subscriber ids
+	* units go into total_balance field of accumulated balance
+	* add s6a authentication logging
+	* check period of product offering
+	* check product offer price validity period
+	* more than one directory property may be provided in httpd configuration
+	* add ocs diameter utility module scaffolding
+	* add plmn function for mcc mnc parsing
+	* acc_balance.total_balance is a list of quantity()
+	* process subscription ids according to sub id type service option (ocs-496) in gx handler
+	* handle two digit mnc (ocs-458)
+	* derive p-access-network-information for roaming table lookup (ocs-413)
+	* process subscription ds according to sub id type service option (ocs-496)
+	* test: query buckets
+	* test: correct documention
+	* test: add scur sms class b
+	* test: case testcase naming
+	* test: add scur imsi class b
+	* test: add parse access network information string
+	* test: add diameter scur roaming voice ims
+
+2021-10-09  Vance Shipley <vances@sigscale.org>
+
+	* radius chap authentication (ocs-497)
+	* delete diameter client after test cases in simple auth suite
+	* allow uri patterns to redirect server in offer update
+	* update log test suite to expect multiple rated records
+	* removed deprecated i18n
+	* url encode reserved chars in rest api test suite
+	* correct salt in eap aka/aka'
+	* correct prf in eap akap
+	* correct statistics server interval handling
+	* ocs shell command for scheduler utilization
+	* ocs shell command for table distribution
+	* ocs shell command for table sizes
+	* includes for record definitions in shell
+	* acct session time should be taken from used service units
+	* input, output and total octets should be taken from used service units
+	* ocs shell command for last log events
+	* correct type specification for diameter capabilities
+	* ocs shell command for acct log query
+	* ocs shell command for diameter capabilities
+	* refactor ocs diameter shell commands
+	* correct rescheduling when job completes in < 1s
+	* ocs shell command help; short function names
+	* set default paper-tab
+	* fix star, end update in offer
+	* implement update start, end in price
+	* fix adding start, end time in offering prices
+	* fix offer start and end time path for update
+	* session id is a binary value in CCR record
+	* tod test on upper value also
+	* missing commas in rest problem resports
+	* patch function should be public in rest library
+	* fix tax included amount update
+	* consistent web component view titles
+	* ignore empty price characteristic values
+	* correct time-of-day in update price
+	* char value type unit value is integer
+	* clear price name after click update
+	* fix offer price update for unit size and units
+	* fix charging key in offer price remove method
+
+2021-09-14  Vance Shipley <vances@sigscale.org>
+
+	* status in update product offer
+	* status in add product offer
+	* change example offer status from in_study to undefined
+	* handle null value offer price update
+	* reap all reservations matching session-id
+	* correct variable name clash matching problem content type
+	* correct format problem with no accept header
+	* nrf class a rating response examples
+	* no update or release for class a nrf
+	* clarify iec examples examples are class b
+	* rename rate element unit size attribute
+	* include only mandotary fields when creating a role
+	* use existing get user erlang api for get role by name
+	* return all records in httpd_user table in partyrole resource model
+
+2021-09-06  Vance Shipley <vances@sigscale.org>
+
+	* health component resources for individual applications
+	* health api returns same body format for errors
+	* http get handler accepts headers and body in error
+	* do not crash ocs:statistics/1 when ocs not ruunning
+	* document apis of rest resource handlers
+	* correct and improve problem report handling
+	* content/type in rest resource handlers
+	* handle */* in accept header
+	* rest resource handlers may return problem report
+	* rest error response bodies for rfc7807, tmf630 and html
+	* rest resource for health application component
+	* refactor scheduler health component
+	* health components application and table:size
+	* rest resource for health check
+	* statistics server and api (ocs-470)
+	* get a party role by name in REST API
+	* test: REST API to get a role by name
+	* REST API to get all party roles
+	* test: get all party roles using REST API
+	* REST API to delete party role by name
+	* test: delete a party role by id
+	* add a party role using the REST API
+	* test: REST API to create a party role
+	* new REST API module for party role
+	* REST API to get a role hub listener by id
+	* test: REST API to get a role hub listener by id
+	* REST api to get all the role hub listeners
+	* test: REST api to get all the role hub listeners
+	* fix json and handle time day range in GUI
+	* handle time of day amount in REST
+	* connect node before rpc in join; correct table list
+
+2021-08-30  Vance Shipley <vances@sigscale.org>
+
+	* prevent registered name clash in diameter on clusters
+	* prevent registered name clash in radius on clusters
+	* refactor ocs_app:join/1 to work with erl -s
+
+2021-08-27  Vance Shipley <vances@sigscale.org>
+
+	* update apn selection on gx
+	* portable ssl
+	* portable crypto (ocs-461)
+	* port retired cipher names
+	* portable get stack trace
+	* use rand, not crypto, for random integers
+	* remove deprecated time units
+	* no warn on deprecated/removed pg2 functions retained for portability
+	* no warn on deprecated functions retained for portability
+	* suppress dialyzer warnings for deprecated functions
+	* suppress dialyzer warning on missing mod_auth:load/2
+	* map accounting logs fields into correct value
+	* correct accounting log credit control info
+	* make client and type values show properly in accounting log
+	* update sigscale_release package version in readme
+	* start scoped process group
+	* distributed disk logs no longer supported
+	* container no longer daemon, attaches to tty
+
+2021-08-23  Vance Shipley <vances@sigscale.org>
+
+	* ignore dialyzer warning on version checking
+	* fail to add product if service has product
+	* correct table timeout result
+	* wait for session table
+	* help topics in help
+	* add guards in rest get
+	* implement delete for redirect server
+	* add support for class a operations
+	* add default flowdescription
+	* support pathing in newer otp version
+	* correct imported table description; remove redundant clause
+	* update policy in offer
+	* do not use -if/1 macro conditional
+	* skip pg create in otp 24
+	* fixed delete user
+	* ignore extra USU value
+	* support latest pg module
+	* correct service types
+	* fix time of day format in GUI
+	* display warning message in product display
+	* match only valid usu values
+	* match all unexpected returns
+	* test: initial invalid service type
+	* remove extra clause
+	* add error handling for invalid service type
+	* implement PATCH delete method se service product
+	* implement PATCH request delete method in offer alteration
+	* delete method in offer other fields
+	* implement delete method on patch for offer prices
+	* fix json for add price on existing offers
+	* return correct result code when rating fails
+	* handle rated as a record and as a list
+	* fix a bug in delete patch
+	* implement PATCH remove method in offers
+	* test: refactor diameter scur price descrimination by rg test case
+	* test: diameter_scur_price_descrimination_by_rg
+	* return diameter success with zero pcc rules when no policy table exists
+	* remove redundant list encapsulation
+	* correct attribute name for subscriber identification
+	* fix charging key type
+	* validate recuring and period
+	* fix time of day in offer add dialog
+	* refactor offer update
+	* refactor and remove redundent code in user_default
+	* include product in bucket creation
+	* change start date styles
+	* more accurate naming
+	* add user default devops shell module
+	* correct record type for sta in akap
+	* add service field to adjustment record
+	* include 'RAT-Type' in mar
+	* add service ref for balance adjustment
+	* support balance adjustment by service id
+	* update product in service
+	* validate rated record in diameter iec event
+	* validate rated record in diameter ecur final
+	* correct bucket type in test case
+	* validated rated record in diameter voice final cca
+	* update service identifier in offer
+	* add service identifier in offer add
+
+2021-06-28  Refath Wadood  <refath@sigscale.org>
+
+	* test: handle arbitrary characteristics in service
+	* test: add receive iec; test: add send initial ecur
+	* test: add receive initial ecur
+	* test: add receive final ecur
+	* test: add post iec
+	* test: tariff table row id is {table_name}-{prefix}
+	* test: deleting policy table removes all the rows
+	* test: add post initial ecur; remove clutter from merge
+	* test: add post final ecur
+	* test: validate rated record for diameter scur
+	* test: validate redirect server in scur out of credit cca
+	* valueTypes of qos and flow info are object and array; update descriptions
+	* update doc lines
+	* handle arbitrary characteristics in service codec
+	* refactor flow and qos in codec; direction and description mandatory
+	* refactor add table modules for commonality; improve tooltips and names
+	* refactor add policy/prefix modules for commonality; improve tooltips and names
+	* rename some flow group, filter; improve tooltips and names
+	* widen app-drawer to prevent wrapping
+	* remove paper-tabs from bucket view
+	* use paper-styles for primary/secondary colours
+	* refactor add/delete bucket; include validity period
+	* grid.selecteditems is read only
+	* handle active item select/deselect to open add/update dialogs
+	* remove one pixel border beneath app-header
+	* refactor offer update open
+	* fix update dialog pop up issue
+	* expect correct status code for httpc post
+	* refactor product offer modules for literate names
+	* fix offer price update
+	* query resource by name
+	* cannot add a table with the same name under the same spec id
+	* support sip uri type; support http uri
+	* fix closing bracket pairs
+	* refactor add offer web component module for code literacy and modernization
+	* add name to table dropdown list
+	* correct case matching
+	* remove adding tariff row into inventory
+	* add tariff row resource into gtt table
+	* clear labels
+	* getting tariff row from gtt table
+	* tariff table row id is {table_name}-{prefix}
+	* add policy in offer
+	* remove all the rows before the policy table is deleted
+	* delete tariff row from gtt table
+	* delete resource except policy table
+	* change policy characteristic name
+	* remove service refference from product when product is removed from service
+	* disassociate products from service
+	* change tariff row update URI
+	* correct tariff patch path
+	* handle multiple service ids in patch
+	* tariff row is written into gtt table
+	* fix updating tariff rows, written into gtt table
+	* tariff rate is multiplied by millions
+	* patch tariff row operation is replace; rate is an integer
+	* remove unused id attribute
+	* <paper-input> not compatible with <datalist>
+	* update values for selected price in add offer dialog
+	* deleting policy table removes all the rows
+	* add serviceIdentifier characteristic in NetworkProductSpec
+	* correction handling validity start without end
+	* differentiate between iec events and scur
+	* remove legacy tariff REST API handling
+	* send patch request only for the required fields in tariff
+	* space between checkbox items
+	* patch the required felds only in offer price
+	* complex observer for offer array
+	* clear offers array on offer grid reload
+	* fix validations and patch request for offer price characteristics
+	* send patch reuest only for the required fields in offer alteration
+	* correct case clauses
+	* add rest resource when tariff table is added 
+	* remove duplicate resource addition
+
+2021-06-03  Vance Shipley <vances@sigscale.org>
+
+	* mutliple operations in table dialogs; table name in view title
+	* clear gtt table when tariff table resource is deleted
+	* delete gtt entry when a tariff row is deleted
+	* create function to clear specific gtt table
+	* tariff table resource should not be added when gtt table is unavailable
+	* refactor policy table add/delete/select handling
+	* fix abmf_query
+	* refactor flow exists test
+	* align buttons in policy row details
+	* initialize empty flow; add empty flow
+	* hide generated web component module
+	* reformat policy grid columns
+	* remove flow row from policy
+	* conditionally include characteristic values in policy add web component
+	* wait for completion of table add before get tables
+	* correct specification name in prefix add web component
+	* correct policy/tariff table/row specification references
+	* fix update policy row
+	* clear all event handlers before notification test cases
+	* make unique httpd server name
+	* category of product charge notifications is balance
+	* unique rest authenication; typo
+	* change correct name and send correct json
+	* refactor abmf query test case for product id match
+	* correct matchspec in query acct log test case
+	* remove test case for non-existent object in diameter mib
+	* include master session key in dea
+	* include hss realm,host in auc register response with radius
+	* include rat-type in der of aka(p) test cases
+	* delete subscrition at the end of test case
+	* add unique ids
+	* remove duplicating listener pid and port
+	* change module in state map of specialized diameter codec
+
+2021-05-20  Vance Shipley <vances@sigscale.org>
+
+	* stop started httpd service at end_per_testcase
+	* create gtt table when adding tariff resource
+	* encure legal atoms in table names:
+	* allow new atoms in gtt public api for new tables
+	* included negotiable methods in eap test suites
+	* update test case with redirect server result
+	* ignore delete test cases should expect 403 forbidden
+	* handle not found in delete offer
+	* refactor delete offer for lazy failure
+	* handle 403 (forbidden) response to delete
+	* correct event payload description
+	* update test case with redirect server result
+	* include all policy attributes in row details for update
+	* add predefined policy rule flag in web components
+	* generalize simple characteristics in resource_char codec
+	* remove id attributes which must be unique in templates
+	* remove non-existent attribute in policy list module
+	* remove unused attributes in web components
+	* correct table specification names in web components
+	* remove unused legacy import
+	* policy flow rows inline
+	* resize grid when selected tab changes
+	* small thin buttons in row details
+	* remove unused id in policy add dialog
+	* policy add module refractored for literacy
+	* remove unused properties
+	* create gtt table for tariff resource in rest test cases
+	* create gtt table for tariff resource
+	* update tariff table when a tariff row is added
+	* add resourceCatalogManagement/v2/resourceSpecification by id
+	* read gtt table for tariff row resources
+	* accept matchspec variable assinging
+	* test: post release scur
+	* add nrf release function
+	* add nrf rating release path
+	* remove unused definition list tag around general
+	* refator add new flow information row
+	* remove incorrect path
+	* correct status code of successful release
+	* update doc
+	* correct content type for error response
+	* interface function to list table entries
+	* test: correct result matching
+	* test: post update scur
+	* write prefixes into the gtt table instead of only terminal rows
+	* correct function name
+	* update field types
+	* add nrf update
+	* correct field name
+	* allow importing to create gtt table and validate it
+	* include consumed unit in response
+	* change record name to match mnesia table name
+	* correct table name
+	* include node functionality in map; change field name
+	* add rating session record with rating data ref to rating ref table
+	* correct rating ref fields
+	* add nrf ref to table list
+	* index cannot be undefined
+	* send error response
+	* handle error response body
+	* correct guard
+
+2021-05-16  Vance Shipley <vances@sigscale.org>
+
+	* fix push problem in table add
+	* fix create table reload issue
+	* add toast and remove unwanted tag
+	* add error toast
+	* tooltips in policy dialog
+	* label names in policy dialog
+	* default flow description in policy dialog
+	* policy in price of offer dialog
+	* validation for add policy dialog
+	* success toast for add policy dialog
+	* remove sig-policy-update module
+	* refactor service patch request
+	* switch to other tariff tables
+	* switch back with policy tables
+	* add characteristic predefined to policy rule spec
+	* add more flowInformation row
+	* refactor policy gui with new changes
+	* add resourceRelationship in post policy test case
+	* minCardinality is informative
+	* implement policy gui get, add, update
+	* correct misuse of logical resource
+	* refactor query_policy_resource test case
+	* remove MatrixCharacteristic from policy characteristics; introduce minCardinality
+	* add record field for minCardinality
+	* refactor tariff add and list
+	* refactor update_tariff_resource test case
+	* remove MatrixCharacteristic from tariff characteristics
+	* add minCardinality for policy chars
+	* remove MatrixCharacteristicSpec from tariff and policy
+	* tariff resource rate char should be an integer
+	* flow direction is a string
+	* map service id in diameter gx interface
+	* handle service id characteristic inside the policy resource
+	* add service id characteristic into the spec
+	* rename chargingRule char as chargingKey
+	* flow information has flowDirection and flowDescription only
+	* validate tariff resource characteristics
+	* return pcc rules on gx interface base on subscriber id
+	* test: correct characteristics in policy resource
+	* flow direction is an integer
+	* charging rule is a number
+	* validate policy resource characteristics
+	* implement row details for policy table
+	* update policy table characteristic in product specifications
+	* delete created mnesia table when tariff table resource table is deleted
+	* test: rename policy test cases
+	* implement add policy
+	* test: correct specification and relationship in tariff
+	* remove start date and end date from resource relationship
+	* handle tariff resource specific characteristics
+	* add new policy table in gui
+	* test: add tariff char in the resource
+	* handle value structs commonly
+	* test: add tariff resource char
+	* create list of policy tables and view and policy row view
+	* test: tariff table resource cannot include relationship
+	* refactor flow information
+	* policy rules and tables should be implemented as resource inventory, so no special mnesia tables are required
+	* erlang api of query resource by relationship name
+	* handle resource relationship name in get resources
+	* fix tariff array
+	* test: query resource based on resource relationship
+	* refactor list of tariff tables and add tariff
+	* refactor name
+	* handle resource char of policy row resource
+	* test: add policy rest api
+	* support query resource by specification id
+	* implement delete policy
+	* test: add doc line for post resource
+	* correct icon for policy
+	* gtt query erlang api
+	* gtt rest handling functions
+	* add policy specification update
+	* rename resource rest api functions
+	* add specification in policy
+	* remove old policy html modules
+	* implement patch policy
+	* handle add resource based on specification
+	* correct the resource specification
+	* add doc line; correct the description
+	* correct the resource specification
+	* add gtt table for tariff resource
+	* getting resource id
+	* test: change rest test case of notify query pla to notify query resource
+	* rest handling of delete resource notificaition
+	* test: change rest test case of delete pla to delete resource
+	* rest handling of add resource notificaition
+	* export the resource codec
+	* test: change rest test case of add pla to add resource
+	* send notification in delete resource
+	* test: change delete pla event to delete resource event
+	* send notification in add resource
+	* test: change add pla event to add resource event
+	* replace pla record with resource
+	* remove pla record definition
+	* replace add pla with add resource
+	* rest api of update resource
+	* test: rest api of update resource
+	* implement add policy
+	* test: get resource by id
+	* add module
+	* add policy add module
+	* rest api of deleting a resource
+	* test: rest api of delete resource
+	* post resource rest api
+	* test: rest api of add resource
+	* include policy in listing categories
+	* get policy category by id
+	* add category for policy
+	* implement policy list module
+	* include new specs in get_resource_specs
+	* add policy name and created active_item
+	* get tariff row and policy table specs by id
+	* refactor policy row spec
+	* created policy table spec
+	* refactor tariff row spec
+	* created tariff table spec
+	* Add policy list module
+	* rest api of get all resource with pagination and filtering
+	* support resource record for match spec
+	* uri of get all resources
+	* erlang api to filter resource by id or category
+	* test: get all resources in the table
+	* refactor get resource inventory by id
+	* resource codec
+	* resource relationship codec
+	* resource characteristic codec
+	* resource specification codec
+	* remove query_table/6 from ocs.erl
+	* add javascript for policy get module
+	* rename tariff spec function
+	* add update policy module
+	* erlang api of deleting resource by id
+	* test: delete resource by id
+	* erlang api of getting a resource by id
+	* test: get resource by id
+	* erlang api of getting all the resources
+	* test: get all the resources
+	* policy add module
+	* add resource erlang api
+	* test: add resource
+	* install resource table
+	* introduce resource record
+	* Add policy view
+	* remove pla erlang and rest apis
+	* resource specification for policy table
+	* erlang api of deleting a policy table
+	* test: delete policy table
+	* erlang api of creating new policy table
+	* test: create new policy table
+	* erlang api of deleting a policy by reference
+	* test: delete policy by reference
+	* erlang api of list all policies in the table
+	* test: list all policies in the table
+	* validate policy record
+	* erlang api to get policy by reference
+	* test: get policy by reference
+	* add policy erlang api
+	* test: add new policy into the table
+	* add policy table in the list
+	* introduce policy record
+	* install new policy table
+
+2021-05-16  Vance Shipley <vances@sigscale.org>
+
+	* correct systemd configuration
+	* add nrf rating update patch
+	* rate inital nrf rating requests
+	* remove extra mscc
+	* disable polymer app-layout scrollbar
+	* add nrf server resource module
+	* add nrf server paths
+	* remove generated javascript help module on clean
+	* handle table names as strings in gtt backup/restore
+	* improved media type handling
+	* remove redundant content type check
+	* export prometheus metrics
+
+2021-04-12  Refath Wadood <refath@sigscale.org>
+
+	* correct accumulator handling; remove unnecessary code
+	* set nrf path correctly; use smaller values
+	* include ocs_re_interface_SUITE in test spec
+
+2021-04-07  Refath Wadood <refath@sigscale.org>
+
+	* use incremental match variable in imsi/msisdn filters
+	* use correct service context id
+
+2021-04-07  Refath Wadood <refath@sigscale.org>
+
+	* add more specification for accounting log
+	* correct user location info charateristic codec
+	* refactor cca mscc building
+
+2021-04-06  Refath Wadood <refath@sigscale.org>
+
+	* Fix grammer
+	* match correct error code in function head
+	* correct spec
+	* handle zero value rsus
+	* refactor nrf request handling
+	* test: add mod ct nrf
+	* test: refactor re interface test suite
+	* test: validate returned units
+	* test: refactor test suite configuration data
+	* test: recieve scur ccas with no usu; recieve scur cca with empty rsu
+	* test: check for empty service rating object
+
+2021-03-21  Refath Wadood <refath@sigscale.org>
+
+	* get correct app env; correct type
+	* return correct diameter error codes in CCA for nrf rating
+
+2021-03-19  Refath Wadood <refath@sigscale.org>
+
+	* gui: redirect server supports URIs
+	* gui: create product when product undefined; refactor balance adjustment
+	* gui: close delete dialog
+	* gui: clear offer list once its submit or cancel
+	* gui: display multiple service ids
+	* test: add re interface test suite
+	* clarify app env var use
+	* correct default diameter config to match sys.config in release
+	* add s6b interface to readme
+	* correct destination id as array in nrf rating examples
+	* add origination id for calling party number
+	* examples of normal error conditions
+	* descriptions for nrf examples
+	* nrf example of partial success
+	* isup cause in vcs service information
+	* event times in vcs service information
+	* user location in vcs information
+	* add vcs parameters call reference and location number to nrf
+	* add nrf diameter call back
+	* add nrf callback module in edoc
+	* start nrf session table; start counters table
+	* use nrf callback when nrf uri is specifed
+	* update invocation sequence number on post
+	* seperate httpc profile for nrf
+	* refactor path handling in post
+	* remove bogus nrf actual time
+	* simpler more efficient get header
+	* consistent rational order of service rating attributes
+
+2021-02-24  Refath Wadood <refath@sigscale.org>
+
+	* test: final rating with empty mscc
+	* test: refactor final empty mscc
+	* test: rate final with empty mscc after interims with different services
+	* gui: fix units select issue on service update view
+	* guard against adding existing service to product
+	* client errors get 400 response for add service
+	* add 3gpp s6b application module to makefile
+	* relative httpd directories
+	* correct testcase description
+	* handle missing service id; handle missing charging key
+
+2021-02-08  Refath Wadood <refath@sigscale.org>
+
+	* do not include fui avp when redirect server address is undefined
+
+2021-02-05  Refath Wadood <refath@sigscale.org>
+
+	* gui: fix update unit price in GUI
+	* gui: send correct value for unit Of measurement
+	* gui: fix length to add product without service
+	* gui: fix add product without service
+	* gui: fix add bucket with product
+	* gui: fix display seconds
+	* gui: display msisdn and imsi in acct log view
+	* gui: disable cents in recurring alteration
+	* gui: support pagination balance view in GUI
+	* gui: add expanding row in bucket view
+	* test: balance log view pagination
+	* implement pagination in REST for balance log
+	* correct parsing user-name avp
+	* add stack trace to error reports
+	* improve balance adjustment failure handling
+
+2021-01-19 Refath Wadood <refath@sigscale.org>
+
+	* gui: fix label and clear values for redirect server
+
+2021-01-19  Refath Wadood <refath@sigscale.org>
+
+	* gui: clear price array value once cancel is clicked
+	* gui: add redirect server with offer
+	* gui: update dialog for redirect server
+	* test: threshold for generating internal events
+	* test: receive only subscribed category notifications
+	* add redirect server as a product offer characteristic
+	* remove setting threshold environment variables while subscribing
+	* filters available accumulated balance internal events
+	* avoid getting id from acct events
+	* return redirect information on out-of-credit
+	* handle redirect information in rating result
+	* handle partial charge in update session
+	* remove redundent case; rename function according to output
+	* define category based on uri
+	* store fsm pid and category in state record
+	* send subscribed category notifications only
+	* add user category
+	* fix matchspec for msisdn and imis in log query
+
+2021-01-14  Refath Wadood <refath@sigscale.org>
+
+	* correct timestamp for bucket adjustments
+	* gui: add msisdn & imsi columns in accounting log
+	* gui: implement row details feature in accounting view
+	* gui: unselect product from product list
+	* gui: add service without product
+	* gui: fix realizing service length
+	* rest: support balance query by service identifier
+	* correct href product catalog managment
+	* remove past due dates when product is charged
+	* remove multiple payments made by the scheduler
+
+2021-01-06  Vance Shipley <vances@sigscale.org>
+
+	* merge polymer-3.0 branch
+	* update copyrights for new year
+	* gui: fix product warning
+	* rating: refactor reservation handling for mscc
+	* remove undefined identfier clause
+	* remove incorrect match spec clutter
+	* test: add remove session after multiple interims test case
+	* gui: update credit through balanceadjustment
+	* rating: correct matching existing session bucket
+	* gui: add MSISDN, IMSI colouns in accounting view
+	* match more than one subscription-Id avp
+	* test case for mscc rating-groups
+	* include mip6-feature-vector in pgw auth response
+
+2020-12-23  Refath Wadood <refath@sigscale.org>
+
+	* test: list all product inventory hub listeners
+	* test: get product inventory hub listeners by id
+	* test: get product catalog hub listener by id
+	* test: get all product catalog hub listeners
+	* test: get all product catalog hub listeners
+	* rest: list all product inventory hub listeners
+	* rest: get all product catalog hub listeners
+	* rest: get product inventory hub listener by id
+	* diameter: reservations unique to service-id, charging-key and session-id
+	* diameter: correct termination ccr failure due to bad si/rg type
+	* pass uri to create href for product catalog listeners
+
+2020-12-21  Refath Wadood <refath@sigscale.org>
+
+	* map s6b agent-info to swx agent-info
+	* error log pgw identity hostname
+	* include apn selection in pgw update
+	* typo in rfc1918 network number
+	* remove old swagger file left in error
+	* simply api titles in swagger files
+	* include resource specification in tariff codec
+	* validate rating openapi specification
+	* correct type for pgw id in state
+	* aaa: include user-name in s6b aaa
+	* aaa: include user-name in s6b aaa
+	* diameter: handle missing mscc
+	* diameter: remove session on deregister failure
+	* diameter: interim reservations replace existing, they are not cumulative
+	* rest: add notifications operations to usage api specification
+	* rest: correct type of body for get usage response
+	* rest: correct type of response body for get usage specification collection
+	* rest: operation ids, summaries and descriptions in usage api
+	* rest: usage specification reference, not value, in usage in swagger
+	* rest: add openapi specification for rating function interface (re)
+	* rest: restore files deleted by swaggerhub
+	* rest: remove unresolved references to two 5g charging  information types
+	* rest: missing service id value in scur response example
+	* rest: remove 'any of' in simple type definition of request data response
+	* rest: refactored pattern of describing references
+	* rest: service id in examples different for sms and ps
+	* rest: refactored pattern of describing references
+	* rest: api for getting all balance management hubs
+	* rest: api for getting a balance management hub by id
+	* gui: fix add service with product
+	* gui: add roaming table field
+	* test: import csv file correctly for roaming_table_data testcase
+	* test: get all balance management hubs
+	* test: get balance management hub by id
+
+2020-12-07  Vance Shipley <vances@sigscale.org>
+
+	* aaa: ue deregistration from hss of all sessions
+	* aaa: store identity in session table
+	* aaa: include nas/pgw in log report
+	* aaa: correct encoding of destination-host in sar
+	* aaa: correct matching apn selection
+	* ccr: test cases for immediate event charging
+
+2020-12-05  Vance Shipley <vances@sigscale.org>
+
+	* ccr: immediate event charging (iec) [OCS-331 #close]
+	* ccr: handle empty service information on initial
+	* aaa: expect multiple sessions for an imsi
+	* aaa: correct deregistration on swx
+	* aaa: missing mandatory avps
+
+2020-12-03  Vance Shipley <vances@sigscale.org>
+
+	* aaa: store serving hss in session table
+	* aaa: session table secondary index imsi should not be nai
+	* aaa: correct experimental result code
+	* aaa: start terminate handler fsm from diameter sta/swm callback
+	* aaa: start deregister handler fsm from diameter swx callback
+	* aaa: start pgw handler fsm from diameter s6b callback
+	* aaa: throw errors instead of silent discard
+	* aaa: register pgw, terminate and deregister supervisors
+	* gui: fix charging key label
+
+2020-12-02  Vance Shipley <vances@sigscale.org>
+
+	*  include optional origin-state-id in all diameter command/response
+
+2020-12-01  Vance Shipley <vances@sigscale.org>
+
+	* non-3gpp: correct dispatch of session/registration termination
+	* non-3gpp: add all (optional) avps in user profile to specialized decode
+	* reorder httpd aliases in sys.config for clarity
+
+2020-11-30  Vance Shipley <vances@sigscale.org>
+
+	* dispatch sta/swm session termination requests to dereg fsm
+	* dispatch swx ue registration termination requests to terminate fsm
+	* dispatch s6b requests to pwg fsm
+	* fsm module for handling pgw registrations
+	* rest handling of acct log notification
+	* send notification of acct logging
+	* export accounting usage codec
+	* test: receive notification of diameter acct log
+	* correct application in response
+	* no mscc in response if zero granted
+	* handle s6b in terminate fsm
+	* use representative auth-request-type in aaa
+	* store user profiles as swx, specialized codecs to encode user profile in sta, swm or s6b
+	* export legacy as well as current api fpr specialized decode
+	* sort 32.299 avps by code
+	* correct mandatory flags on some avps
+	* do nor send empty gsu
+	* include origination timestamp avp for gx
+	* add s6b diameter application to auth service
+	* s6b avps
+	* add rfc5777 avps
+	* correct type of session-id in bucket reservation
+	* guard against adding 'b' multiplier to other than octets in quantity
+	* implement update facility for chargingKey
+	* add chargingKey in add offer price
+	* filter prices by charging key (OCS-369 #done)
+	* product specification characteristic for charging key in price (OCS-201 #done)
+	* filter only usage management subscriptions
+	* return hub record with specific href
+	* recognize in session buckets
+	* test: validate href of the subscription
+	* look up values in tariff table using gtt
+	* test: validate all the hubs are usage type
+	* rest api of getting an usage subscription
+	* test: get a usage subscription
+	* list usage hub subscriptions
+	* test: list usage subscriptions
+	* guard against bad table result
+	* rest api for unregistering a usage listener
+
+2020-11-23  Refath Wadood <refath@sigscale.org>
+
+	* test: ignore reservations, verify balance deducted
+	* test: ignore sessions, verify balance deduction
+	* test: query support in service inventory subscriptions
+	* test: query support in product inventory subscriptions
+	* test: query support in product catalog subscriptions
+	* test: query gtt notification
+	* test: query pla notification
+	* test: group product subscription charge
+	* test: usage subscription
+	* test: diameter scur, rated in acct log
+	* test suite: remove cruft; correct unit sizes and types
+	* gui: error message when product delete failed
+	* gui: allow bytes for product offering price tariff type
+	* gui: make tarriff table active when prepaid data selected
+	* gui: fix update product offering price unit of measure
+	* rest: query support in service inventory subscriptions
+	* rest: query support in product inventory subscriptions
+	* rest: query support in product catalog subscriptions
+	* notificatons: accumulated balance is less than its threshold
+	* handle msisdn and imsi values in codec
+	* implement the handler for product catalog synchronization
+	* set authorization from subscription request
+	* add user default module
+	* handle only resource id or eventype in the subscription query
+	* return error for unsupported subscription query
+	* handling bucket id for subscription query
+	* handling pla num for subscription query
+	* handle accumulated subscription balance query
+	* environment variables for threshold limits with default undefined
+	* set environment variable for threshold
+	* register ocs_rest_hub_usage module
+	* corrections for rated in acct log
+	* correct empty rsu vs missing rsu handling
+	* add service id when a abmf log entry is made
+
+2020-11-02  Vance Shipley <vances@sigscale.org>
+
+	* mnesia must be started before ocs
+	* rest: add open api specifications "swagger")
+	* rest: add msisdn and imsi to acct usage spec
+	* rest: include uris in api functions
+	* rest: table name in payload
+	* rest: query syntax in get accumulated balance by product id
+	* rest: delete bucket
+	* rest: additional parameters in get product specification
+	* gui: remove paper-tags for realizing service
+	* gui: delete buckets in balance grid view
+	* gui: bytes for tariff in add offer dialog
+	* gui: balance adjustment to add credit in add service dialog
+	* notifications: accumulated balance threshold
+	* notifications: balance bucket add, delete
+	* notifications: offer add, delete
+	* notifications: product add, delete
+	* notifications: service add, delete
+	* notifications: subscription charge
+	* notifications: pla add, delete
+	* notifications: gtt insert, delete
+	* check for recurring prices in the bundled offers
+	* correct type of rating group and service identifier in mscc
+	* correct expected reserve value in response from update_session
+	* rate multiple mscc
+	* handle list of rated in log
+	* log effected buckets
+	* handle yateucn broken rsu (all zero values)
+	* refactor rating for in session conversion of cents to units
+	* install pcc rules for internal (rfc1918) and external rating groups
+	* add precedence avp for gx
+	* ignore unknown avps in service-information
+	* accept validity period in balance attribute of product resource
+	* no restrictions if end_date is undefined
+	* accept validity period in get balance by service id
+	* accept validity period in get balance by product id
+	* refactor final charging for simplification and minor corrections
+	* refactor and correct final reservation refunds
+	* test cases for debit used units octets/seconds same type bucket with refund
+	* do not round up final used units (octet/seconds/messages) to unit size in price
+	* fix tax included amount in codec
+
+2020-09-16  Vance Shipley <vances@sigscale.org>
+
+	+ merge branch pcrf
+	* merge branch s6a
+	* gui: handle empty product list in bucket
+	* only short circuit rating for negative balance on initial
+	* optimize product and bucket deletion
+	* optimize bucket table reads to avoid table lock
+
+2020-09-07  Vance Shipley <vances@sigscale.org>
+
+	* optimize bucket table reads to avoid table lock
+	* log scheduler start/end
+	* simple table record reads in scheduler
+	* refactor and correct positive balance adjustment
+
+2020-09-07  Vance Shipley <vances@sigscale.org>
+
+	* diameter: refactor service/transport configuration options (to support sctp)
+	* scheduler: debit subscription charge from available buckets in expiry order
+	* diameter: missing mscc in initial ccr as authentication (only) (required by ericsson)
+	* scheduler: eliminate reading entire offer table into memory
+	* diameter:correct unknown subscriber result-code
+	* tests: remove redundent public key; change permissons on private keys
+	* tests: generate public key
+	* tests: fix accounting log typo
+	* test: validate end date of an allowance
+	* scheduler: handle tariff price type when subscription is charged
+	* tests: case for tariff price with recurring alteration
+	* tests: case for tariff price with one time alteration
+	* tests: case for recurring price with one_time alteration
+	* tests: case for recurring price with usage alteration
+	* tests: case for one_time price with usage alteration
+	* tests: case for usage price with one time alteration
+	* rest: update base path in swagger file
+	* tests: suite for product creation
+	* tests: manage loading and unloading ocs application for per suite ports
+	* align product offer price validation with currently supported scheme:
+		A Product Offer Price (POP) Alteration realizes an allowance. If the
+		POP type is 'one_time' or 'recurring' an Alteration with type 'usage'
+		is assumed to be an allowance. If POP type is usage Alteration type
+		must be 'one_time' or 'recurring'.
+	* one time and recurring prices, with alterations, may have zero amount
+	* tests: refactor oauth authentication test case
+	* tests: rest suite data directory variable
+	* tests: generate rsa privatekey; remove incorrect variable
+	* tests: cases for incoming and outgoing tariff table prices
+	* gtt: allow string table name references
+
+2020-08-23  Vance Shipley <vances@sigscale.org>
+
+	* rate incoming voice using calling address
+	* test cases for diameter scur incoming and outgoing voice
+	* correct final debit amount rounding up to price unit size
+
+2020-08-22  Vance Shipley <vances@sigscale.org>
+
+	* test case for diameter scur with centralized unit determination
+	* refactor rating to include unit type in response
+	* stop applications on end in rest api test suite
+	* add mod_oauth module edoc
+	* document mod oauth enviroment variables
+	* remove unused (internal) inets header file from mod_oauth
+	* handle service address of all zeroes in test suite
+
+2020-08-19  Vance Shipley <vances@sigscale.org>
+
+	* gui - correct recurring amount initialization
+	* oauth (rfc6549) inets module
+	* oauth testcase
+	* types - missing cents in price units
+	* diameter - no rating on ccr terminate with no mscc
+	* diameter - ccr terminate may have missing mscc
+	* rest - api for unregistering hub listener for resource inventory
+	* rest - api for registering hub listener for resource
+	* rest - use shorter uri in product and service resources
+	* diameter - encode for orthoganality in custom codec
+	* use service-identifier and rating-group in case of rsu missing
+	* rest - api for unregistering hub listener for catalog
+	* testcase for unregistering hub listener for catalog
+	* rest - api for registering hub listener for catalog
+	* test - case for regestering hub listener for catalog
+	* rest - api of unregistering hub listener for user
+	* test - case for unregistering hub listener for user
+	* rest - api for registering hub listener for user
+	* rest - create rest hub module for user
+	* test case for registering hub listener for user
+	* rest - api for unregistering service hub listener
+	* test case for unregistering hub listener for service
+	* rest - handle notifications for add service
+	* test case for service inventory management notifications
+	* rest - api to create a new listener for service inventory
+	* test case for registering hub listener for service
+	* rest - api for unregistering existing product hub listener
+	* test case for unregistering existing product hub listener
+	* test case for registering hub listener for product
+	* validate id, password in add service
+	* handle notifications for add product
+	* test case for product inventory management notifications
+	* notification for expired bucket deletion
+	* accept empty rsu
+	* correct rsu input + output octets case
+
+2020-08-02  Vance Shipley <vances@sigscale.org>
+
+	* centralized unit determination [OCS-173]
+
+2020-07-30  Vance Shipley <vances@sigscale.org>
+
+	* use all apn configurations (revert from select default apn)
+	* decode swx apn-configuration as swm apn-configuration for pass thru
+	* specialized diameter codec
+
+2020-07-27  Vance Shipley <vances@sigscale.org>
+
+	* correct missing eap in swm der (regression)
+
+2020-07-22  Vance Shipley <vances@sigscale.org>
+
+	* select default apn from apn-configuration in non-3gpp-user-data
+
+2020-07-20  Vance Shipley <vances@sigscale.org>
+
+	* allow + in prefix
+	* forward received rtr to ue deregistration handler
+	* forward received str to session termination handler
+	* readmes for packages
+	* return correct error code for product resources
+	* include doc directory in tarball package
+	* reconcile conflict with 3gpp ts 29.273 sections 5.2.2.1.2 and 7.2.2.1.2
+
+2020-05-20  Vance Shipley <vances@sigscale.org>
+
+	* add proxy-info, route-record to all messages
+	* kdf required in rfc5448, not allowed in rfc4187
+	* correct diameter service name; ignore when none
+	* item number conditional in authentication data
+	* update aka with new auc api
+	* align formatting of aka with akap to ease updates
+
+2020-05-19  Vance Shipley <vances@sigscale.org>
+
+	* accept destination-interface in sms-information (not 3gpp 32.274 compliant)
+
+2020-05-16  Vance Shipley <vances@sigscale.org>
+
+	* correct path in response header
+	* correct service inventory base path in rest test suite
+	* update pla status codec
+	* mms-information in sms service
+
+2020-05-15  Vance Shipley <vances@sigscale.org>
+
+	* refactor recurring charge scheduler for finer grained accuracy
+	* fix recurring octet/second subscription charging
+	* add path aliases to modernize v1/v2 apis
+
+2020-05-04  Vance Shipley <vances@sigscale.org>
+
+	* correct location header in a response
+	* move get_plas to correct module
+	* move get_pla_specs function to correct module
+	* update paths in edoc; typos
+	* add get_pla_specs function
+	* session termiation and user deregistration
+	* add diameter str and rtr types to auth log
+	* use diameter octetstring type
+	* handle session record in eap_aka[p]_fsm
+	* diameter application in session record
+	* save session in local auc case
+	* add aliases for base paths
+
+2020-04-20  Vance Shipley <vances@sigscale.org>
+
+	* kdf not mandatory in akap sync failure
+	* diameter swx saa missing avp
+	* add avps included in apn-configuration
+
+2020-04-13  Vance Shipley <vances@sigscale.org>
+
+	* user profile in dea
+	* use random radius/diameter ports in test suites
+	* update tables in test lib
+	* store hss
+	* add session table for non-3gpp access
+	* codec for sta aar/aaa,asr/asa,str/sta,rtr/rta
+	* codec for swm aar/aaa,asr/asa,str/sta,rtr/rta
+	* codec for swx rtr/rta
+	* send registration request from aka to auc
+	* register aka users; diameter swx sar/saa
+	* handle timeout on swx
+	* user-name mandatory in mar
+	* accept any mobile station sequence number array index
+
+2020-04-08  Vance Shipley <vances@sigscale.org>
+
+	* fix resynchronization with local auc
+	* gui fix for messages recurring price type
+	* gui cosmetic fixes for prepaid sms
+	* correct balance units on add service
+
+2020-04-01  Vance Shipley <vances@sigscale.org>
+
+	* handle resynchronization
+
+2020-03-26  Vance Shipley <vances@sigscale.org>
+
+	* migrate client table to add trusted field
+	* handle rat-type in swx
+	* hss configuration
+	* add 3gpp swx diameter application
+	* certificate authority should have unique common name
+	* add messages column in product view
+	* support prepaid sms
+	* support messages in product offering price
+	* fix balance amount issue
+	* add aka to default method preferences
+	* add 3gpp sta diameter application
+	* nif for modified sha-1 as prf in eap-aka (rfc4187)
+	* test case for diameter ecur with no credit
+	* test case for diameter scur initial request with no credit
+	* add sms to product specifications collection
+	* correct codec on balance collection [OCS-230]
+	* correct pagination server arguments [OCS-230]
+	* add example pricing logic algorithm (pla) and tariff table
+	* document import file format
+	* add bundle examples
+	* add tariffed voice example
+	* add example product offers to catalog: data
+	* handle trusted client attribute in diameter auth
+	* create add product tab with add service tab
+	* skip topup when no balance value
+	* display 'server generated' modal only when true
+	* show password after add service
+	* correct aka credentials handling (OCS-215 #done)
+	* support k and opc in service view
+	* aka credentials in service (OCS-214 #done)
+	* aka_cred() in service record (OCS-213 #close)
+	* remove otp_mibs package deprecated in otp22
+	* default preference is eap-aka'
+	* 802.11i uses ms-msppe-recv-key only
+	* add 3gpp swx diameter application
+	* update diameter auth service fsm to match acct
+	* better concatenation for list of binaries
+	* correct vendors in capabilities exchange
+	* correct btree search of single file log
+
+2019-06-13  Vance Shipley <vances@sigscale.org>
+
+	* log and ignore unsupported avps
+	* clear bundle checkbox in offer dialog
+	* validate alterations amount
+	* delete product dialog
+	* filters in abmf view
+	* advanced rest query pattern for abmf
+	* correct content length in 204 response
+	* test cases for balance adjustment
+	* apis for balance adjustment
+
+2019-05-10  Kusal Fernando  <kusal@sigscale.org>
+
+	* validate size of the service id
+	* remove subscriber coloumn from balance view
+	* configure httpd without tls by default
+
+2019-04-23  Kusal Fernando  <kusal@sigscale.org>
+
+	* add missing id in product inventory codec
+	* make sure etag unique in product
+	* strip b from unit values
+	* balance view: fix allign for amount
+	* balance view: fix bytes value
+	* add missing clause to date range function
+	* add table schema diagram to user guide
+	* ignore note field in service inventory
+
+2019-03-04  Kusal Fernando  <kusal@sigscale.org>
+
+	* log all http requests, including errors
+	* delete service silently failed when product ref didn't exist
+	* refactor find functions for consistency and safety
+	* correct expected result of initialize tables
+
+2019-01-30  Kusal Fernando  <kusal@sigscale.org>
+
+	* map correct name of total octets
+
+2019-01-09  Kusal Fernando  <kusal@sigscale.org>
+
+	* syntax errors are fixed
+
+2019-01-08  Kusal Fernando  <kusal@sigscale.org>
+
+	* remove global variables in front end modules
+	* harden http range requests
+	* use sticky locks to speed up transactions
+	* use ets activity context for lookups
+	* rename log file search function
+	* binary tree search for log queries
+	* correct binary log chunking
+	* use matchspecs in diameter account query api
+	* handle event type at usage characteristic
+	* include total octets in log rest api
+	* fix accounting filter head and characteristics
+	* front end filter requests
+
+2018-10-17  Kusal Fernando  <kusal@sigscale.org>
+
+	* test suite for diameter acct query
+	* query filter for diameter acct log
+	* handle old record version for nas_id
+	* correct logging of rated info
+	* include usage amounts for diameter events in api
+	* log bucket creation to abmf log
+	* remove open an abmf log from get_balance_log function
+	* fix looping state in service
+	* handle ocs_acct, ocs_auth, ocs_abmf log names from environment variables
+	* handle size_mismatch error
+	* validate undefined productID in bucket view
+	* correct result code in mscc of cca
+
+2018-09-07  Vance Shipley <vances@sigscale.org>
+
+	* include result code in mscc of cca
+	* use sigscale supported-vendor-id
+	* use 3gpp vendor-id
+
+2018-08-13  Vance Shipley <vances@sigscale.org>
+
+	* gui fix for subscriber balance
+	* additional diameter ps-information 3gpp avps
+
+2018-08-08  Vance Shipley <vances@sigscale.org>
+
+	* include service-identifier and rating-group with granted-service-unit
+
+2018-08-04  Vance Shipley <vances@sigscale.org>
+
+	* add ps-information avps
+	* correct accumulated cents balance value in api
+
+2018-07-26  Vance Shipley <vances@sigscale.org>
+
+	* handle diameter ro interim requests with only used or requested units
+	* add missing avp for ps charging characteristics
+	* handle negative amounts in rated
+	* simplify bucket reads
+	* assign unique bucket id
+	* refactor to open radius disconnect port early
+	* simplify config construction
+	* include mibs in release
+	* safer origin-{host,realm} discovery
+	* correct double charging
+
+2018-07-05  Vance Shipley <vances@sigscale.org>
+
+	* safely get domain name
+	* if domain unavailable use default realm example.net
+	* allow multiplier patterns in balance
+	* snmp get diameter cc peer table
+
+2018-07-04  Vance Shipley <vances@sigscale.org>
+
+	* snmp agent
+	* ocs mib
+	* radius auth server mib
+	* radius accounting server mib
+	* diameter base protocol mib
+	* diameter credit control application mib
+	* correct matchspec for balance list
+	* add seize time field to voip record
+	* log query defaults to any protocol
+	* fix refresh in several gui views
+	* gui modal to add service to existing product
+	* handle results from read-only logs (bad bytes)
+
+2018-06-21  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: offers
+	* document tmforum open api table
+	* document advanced attribute filtering query
+	* fix for navigation menu reselection
+	* internalization updates
+	* fixes for access and accounting logs
+	* add accumulated balance in product inventory view
+	* extend product api with accumulated balance
+
+2018-06-14  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: clients, buckets
+	* change accumulated balance uri to match tmf spec
+	* accumulated balance by service id
+	* fix pagination in clients api
+	* allow . in query advanced values
+	* clear filter values on refresh
+	* validate ip address adding clients
+
+2018-06-08  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: products
+	* pipeline get pages: products
+	* reload button for product and bucket views
+	* clear add service dialog on submit
+	* filtering product inventry view
+	* remove deprecated log modules
+	* remove unused http put module
+	* correct field filter handling
+
+2018-06-07  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: users, services, buckets
+	* pipeline get pages: users, services, buckets
+	* fix patch service api
+	* diameter ro: sms-information in service-information
+	* add debit ammount for negative balance
+	* reset range values on filter changes
+	* remove deprecated sort queries in api
+	* correct error report formatting
+	* topup for service id
+	* do not include bucket type for zero rated cdrs
+	* changed application variable for scheduler
+	* change topup uri to match tmf spec
+	* add product inventory id in add service api
+	* add roaming table and rating
+	* filter tarrif prices for messages and data
+	* price type tariff validation for messages
+
+2018-05-14  Vance Shipley <vances@sigscale.org>
+
+	* handle utf8 csv file in table import
+	* correct diameter termination-cause values
+
+2018-05-11  Vance Shipley <vances@sigscale.org>
+
+	* app vars to configure distributed logs
+	* change UI view for service
+	* rest query support for buckets
+	* add_service/2 api function
+	* remove bucket from service record
+	* get_buckets/1,2 api function
+	* make instance_chars codec bidirectional
+	* query support for product inventory
+	* add class to service attributes
+	* httpd auth management optional
+	* extend service inventory api
+
+2018-04-28  Vance Shipley <vances@sigscale.org>
+
+	* create function for get productInventory
+	* patch serviceCharacteristics in serviceInventory
+	* implement serviceInventoryManagement API
+	* add test case for recurring charge daily subscription
+	* do not remove negative balance bucekts
+	* refactor subscription function
+	* if any negative cents bucket return out of credit
+	* initial subscription charges when create new product
+	* clause for handle one time charges
+	* implement scheduler for recurring charges
+	* implement add service in GUI
+	* deprecate subscriber resource
+	* add service specific char values
+	* implement IPDR VoIp view in GUI
+	* refactor REST API for get accumulated balance
+	* refactor REST API for get bucket with id
+	* change IPDR log directory path
+	* implement API function for add buckets
+
+2018-04-26  Krishman Logenderarajah <krishmanl@sigscale.org>
+
+	* fix bucket terminationDate
+	* add ps information for ipdr codec
+	* ignore empty description in table import
+
+2018-04-05  Vance Shipley <vances@sigscale.org>
+
+	* accept JSON Number() or String() input amounts
+	* allow empty description field in table import
+	* allow quoted fields with commas in CSV for table import
+	* add user update modal
+	* correct end time for VoIP IPDR
+	* filter by susbcriber balance/enabled/multi-session fields
+
+2018-03-29  Vance Shipley <vances@sigscale.org>
+
+	* fix ipdr usage characteristics
+	* correct order in access log query results
+	* implement query susbcriber of susbcriber identity, password, product id
+	* query parameter values
+	* ipdr voip view
+	* change ipdr log directory path
+
+2018-03-20  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* support for event base charging for SMS
+	* introduce new bucket/usage type 'message'
+
+2018-03-14  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ims profile diamater ro logging
+	* ipdr voip profile logs
+	* ipdr voip profile usage api
+	* ipdr file ui view
+
+2018-03-01  Vance Shipley <vances@sigscale.org>
+
+	* fix for negative decimals
+	* fix accumulated balance in subscriber view
+	* fix add bucket to subscriber
+	* diameter ro charateristics in usage views
+	* fix ui prefix table editing
+
+2018-02-26  Vance Shipley <vances@sigscale.org>
+
+	* decimal prices
+	* include rated charge info in accounting log
+	* improved diameter event handling
+	* advanced query filtering in log views
+
+2018-02-14  Vance Shipley <vances@sigscale.org>
+
+	* extended attribute query syntax for logs
+	* fixed ipdr log rotation and file selection modal
+	* diameter supervision rationalization
+	* scanner/parser for tmf advanced attributes query patterns
+	* correct get accumulated (cents) balance api
+	* corrections for time-of-day prices
+	* refactor session id handling
+	* add balance activity logger and ui view
+	* improvements to accounting log view
+
+2018-01-25  Vance Shipley <vances@sigscale.org>
+
+	* diamater ps-information handling
+	* overide origin-host in dianeter configuration
+	* do not advertise diameter base application
+	* permanent diameter service fsm worker
+
+2018-01-18  Vance Shipley <vances@sigscale.org>
+
+	* radius service type 1 (login) as data
+	* no reservation in rated access-request authorization
+	* fix for incoming call rating in access-request authorization
+	* prefix table view
+
+2018-01-16  Vance Shipley <vances@sigscale.org>
+
+	* session handling fixes
+	* fix for rate table rate of zero
+
+2018-01-11  Vance Shipley <vances@sigscale.org>
+
+	* call direction added to Product Offering UI dialogs
+	* prefix price table deprecated
+	* table name characteristics moved to Profuct Offering Price
+	* simplified and corrected price matching
+
+2018-01-08  Vance Shipley <vances@sigscale.org>
+
+	* add callDirection product price characteristic
+	* support h323-call-origin radius attribute
+	* support separately rated incoming voice calls
+	* time of day used with any product price
+
+2018-01-03  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : add authorize/6
+	* ocs_gtt.erl : add list/0
+
+2017-12-27  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* ocs_rest_res_product.erl : add tariff price type
+	* ocs.erl : match service type for authorization
+	* ocs_eap_pwd_fsm.erl : match service type for authorization
+	* ocs_simple_auth_fsm.erl : match service type for authorization
+	* ocs_eap_ttls_fsm.erl : match service type for authorization
+	* ocs_charging_SUITE.erl : test suite for charging
+	* ocs_rest_res_product.erl : new product specifications
+	* ocs_rating.erl : handle negative balance
+	* ocs_simple_auth_fsm.erl : passwordless operation option
+	* ocs_eap_pwd_fsm.erl : passwordless operation option
+
+2017-12-22  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : rate product bundles, match product service type
+	* ocs.erl : charge one_time / recurring product bundles
+	* ocs_rest_res_product.erl : product bundles, new specifications
+
+2017-12-13  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : remove Final-Unit-Indication in final CCA
+	* ocs_rating.erl : correct reservation refund
+
+2017-12-11  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : correct debit on out of credit and partial reservation
+	* ocs.erl : charge one_time prices, add one_time allowances
+	* ocs_log.erl : refactor query
+	* ocs_scheduler.erl : perform recurring charges
+
+2017-12-04  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_gtt.erl : fixes for prefix table import
+
+2017-11-30  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : correct prefix table lookups
+	* ocs_gtt.erl : persist imported prefix tables
+	* ocs_rest_res_usage.erl : handle date query selector
+
+2017-11-24  Vance Shipley <vances@sigscale.org>
+
+	* ocs.erl : create allowance buckets and charge subscriptions
+			on subscription instantiation
+
+2017-11-20  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* *html : minor bug fixes
+	* ocs_rating.erl : update rating functionality
+
+2017-11-1  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* *html : minor bug fixes
+
+2017-10-31  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : DIAMETER codec fixes
+
+2017-10-30  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : DIAMETER account logging
+	* ocs_rating.erl : add bucket rating support
+
+2017-09-22  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* ocs_rest_pagination_server.erl : add REST pagination
+	* ocs_rest_pagination_sup.erl : pagination continuity etag
+	* ocs.erl : add product to subscriber API
+	* ocs_rest.erl : add REST utility library
+	* ocs_rest_res_usage.erl : TMF635 usage management resource handler
+
+2017-07-14  Vance Shipley <vances@sigscale.org>
+
+	* ocs_log*.erl : add query support
+	* ocs_rest_res_user.erl : add rest user management
+	* ocs_rest_res_balance.erl : add balance management
+
+2017-05-15  Kalpa Gunarathna  <kalpa@sigscale.org>
+
+	* ocs_diameter*.erl : add DIAMETER protocol support
+	* ocs_rest_res_http.erl : retrieve http logs via REST API
+	* ocs_rest_res_access.erl : retrieve access logs via REST API
+	* ocs_rest_res_accounting.erl : retrieve accounting logs via REST API
+
+2017-03-14  Kalpa Gunarathna  <kalpa@sigscale.org>
+
+	* ocs_rest_res*.erl : perform RESTful operations
+	* ocs_log.erl : add IPDR log functionality
+	* mod_ocs_rest*.erl : add custom mods for inets, httpd server
+	* ocs_eap*.erl : add EAP authentication functionality
+	* ocs_radius*.erl : add RADIUS protocol support
+
 2023-07-06  Vance Shipley <vances@sigscale.org>
 
 	* remove deprecated gtt import from app install
