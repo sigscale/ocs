@@ -394,7 +394,8 @@ class policyList extends PolymerElement {
 	}
 
 	onIronResize(event) {
-		if (event.path[0].localName == 'iron-pages') {
+		if (event.composed
+				&& event.composedPath()[0].localName == 'iron-pages') {
 			this.shadowRoot.getElementById('policyGrid').notifyResize();
 		}
 	}
