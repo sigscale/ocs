@@ -1270,6 +1270,15 @@
             "description" : "Charging Characteristics (GTP IE)",
             "type" : "string",
             "pattern" : "^[A-Fa-f0-9]{6}$"
+          },
+          "ratType" : {
+            "description" : "Indicates which Radio Access Technology is currently serving the UE.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "NR", "NR-unlicensed", "WLAN", "GAN", "EUTRAN", "EUTRAN-NB-IoT", "LTE-M", "HSPA-evolution", "UTRAN", "GERAN", "Trusted-WLAN", "Trusted-non3GPP", "Wireline", "Wireline-cable", "Wireline-BBF", "IEEE-802.16e", "VIRTUAL" ]
+            }, {
+              "type" : "string"
+            } ]
           }
         },
         "required" : [ "sgsnMccMnc" ]
