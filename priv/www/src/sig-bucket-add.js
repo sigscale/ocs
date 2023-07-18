@@ -111,6 +111,15 @@ class offerAdd extends PolymerElement {
 				</div>
 				<div>
 					<paper-input
+							value="{{price}}"
+							label="Price">
+					</paper-input>
+					<paper-tooltip>
+						Optionally associate this Balance Bucket with a Product Offering Price exclusively.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
 							type="datetime-local"
 							value="{{bucketStart}}"
 							label="Start Date">
@@ -201,6 +210,9 @@ class offerAdd extends PolymerElement {
 			productId: {
 				type: String
 			},
+			price: {
+				type: String
+			},
 			bucketStart: {
 				type: String
 			},
@@ -247,6 +259,9 @@ class offerAdd extends PolymerElement {
 			if(this.lifeStatus) {
 				bucket.lifecycleStatus = this.lifeStatus; 
 			}
+			if(this.price) {
+				bucket.price = this.price;
+			}
 			bucket.product = {id: this.productId,
 					href: "/productInventoryManagement/v2/product/" + this.productId};
 			if(this.bucketStart || this.bucketEnd) {
@@ -274,6 +289,7 @@ class offerAdd extends PolymerElement {
 			this.$.addBucket.selected = null;
 			this.lifeStatus = null;
 			this.productId = null;
+			this.price = null;
 			this.bucketStart = null;
 			this.bucketEnd = null;
 			this.bucketUnit = null;
@@ -283,6 +299,7 @@ class offerAdd extends PolymerElement {
 
 	_cancel() {
 		this.productId = null;
+		this.price = null;
 		this.bucketStart = null;
 		this.bucketEnd = null;
 		this.bucketUnit = null;
@@ -293,6 +310,7 @@ class offerAdd extends PolymerElement {
 	_addBucketResponse(event) {
 		this.$.addBucketModal.close();
 		this.productId = null;
+		this.price = null;
 		this.bucketStart = null;
 		this.bucketEnd = null;
 		this.bucketUnit = null;
