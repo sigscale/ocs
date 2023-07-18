@@ -112,7 +112,7 @@ class offerAdd extends PolymerElement {
 				<div>
 					<paper-input
 							value="{{price}}"
-							label="Price">
+							label="Product Offering Price">
 					</paper-input>
 					<paper-tooltip>
 						Optionally associate this Balance Bucket with a Product Offering Price exclusively.
