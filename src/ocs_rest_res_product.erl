@@ -934,8 +934,11 @@ spec_prod_sms() ->
 	DepName1 = {"name", "NetworkProductSpec"},
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
+	Chars = {"productSpecCharacteristic",
+			{array, characteristic_product_sms()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status,
-			Dependency]}.
+			Chars, Dependency]}.
+
 
 %% @hidden
 spec_prod_prepaid_sms() ->
@@ -1074,7 +1077,7 @@ characteristic_product_prepaid() ->
 characteristic_product_voice() ->
 	StringValueType = {"valueType", "String"},
 	Name1 = {"name", "destPrefixTariffTable"},
-	Description1 = {"description", "Table of Prefix, Description, Tariff rate"},
+	Description1 = {"description", "Tariff table name for destination prefix matching"},
 	Char1 = {struct, [Name1, Description1, StringValueType]},
 	Name2 = {"name", "callDirection"},
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
@@ -1097,6 +1100,20 @@ characteristic_product_data() ->
 	Description2 = {"description", "Policy table name"},
 	Char2 = {struct, [Name2, Description2, StringValueType]},
 	[Char1, Char2].
+
+%% @hidden
+characteristic_product_sms() ->
+	StringValueType = {"valueType", "String"},
+	Name1 = {"name", "destPrefixTariffTable"},
+	Description1 = {"description", "Tariff table name for destination prefix matching"},
+	Char1 = {struct, [Name1, Description1, StringValueType]},
+	Name2 = {"name", "callDirection"},
+	Description2 = {"description", "Constrain price to incoming or outgoing messages"},
+	Char2 = {struct, [Name2, Description2, StringValueType]},
+	Name3 = {"name", "roamingTable"},
+	Description3 = {"description", "Roaming partners table name"},
+	Char3 = {struct, [Name3, Description3, StringValueType]},
+	[Char1, Char2, Char3].
 
 -spec pla_spec(ID) -> Result
 	when
