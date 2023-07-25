@@ -64,6 +64,8 @@
 
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_3gpp.hrl").
+-include("diameter_gen_3gpp_swm_application.hrl").
+-include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
@@ -86,6 +88,7 @@
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
 		session_id :: string(),
+		aaa_failure = false :: boolean(),
 		attributes = [] :: radius_attributes:attributes()}).
 -type statedata() :: #statedata{}.
 
@@ -144,6 +147,32 @@ init([radius, _ServerAddress, _ServerPort, ClientAddress, _ClientPort,
 			origin_host = OriginHost, origin_realm = OriginRealm,
 			nas_address = ClientAddress,
 			hss_realm = HssRealm, hss_host = HssHost}};
+init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
+		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
+		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
+		#'3gpp_swm_DER'{'AAA-Failure-Indication' = [1]} = _Request,
+		_Options] = _Args) ->
+	Service = {ocs_diameter_auth_service, ServerAddress, ServerPort},
+	{ok, HssRealm} = application:get_env(hss_realm),
+	{ok, HssHost} = application:get_env(hss_host),
+	process_flag(trap_exit, true),
+	{ok, idle, #statedata{service = Service, session_id = SessionId,
+			origin_host = OriginHost, origin_realm = OriginRealm,
+			nas_host = DestinationHost, nas_realm = DestinationRealm,
+			hss_realm = HssRealm, hss_host = HssHost, aaa_failure = true}};
+init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
+		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
+		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
+		#'3gpp_sta_DER'{'AAA-Failure-Indication' = [1]} = _Request,
+		_Options] = _Args) ->
+	Service = {ocs_diameter_auth_service, ServerAddress, ServerPort},
+	{ok, HssRealm} = application:get_env(hss_realm),
+	{ok, HssHost} = application:get_env(hss_host),
+	process_flag(trap_exit, true),
+	{ok, idle, #statedata{service = Service, session_id = SessionId,
+			origin_host = OriginHost, origin_realm = OriginRealm,
+			nas_host = DestinationHost, nas_realm = DestinationRealm,
+			hss_realm = HssRealm, hss_host = HssHost, aaa_failure = true}};
 init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
@@ -706,7 +735,14 @@ send_diameter_mar2(#'3gpp_swx_MAR'{
 	Request2 = Request1#'3gpp_swx_MAR'{'SIP-Auth-Data-Item' = AuthData2},
 	send_diameter_mar3(Request2, StateData).
 %% @hidden
-send_diameter_mar3(Request1,
+send_diameter_mar3(Request,
+		#statedata{aaa_failure = true} = StateData) ->
+	Request1 = Request#'3gpp_swx_MAR'{'AAA-Failure-Indication' = [1]},
+	send_diameter_mar4(Request1, StateData);
+send_diameter_mar3(Request, StateData) ->
+	send_diameter_mar4(Request, StateData).
+%% @hidden
+send_diameter_mar4(Request1,
 		#statedata{rat_type = RAT, service = Service} = _StateData) ->
 	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1,
 			'Vendor-Specific-Application-Id'
