@@ -831,24 +831,30 @@ quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
 	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount)->
 	Units1 = units(Units),
-	case lists:last(Amount) of
-		$b when Units1 == octets ->
-			N = lists:sublist(Amount, length(Amount) - 1),
-			#quantity{units = Units1, amount = list_to_integer(N)};
-		$k when Units1 == octets ->
-			N = lists:sublist(Amount, length(Amount) - 1),
-			#quantity{units = Units1, amount = list_to_integer(N) * 1000};
-		$m when Units1 == octets ->
-			N = lists:sublist(Amount, length(Amount) - 1),
-			#quantity{units = Units1, amount = list_to_integer(N) * 1000000};
-		$g when Units1 == octets ->
-			N = lists:sublist(Amount, length(Amount) - 1),
-			#quantity{units = Units1, amount = list_to_integer(N) * 1000000000};
-		$s when Units1 == seconds ->
-			N = lists:sublist(Amount, length(Amount) - 1),
-			#quantity{units = Units1, amount = list_to_integer(N)};
-		_ ->
-			#quantity{units = units(Units), amount = list_to_integer(Amount)}
+	case lists:suffix("msg", Units) of
+		true ->
+			N = lists:sublist(Units, length(Units) - 3),
+			#quantity{units = messages, amount = list_to_integer(N)};
+		false ->
+			case lists:last(Amount) of
+				$b when Units1 == octets ->
+					N = lists:sublist(Amount, length(Amount) - 1),
+					#quantity{units = Units1, amount = list_to_integer(N)};
+				$k when Units1 == octets ->
+					N = lists:sublist(Amount, length(Amount) - 1),
+					#quantity{units = Units1, amount = list_to_integer(N) * 1000};
+				$m when Units1 == octets ->
+					N = lists:sublist(Amount, length(Amount) - 1),
+					#quantity{units = Units1, amount = list_to_integer(N) * 1000000};
+				$g when Units1 == octets ->
+					N = lists:sublist(Amount, length(Amount) - 1),
+					#quantity{units = Units1, amount = list_to_integer(N) * 1000000000};
+				$s when Units1 == seconds ->
+					N = lists:sublist(Amount, length(Amount) - 1),
+					#quantity{units = Units1, amount = list_to_integer(N)};
+				_ ->
+					#quantity{units = units(Units), amount = list_to_integer(Amount)}
+			end
 	end;
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) ->
 	#quantity{units = units(Units), amount = Amount};
@@ -862,6 +868,8 @@ quantity([amount | T], #quantity{units = octets, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
 quantity([amount | T], #quantity{units = seconds, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "s"} | Acc]);
+quantity([amount | T], #quantity{units = messages, amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "msg"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);
 quantity([units | T], #quantity{units = Units} = Q, Acc) ->
