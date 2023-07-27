@@ -31,7 +31,7 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
+		Args :: list(),
 		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
 		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
 		MaxR :: non_neg_integer(), 
