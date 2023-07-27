@@ -67,6 +67,9 @@ class offerAdd extends PolymerElement {
 							<paper-item>
 								Seconds
 							</paper-item>
+							<paper-item>
+								Messages
+							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
 					<paper-tooltip>
@@ -281,6 +284,9 @@ class offerAdd extends PolymerElement {
 			}
 			else if(this.bucketUnit == "Seconds") {
 				bucket.amount = {units: "seconds", amount: this.bucketAmount};
+			}
+			else if(this.bucketUnit == "Messages") {
+				bucket.amount = {units: "messages", amount: this.bucketAmount};
 			}
 			var ajax = this.$.addBucketAjax;
 			ajax.body = bucket;
