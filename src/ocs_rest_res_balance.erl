@@ -514,7 +514,7 @@ bucket([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket(T, B, [{"name", Name} | Acc]);
-bucket([name | T], #bucket{price = []} = B, Acc) ->
+bucket([price | T], #bucket{price = []} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([price | T], #bucket{price = Price} = B, Acc) ->
 	bucket(T, B, [{"price", Price} | Acc]);
