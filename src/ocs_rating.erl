@@ -422,21 +422,16 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 				when is_list(RoamingTable), is_list(ServiceNetwork) ->
 			Table = list_to_existing_atom(RoamingTable),
 			case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
-				Value2 when is_integer(element(2, Value2)) ->
-					case element(2, Value2) of
-						UnitPrice when UnitPrice >= 0 ->
-							charge1(Protocol, Service, ServiceId,
-									Product, Buckets, PriceName, tariff,
-									UnitSize, Units, Currency, UnitPrice,
-									PriceChars, Flag, DebitAmounts,
-									ReserveAmounts, SessionId,
-									Rated#rated{price_type = tariff,
-											price_name = PriceName,
-											description = element(1, Value2)},
-									ChargingKey);
-						_UnitPrice ->
-							mnesia:abort(negative_amount)
-					end;
+				{Description, UnitPrice, _TS}
+						when is_integer(UnitPrice), UnitPrice >= 0 ->
+					Rated1 = Rated#rated{price_type = tariff,
+							price_name = PriceName,
+							description = Description},
+					charge1(Protocol, Service, ServiceId, Product,
+							Buckets, PriceName, tariff, UnitSize, Units,
+							Currency, UnitPrice, PriceChars, Flag,
+							DebitAmounts, ReserveAmounts, SessionId,
+							Rated1, ChargingKey);
 				_Other ->
 					rate3(Protocol, Service, ServiceId, Product, Buckets,
 							undefined, Flag, DebitAmounts, ReserveAmounts,
@@ -472,21 +467,31 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 		{undefined, _, TariffTable} when is_list(TariffTable) ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				Value when is_integer(element(2, Value)) ->
-					case element(2, Value) of
-						UnitPrice when UnitPrice >= 0 ->
-							Rated1 = Rated#rated{price_type = tariff,
-									price_name = PriceName,
-									description = element(1, Value)},
-							charge1(Protocol, Service, ServiceId,
-									Product, Buckets, PriceName, tariff,
-									UnitSize, Units, Currency, UnitPrice,
-									PriceChars, Flag, DebitAmounts,
-									ReserveAmounts, SessionId, Rated1,
-									ChargingKey);
-						_UnitPrice ->
-							mnesia:abort(negative_amount)
-					end;
+				{Description, UnitPrice, _TS}
+						when is_integer(UnitPrice), UnitPrice >= 0 ->
+					Rated1 = Rated#rated{price_type = tariff,
+							price_name = PriceName,
+							description = Description},
+					charge1(Protocol, Service, ServiceId, Product,
+							Buckets, PriceName, tariff, UnitSize, Units,
+							Currency, UnitPrice, PriceChars, Flag,
+							DebitAmounts, ReserveAmounts, SessionId,
+							Rated1, ChargingKey);
+				{Description, PeriodInitial, RateInitial,
+						PeriodAdditional, RateAdditional, _TS}
+						when UnitSize == undefined,
+						is_integer(PeriodInitial),
+						is_integer(RateInitial),
+						is_integer(PeriodAdditional),
+						is_integer(RateAdditional) ->
+					Rated1 = Rated#rated{price_type = tariff,
+							price_name = PriceName,
+							description = Description},
+					charge1(Protocol, Service, ServiceId, Product,
+							Buckets, PriceName, tariff, PeriodInitial,
+							Units, Currency, RateInitial, PriceChars,
+							Flag, DebitAmounts, ReserveAmounts,
+							SessionId, Rated1, ChargingKey);
 				_Other ->
 					rate3(Protocol, Service, ServiceId, Product, Buckets,
 							Address, Flag, DebitAmounts, ReserveAmounts,
@@ -498,30 +503,37 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 				when is_list(RoamingTable), is_list(TariffTable) ->
 			Table1 = list_to_existing_atom(RoamingTable),
 			case catch ocs_gtt:lookup_last(Table1, ServiceNetwork) of
-				Value1 when is_list(element(2, Value1)) ->
-						Table2 = list_to_existing_atom(element(2, Value1)
-								++ "-" ++ TariffTable),
-						case catch ocs_gtt:lookup_last(Table2, Address) of
-							Value2 when is_integer(element(2, Value2)) ->
-								case element(2, Value2 )of
-									UnitPrice when UnitPrice >= 0 ->
-										charge1(Protocol, Service, ServiceId,
-												Product, Buckets, PriceName, tariff,
-												UnitSize, Units, Currency, UnitPrice,
-												PriceChars, Flag, DebitAmounts,
-												ReserveAmounts, SessionId,
-												Rated#rated{price_type = tariff,
-														price_name = PriceName,
-														description = element(1, Value2)},
-												ChargingKey);
-									_UnitPrice ->
-										mnesia:abort(negative_amount)
-								end;
-							_Other ->
-								rate3(Protocol, Service, ServiceId, Product, Buckets,
-										Address, Flag, DebitAmounts, ReserveAmounts,
-										SessionId, Rated, ChargingKey, ServiceNetwork, T)
-						end;
+				{_DescriptionSN, TablePrefix, _TS1}
+						when is_list(TablePrefix) ->
+					Table2 = list_to_existing_atom(TablePrefix
+							++ "-" ++ TariffTable),
+					case catch ocs_gtt:lookup_last(Table2, Address) of
+						{Description, UnitPrice, _TS2}
+								when is_integer(UnitPrice), UnitPrice >= 0 ->
+							Rated1 = Rated#rated{price_type = tariff,
+									price_name = PriceName,
+									description = Description},
+							charge1(Protocol, Service, ServiceId, Product,
+									Buckets, PriceName, tariff, UnitSize, Units,
+									Currency, UnitPrice, PriceChars, Flag,
+									DebitAmounts, ReserveAmounts, SessionId,
+									Rated1, ChargingKey);
+						{Description, PeriodInitial, RateInitial,
+								PeriodAdditional, RateAdditional, _TS2}
+								when UnitSize == undefined,
+								is_integer(PeriodInitial),
+								is_integer(RateInitial),
+								is_integer(PeriodAdditional),
+								is_integer(RateAdditional) ->
+							Rated1 = Rated#rated{price_type = tariff,
+									price_name = PriceName,
+									description = Description},
+							charge1(Protocol, Service, ServiceId, Product,
+									Buckets, PriceName, tariff, PeriodInitial,
+									Units, Currency, RateInitial, PriceChars,
+									Flag, DebitAmounts, ReserveAmounts,
+									SessionId, Rated1, ChargingKey)
+					end;
 				_Other ->
 					rate3(Protocol, Service, ServiceId, Product, Buckets,
 							Address, Flag, DebitAmounts, ReserveAmounts,
@@ -1449,15 +1461,20 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				{_Description, Amount, _} when is_integer(Amount) ->
-					case Amount of
-						N when N >= 0 ->
-							authorize4(Protocol, ServiceType, Service, Buckets,
-									Price#price{amount = N}, SessionAttributes,
-									Reserve, ReserveUnits);
-						_N ->
-							mnesia:abort(negative_amount)
-					end;
+				{_Description, Amount, _TS}
+						when is_integer(Amount), Amount >= 0 ->
+					authorize4(Protocol, ServiceType, Service, Buckets,
+							Price#price{amount = Amount}, SessionAttributes,
+							Reserve, ReserveUnits);
+				{_Description, PeriodInitial, RateInitial,
+						PeriodAdditional, RateAdditional, _TS}
+						when is_integer(PeriodInitial),
+						is_integer(RateInitial),
+						is_integer(PeriodAdditional),
+						is_integer(RateAdditional) ->
+					authorize4(Protocol, ServiceType, Service, Buckets,
+							Price#price{amount = RateInitial}, SessionAttributes,
+							Reserve, ReserveUnits);
 				_Other ->
 					mnesia:abort(table_lookup_failed)
 			end;
