@@ -255,27 +255,38 @@ handle_info(#diameter_event{info = start}, wait_for_start, StateData) ->
 	{next_state, started, StateData};
 %handle_info(#diameter_event{info = stop}, _StateName, StateData) ->
 %	{next_state, wait_for_stop, StateData, ?WAIT_STOP};
-handle_info(#diameter_event{info = Event, service = Service},
-		StateName, StateData) when element(1, Event) == up;
-		element(1, Event) == down ->
-	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Event),
+handle_info(#diameter_event{info = Info, service = Service},
+		StateName, StateData) when element(1, Info) == up;
+		element(1, Info) == down ->
+	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Info),
 	error_logger:info_report(["DIAMETER peer connection state changed",
-			{service, Service}, {event, element(1, Event)},
+			{service, Service}, {event, element(1, Info)},
 			{peer, binary_to_list(Peer)}]),
 	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = Event, service = Service},
-		StateName, StateData) when element(1, Event) == closed ->
-	{_CER, _Caps, #diameter_caps{origin_host = {_, Peer}}, _Packet} = element(3, Event),
-	error_logger:info_report(["DIAMETER peer address not found",
-			{service, Service}, {event, element(1, Event)},
+handle_info(#diameter_event{info = {closed, _,
+		{Command, {capabilities_cb, _, ResultCode},
+		#diameter_caps{origin_host = {_, Peer}}, _}, _},
+		service = Service}, StateName, StateData)
+		when Command == 'CER'; Command == 'CEA' ->
+	error_logger:info_report(["DIAMETER peer address not found in client table",
+			{service, Service}, {result, ResultCode},
 			{peer, binary_to_list(Peer)}]),
 	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = {watchdog,
-		_Ref, _PeerRef, {_From, _To}, _Config}}, StateName, StateData) ->
+handle_info(#diameter_event{info = {closed, _,
+		{Command, ResultCode, #diameter_caps{origin_host = {_, Peer}}, _}, _},
+		service = Service}, StateName, StateData)
+		when Command == 'CER'; Command == 'CEA' ->
+	error_logger:info_report(["DIAMETER peer capabilities negotiation failed",
+			{service, Service}, {result, ResultCode},
+			{peer, binary_to_list(Peer)}]),
 	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = Event, service = Service}, StateName, StateData) ->
+handle_info(#diameter_event{info = {watchdog, _, _, _, _}},
+		StateName, StateData) ->
+	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = Info, service = Service},
+		StateName, StateData) ->
 	error_logger:info_report(["DIAMETER event",
-			{service, Service}, {event, Event}]),
+			{service, Service}, {event, Info}]),
 	{next_state, StateName, StateData};
 handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 	{next_state, StateName, StateData}.
