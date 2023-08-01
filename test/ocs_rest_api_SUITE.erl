@@ -2602,7 +2602,6 @@ topup_price(Config) ->
 	HttpOpt = ?config(http_options, Config),
 	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
 	#price{name = PriceName} = P1,
-erlang:display({?MODULE, ?LINE, PriceName}),
 	OfferId = offer_add([P1], 4),
 	ProdRef = product_add(OfferId),
 	AcceptValue = "application/json",
