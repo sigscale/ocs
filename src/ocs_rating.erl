@@ -2256,11 +2256,12 @@ convert1(Type, TotalSize, ServiceId, ChargingKey,
 			(#bucket{}) ->
 				false
 	end,
-	[#bucket{product = Product} | _] = lists:filter(F, CentsBuckets),
+	[#bucket{product = Product, price = PriceName}
+			| _] = lists:filter(F, CentsBuckets),
 	LM = make_lm(),
 	NewBucket = #bucket{id = make_id(LM), last_modified = LM,
 			start_date = Now, end_date = Now,
-			name = "session", product = Product,
+			name = "session", product = Product, price = PriceName,
 			remain_amount = TotalSize, units = Type,
 			attributes = #{bucket_type => session, from_bucket => FBAcc,
 					reservations => #{SessionId => #{ts => Now, debit => 0,
