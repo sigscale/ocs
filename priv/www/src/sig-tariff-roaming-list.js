@@ -52,7 +52,7 @@ class roamingList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-							Tariff Table Name
+							Tariff Table Name Prefix
 					</template>
 					<template>
 						<div class="cell numeric">

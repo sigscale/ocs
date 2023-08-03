@@ -69,13 +69,16 @@ class roamingUpdate extends PolymerElement {
 					<paper-input
 							id="updateTariff"
 							name="tariffUpdate"
-							label="Tariff Table Name"
+							label="Tariff Table Name Prefix"
 							value="{{roamingRowTariff}}">
 					</paper-input>
 					<paper-tooltip
 							for="updateTariff"
 							offset="0">
-						Name of the roaming tariff table applied for the prefix
+						Roaming tariff table to apply for rating in the selected
+						VPLMN(s). This value is used, with the tariff name from
+						a Product Offering Price, to form a tariff table name
+						(prefix-tariff).
 					</paper-tooltip>
 				</div>
 				<div class="buttons">

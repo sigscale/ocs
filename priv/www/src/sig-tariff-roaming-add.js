@@ -44,7 +44,7 @@ class roamingAdd extends PolymerElement {
 								value="{{roamingRowPrefix}}">
 						</paper-input>
 						<paper-tooltip>
-							Leading digits to match against an origination, destination or VPLMN address.
+							Prefix digits to match against MCCMNC of visted network (VPLMN).
 						</paper-tooltip>
 					</div>
 					<div>
@@ -53,17 +53,20 @@ class roamingAdd extends PolymerElement {
 								value="{{roamingRowDescription}}">
 						</paper-input>
 						<paper-tooltip>
-							Description of addresses matching this prefix.
+							Description of visited network(s) (VPLMN) matching this prefix.
 						</paper-tooltip>
 					</div>
 					<div>
 						<paper-input
 								auto-validate
-								label="Tariff Table Name"
+								label="Tariff Table Name Prefix"
 								value="{{roamingRowTariff}}">
 						</paper-input>
 						<paper-tooltip>
-							Roaming tariff table to apply for rating in the selected VPLMN
+							Roaming tariff table to apply for rating in the selected
+							VPLMN(s). This value is used, with the tariff name from
+							a Product Offering Price, to form a tariff table name
+							(prefix-tariff).
 						</paper-tooltip>
 					</div>
 				<div class="buttons">
