@@ -27,7 +27,7 @@ class tableRoamingAdd extends PolymerElement {
 			<style include="style-element"></style>
 			<paper-dialog id="addRoamingTableModal" modal>
 				<app-toolbar>
-					<h2>Add Period Table</h2>
+					<h2>Add Roaming Table</h2>
 				</app-toolbar>
 				<paper-progress
 						indeterminate
