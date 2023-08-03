@@ -1,3 +1,12 @@
+August 1, 2023
+--------------
+	- Improve DIAMETER peer reports
+	- Include messages unit in add bucket dialog
+	- AAA failure indication from Swm/STa DER in SWx MAR
+	- Fix bug in create SMS offering with alteration
+	- Include price name in add bucket dialog
+	- Remove prefix table import, backup, restore
+
 July 4, 2023
 ------------
 	- Web Component for manageing tariff period tables

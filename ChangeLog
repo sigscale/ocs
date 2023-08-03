@@ -1,3 +1,25 @@
+2023-08-01  Vance Shipley <vances@sigscale.org>
+
+	* roaming table name prefix in web components
+	* correct add roaming table dialog title
+	* rollback b661636c11 fixed price charging
+	* create session bucket with price name of from bucket
+	* improve diameter service peer reports
+	* handle tariff period table rows in rating
+	* include unit size and rate in roaming tariff specification
+	* correct omitting empty price attribute in bucket json
+	* include unit size and rate in roaming tariff specification
+	* support messages in quantity codec
+	* add messages unit in add bucket dialog
+	* reflect aaa failure indication received in swm/sta der to swx mar
+	* correct type specification for argument list
+	* fix bug in create sms offer with alteration
+	* add missing charateristics to sms specifications
+	* dialyzer no_native option removed in otp 26
+	* correct label in bucket add dialog
+	* add price in add bucket dialog
+	* add rat-type to ps-information
+
 2023-07-11  Vance Shipley <vances@sigscale.org>
 
 	* modernize getting event path in web componens
