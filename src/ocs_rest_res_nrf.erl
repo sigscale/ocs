@@ -1014,7 +1014,7 @@ authorize_rating1(RemoteUser) ->
 			case lists:keyfind(rating, 1, UserData) of
 				{rating, true} ->
 					{ok, authorized};
-				false ->
+				{rating, false} ->
 					{error, 401}
 			end;
 		{error, no_such_user} ->
