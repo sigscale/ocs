@@ -948,12 +948,12 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			ServiceType, undefined, RatingGroup1, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, final, [{PackageUnits, Debit3}],
-			[], SessionId),
+			undefined, SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup2, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, final, [{PackageUnits, Debit4}],
-			[], SessionId),
+			undefined, SessionId),
 	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId1),
 	1 = length(ocs:get_buckets(ProdRef)).
 
@@ -1025,7 +1025,7 @@ interim_out_of_credit_negative(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
-			final, [{octets, UsedUnits2}], [], SessionAttributes),
+			final, [{octets, UsedUnits2}], undefined, SessionAttributes),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	true = RemainAmount < 0.
 
@@ -1063,7 +1063,7 @@ interim_out_of_credit_negative1(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
-			final, [{octets, UsedUnits2}], [], SessionId),
+			final, [{octets, UsedUnits2}], undefined, SessionId),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	true = RemainAmount < 0.
 
@@ -1101,7 +1101,7 @@ final_remove_session(_Config) ->
 			initial, [], [], [SA2]),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
-			undefined, final, [{PackageUnits, Debit}], [], [SA2]),
+			undefined, final, [{PackageUnits, Debit}], undefined, [SA2]),
 	{ok, #service{session_attributes = [SA1]}} = ocs:find_service(ServiceId).
 
 remove_session_after_multiple_interims() ->
@@ -1147,7 +1147,7 @@ remove_session_after_multiple_interims(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS1 + 240),
 			undefined, undefined, final,
 			[{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}],
-			[], SessionId),
+			undefined, SessionId),
 	[#bucket{units = cents,
 			attributes = #{bucket_type := normal}}] = ocs:get_buckets(ProdRef).
 
@@ -1178,7 +1178,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits1}], [], SessionId1),
+			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -1198,7 +1198,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits3}], [], SessionId2),
+			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
@@ -1229,7 +1229,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits1}], [], SessionId1),
+			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -1249,7 +1249,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits3}], [], SessionId2),
+			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
@@ -1289,7 +1289,7 @@ final_multiple_buckets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120),
 			undefined, undefined, final,
-			[{PackageUnits, UnitSize * 3}], [], SessionId),
+			[{PackageUnits, UnitSize * 3}], undefined, SessionId),
 	NewBalance = (Balance * NumBuckets) - (6 * UnitPrice),
 	F2 = fun(#bucket{remain_amount = N}, Acc) -> Acc + N end,
 	NewBalance = lists:foldl(F2, 0, ocs:get_buckets(ProdRef)).
@@ -1330,7 +1330,7 @@ final_voice(_Config) ->
 	UsedSeconds2 = rand:uniform(ReserveTime - 1),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
-			undefined, final, [{seconds, UsedSeconds2}], [], SessionAttributes),
+			undefined, final, [{seconds, UsedSeconds2}], undefined, SessionAttributes),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	TotalUsed = UsedSeconds1 + UsedSeconds2,
 	case (TotalUsed rem UnitSize) of
@@ -1584,7 +1584,7 @@ time_of_day(_Config) ->
 	UsedOctets1 = rand:uniform(DataSize * 6),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp1, undefined,
-			undefined, final, [{octets, UsedOctets1}], [], SessionId1),
+			undefined, final, [{octets, UsedOctets1}], undefined, SessionId1),
 	{ok, #bucket{remain_amount = Amount1}} = ocs:find_bucket(BId),
 	UsedUnits1 = case UsedOctets1 rem DataSize of
 		0 ->
@@ -1601,7 +1601,7 @@ time_of_day(_Config) ->
 	UsedOctets2 = rand:uniform(DataSize * 6),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp2, undefined, undefined,
-			final, [{octets, UsedOctets2}], [], SessionId2),
+			final, [{octets, UsedOctets2}], undefined, SessionId2),
 	{ok, #bucket{remain_amount = Amount2}} = ocs:find_bucket(BId),
 	UsedUnits2 = case UsedOctets2 rem DataSize of
 		0 ->
@@ -1969,7 +1969,7 @@ debit_sms(_Config) ->
 	Reserved = PackagePrice * NumOfEvents,
 	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			final, [{messages, NumOfEvents}], [],
+			final, [{messages, NumOfEvents}], undefined,
 		SessionId),
 	R2 = RemAmount - (PackagePrice * NumOfEvents),
 	{ok, #bucket{remain_amount = R2,
@@ -2190,7 +2190,7 @@ final_empty_mscc(_Config) ->
 			undefined, interim, [{octets, 15000000}], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
-			undefined, final, [], [], SessionId),
+			undefined, final, [], undefined, SessionId),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2243,7 +2243,7 @@ final_empty_mscc_multiple_services(_Config) ->
 			undefined, interim, [{octets, 15000000}], [], SessionId1),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
-			undefined, final, [], [], SessionId1),
+			undefined, final, [], undefined, SessionId1),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2450,7 +2450,7 @@ allowance_bucket(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			{date(), {22, 0, 0}}, undefined, undefined,
-			final, [{octets, DayAmount2}], [], SessionId1),
+			final, [{octets, DayAmount2}], undefined, SessionId1),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
@@ -2465,7 +2465,7 @@ allowance_bucket(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			{date(), {4, 0, 0}}, undefined, undefined,
-			final, [{octets, NightAmount2}], [], SessionId2),
+			final, [{octets, NightAmount2}], undefined, SessionId2),
 	RemainAmount2 = RemAmount1 - DayAmount1 - DayAmount2,
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId2),
 	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
