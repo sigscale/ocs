@@ -246,7 +246,7 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
-deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
+deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1]} = _Answer},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
 		nas_realm = NasRealm, nas_host = NasHost,
 		hss_realm = HssRealm, hss_host = HssHost,
@@ -255,9 +255,9 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 			{nas_host, NasHost}, {nas_realm, NasRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, IMSI}, {identity, Identity},
-			{session, SessionId}, {result, ResultCode}]),
-	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-	gen_fsm:reply(Caller, response(ResultCode, StateData)),
+			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
