@@ -193,10 +193,11 @@ delete(Table, Number) when is_atom(Table), is_list(Number) ->
 			exit(Reason)
 	end.
 	
--spec lookup_first(Table, Number) -> Value
+-spec lookup_first(Table, Number) -> Result
 	when
 		Table :: atom() | string(),
 		Number :: string(),
+		Result :: Value | undefined,
 		Value :: term().
 %% @doc Lookup the value of the first matching table entry.
 %%
@@ -213,10 +214,11 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 	Fun2 = fun() -> Fun1(Fun1, Rest, mnesia:read(Table, [Digit], read)) end,
 	mnesia:ets(Fun2).
 
--spec lookup_last(Table, Number) -> Value
+-spec lookup_last(Table, Number) -> Result
 	when
 		Table :: atom() | string(),
 		Number :: string(),
+		Result :: Value | undefined,
 		Value :: term().
 %% @doc Lookup the value of the longest matching table entry.
 %%
@@ -237,10 +239,11 @@ lookup_last(Table, Number) when is_atom(Table) ->
 	end,
 	mnesia:ets(Fun2).
 
--spec lookup_all(Table, Number) -> Value
+-spec lookup_all(Table, Number) -> Result
 	when
 		Table :: atom() | string(),
 		Number :: string(),
+		Result :: [Value],
 		Value :: term().
 %% @doc Lookup the values of matching table entries.
 %%
