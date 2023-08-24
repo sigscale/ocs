@@ -32,19 +32,18 @@
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), 
-		MaxT :: pos_integer(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
 		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
 init(Args) ->
+	SupFlags = #{auto_shutdown => any_significant},
 	ChildSpecs = [fsm(ocs_eap_akap_fsm, [self() | Args]),
-			fsm(ocs_eap_aka_auc_fsm, Args)],
-	{ok, {{one_for_one, 0, 1},	ChildSpecs}}.
+			fsm(ocs_eap_akap_auc_fsm, Args)],
+	{ok, {SupFlags, ChildSpecs}}.
 
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
@@ -53,5 +52,7 @@ init(Args) ->
 fsm(StartMod, Args) ->
 	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_fsm, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			restart => temporary, significant => true,
+			modules => [StartMod]}.
 
