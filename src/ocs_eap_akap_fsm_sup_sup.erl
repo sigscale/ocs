@@ -32,10 +32,8 @@
 -spec init(Args) -> Result
 	when
 		Args :: [],
-		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), 
-		MaxT :: pos_integer(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
 		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
@@ -44,7 +42,9 @@
 init(_Args) ->
 	StartMod = ocs_eap_akap_fsm_sup,
 	StartFunc = {supervisor, start_link, [StartMod]},
-	ChildSpec = {StartMod, StartFunc,
-			transient, infinity, supervisor, [StartMod]},
-	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
+	ChildSpec = #{id => StartMod, start => StartFunc,
+			restart => temporary, type => supervisor,
+			shutdown => infinity, modules => [StartMod]},
+	SupFlags = #{strategy => simple_one_for_one},
+	{ok, {SupFlags, [ChildSpec]}}.
 
