@@ -554,7 +554,7 @@ diameter_scur_cud(_Config) ->
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [UnitSize]} = GSU,
 	NewRequestNum = RequestNum + 1,
-	UsedUnits1 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UnitSize]},
+	UsedUnits1 = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UnitSize]},
 	MultiServices_CC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits1]},
 	CC_CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
