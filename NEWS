@@ -1,5 +1,10 @@
 August 1, 2023
 --------------
+	- Allowance bucket charging with price specific buckets
+	- AKA/AKA' FSM supervision fix (requires OTP 24)
+
+August 1, 2023
+--------------
 	- Improve DIAMETER peer reports
 	- Include messages unit in add bucket dialog
 	- AAA failure indication from Swm/STa DER in SWx MAR

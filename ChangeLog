@@ -1,3 +1,17 @@
+2023-08-30  Vance Shipley <vances@sigscale.org>
+
+	* mock charging api in diameter callback for nrf
+	* allowance bucket charging
+	* aka/akap fsm supervisors as temporary children
+	* correct units in diameter scur cud test case
+	* correct immediate event charging
+	* refactor charging for tariff tables
+	* aka[p] fsm supervisor auto shutdown (ocs-690)
+	* correct result in type specs for gtt lookup functions
+	* correct handling unexpected deregistration result
+	* refactor charge2, charge3, as re-entrant
+	* test cases for rating final should have undefined reserve
+
 2023-08-01  Vance Shipley <vances@sigscale.org>
 
 	* roaming table name prefix in web components
