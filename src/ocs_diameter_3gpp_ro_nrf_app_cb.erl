@@ -2365,10 +2365,11 @@ charge([{_, Subscriber} | _], SessionId, Flag, Prices) ->
 charge1(Subscriber, SessionId, Flag, [#{rg := RG, si := SI, currency := Currency,
 		units := Units, unitSize := UnitSize, unitPrice := UnitPrice, debits := Debits,
 		reserves := Reserves} | T], Acc, ResultCode1) ->
-	case ocs_rating:charge(diameter, Subscriber, SI, [],
-			UnitSize, Units, Currency, UnitPrice, undefined,
-			RG, Flag, Debits,
-			Reserves, [{'Session-Id', SessionId}]) of
+case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG, [], [], [], Debits, Reserves, []) of
+%	case ocs_rating:charge(diameter, Subscriber, SI, [],
+%			UnitSize, Units, Currency, UnitPrice, undefined,
+%			RG, Flag, Debits,
+%			Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{grantedUnit => granted_unit(GrantedAmount),

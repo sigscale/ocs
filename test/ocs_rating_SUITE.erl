@@ -937,8 +937,6 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, interim, [{PackageUnits, Debit2}],
 			[], SessionId),
-	RemAmount3 = RemAmount2 - (PackagePrice * 2),
-	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId1),
 	[#bucket{attributes = #{reservations := _Reservations1}},
 			#bucket{attributes = #{reservations := _Reservations2}}]
 			= lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
@@ -948,12 +946,25 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			ServiceType, undefined, RatingGroup1, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, final, [{PackageUnits, Debit3}],
-			[], SessionId),
+			undefined, SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup2, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, final, [{PackageUnits, Debit4}],
-			[], SessionId),
+			undefined, SessionId),
+	Total1 = case (Debit1 + Debit3 rem PackageSize) of
+		0 ->
+			((Debit1 + Debit3) div PackageSize) * PackagePrice;
+		_ ->
+			(((Debit1 + Debit3) div PackageSize) + 1) * PackagePrice
+	end,
+	Total2 = case (Debit2 + Debit4 rem PackageSize) of
+		0 ->
+			((Debit2 + Debit4) div PackageSize) * PackagePrice;
+		_ ->
+			(((Debit2 + Debit4) div PackageSize) + 1) * PackagePrice
+	end,
+	RemAmount3 = RemAmount1 - Total1 - Total2,
 	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId1),
 	1 = length(ocs:get_buckets(ProdRef)).
 
@@ -1025,7 +1036,7 @@ interim_out_of_credit_negative(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
-			final, [{octets, UsedUnits2}], [], SessionAttributes),
+			final, [{octets, UsedUnits2}], undefined, SessionAttributes),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	true = RemainAmount < 0.
 
@@ -1063,7 +1074,7 @@ interim_out_of_credit_negative1(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
-			final, [{octets, UsedUnits2}], [], SessionId),
+			final, [{octets, UsedUnits2}], undefined, SessionId),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	true = RemainAmount < 0.
 
@@ -1101,7 +1112,7 @@ final_remove_session(_Config) ->
 			initial, [], [], [SA2]),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
-			undefined, final, [{PackageUnits, Debit}], [], [SA2]),
+			undefined, final, [{PackageUnits, Debit}], undefined, [SA2]),
 	{ok, #service{session_attributes = [SA1]}} = ocs:find_service(ServiceId).
 
 remove_session_after_multiple_interims() ->
@@ -1147,7 +1158,7 @@ remove_session_after_multiple_interims(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS1 + 240),
 			undefined, undefined, final,
 			[{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}],
-			[], SessionId),
+			undefined, SessionId),
 	[#bucket{units = cents,
 			attributes = #{bucket_type := normal}}] = ocs:get_buckets(ProdRef).
 
@@ -1178,7 +1189,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits1}], [], SessionId1),
+			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -1198,7 +1209,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits3}], [], SessionId2),
+			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
@@ -1229,7 +1240,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits1}], [], SessionId1),
+			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -1249,7 +1260,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
-			[{PackageUnits, UsedUnits3}], [], SessionId2),
+			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
@@ -1289,7 +1300,7 @@ final_multiple_buckets(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120),
 			undefined, undefined, final,
-			[{PackageUnits, UnitSize * 3}], [], SessionId),
+			[{PackageUnits, UnitSize * 3}], undefined, SessionId),
 	NewBalance = (Balance * NumBuckets) - (6 * UnitPrice),
 	F2 = fun(#bucket{remain_amount = N}, Acc) -> Acc + N end,
 	NewBalance = lists:foldl(F2, 0, ocs:get_buckets(ProdRef)).
@@ -1330,7 +1341,7 @@ final_voice(_Config) ->
 	UsedSeconds2 = rand:uniform(ReserveTime - 1),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
-			undefined, final, [{seconds, UsedSeconds2}], [], SessionAttributes),
+			undefined, final, [{seconds, UsedSeconds2}], undefined, SessionAttributes),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	TotalUsed = UsedSeconds1 + UsedSeconds2,
 	case (TotalUsed rem UnitSize) of
@@ -1584,7 +1595,7 @@ time_of_day(_Config) ->
 	UsedOctets1 = rand:uniform(DataSize * 6),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp1, undefined,
-			undefined, final, [{octets, UsedOctets1}], [], SessionId1),
+			undefined, final, [{octets, UsedOctets1}], undefined, SessionId1),
 	{ok, #bucket{remain_amount = Amount1}} = ocs:find_bucket(BId),
 	UsedUnits1 = case UsedOctets1 rem DataSize of
 		0 ->
@@ -1601,7 +1612,7 @@ time_of_day(_Config) ->
 	UsedOctets2 = rand:uniform(DataSize * 6),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp2, undefined, undefined,
-			final, [{octets, UsedOctets2}], [], SessionId2),
+			final, [{octets, UsedOctets2}], undefined, SessionId2),
 	{ok, #bucket{remain_amount = Amount2}} = ocs:find_bucket(BId),
 	UsedUnits2 = case UsedOctets2 rem DataSize of
 		0 ->
@@ -1969,7 +1980,7 @@ debit_sms(_Config) ->
 	Reserved = PackagePrice * NumOfEvents,
 	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			final, [{messages, NumOfEvents}], [],
+			final, [{messages, NumOfEvents}], undefined,
 		SessionId),
 	R2 = RemAmount - (PackagePrice * NumOfEvents),
 	{ok, #bucket{remain_amount = R2,
@@ -1980,27 +1991,23 @@ roaming_table_data() ->
 	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
 
 roaming_table_data(Config) ->
-	PrivDir = ?config(priv_dir, Config),
 	RoamingTable = ocs:generate_identity(),
-	CsvFile = PrivDir ++ RoamingTable ++ ".csv",
-	{ok, File} = file:open(CsvFile, [write]),
+	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	F = fun F(0) ->
 				ok;
 			F(N) ->
 				SNPrefix = ocs:generate_identity(),
 				Description = ocs:generate_password(),
-				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
-						$., integer_to_list(rand:uniform(1000))],
-				Line = [SNPrefix, $,, Description, $,, UnitPrice, $\n],
-				ok = file:write(File, Line),
+				UnitPrice = rand:uniform(1000000) * 5,
+				Value1 = {Description, UnitPrice},
+				{ok, #gtt{}} = ocs_gtt:insert(RoamingTable, SNPrefix, Value1),
 				F(N - 1)
 	end,
 	ok = F(100),
-	ok = file:close(File),
-	ok = ocs_gtt:import(CsvFile),
 	{_Cont, GTTs} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
-	#gtt{num = SN} = lists:nth(rand:uniform(length(GTTs)), GTTs),
-	PackageSize = 200,
+	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs)), GTTs),
+	PackagePrice = element(2, Value2),
+	PackageSize = 5000000 + rand:uniform(5000000),
 	PackageUnits = octets,
 	CharValueUse = [#char_value_use{name = "roamingTable",
 		values = [#char_value{value = RoamingTable}]}],
@@ -2011,61 +2018,84 @@ roaming_table_data(Config) ->
 	ServiceId = ocs:generate_identity(),
 	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
-	RemAmount = ocs_rest:millionths_in(1000),
-	B1 = bucket(cents, RemAmount),
-	_BId = add_bucket(ProdRef, B1),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
-			undefined, undefined, initial, [], [{PackageUnits, PackageSize}],
-			SessionId).
+	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
+			undefined, undefined, initial, [], [], SessionId),
+	DebitUnits1 = rand:uniform(PackageSize),
+	{ok, #service{}, _Granted} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 30000),
+			undefined, undefined, interim, [{PackageUnits, DebitUnits1}], [],
+			SessionId),
+	DebitUnits2 = rand:uniform(PackageSize),
+	{ok, #service{}, _Rated} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 90000),
+			undefined, undefined, final, [{PackageUnits, DebitUnits2}], undefined,
+			SessionId),
+	DebitTotal = case ((DebitUnits1 + DebitUnits2) rem PackageSize) of
+		0 ->
+			((DebitUnits1 + DebitUnits2) div PackageSize) * PackagePrice;
+		_ ->
+			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
+	end,
+	RemAmount2 = RemAmount1 - DebitTotal,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_voice() ->
 	[{userdata, [{doc, "Voice rating for roaming with prefix table"}]}].
 
 roaming_table_voice(Config) ->
-	PrivDir = ?config(priv_dir, Config),
 	RoamingTable = ocs:generate_identity(),
+	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
-	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
-	{ok, File1} = file:open(CsvFile1, [write]),
+	TablePrefix1 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix1 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix2 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix2 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix3 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix3 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefixes = [TablePrefix1, TablePrefix2, TablePrefix3],
 	F1 = fun F1(0) ->
 				ok;
 			F1(N) ->
 				SNPrefix = ocs:generate_identity(),
-				Description = ocs:generate_password(),
-				TablePrefix = ocs:generate_password(),
-				Line = [SNPrefix, $,, Description, $,, TablePrefix, $\n],
-				ok = file:write(File1, Line),
+				Description1 = ocs:generate_password(),
+				TablePrefix4 = lists:nth(rand:uniform(3), TablePrefixes),
+				Value1 = {Description1, TablePrefix4},
+				{ok, #gtt{}} = ocs_gtt:insert(RoamingTable, SNPrefix, Value1),
 				F1(N - 1)
 	end,
 	ok = F1(100),
-	ok = file:close(File1),
-	ok = ocs_gtt:import(CsvFile1),
 	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
-	#gtt{num = SN, value = Value} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
-	TablePrefix = element(2, Value),
-	CsvFile2 = PrivDir ++ TablePrefix ++ "-" ++ DestinationTable ++ ".csv",
-	{ok, File2} = file:open(CsvFile2, [write]),
+	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix5 = element(2, Value2),
+	RatingTable = list_to_existing_atom(TablePrefix5 ++ "-" ++ DestinationTable),
 	F2 = fun F2(0) ->
 				ok;
 			F2(N) ->
 				DestPrefix = ocs:generate_identity(),
-				Description = ocs:generate_password(),
-				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
-						$., integer_to_list(rand:uniform(1000))],
-				Line = [DestPrefix, $,, Description, $,, UnitPrice, $\n],
-				ok = file:write(File2, Line),
+				Description2 = ocs:generate_password(),
+				UnitPrice = rand:uniform(1000000),
+				Value3 = {Description2, UnitPrice},
+				{ok, #gtt{}} = ocs_gtt:insert(RatingTable, DestPrefix, Value3),
 				F2(N - 2)
 	end,
 	ok = F2(20),
-	ok = file:close(File2),
-	ok = ocs_gtt:import(CsvFile2),
-	{_, GTTs2} = ocs_gtt:list(start,
-			list_to_existing_atom(TablePrefix ++ "-" ++ DestinationTable)),
-	#gtt{num = Address} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
-	PackageSize = 10,
+	{_, GTTs2} = ocs_gtt:list(start, RatingTable),
+	#gtt{num = Address, value = Value4} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
+	PackagePrice = element(2, Value4),
+	PackageSize = 60 + rand:uniform(60),
 	PackageUnits = seconds,
 	CharValueUse = [#char_value_use{name = "roamingTable",
 					values = [#char_value{value = RoamingTable}]},
@@ -2078,61 +2108,85 @@ roaming_table_voice(Config) ->
 	ServiceId = ocs:generate_identity(),
 	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
-	RemAmount = ocs_rest:millionths_in(1000),
-	B1 = bucket(cents, RemAmount),
-	_BId = add_bucket(ProdRef, B1),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32260,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
+	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
 			Address, undefined, initial, [], [{PackageUnits, PackageSize}],
-			SessionId).
+			SessionId),
+	DebitUnits1 = rand:uniform(PackageSize),
+	{ok, #service{}, _Granted} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 30000),
+			Address, undefined, interim, [{PackageUnits, DebitUnits1}], [],
+			SessionId),
+	DebitUnits2 = rand:uniform(PackageSize),
+	{ok, #service{}, _Rated} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 90000),
+			Address, undefined, final, [{PackageUnits, DebitUnits2}], undefined,
+			SessionId),
+	DebitTotal = case ((DebitUnits1 + DebitUnits2) rem PackageSize) of
+		0 ->
+			((DebitUnits1 + DebitUnits2) div PackageSize) * PackagePrice;
+		_ ->
+			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
+	end,
+	RemAmount2 = RemAmount1 - DebitTotal,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_sms() ->
 	[{userdata, [{doc, "SMS rating for roaming with prefix table"}]}].
 
 roaming_table_sms(Config) ->
-	PrivDir = ?config(priv_dir, Config),
 	RoamingTable = ocs:generate_identity(),
+	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
-	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
-	{ok, File1} = file:open(CsvFile1, [write]),
+	TablePrefix1 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix1 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix2 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix2 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix3 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix3 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefixes = [TablePrefix1, TablePrefix2, TablePrefix3],
 	F1 = fun F1(0) ->
 				ok;
 			F1(N) ->
 				SNPrefix = ocs:generate_identity(),
-				Description = ocs:generate_password(),
-				TablePrefix = ocs:generate_password(),
-				Line = [SNPrefix, $,, Description, $,, TablePrefix, $\n],
-				ok = file:write(File1, Line),
+				Description1 = ocs:generate_password(),
+				TablePrefix4 = lists:nth(rand:uniform(3), TablePrefixes),
+				Value1 = {Description1, TablePrefix4},
+				{ok, #gtt{}} = ocs_gtt:insert(RoamingTable, SNPrefix, Value1),
 				F1(N - 1)
 	end,
 	ok = F1(10),
-	ok = file:close(File1),
-	ok = ocs_gtt:import(CsvFile1),
 	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
-	#gtt{num = SN, value = Value} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
-	TablePrefix = element(2, Value),
-	CsvFile2 = PrivDir ++ TablePrefix ++ "-" ++ DestinationTable ++ ".csv",
-	{ok, File2} = file:open(CsvFile2, [write]),
+	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix5 = element(2, Value2),
+	RatingTable = list_to_existing_atom(TablePrefix5 ++ "-" ++ DestinationTable),
 	F2 = fun F2(0) ->
 				ok;
 			F2(N) ->
 				DestPrefix = ocs:generate_identity(),
-				Description = ocs:generate_password(),
-				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
-						$., integer_to_list(rand:uniform(1000))],
-				Line = [DestPrefix, $,, Description, $,, UnitPrice, $\n],
-				ok = file:write(File2, Line),
+				Description2 = ocs:generate_password(),
+				UnitPrice = rand:uniform(1000000),
+				Value3 = {Description2, UnitPrice},
+				{ok, #gtt{}} = ocs_gtt:insert(RatingTable, DestPrefix, Value3),
 				F2(N - 2)
 	end,
 	ok = F2(20),
-	ok = file:close(File2),
-	ok = ocs_gtt:import(CsvFile2),
-	{_, GTTs2} = ocs_gtt:list(start,
-			list_to_existing_atom(TablePrefix ++ "-" ++ DestinationTable)),
-	#gtt{num = Address} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
-	PackageSize = 10,
+	{_, GTTs2} = ocs_gtt:list(start, RatingTable),
+	#gtt{num = Address, value = Value4} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
+	PackagePrice = element(2, Value4),
+	PackageSize = rand:uniform(5),
 	PackageUnits = messages,
 	CharValueUse = [#char_value_use{name = "roamingTable",
 					values = [#char_value{value = RoamingTable}]},
@@ -2145,15 +2199,37 @@ roaming_table_sms(Config) ->
 	ServiceId = ocs:generate_identity(),
 	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
-	RemAmount = ocs_rest:millionths_in(1000),
-	B1 = bucket(cents, RemAmount),
-	_BId = add_bucket(ProdRef, B1),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32274,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
+	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
 			Address, undefined, initial, [], [{PackageUnits, PackageSize}],
-			SessionId).
+			SessionId),
+	DebitUnits1 = rand:uniform(PackageSize),
+	{ok, #service{}, _Granted} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 30000),
+			Address, undefined, interim, [{PackageUnits, DebitUnits1}], [],
+			SessionId),
+	DebitUnits2 = rand:uniform(PackageSize),
+	{ok, #service{}, _Rated} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 90000),
+			Address, undefined, final, [{PackageUnits, DebitUnits2}], undefined,
+			SessionId),
+	DebitTotal = case ((DebitUnits1 + DebitUnits2) rem PackageSize) of
+		0 ->
+			((DebitUnits1 + DebitUnits2) div PackageSize) * PackagePrice;
+		_ ->
+			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
+	end,
+	RemAmount2 = RemAmount1 - DebitTotal,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 final_empty_mscc() ->
 	[{userdata, [{doc, "Rate a final call with an empty MSCC and check whether sessions are removed"}]}].
@@ -2190,7 +2266,7 @@ final_empty_mscc(_Config) ->
 			undefined, interim, [{octets, 15000000}], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
-			undefined, final, [], [], SessionId),
+			undefined, final, [], undefined, SessionId),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2243,7 +2319,7 @@ final_empty_mscc_multiple_services(_Config) ->
 			undefined, interim, [{octets, 15000000}], [], SessionId1),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
-			undefined, final, [], [], SessionId1),
+			undefined, final, [], undefined, SessionId1),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2355,7 +2431,7 @@ tariff_prices(_Config) ->
 	F = fun F(0, _, Items) ->
 				Items;
 			F(N, P, Items) ->
-				Rate = rand:uniform(10000) * 1000,
+				Rate = rand:uniform(1000000),
 				Description = ocs:generate_identity(),
 				Value = {Description, Rate},
 				Number = [P | ocs:generate_identity()],
@@ -2450,7 +2526,7 @@ allowance_bucket(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			{date(), {22, 0, 0}}, undefined, undefined,
-			final, [{octets, DayAmount2}], [], SessionId1),
+			final, [{octets, DayAmount2}], undefined, SessionId1),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
@@ -2465,7 +2541,7 @@ allowance_bucket(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			{date(), {4, 0, 0}}, undefined, undefined,
-			final, [{octets, NightAmount2}], [], SessionId2),
+			final, [{octets, NightAmount2}], undefined, SessionId2),
 	RemainAmount2 = RemAmount1 - DayAmount1 - DayAmount2,
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId2),
 	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
