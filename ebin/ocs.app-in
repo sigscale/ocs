@@ -172,6 +172,7 @@
 				{tls_cert, "%APP_PRIV%/cert.pem"},
 				{tls_cacert, "%APP_PRIV%/CAcert.pem"},
 				{aka_kpseu, [{1, <<0:128>>}]},
+				{aaa_failure, false},
 				{hss_realm, undefined},
 				{hss_host, undefined},
 				{rest_page_size, 1000},

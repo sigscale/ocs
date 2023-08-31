@@ -142,11 +142,13 @@ init([radius, _ServerAddress, _ServerPort, ClientAddress, _ClientPort,
 	OriginHost = diameter:service_info(Service, 'Origin-Host'),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
+	{ok, AaaFailure} = application:get_env(aaa_failure),
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = Service, session_id = SessionAttributes,
 			origin_host = OriginHost, origin_realm = OriginRealm,
 			nas_address = ClientAddress,
-			hss_realm = HssRealm, hss_host = HssHost}};
+			hss_realm = HssRealm, hss_host = HssHost,
+			aaa_failure = AaaFailure}};
 init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
@@ -159,7 +161,8 @@ init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 	{ok, idle, #statedata{service = Service, session_id = SessionId,
 			origin_host = OriginHost, origin_realm = OriginRealm,
 			nas_host = DestinationHost, nas_realm = DestinationRealm,
-			hss_realm = HssRealm, hss_host = HssHost, aaa_failure = true}};
+			hss_realm = HssRealm, hss_host = HssHost,
+			aaa_failure = true}};
 init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
@@ -172,7 +175,8 @@ init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 	{ok, idle, #statedata{service = Service, session_id = SessionId,
 			origin_host = OriginHost, origin_realm = OriginRealm,
 			nas_host = DestinationHost, nas_realm = DestinationRealm,
-			hss_realm = HssRealm, hss_host = HssHost, aaa_failure = true}};
+			hss_realm = HssRealm, hss_host = HssHost,
+			aaa_failure = true}};
 init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
@@ -180,11 +184,13 @@ init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 	Service = {ocs_diameter_auth_service, ServerAddress, ServerPort},
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
+	{ok, AaaFailure} = application:get_env(aaa_failure),
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = Service, session_id = SessionId,
 			origin_host = OriginHost, origin_realm = OriginRealm,
 			nas_host = DestinationHost, nas_realm = DestinationRealm,
-			hss_realm = HssRealm, hss_host = HssHost}}.
+			hss_realm = HssRealm, hss_host = HssHost,
+			aaa_failure = AaaFailure}}.
 
 -spec idle(Event, StateData) -> Result
 	when

@@ -806,6 +806,20 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 		</dd>
 </dl>
 
+=== 3GPP AAA Server Configuration ===
+The behaviour of the AAA for non-3GPP access is configured with the
+following environment variables:
+<dl>
+	<dt>aka_kpseu</dt>
+		<dd>Encryption keys used for the generation of temporary identities:
+				{aka_kpseu, [{KeyIndicator :: 0..15, Key :: binary()}]}
+				(default: `[{1, <<0:128>>}]')</dd>
+	<dt>aaa_failure</dt>
+		<dd>Default value for `AAA-Failure-Indicator' in MAR on SWx:
+            {aaa_failure, boolean()}
+				(default: `false')</dd>
+</dl>
+
 ===Example sys.config===
 ```
 [{ocs,
