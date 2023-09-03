@@ -112,11 +112,12 @@ all() ->
 	authorize_incoming_voice, authorize_outgoing_voice,
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
-	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
-	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
-	final_empty_mscc_multiple_services, initial_invalid_service_type,
-	refund_unused_reservation, refund_partially_used_reservation,
-	tariff_prices, allowance_bucket].
+	unauthorize_bad_password, unauthorize_bad_password,
+	reserve_sms, debit_sms, roaming_table_data, roaming_table_voice,
+	roaming_table_sms_ecur, roaming_table_sms_iec, roaming_table_sms_iec_rsu,
+	final_empty_mscc, final_empty_mscc_multiple_services,
+	initial_invalid_service_type, refund_unused_reservation,
+	refund_partially_used_reservation, tariff_prices, allowance_bucket].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2140,10 +2141,10 @@ roaming_table_voice(Config) ->
 	RemAmount2 = RemAmount1 - DebitTotal,
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
-roaming_table_sms() ->
-	[{userdata, [{doc, "SMS rating for roaming with prefix table"}]}].
+roaming_table_sms_ecur() ->
+	[{userdata, [{doc, "SMS ECUR rating for roaming with prefix table"}]}].
 
-roaming_table_sms(Config) ->
+roaming_table_sms_ecur(Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
@@ -2229,6 +2230,154 @@ roaming_table_sms(Config) ->
 			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
 	end,
 	RemAmount2 = RemAmount1 - DebitTotal,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
+
+roaming_table_sms_iec() ->
+	[{userdata, [{doc, "SMS IEC rating for roaming with prefix table"}]}].
+
+roaming_table_sms_iec(Config) ->
+	RoamingTable = ocs:generate_identity(),
+	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
+	DestinationTable = ocs:generate_identity(),
+	TablePrefix1 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix1 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix2 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix2 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix3 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix3 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefixes = [TablePrefix1, TablePrefix2, TablePrefix3],
+	F1 = fun F1(0) ->
+				ok;
+			F1(N) ->
+				SNPrefix = ocs:generate_identity(),
+				Description1 = ocs:generate_password(),
+				TablePrefix4 = lists:nth(rand:uniform(3), TablePrefixes),
+				Value1 = {Description1, TablePrefix4},
+				{ok, #gtt{}} = ocs_gtt:insert(RoamingTable, SNPrefix, Value1),
+				F1(N - 1)
+	end,
+	ok = F1(10),
+	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
+	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix5 = element(2, Value2),
+	RatingTable = list_to_existing_atom(TablePrefix5 ++ "-" ++ DestinationTable),
+	F2 = fun F2(0) ->
+				ok;
+			F2(N) ->
+				DestPrefix = ocs:generate_identity(),
+				Description2 = ocs:generate_password(),
+				UnitPrice = rand:uniform(1000000),
+				Value3 = {Description2, UnitPrice},
+				{ok, #gtt{}} = ocs_gtt:insert(RatingTable, DestPrefix, Value3),
+				F2(N - 2)
+	end,
+	ok = F2(20),
+	{_, GTTs2} = ocs_gtt:list(start, RatingTable),
+	#gtt{num = Address, value = Value4} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
+	PackagePrice = element(2, Value4),
+	PackageSize = rand:uniform(4),
+	PackageUnits = messages,
+	CharValueUse = [#char_value_use{name = "roamingTable",
+					values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = DestinationTable}]}],
+	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize,
+			amount = 0, char_value_use = CharValueUse},
+	OfferId = add_offer([P1], 10),
+	ProdRef = add_product(OfferId, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
+	Timestamp = calendar:local_time(),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
+	ServiceType = 32274,
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	DebitUnits = {PackageUnits, PackageSize},
+	{ok, #service{}, DebitUnits, _Rated} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
+			Address, undefined, event, [], [], SessionId),
+	RemAmount2 = RemAmount1 - PackagePrice,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
+
+roaming_table_sms_iec_rsu() ->
+	[{userdata, [{doc, "SMS IEC RSU rating for roaming with prefix table"}]}].
+
+roaming_table_sms_iec_rsu(Config) ->
+	RoamingTable = ocs:generate_identity(),
+	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
+	DestinationTable = ocs:generate_identity(),
+	TablePrefix1 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix1 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix2 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix2 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefix3 = ocs:generate_identity(),
+	ok = ocs_gtt:new(TablePrefix3 ++ "-" ++ DestinationTable,
+			[{disc_copies, [node()]}]),
+	TablePrefixes = [TablePrefix1, TablePrefix2, TablePrefix3],
+	F1 = fun F1(0) ->
+				ok;
+			F1(N) ->
+				SNPrefix = ocs:generate_identity(),
+				Description1 = ocs:generate_password(),
+				TablePrefix4 = lists:nth(rand:uniform(3), TablePrefixes),
+				Value1 = {Description1, TablePrefix4},
+				{ok, #gtt{}} = ocs_gtt:insert(RoamingTable, SNPrefix, Value1),
+				F1(N - 1)
+	end,
+	ok = F1(10),
+	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
+	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix5 = element(2, Value2),
+	RatingTable = list_to_existing_atom(TablePrefix5 ++ "-" ++ DestinationTable),
+	F2 = fun F2(0) ->
+				ok;
+			F2(N) ->
+				DestPrefix = ocs:generate_identity(),
+				Description2 = ocs:generate_password(),
+				UnitPrice = rand:uniform(1000000),
+				Value3 = {Description2, UnitPrice},
+				{ok, #gtt{}} = ocs_gtt:insert(RatingTable, DestPrefix, Value3),
+				F2(N - 2)
+	end,
+	ok = F2(20),
+	{_, GTTs2} = ocs_gtt:list(start, RatingTable),
+	#gtt{num = Address, value = Value4} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
+	PackagePrice = element(2, Value4),
+	PackageSize = 1,
+	PackageUnits = messages,
+	CharValueUse = [#char_value_use{name = "roamingTable",
+					values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = DestinationTable}]}],
+	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize,
+			amount = 0, char_value_use = CharValueUse},
+	OfferId = add_offer([P1], 10),
+	ProdRef = add_product(OfferId, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
+	Timestamp = calendar:local_time(),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
+	ServiceType = 32274,
+	DebitUnits = rand:uniform(4),
+	DebitAmount = {PackageUnits, DebitUnits},
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, #service{}, DebitAmount, _Rated} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, SN, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
+			Address, undefined, event, [], [DebitAmount],
+			SessionId),
+	RemAmount2 = RemAmount1 - (DebitUnits * PackagePrice),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 final_empty_mscc() ->
