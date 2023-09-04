@@ -117,7 +117,8 @@ all() ->
 	roaming_table_sms_ecur, roaming_table_sms_iec, roaming_table_sms_iec_rsu,
 	final_empty_mscc, final_empty_mscc_multiple_services,
 	initial_invalid_service_type, refund_unused_reservation,
-	refund_partially_used_reservation, tariff_prices, allowance_bucket].
+	refund_partially_used_reservation, tariff_prices,
+	allowance_bucket].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -127,7 +128,7 @@ initial_exact_fit() ->
 	[{userdata, [{doc, "Cents balance exactly equal to reservation price"}]}].
 
 initial_exact_fit(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 500000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -151,7 +152,7 @@ initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
 
 initial_insufficient(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -174,43 +175,41 @@ initial_insufficient_multisession() ->
 	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
 
 initial_insufficient_multisession(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 13,
+	RemAmount = PackagePrice,
 	B1 = bucket(cents, RemAmount),
-	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	R = #{SessionId1 => #{ts => erlang:system_time(millisecond),
-			debit => 100, reserve => 0}},
-	Attributes = B1#bucket.attributes,
-	B2 = B1#bucket{attributes = Attributes#{reservations => R}},
-	BId = add_bucket(ProdRef, B2),
-	Timestamp = calendar:local_time(),
-	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	Timestamp = calendar:local_time(),
+	{ok, _, {PackageUnits, PackageSize}} = ocs_rating:rate(radius,
+			ServiceType, undefined, undefined, undefined,
+			ServiceId, Timestamp, undefined, undefined, initial, [],
+			[{PackageUnits, PackageSize}], SessionId1),
+	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{out_of_credit, _, _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, undefined,
 			ServiceId, Timestamp, undefined, undefined, initial, [],
-			[{PackageUnits, PackageSize}], SessionId2),
-	{ok, #bucket{remain_amount = RemAmount,
-			attributes = #{reservations := R}}} = ocs:find_bucket(BId).
+			[{PackageUnits, PackageSize}], SessionId2).
 
 initial_add_session() ->
 	[{userdata, [{doc, "Add a session"}]}].
 
 initial_add_session(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 1000,
+	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
@@ -232,14 +231,14 @@ initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
 
 initial_overhead(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount1 = 233,
+	RemAmount1 = ocs_rest:millionths_in(233),
 	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
@@ -267,7 +266,7 @@ initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
 
 initial_multiple_buckets(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -309,14 +308,14 @@ initial_expire_buckets() ->
 	[{userdata, [{doc, "Remove expired buckets"}]}].
 
 initial_expire_buckets(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 100,
+	RemAmount = ocs_rest:millionths_in(100),
 	B1 = bucket(cents, RemAmount),
 	B2= B1#bucket{start_date = erlang:system_time(millisecond) -  (2 * 2592000000),
 		end_date = erlang:system_time(millisecond) - 2592000000},
@@ -334,7 +333,7 @@ initial_ignore_expired_buckets() ->
 	[{userdata, [{doc, "Ignore expired buckets with sessions"}]}].
 
 initial_ignore_expired_buckets(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -367,10 +366,10 @@ initial_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and ignore"}]}].
 
 initial_negative_balance(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	PackageAmount = 100 + rand:uniform(2000),
+	PackageAmount = 100000000 + rand:uniform(2000000),
 	P1 = #price{name = "subscription", type = recurring,
 			period = monthly, amount = PackageAmount},
 	P2 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -390,7 +389,7 @@ interim_reserve() ->
 	[{userdata, [{doc, "Reservation amount equal to package size"}]}].
 
 interim_reserve(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(100000090),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -421,7 +420,7 @@ interim_reserve_within_unit_size() ->
 	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
 
 interim_reserve_within_unit_size(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -473,7 +472,7 @@ interim_reserve_available() ->
 	[{userdata, [{doc, "Reservation amount equal to balance and package size"}]}].
 
 interim_reserve_available(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -503,7 +502,7 @@ interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
 
 interim_reserve_out_of_credit(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -532,7 +531,7 @@ interim_reserve_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_reserve_remove_session(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -566,7 +565,7 @@ interim_reserve_multiple_buckets_available() ->
 	[{userdata, [{doc, "Reservation with multiple buckets"}]}].
 
 interim_reserve_multiple_buckets_available(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -601,7 +600,7 @@ interim_reserve_multiple_buckets_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit with multiple cents buckets"}]}].
 
 interim_reserve_multiple_buckets_out_of_credit(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -634,7 +633,7 @@ interim_debit_exact_balance() ->
 	[{userdata, [{doc, "Debit amount equal to package size"}]}].
 
 interim_debit_exact_balance(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -657,7 +656,7 @@ interim_debit_under_unit_size() ->
 	[{userdata, [{doc, "Debit amount less than package size"}]}].
 
 interim_debit_under_unit_size(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -681,7 +680,7 @@ interim_debit_out_of_credit() ->
 	[{userdata, [{doc, "Insufficient amount to debit"}]}].
 
 interim_debit_out_of_credit(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -707,7 +706,7 @@ interim_debit_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_debit_remove_session(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -736,7 +735,7 @@ interim_debit_and_reserve_available() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation, sufficient balance exists"}]}].
 
 interim_debit_and_reserve_available(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -773,7 +772,7 @@ interim_debit_and_reserve_insufficient1() ->
 			less than available balance, insufficient balance exists"}]}].
 
 interim_debit_and_reserve_insufficient1(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -805,7 +804,7 @@ interim_debit_and_reserve_insufficient2() ->
 			reservation amount greater than available balance"}]}].
 
 interim_debit_and_reserve_insufficient2(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -835,7 +834,7 @@ interim_debit_and_reserve_insufficient3() ->
 	[{userdata, [{doc, "Suffient balance for debit but not reservation"}]}].
 
 interim_debit_and_reserve_insufficient3(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -866,7 +865,7 @@ interim_debit_and_reserve_insufficient4() ->
 	[{userdata, [{doc, "Insuffient amount for debit and reservation"}]}].
 
 interim_debit_and_reserve_insufficient4(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -895,7 +894,7 @@ interim_debit_and_reserve_charging_key() ->
 	[{userdata, [{doc, "Multiple charging keys (Rating-Group) in session"}]}].
 
 interim_debit_and_reserve_charging_key(_Config) ->
-	PackagePrice = rand:uniform(100),
+	PackagePrice = rand:uniform(100000000),
 	PackageSize = 5000000 + rand:uniform(100000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
@@ -973,7 +972,7 @@ interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
 
 interim_out_of_credit_voice(_Config) ->
-	UnitPrice = rand:uniform(10),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 60,
 	P1 = price(usage, seconds, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 9),
@@ -1001,7 +1000,7 @@ interim_out_of_credit_negative() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (radius)"}]}].
 
 interim_out_of_credit_negative(_Config) ->
-	UnitPrice = rand:uniform(98) + 2,
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 1000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice,
@@ -1045,7 +1044,7 @@ interim_out_of_credit_negative1() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (diameter)"}]}].
 
 interim_out_of_credit_negative1(_Config) ->
-	UnitPrice = rand:uniform(98) + 2,
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice},
@@ -1083,14 +1082,14 @@ final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
 
 final_remove_session(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 1000,
+	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
 	Debit = 100,
@@ -1120,14 +1119,14 @@ remove_session_after_multiple_interims() ->
 	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
 
 remove_session_after_multiple_interims(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 1000,
+	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -1167,7 +1166,7 @@ final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
 
 final_refund_octets(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -1218,7 +1217,7 @@ final_refund_seconds() ->
 	[{userdata, [{doc, "Refund unused amount of seconds reservation"}]}].
 
 final_refund_seconds(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = seconds,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -1269,7 +1268,7 @@ final_multiple_buckets() ->
 	[{userdata, [{doc, "Debit applied to one of several available buckets"}]}].
 
 final_multiple_buckets(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
@@ -1310,7 +1309,7 @@ final_voice() ->
 	[{userdata, [{doc, "Final RADIUS accounting request for voice call"}]}].
 
 final_voice(_Config) ->
-	UnitPrice = rand:uniform(10),
+	UnitPrice = rand:uniform(1000000),
 	UnitSize = 60,
 	ReserveTime = rand:uniform(10) * UnitSize,
 	P1 = #price{name = "Calls", type = usage,
@@ -1356,7 +1355,7 @@ reserve_data() ->
 	[{userdata, [{doc, "Reservation for data session"}]}].
 
 reserve_data(_Config) ->
-	DataAmount = 2,
+	DataAmount = 2000000,
 	DataSize = rand:uniform(10000000),
 	ReserveMB = rand:uniform(10),
 	ReserveOctets = 1000000 * ReserveMB,
@@ -1366,7 +1365,7 @@ reserve_data(_Config) ->
 			min = 1, max = 1, values = [#char_value{default = true,
 			units = "megabytes", value = ReserveMB}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
-	VoiceAmount = 2,
+	VoiceAmount = 2000000,
 	VoiceSize = 60,
 	ReserveTime = 300,
 	VoicePrice = #price{name = "Calls", type = usage,
@@ -1381,7 +1380,7 @@ reserve_data(_Config) ->
 	{ok, #offer{name = BundleOfferId}} = ocs:add_offer(BundleOffer),
 	ProdRef = add_product(BundleOfferId),
 	ServiceId = add_service(ProdRef),
-	StartingAmount = 2579,
+	StartingAmount = 2579000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
@@ -1403,7 +1402,7 @@ reserve_voice() ->
 	[{userdata, [{doc, "Reservation for voice call"}]}].
 
 reserve_voice(_Config) ->
-	DataAmount = rand:uniform(10),
+	DataAmount = rand:uniform(1000000),
 	DataSize = rand:uniform(10000000),
 	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
@@ -1412,7 +1411,7 @@ reserve_voice(_Config) ->
 			min = 1, max = 1, values = [#char_value{default = true,
 			units = "bytes", value = ReserveOctets}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
-	VoiceAmount = rand:uniform(10),
+	VoiceAmount = rand:uniform(100000),
 	VoiceSize = 60,
 	Reserve = rand:uniform(4000),
 	VoicePrice = #price{name = "Calls", type = usage,
@@ -1451,7 +1450,7 @@ reserve_incoming_voice() ->
 	[{userdata, [{doc, "Reservation for incoming voice call"}]}].
 
 reserve_incoming_voice(_Config) ->
-	DataAmount = 2,
+	DataAmount = 2000000,
 	DataSize = rand:uniform(10000000),
 	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
@@ -1461,7 +1460,7 @@ reserve_incoming_voice(_Config) ->
 			units = "bytes", value = ReserveOctets}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
 	VoiceSize = 60,
-	VoiceAmountOut = 2,
+	VoiceAmountOut = 2000000,
 	ReserveTime = 300,
 	VoicePrice1 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = VoiceSize, amount = VoiceAmountOut,
@@ -1488,7 +1487,7 @@ reserve_incoming_voice(_Config) ->
 	{ok, _} = ocs:add_offer(BundleProduct),
 	ProdRef = add_product(BundleOfferId),
 	ServiceId = add_service(ProdRef),
-	StartingAmount = 1000,
+	StartingAmount = 1000000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1511,7 +1510,7 @@ interim_voice() ->
 	[{userdata, [{doc, "Interim reservation for voice call"}]}].
 
 interim_voice(_Config) ->
-	DataAmount = rand:uniform(10),
+	DataAmount = rand:uniform(1000000),
 	DataSize = rand:uniform(10000000),
 	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
@@ -1520,7 +1519,7 @@ interim_voice(_Config) ->
 			min = 1, max = 1, values = [#char_value{default = true,
 			units = "bytes", value = ReserveOctets}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
-	VoiceAmount = rand:uniform(10),
+	VoiceAmount = rand:uniform(100000),
 	VoiceSize = 60,
 	ReserveTime = VoiceSize * rand:uniform(10),
 	VoicePrice = #price{name = "Calls", type = usage,
@@ -1565,8 +1564,8 @@ time_of_day() ->
 	[{userdata, [{doc, "Time of day price matching"}]}].
 
 time_of_day(_Config) ->
-	PeakAmount = 10,
-	OffPeakAmount = 5,
+	PeakAmount = 10000000,
+	OffPeakAmount = 5000000,
 	DataSize = 1000000,
 	PeakPrice = #price{name = "Peak", type = usage,
 			units = octets, size = DataSize, amount = PeakAmount,
@@ -1582,7 +1581,7 @@ time_of_day(_Config) ->
 			upper = #quantity{amount = 480, units = "minutes"}}}]}]},
 	DataOfferId = add_offer([PeakPrice, OffPeakPrice], 8),
 	ProdRef = add_product(DataOfferId),
-	StartingAmount = 1000,
+	StartingAmount = 1000000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceId = add_service(ProdRef),
@@ -1627,7 +1626,7 @@ authorize_voice() ->
 	[{userdata, [{doc, "Authorize voice call"}]}].
 
 authorize_voice(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = 1000000,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
@@ -1637,7 +1636,7 @@ authorize_voice(_Config) ->
 	ServiceId = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
-	RemAmount = 100,
+	RemAmount = ocs_rest:millionths_in(100),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1650,21 +1649,21 @@ authorize_voice(_Config) ->
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_voice_with_partial_reservation() ->
-	[{userdata, [{doc, "Authorize voice call with and set the
-			session time for available partial reservation amount"}]}].
+	[{userdata, [{doc, "Authorize voice call with "
+			"session time for available partial reservation amount"}]}].
 
 authorize_voice_with_partial_reservation(_Config) ->
-	PackagePrice = 1,
-	PackageSize = 2,
+	PackagePrice = rand:uniform(1000000),
+	PackageSize = 60,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
-			values = [#char_value{value = 60, default = true}]}],
+			values = [#char_value{value = 300, default = true}]}],
 	OfferId = add_offer([P1], 9, CharValueUse),
 	ProdRef = add_product(OfferId),
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
-	RemAmount = 20,
+	RemAmount = PackagePrice * rand:uniform(5),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1674,21 +1673,21 @@ authorize_voice_with_partial_reservation(_Config) ->
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
-	SessionTimeout = RemAmount * PackageSize,
+	SessionTimeout = (RemAmount div PackagePrice) * PackageSize,
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_incoming_voice() ->
 	[{userdata, [{doc, "Authorize incoming voice call"}]}].
 
 authorize_incoming_voice(_Config) ->
-	OutPrice = 2,
+	OutPrice = 2000000,
 	OutSize = 60,
 	Price1 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
 			min = 1, max = 1, values = [#char_value{default = true,
 			value = "originate"}]}]},
-	InPrice = 1,
+	InPrice = 1000000,
 	InSize = 60,
 	Price2 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
@@ -1703,7 +1702,7 @@ authorize_incoming_voice(_Config) ->
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
-	StartingAmount = 1000,
+	StartingAmount = 1000000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1719,14 +1718,14 @@ authorize_outgoing_voice() ->
 	[{userdata, [{doc, "Authorize outgoing voice call"}]}].
 
 authorize_outgoing_voice(_Config) ->
-	InPrice = 1,
+	InPrice = 1000000,
 	InSize = 60,
 	Price1 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
 			min = 1, max = 1, values = [#char_value{default = true,
 			value = "answer"}]}]},
-	OutPrice = 2,
+	OutPrice = 2000000,
 	OutSize = 60,
 	Price2 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice,
@@ -1741,7 +1740,7 @@ authorize_outgoing_voice(_Config) ->
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
-	StartingAmount = 1000,
+	StartingAmount = 1000000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1757,11 +1756,11 @@ authorize_default_voice() ->
 	[{userdata, [{doc, "Authorize default outgoing voice call"}]}].
 
 authorize_default_voice(_Config) ->
-	OutPrice = 2,
+	OutPrice = 2000000,
 	OutSize = 60,
 	Price1 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice},
-	InPrice = 1,
+	InPrice = 1000000,
 	InSize = 60,
 	Price2 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
@@ -1776,7 +1775,7 @@ authorize_default_voice(_Config) ->
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
-	StartingAmount = 1000,
+	StartingAmount = 1000000000,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1792,7 +1791,7 @@ authorize_data_1() ->
 	[{userdata, [{doc, "Athorize data access when price rated on seconds"}]}].
 
 authorize_data_1(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = 1000000,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
@@ -1803,7 +1802,7 @@ authorize_data_1(_Config) ->
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
 	Timestamp = calendar:local_time(),
-	RemAmount = 100,
+	RemAmount = ocs_rest:millionths_in(100),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
@@ -1817,7 +1816,7 @@ authorize_data_2() ->
 	[{userdata, [{doc, "Athorize data access when price rated on octets"}]}].
 
 authorize_data_2(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = 1000000,
 	PackageSize = 2,
 	P1 = price(usage, octets, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
@@ -1828,7 +1827,7 @@ authorize_data_2(_Config) ->
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
 	Timestamp = calendar:local_time(),
-	RemAmount = 100,
+	RemAmount = ocs_rest:millionths_in(100),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
@@ -1838,22 +1837,22 @@ authorize_data_2(_Config) ->
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_with_partial_reservation() ->
-	[{userdata, [{doc, "Athorize data access when price
-			rated on seconds with partial reservation"}]}].
+	[{userdata, [{doc, "Athorize data access when price "
+			"rated on seconds with partial reservation"}]}].
 
 authorize_data_with_partial_reservation(_Config) ->
-	PackagePrice = 1,
-	PackageSize = 2,
+	PackagePrice = rand:uniform(1000000),
+	PackageSize = 60,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
-			values = [#char_value{value = 60, default = true}]}],
+			values = [#char_value{value = 300, default = true}]}],
 	OfferId = add_offer([P1], 8, CharValueUse),
 	ProdRef = add_product(OfferId),
 	ServiceId = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
 	Timestamp = calendar:local_time(),
-	RemAmount = 20,
+	RemAmount = PackagePrice * rand:uniform(5),
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
@@ -1861,14 +1860,14 @@ authorize_data_with_partial_reservation(_Config) ->
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefibed, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
-	SessionTimeout = RemAmount * PackageSize,
+	SessionTimeout = (RemAmount div PackagePrice) * PackageSize,
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and deny"}]}].
 
 authorize_negative_balance(_Config) ->
-	P1 = price(usage, octets, 1000, 1),
+	P1 = price(usage, octets, 1000000000, 1),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
 			values = [#char_value{value = 60, default = true}]}],
 	OfferId = add_offer([P1], 9, CharValueUse),
@@ -1887,7 +1886,7 @@ unauthorize_bad_password() ->
 	[{userdata, [{doc, "Unauthorize if the passwrod wrong"}]}].
 
 unauthorize_bad_password(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = 1000000,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -1896,7 +1895,7 @@ unauthorize_bad_password(_Config) ->
 	Password = ocs:generate_password(),
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, []),
 	Timestamp = calendar:local_time(),
-	RemAmount = 100,
+	RemAmount = ocs_rest:millionths_in(100),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
@@ -1909,7 +1908,7 @@ unauthorize_out_of_credit() ->
 	[{userdata, [{doc, "Unauthorize if insufficient balance"}]}].
 
 unauthorize_out_of_credit(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = 1000000,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 9),
@@ -1931,62 +1930,58 @@ reserve_sms() ->
 	[{userdata, [{doc, "Reservation for SMS"}]}].
 
 reserve_sms(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 1,
 	P1 = price(usage, messages, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
 	Timestamp = calendar:local_time(),
-	RemAmount = rand:uniform(100) * 5,
+	RemAmount = rand:uniform(10) + 10,
 	B1 = bucket(messages, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32274,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	NumOfEvents = rand:uniform(10),
+	NumEvents = rand:uniform(10),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{messages, NumOfEvents}], SessionId),
+			initial, [], [{messages, NumEvents}], SessionId),
 	{ok, #bucket{remain_amount = R,
 			attributes = #{reservations := Rs}}} = ocs:find_bucket(BId),
-	R = RemAmount - (PackagePrice * NumOfEvents),
+	R = RemAmount - NumEvents,
 	#{SessionId := #{reserve := Reserved}} = Rs,
-	Reserved = PackagePrice * NumOfEvents.
+	Reserved = NumEvents.
 
 debit_sms() ->
 	[{userdata, [{doc, "Debit for SMS"}]}].
 
 debit_sms(_Config) ->
-	PackagePrice = 1,
+	PackagePrice = rand:uniform(1000000),
 	PackageSize = 1,
 	P1 = price(usage, messages, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
 	Timestamp = calendar:local_time(),
-	RemAmount = rand:uniform(100) * 5,
+	RemAmount = rand:uniform(10) + 10,
 	B1 = bucket(messages, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32274,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	NumOfEvents = rand:uniform(10),
+	NumEvents = rand:uniform(10),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{messages, NumOfEvents}],
+			initial, [], [{messages, NumEvents}],
 		SessionId),
 	{ok, #bucket{remain_amount = R1,
 			attributes = #{reservations := Rs1}}} = ocs:find_bucket(BId),
-	R1 = RemAmount - (PackagePrice * NumOfEvents),
-	#{SessionId := #{reserve := Reserved}} = Rs1,
-	Reserved = PackagePrice * NumOfEvents,
+	R1 = RemAmount - NumEvents,
 	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			final, [{messages, NumOfEvents}], undefined,
+			final, [{messages, NumEvents}], undefined,
 		SessionId),
-	R2 = RemAmount - (PackagePrice * NumOfEvents),
-	{ok, #bucket{remain_amount = R2,
-			attributes = #{bucket_type := normal}}} = ocs:find_bucket(BId),
-	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated.
+	R2 = RemAmount - NumEvents,
+	{ok, #bucket{remain_amount = R2}} = ocs:find_bucket(BId).
 
 roaming_table_data() ->
 	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
@@ -2395,7 +2390,7 @@ final_empty_mscc(_Config) ->
 	ServiceId = add_service(ProdRef),
 	Adjustment = #adjustment{amount = 19900000000, product = ProdRef, units = cents},
 	ok = ocs:adjustment(Adjustment),
-	RemAmount = 20000000000,
+	RemAmount = ocs_rest:millionths_in(20000),
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
 			start_date = erlang:system_time(millisecond),
 			attributes = #{bucket_type => normal}},
@@ -2448,7 +2443,7 @@ final_empty_mscc_multiple_services(_Config) ->
 	ServiceId1 = add_service(ProdRef),
 	Adjustment = #adjustment{amount = 19900000000, product = ProdRef, units = cents},
 	ok = ocs:adjustment(Adjustment),
-	RemAmount = 20000000000,
+	RemAmount = ocs_rest:millionths_in(20000),
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
 			start_date = erlang:system_time(millisecond),
 			attributes = #{bucket_type => normal}},
@@ -2492,7 +2487,7 @@ initial_invalid_service_type() ->
 initial_invalid_service_type(_Config) ->
 	ServiceId = ocs:generate_identity(),
 	UnitSize = 1000000 + rand:uniform(10000),
-	Amount = rand:uniform(100),
+	Amount = rand:uniform(100000000),
 	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
@@ -2519,7 +2514,7 @@ refund_unused_reservation(_Config) ->
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemainAmount = 100000000,
+	RemainAmount = ocs_rest:millionths_in(100),
 	B = bucket(cents, RemainAmount),
 	BId = add_bucket(ProdRef, B),
 	ServiceType = 32260,
@@ -2545,10 +2540,10 @@ refund_partially_used_reservation(_Config) ->
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemainAmount1 = 5000000,
+	RemainAmount1 = ocs_rest:millionths_in(5),
 	B1 = bucket(cents, RemainAmount1),
 	BId1 = add_bucket(ProdRef, B1),
-	RemainAmount2 = 20000000,
+	RemainAmount2 = ocs_rest:millionths_in(20),
 	B2 = bucket(cents, RemainAmount2),
 	BId2 = add_bucket(ProdRef, B2),
 	ServiceType = 32260,
@@ -2708,7 +2703,10 @@ price(Type, Units, Size, Amount) ->
 
 %% @hidden
 bucket(Units, RA) ->
-	#bucket{units = Units, remain_amount = RA,
+	bucket(Units, RA, []).
+%% @hidden
+bucket(Units, RA, PriceName) ->
+	#bucket{units = Units, remain_amount = RA, price = PriceName,
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000,
 			attributes = #{bucket_type => normal}}.
