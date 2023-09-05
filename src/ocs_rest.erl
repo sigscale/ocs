@@ -413,12 +413,21 @@ patch_replace(Path, Value, [H | T], Acc) ->
 	patch_replace(Path, Value, T, [H | Acc]).
 
 -type millionths() :: non_neg_integer().
-%% Internal representation 1:1000000 for six decimal places maximum.
 -spec millionths_in(In) -> Out
 	when
 		In :: string() | integer() | float(),
 		Out :: millionths().
-%% @doc Convert value from JSON to internal value.
+%% @doc Convert monetary value from external to internal format.
+%%
+%% 	Monetary values are represented internally as an integer
+%%		number of a million fractions.  This allows for six
+%% 	decimal places of precision while allowing purely integer
+%% 	arithmatic.
+%%
+%% 	A JSON number data type may be integer or float and this
+%% 	function will accept either as input. It also accepts a
+%% 	string representation of the same which is preferable to
+%% 	decimal number as it will avoid floating point arithmetic.
 %%
 millionths_in(In) when is_list(In) ->
 	case string:tokens(In, [$.]) of
@@ -436,13 +445,21 @@ millionths_in(In) when is_list(In) ->
 millionths_in(In) when is_integer(In) ->
 	In * 1000000;
 millionths_in(In) when is_float(In) ->
-	millionths_in(float_to_list(In, [{decimals, 7}, compact])).
+	millionths_in(float_to_list(In, [{decimals, 6}, compact])).
 
 -spec millionths_out(In) -> Out
 	when
 		In :: millionths(),
 		Out :: string().
-%% @doc Convert internal value to string() for JSON.
+%% @doc Convert monetary value from internal to external format.
+%%
+%% 	Monetary values are represented internally as an integer
+%%		number of a million fractions.  This allows for six
+%% 	decimal places of precision while allowing purely integer
+%% 	arithmatic.
+%%
+%% 	The output is a string representation to avoid
+%% 	floating point arithmetic.
 %%
 millionths_out(In) when is_integer(In), In < 0 ->
 	N1 = 0 - In,
