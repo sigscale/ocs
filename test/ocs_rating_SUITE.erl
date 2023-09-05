@@ -118,7 +118,7 @@ all() ->
 	final_empty_mscc, final_empty_mscc_multiple_services,
 	initial_invalid_service_type, refund_unused_reservation,
 	refund_partially_used_reservation, tariff_prices,
-	allowance_bucket].
+	allowance_bucket, tariff_bucket].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2690,6 +2690,127 @@ allowance_bucket(_Config) ->
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId2),
 	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
 	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId1).
+
+tariff_bucket() ->
+	[{userdata, [{doc, "Topup bucket, pinned to tariff Price"}]}].
+
+tariff_bucket(_Config) ->
+	{ok, UnitSize} = application:get_env(ocs, min_reserve_seconds),
+	Table1 = ocs:generate_identity(),
+	Table2 = ocs:generate_identity(),
+	Table3 = ocs:generate_identity(),
+	F = fun F(N, Items) when N >= $0, N =< $9 ->
+				Description = ocs:generate_identity(),
+				Rate = (rand:uniform(5) * 1000000) + rand:uniform(1000000),
+				Value = {Description, Rate},
+				Number = [N],
+				Item = {Number, Value},
+				F(N - 1, [Item | Items]);
+			F(_N, Items) ->
+				Items
+	end,
+	ok = ocs_gtt:new(Table1, [], F($9, [])),
+	ok = ocs_gtt:new(Table2, [], F($9, [])),
+	ok = ocs_gtt:new(Table3, [], F($9, [])),
+	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table1}]}],
+	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table2}]}],
+	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table3}]}],
+	PriceName1 = ocs:generate_identity(),
+	PriceName2 = ocs:generate_identity(),
+	PriceName3 = ocs:generate_identity(),
+	P1 = #price{name = PriceName1, type = tariff,
+			units = seconds, size = UnitSize,
+			char_value_use = CharValueUse1},
+	P2 = #price{name = PriceName2, type = tariff,
+			units = seconds, size = UnitSize,
+			char_value_use = CharValueUse2},
+	P3 = #price{name = PriceName3, type = tariff,
+			units = seconds, size = UnitSize,
+			char_value_use = CharValueUse3},
+	OfferId = add_offer([P1, P2, P3], 9),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service(ServiceId,
+			undefined, undefined),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [ServiceRef]),
+	Destination = [$5 | ocs:generate_identity()],
+	{_, Rate1, _} = ocs_gtt:lookup_last(Table1, Destination),
+	{_, Rate2, _} = ocs_gtt:lookup_last(Table2, Destination),
+	{_, Rate3, _} = ocs_gtt:lookup_last(Table3, Destination),
+	Reserve = UnitSize * rand:uniform(5),
+	Units1 = Reserve + rand:uniform(Reserve),
+	Amount1 = (Units1 div UnitSize) * Rate1,
+	Units2 = rand:uniform(600),
+	Amount2 = (Units2 div UnitSize) * Rate2,
+	Amount3 = ocs_rest:millionths_in(1000),
+	Today = calendar:date_to_gregorian_days(date()),
+	LastMonth = calendar:gregorian_days_to_date(Today - 30),	
+	LastWeek = calendar:gregorian_days_to_date(Today - 7),	
+	NextWeek = calendar:gregorian_days_to_date(Today + 7),	
+	NextMonth = calendar:gregorian_days_to_date(Today + 30),	
+	Bucket1 = #bucket{units = cents,
+			remain_amount = Amount1, price = PriceName1,
+			start_date = ocs_rest:date({LastMonth, time()}),
+			end_date = ocs_rest:date({NextWeek, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket2 = #bucket{units = cents,
+			remain_amount = Amount2, price = PriceName2,
+			start_date = ocs_rest:date({LastWeek, time()}),
+			end_date = ocs_rest:date({NextMonth, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket3 = bucket(cents, Amount3),
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, Bucket2),
+	{ok, _, #bucket{id = BId3}} = ocs:add_bucket(ProdRef, Bucket3),
+	ServiceType = 32260,
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial,
+			[], [{seconds, Reserve}], SessionId1),
+	Debit1 = Reserve - UnitSize + rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, interim,
+			[{seconds, Debit1}], [{seconds, Reserve}], SessionId1),
+	Debit2 = Reserve - UnitSize + rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, interim,
+			[{seconds, Debit2}], [{seconds, Reserve}], SessionId1),
+	Debit3 = Reserve - UnitSize + rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, interim,
+			[{seconds, Debit3}], [{seconds, Reserve}], SessionId1),
+	Debit4 = Reserve - UnitSize + rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final,
+			[{seconds, Debit4}], undefined, SessionId1),
+	Debits = Debit1 + Debit2 + Debit3 + Debit4,
+	case Debits of
+		Debits when Debits > (Units1 + Units2) ->
+			{error, not_found} = ocs:find_bucket(BId1),
+			{error, not_found} = ocs:find_bucket(BId2),
+			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
+			Remain3 = Amount3 - ((Debits - Units1 - Units2) * Rate3);
+		Debits when Debits > Units1 ->
+			{error, not_found} = ocs:find_bucket(BId1),
+			{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId2),
+			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
+			Remain2 = Amount2 - ((Debits - Units1) * Rate2),
+			Remain3 = Amount3;
+		Debits ->
+			{ok, #bucket{remain_amount = Reamin1}} = ocs:find_bucket(BId1),
+			{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId2),
+			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
+			Remain1 = Amount1 - (Debits * Rate1),
+			Remain2 = Amount2,
+			Remain3 = Amount3
+	end.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
