@@ -1,9 +1,3 @@
-September 5, 2023
------------------
-	- Tariff price specific bucket charging
-	- Tariff price rating of SMS
-	- Configuration feature for AAA-Failure-Indication on SWx
-
 August 1, 2023
 --------------
 	- Allowance bucket charging with price specific buckets

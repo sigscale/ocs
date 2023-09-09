@@ -1,11 +1,3 @@
-2023-09-05  Vance Shipley <vances@sigscale.org>
-
-	* document monetary value conversion utilities
-	* handle tariff price specific buckets
-	* refactor rating suite test cases for millionths cents bucket amounts
-	* handle tariff tables in sms ecur and iec
-	* application environment variable for aaa failure indicatore
-
 2023-08-30  Vance Shipley <vances@sigscale.org>
 
 	* mock charging api in diameter callback for nrf
