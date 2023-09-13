@@ -383,6 +383,7 @@ class clientUpdate extends PolymerElement {
 		}
 		editAjax.body = JSON.stringify(clientArray);
 		editAjax.generateRequest();
+		this.$.updateClientModal.close();
 	}
 
 	_updateClientPropertiesResponse() {
