@@ -210,7 +210,7 @@ idle(Request, From, #statedata{session_id = SessionId} = StateData)
 
 -spec deregister(Event, StateData) -> Result
 	when
-		Event :: timeout | term(),
+		Event :: {ok, #'3gpp_swx_SAA'{}} | {error, Reason} | timeout,
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 				| {next_state, NextStateName, NewStateData, Timeout}
@@ -270,6 +270,19 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	deregister1(StateData);
+deregister({error, Reason},
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
+		hss_realm = HssRealm, hss_host = HssHost,
+		from = Caller} = StateData) ->
+	error_logger:error_report(["Deregistration failed",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {reason, Reason}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	deregister1(StateData).
