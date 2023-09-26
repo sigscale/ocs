@@ -265,12 +265,14 @@ handle_info(#diameter_event{info = Info, service = Service},
 	{next_state, StateName, StateData};
 handle_info(#diameter_event{info = {closed, _,
 		{Command, {capabilities_cb, _, ResultCode},
-		#diameter_caps{origin_host = {_, Peer}}, _}, _},
+		#diameter_caps{host_ip_address = {_, HostIpAddresses},
+		origin_host = {_, Peer}}, _}, _},
 		service = Service}, StateName, StateData)
 		when Command == 'CER'; Command == 'CEA' ->
 	error_logger:info_report(["DIAMETER peer address not found in client table",
 			{service, Service}, {result, ResultCode},
-			{peer, binary_to_list(Peer)}]),
+			{peer, binary_to_list(Peer)},
+			{addresses, HostIpAddresses}]),
 	{next_state, StateName, StateData};
 handle_info(#diameter_event{info = {closed, _,
 		{Command, ResultCode, #diameter_caps{origin_host = {_, Peer}}, _}, _},
