@@ -1,3 +1,9 @@
+2023-09-27  Vance Shipley <vances@sigscale.org>
+
+	* improve diameter auth port error handling
+	* report host addresses on diameter client not found
+	* close add service dialog after press submit
+
 2023-09-14  Vance Shipley <vances@sigscale.org>
 
 	* handle swx str response errors

@@ -1,3 +1,9 @@
+September 27, 2023
+------------------
+	- Improved DIAMETER error handling for AAA
+	- DIAMETER host addresses in client not found report
+	- Close add service dialog after submit
+
 September 14, 2023
 ------------------
 	- Handle SWx deregistration (STR) errors
