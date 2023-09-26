@@ -654,6 +654,7 @@ class subAdd extends PolymerElement {
 		specService.id = "1";
 		specService.href = "/catalogManagement/v2/serviceSpecification/1";
 		subscriber.serviceSpecification = specService;
+		this.$.addServiceModal.close();
 		if(subscriber.id != "") {
 			var ajax = this.$.addServiceAjax;
 			ajax.headers['Content-type'] = "application/json";
