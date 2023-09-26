@@ -81,7 +81,7 @@
 %%  The ocs_diameter_auth_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
--spec init(Args) -> Result 
+-spec init(Args) -> Result
 	when
 		Args :: list(),
 		Result :: {ok, State :: state()}
@@ -109,7 +109,7 @@ init([AuthPortSup, Address, Port, Options]) ->
 
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		From :: {Pid :: pid(), Tag :: any()},
 		State :: state(),
 		Result :: {reply, Reply :: term(), NewState :: state()}
@@ -132,7 +132,7 @@ handle_call({diameter_request, Caps, ClientAddr, ClientPort,
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState :: state()}
 		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
@@ -156,7 +156,7 @@ handle_cast({AuthFsm, Request}, #state{cb_fsms = CbHandler} = State) ->
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
+		Info :: timeout | term(),
 		State :: state(),
 		Result :: {noreply, NewState :: state()}
 		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
@@ -224,7 +224,7 @@ terminate(_Reason, _State) ->
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
 		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		State :: state(), 
+		State :: state(),
 		Extra :: term(),
 		Result :: {ok, NewState :: state()}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
@@ -244,7 +244,7 @@ code_change(_OldVsn, State, _Extra) ->
 		Caps :: capabilities(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
-		Eap :: none | {eap, #eap_packet{}},
+		Eap :: none | {eap, binary()},
 		PasswordReq :: boolean(),
 		Trusted :: boolean(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
@@ -394,7 +394,79 @@ request2({eap, _Eap}, _SessionId, _AuthRequestType, {value, ExistingFsm},
 		Request, CbProc, #state{cb_fsms = FsmHandler} = State) ->
 	NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
 	gen_fsm:send_event(ExistingFsm, Request),
-	{noreply, State#state{cb_fsms = NewFsmHandler}}.
+	{noreply, State#state{cb_fsms = NewFsmHandler}};
+request2(none, SessionId, AuthRequestType, LookupResult,
+		_Address, _Port, _PasswordReq, _Trusted,
+		OHost, ORealm, DHost, DRealm, Request, _CbProc, State)
+		when is_record(Request, diameter_nas_app_AAR) ->
+	error_logger:error_report(["Unrecognized AAR",
+			{session_id, SessionId}, {fsm, get_fsm(LookupResult)},
+			{host, DHost}, {realm, DRealm},
+			{app_id, ?NAS_APPLICATION_ID},
+			{request, Request}]),
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
+	{reply, Answer, State};
+request2({eap, <<_, EapId, _/binary>>} = _EapType,
+		SessionId, AuthRequestType, LookupResult,
+		_Address, _Port, _PasswordReq, _Trusted,
+		OHost, ORealm, DHost, DRealm, Request, _CbProc, State)
+		when is_record(Request, diameter_eap_app_DER) ->
+	error_logger:error_report(["Unrecognized DER",
+			{session_id, SessionId}, {fsm, get_fsm(LookupResult)},
+			{host, DHost}, {realm, DRealm},
+			{app_id, ?EAP_APPLICATION_ID},
+			{eap_id, EapId}, {request, Request}]),
+	NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+	NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'EAP-Payload' = [NewEapMessage]},
+	{reply, Answer, State};
+request2({eap, <<_, EapId, _/binary>>} = _EapType,
+		SessionId, AuthRequestType, LookupResult,
+		_Address, _Port, _PasswordReq, _Trusted,
+		OHost, ORealm, DHost, DRealm, Request, _CbProc, State)
+		when is_record(Request, '3gpp_sta_DER') ->
+	error_logger:error_report(["Unrecognized DER",
+			{session_id, SessionId}, {fsm, get_fsm(LookupResult)},
+			{host, DHost}, {realm, DRealm},
+			{app_id, ?STa_APPLICATION_ID},
+			{eap_id, EapId}, {request, Request}]),
+	NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+	NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+	Answer = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
+			'Auth-Application-Id' = ?STa_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'EAP-Payload' = [NewEapMessage]},
+	{reply, Answer, State};
+request2({eap, <<_, EapId, _/binary>>} = _EapType,
+		SessionId, AuthRequestType, LookupResult,
+		_Address, _Port, _PasswordReq, _Trusted,
+		OHost, ORealm, DHost, DRealm, Request, _CbProc, State)
+		when is_record(Request, '3gpp_swm_DER') ->
+	error_logger:error_report(["Unrecognized DER",
+			{session_id, SessionId}, {fsm, get_fsm(LookupResult)},
+			{host, DHost}, {realm, DRealm},
+			{app_id, ?SWm_APPLICATION_ID},
+			{eap_id, EapId}, {request, Request}]),
+	NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+	NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+			'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'EAP-Payload' = [NewEapMessage]},
+	{reply, Answer, State}.
 
 %% @hidden
 -spec start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
@@ -429,14 +501,15 @@ start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
 	try
 		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
 	of
-		{_Fsm, NewState} ->
+		{Fsm, NewState} when is_pid(Fsm) ->
 			{noreply, NewState}
 	catch
 		_:_Reason ->
-			Error = #diameter_nas_app_AAA{
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			Error = #diameter_nas_app_AAA{'Session-Id' = SessionId,
+					'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = AuthRequestType,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Session-Id' = SessionId},
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			{reply, Error, State}
 	end;
 start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
@@ -449,14 +522,15 @@ start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
 	try
 		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
 	of
-		{_Fsm, NewState} ->
+		{Fsm, NewState} when is_pid(Fsm) ->
 			{noreply, NewState}
 	catch
 		_:_Reason ->
-			Error = #diameter_eap_app_DEA{
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			Error = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+					'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = AuthRequestType,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Session-Id' = SessionId},
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			{reply, Error, State}
 	end;
 start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
@@ -469,14 +543,15 @@ start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
 	try
 		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
 	of
-		{_Fsm, NewState} ->
+		{Fsm, NewState} when is_pid(Fsm) ->
 			{noreply, NewState}
 	catch
 		_:_Reason ->
-			Error = #'3gpp_sta_DEA'{
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			Error = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
+					'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = AuthRequestType,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Session-Id' = SessionId},
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			{reply, Error, State}
 	end;
 start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
@@ -489,14 +564,15 @@ start_fsm(AuthSup, ClientAddress, ClientPort, PasswordReq, Trusted, SessionId,
 	try
 		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
 	of
-		{_Fsm, NewState} ->
+		{Fsm, NewState} when is_pid(Fsm) ->
 			{noreply, NewState}
 	catch
 		_:_Reason ->
-			Error = #'3gpp_swm_DEA'{
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			Error = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+					'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = AuthRequestType,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Session-Id' = SessionId},
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			{reply, Error, State}
 	end.
 %% @hidden
@@ -636,4 +712,9 @@ get_alternate([akap | T], AlternateMethods,
 	end;
 get_alternate([], _AlternateMethods, _State) ->
 	{error, none}.
+
+get_fsm({value, Fsm}) ->
+	Fsm;
+get_fsm(none) ->
+	none.
 
