@@ -88,17 +88,17 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_service, delete_service, add_offer, find_offer, get_offers,
-	delete_offer, add_user, get_user, delete_user, add_bucket,
-	find_bucket, delete_bucket, get_buckets, positive_adjustment,
-	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
-	add_product, find_product, delete_product, query_product,
-	ignore_delete_product, add_offer_event,
-	delete_offer_event, add_resource_event,
-	delete_resource_event, add_service_event, delete_service_event,
-	add_product_event, delete_product_event, add_bucket_event,
-	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event,
+	add_service, update_service, delete_service, add_offer,
+	find_offer, get_offers, delete_offer, add_user, get_user,
+	delete_user, add_bucket, find_bucket, delete_bucket,
+	get_buckets, positive_adjustment, negative_adjustment_high,
+	negative_adjustment_equal, negative_adjustment_low, add_product,
+	update_product, find_product, delete_product, query_product,
+	ignore_delete_product, add_offer_event, delete_offer_event,
+	add_resource_event, delete_resource_event, add_service_event,
+	delete_service_event, add_product_event, delete_product_event,
+	add_bucket_event, delete_bucket_event, product_charge_event,
+	rating_deleted_bucket_event, accumulated_balance_event,
 	add_resource, get_resources, get_resource, delete_resource,
 	parse_access_network_information_string].
 
@@ -199,6 +199,22 @@ add_service(_Config) ->
 	Password = binary_to_list(BinPassword),
 	{ok, #service{password = #aka_cred{k = K, opc = OPc},
 			attributes = Attribute2}} = ocs:find_service(IMSI).
+
+update_service() ->
+	[{userdata, [{doc, "Update existing service"}]}].
+
+update_service(_Config) ->
+	IMSI = "001001" ++ ocs:generate_identity(),
+	{ok, Service1} = ocs:add_service(IMSI, undefined, undefined, [], []),
+	#service{last_modified = {TS1, N1}} = Service1,
+	K = crypto:strong_rand_bytes(16),
+	OPc = crypto:strong_rand_bytes(16),
+	Credentials = #aka_cred{k = K, opc = OPc},
+	Service2 = Service1#service{password = Credentials},
+	{ok, #service{password = Credentials,
+			last_modified = {TS2, N2}}} = ocs:update_service(Service2),
+	true = (TS2 >= TS1),
+	true = (N2 /= N1).
 
 delete_service() ->
 	[{userdata, [{doc, "Delete service from the database"}]}].
@@ -383,6 +399,24 @@ add_product(_Config) ->
 	{ok, _Offer1} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef} = P} = ocs:add_product(OfferId, []),
 	{atomic, [P]} = mnesia:transaction(fun() -> mnesia:read(product, ProdRef, read) end).
+
+update_product() ->
+	[{userdata, [{doc, "Update existing product"}]}].
+
+update_product(_Config) ->
+	Price = #price{name = ocs:generate_identity(),
+			type = one_time, amount = 1000000},
+	Offer = #offer{name = ocs:generate_identity(), price = [Price]},
+	{ok, #offer{name = OfferRef}} = ocs:add_offer(Offer),
+	{ok, Product1} = ocs:add_product(OfferRef, []),
+	#product{last_modified = {TS1, N1}} = Product1,
+	IMSI = "001001" ++ ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service(IMSI, undefined),
+	Product2 = Product1#product{service = [ServiceRef]},
+	{ok, #product{service = [ServiceRef],
+			last_modified = {TS2, N2}}} = ocs:update_product(Product2),
+	true = (TS2 >= TS1),
+	true = (N2 /= N1).
 
 find_product() ->
 	[{userdata, [{doc, "Lookup product with given product reference"}]}].

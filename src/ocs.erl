@@ -27,6 +27,7 @@
 		get_clients/0, delete_client/1, query_clients/6]).
 -export([add_service/2, add_service/3, add_service/4, add_service/5,
 		add_service/8, add_product/2, add_product/3, add_product/5,
+		update_product/1, update_service/1,
 		delete_product/1, get_products/0, query_product/4]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
@@ -623,6 +624,37 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 			{error, Reason}
 	end.
 
+-spec update_product(Product) -> Result
+	when
+		Result :: {ok, Product} | {error, Reason},
+		Reason :: not_found | stale | term().
+%% @doc Update an existing Product.
+update_product(#product{id = Id, last_modified = LM} = Product)
+		when is_list(Id), is_tuple(LM) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	NewLM = {TS, N},
+	Ftrans = fun() ->
+				case mnesia:read(product, Id, write) of
+					[#product{last_modified = LM}] ->
+						Product1 = Product#product{last_modified = NewLM},
+						ok = mnesia:write(Product1),
+						Product1;
+					[#product{}] ->
+						mnesia:abort(stale);
+					[] ->
+						mnesia:abort(not_found)
+				end
+	end,
+   update_product1(mnesia:transaction(Ftrans)).
+%% @hidden
+%% @todo update_product event
+update_product1({atomic, #product{} = Product}) ->
+	ok = ocs_event:notify(create_product, Product, resource),
+	{ok, Product};
+update_product1({aborted, Reason}) ->
+	{error, Reason}.
+
 -spec find_product(ProductRef) -> Result
 	when
 		ProductRef :: string(),
@@ -865,6 +897,37 @@ add_service1(Identity, Password, State, ProductRef,
 		[] ->
 			throw(product_not_found)
 	end.
+
+-spec update_service(Service) -> Result
+	when
+		Result :: {ok, Service} | {error, Reason},
+		Reason :: not_found | stale | term().
+%% @doc Update an existing Service.
+update_service(#service{name = Name, last_modified = LM} = Service)
+		when is_binary(Name), is_tuple(LM) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	NewLM = {TS, N},
+	Ftrans = fun() ->
+				case mnesia:read(service, Name, write) of
+					[#service{last_modified = LM}] ->
+						Service1 = Service#service{last_modified = NewLM},
+						ok = mnesia:write(Service1),
+						Service1;
+					[#service{}] ->
+						mnesia:abort(stale);
+					[] ->
+						mnesia:abort(not_found)
+				end
+	end,
+   update_service1(mnesia:transaction(Ftrans)).
+%% @hidden
+%% @todo update_service event
+update_service1({atomic, #service{} = Service}) ->
+	ok = ocs_event:notify(create_service, Service, resource),
+	{ok, Service};
+update_service1({aborted, Reason}) ->
+	{error, Reason}.
 
 -spec add_bucket(ProductRef, Bucket) -> Result
 	when
