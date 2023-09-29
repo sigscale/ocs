@@ -552,7 +552,7 @@ query_product3('$end_of_table', _MatchService) ->
 		Result :: {ok, #product{}} | {error, Reason},
 		ServiceRef :: binary(),
 		Reason :: service_not_found | service_has_product | offer_not_found | term().
-%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+%% @equiv add_product(Offer, ServiceRefs, undefined, undefined, [])
 add_product(Offer, ServiceRefs) ->
 	add_product(Offer, ServiceRefs, undefined, undefined, []).
 
@@ -564,7 +564,7 @@ add_product(Offer, ServiceRefs) ->
 		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: service_not_found | service_has_product | offer_not_found | term().
-%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+%% @equiv add_product(Offer, ServiceRefs, undefined, undefined, Characteristics)
 add_product(Offer, ServiceRefs, Characteristics) ->
 	add_product(Offer, ServiceRefs, undefined, undefined, Characteristics).
 
