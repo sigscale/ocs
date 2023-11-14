@@ -810,6 +810,12 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 The behaviour of the AAA for non-3GPP access is configured with the
 following environment variables:
 <dl>
+	<dt>hss_realm</dt>
+		<dd>Enable SWx interface to a Home Subscriber Server (HSS) realm:
+				{hss_realm, string()}</dd>
+	<dt>hss_host</dt>
+		<dd>SWx interface to a specific HSS host:
+				{hss_host, string()}</dd>
 	<dt>aka_kpseu</dt>
 		<dd>Encryption keys used for the generation of temporary identities:
 				{aka_kpseu, [{KeyIndicator :: 0..15, Key :: binary()}]}
