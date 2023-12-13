@@ -266,6 +266,31 @@ The OCS application will start RADIUS &amp; DIAMETER servers for authentication
 and accounting on the configured ports. The {@link //inets. inets} application
 may be started to provide a REST API and web user interface (UI).
 
+===DIAMETER===
+One or more `diameter' services are configured to enable peering with
+DIAMETER clients or Routing Agents (DRA).
+
+====OCS====
+A typical prepaid charging message sequence across the Ro or Gy
+interface is depicted below:
+
+<img id="ctf-ro" class="diagram"
+		src="ctf-ro-msc.svg" alt="OCS"/>
+
+====PCRF====
+A typical policy and charging control (PCC) message sequence
+across the Gx interface is depicted below:
+
+<img id="pcef-gx" class="diagram"
+		src="pcef-gx-msc.svg" alt="PCRF"/>
+
+====AAA====
+A typical non-3GPP access message sequence across the SWm and SWx
+interfaces is depicted below:
+
+<img id="swm-swx" class="diagram"
+		src="swm-swx-msc.svg" alt="AAA" />
+
 ===Logging===
 Every detail of each DIAMETER/RADIUS transaction is logged to disk.
 

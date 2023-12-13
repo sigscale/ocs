@@ -1,0 +1,37 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequence {
+ParticipantBorderColor #f57f17
+ParticipantBackgroundColor white
+LifeLineBorderColor #f57f17
+LifeLineBackgroundColor white
+}
+participant ePDG as epdg
+participant AAA as aaa
+participant HSS as hss
+hide footbox
+
+epdg -> aaa : DIAMETER EAP-Request (DER) EAP-Identity
+activate aaa
+aaa -> hss : DIAMETER Multimedia-Authentication-Request (MAR) Authentication Data
+activate hss
+aaa <- hss : DIAMETER Multimedia-Authentication-Answer (MAA) Authentication Data
+deactivate hss
+epdg <- aaa : DIAMETER EAP-Answer (DEA) AKA-Challenge
+epdg -> aaa : DIAMETER EAP-Request (DER) AKA-Challenge
+aaa -> hss : DIAMETER Server-Assignment-Request (SAR) Registration
+activate hss
+aaa <- hss : DIAMETER Server-Assignment-Answer (SAA) Registration
+deactivate hss
+epdg <- aaa : DIAMETER EAP-Answer (DEA)
+...
+epdg -> aaa : DIAMETER Session-Termination-Request (STR)
+aaa -> hss : DIAMETER Server-Assignment-Request (SAR) Deregistration
+activate hss
+aaa <- hss : DIAMETER Server-Assignment-Answer (SAA) Deregistration
+deactivate hss
+epdg <- aaa : DIAMETER Session-Termination-Answer (STA) 
+deactivate aaa
+
+@enduml

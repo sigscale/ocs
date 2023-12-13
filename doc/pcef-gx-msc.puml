@@ -1,0 +1,22 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequence {
+ParticipantBorderColor #f57f17
+ParticipantBackgroundColor white
+LifeLineBorderColor #f57f17
+LifeLineBackgroundColor white
+}
+participant PCEF as pcef
+participant PCRF as pcrf
+hide footbox
+
+pcef -> pcrf : DIAMETER Credit-Control-Request (CCR) Initial PCC Rules
+activate pcrf
+pcef <- pcrf : DIAMETER Credit-Control-Answer (CCA) Initial PCC Rules
+...
+pcef -> pcrf : DIAMETER Credit-Control-Request (CCR) Terminate
+pcef <- pcrf : DIAMETER Credit-Control-Answer (CCA) Terminate
+deactivate pcrf
+
+@enduml

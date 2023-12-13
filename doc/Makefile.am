@@ -151,7 +151,10 @@ doc_DATA = overview.edoc $(modhtml) \
 		disk_logs.svg \
 		event_log.svg \
 		pub_sub_events.svg \
-		pagination-msc.svg
+		pagination-msc.svg \
+		ctf-ro-msc.svg \
+		pcef-gx-msc.svg \
+		swm-swx-msc.svg
 
 overview.edoc: overview.edoc-in
 	sed -e 's!%VERSION%!$(VERSION)!' \
@@ -182,6 +185,9 @@ overview.edoc: overview.edoc-in
 	-cp -n $(top_srcdir)/doc/event_log.svg .
 	-cp -n $(top_srcdir)/doc/pub_sub_events.svg .
 	-cp -n $(top_srcdir)/doc/pagination-msc.svg .
+	-cp -n $(top_srcdir)/doc/ctf-ro-msc.svg .
+	-cp -n $(top_srcdir)/doc/pcef-gx-msc.svg .
+	-cp -n $(top_srcdir)/doc/swm-swx-msc.svg .
 
 CLEANFILES = overview.edoc \
 		edoc-info \
@@ -204,6 +210,9 @@ CLEANFILES = overview.edoc \
 		event_log.svg \
 		pub_sub_events.svg \
 		pagination-msc.svg \
+		ctf-ro-msc.svg \
+		pcef-gx-msc.svg \
+		swm-swx-msc.svg \
 		schema.svg \
 		product-specifications.svg \
 		sigscale-logo.png

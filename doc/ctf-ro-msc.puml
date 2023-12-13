@@ -1,0 +1,25 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequence {
+ParticipantBorderColor #f57f17
+ParticipantBackgroundColor white
+LifeLineBorderColor #f57f17
+LifeLineBackgroundColor white
+}
+participant CTF as ctf
+participant OCS as ocs
+hide footbox
+
+ctf -> ocs : DIAMETER Credit-Control-Request (CCR) Initial
+activate ocs
+ctf <- ocs : DIAMETER Credit-Control-Answer (CCA) Initial
+...
+ctf -> ocs : DIAMETER Credit-Control-Request (CCR) Update
+ctf <- ocs : DIAMETER Credit-Control-Answer (CCA) Update
+...
+ctf -> ocs : DIAMETER Credit-Control-Request (CCR) Terminate
+ctf <- ocs : DIAMETER Credit-Control-Answer (CCA) Terminate
+deactivate ocs
+
+@enduml
