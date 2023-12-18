@@ -2741,9 +2741,19 @@ tariff_bucket(_Config) ->
 	{_, Rate3, _} = ocs_gtt:lookup_last(Table3, Destination),
 	Reserve = UnitSize * rand:uniform(5),
 	Units1 = Reserve + rand:uniform(Reserve),
-	Amount1 = (Units1 div UnitSize) * Rate1,
+	Amount1 = case Units1 rem UnitSize of
+		0 ->
+			(Units1 div UnitSize) * Rate1;
+		_ ->
+			((Units1 div UnitSize) + 1) * Rate1
+	end,
 	Units2 = rand:uniform(600),
-	Amount2 = (Units2 div UnitSize) * Rate2,
+	Amount2 = case Units2 rem UnitSize of
+		0 ->
+			(Units2 div UnitSize) * Rate2;
+		_ ->
+			((Units2 div UnitSize) + 1) * Rate2
+	end,
 	Amount3 = ocs_rest:millionths_in(1000),
 	Today = calendar:date_to_gregorian_days(date()),
 	LastMonth = calendar:gregorian_days_to_date(Today - 30),	
@@ -2790,14 +2800,15 @@ tariff_bucket(_Config) ->
 			undefined, undefined, ServiceId, calendar:local_time(),
 			Destination, originate, final,
 			[{seconds, Debit4}], undefined, SessionId1),
-	Debits = Debit1 + Debit2 + Debit3 + Debit4,
-	case Debits of
-		Debits when Debits > (Units1 + Units2) ->
+	BucketUnits1 = (Amount1 div Rate1) * UnitSize,
+	BucketUnits2 = (Amount2 div Rate2) * UnitSize,
+	case Debit1 + Debit2 + Debit3 + Debit4 of
+		Debits when Debits > (BucketUnits1 + BucketUnits2) ->
 			{error, not_found} = ocs:find_bucket(BId1),
 			{error, not_found} = ocs:find_bucket(BId2),
 			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
 			Remain3 = Amount3 - ((Debits - Units1 - Units2) * Rate3);
-		Debits when Debits > Units1 ->
+		Debits when Debits > BucketUnits1 ->
 			{error, not_found} = ocs:find_bucket(BId1),
 			{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId2),
 			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
