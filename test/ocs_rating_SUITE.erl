@@ -1037,7 +1037,8 @@ interim_out_of_credit_negative(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionAttributes),
-	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
+	{error, not_found} = ocs:find_bucket(BId),
+	[#bucket{remain_amount = RemainAmount}] = ocs:get_buckets(ProdRef),
 	true = RemainAmount < 0.
 
 interim_out_of_credit_negative1() ->
@@ -1075,7 +1076,8 @@ interim_out_of_credit_negative1(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionId),
-	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
+	{error, not_found} = ocs:find_bucket(BId),
+	[#bucket{remain_amount = RemainAmount}] = ocs:get_buckets(ProdRef),
 	true = RemainAmount < 0.
 
 final_remove_session() ->
