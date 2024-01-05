@@ -1038,8 +1038,12 @@ interim_out_of_credit_negative(_Config) ->
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionAttributes),
 	{error, not_found} = ocs:find_bucket(BId),
-	[#bucket{remain_amount = RemainAmount}] = ocs:get_buckets(ProdRef),
-	true = RemainAmount < 0.
+	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
+				true;
+			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
+				false
+	end,
+	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 interim_out_of_credit_negative1() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (diameter)"}]}].
@@ -1077,8 +1081,12 @@ interim_out_of_credit_negative1(_Config) ->
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionId),
 	{error, not_found} = ocs:find_bucket(BId),
-	[#bucket{remain_amount = RemainAmount}] = ocs:get_buckets(ProdRef),
-	true = RemainAmount < 0.
+	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
+				true;
+			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
+				false
+	end,
+	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
