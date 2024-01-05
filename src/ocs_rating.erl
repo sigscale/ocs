@@ -77,7 +77,9 @@
 		Rated :: [#rated{}],
 		SessionList :: [{pos_integer(), [tuple()]}],
 		RedirectServerAddress :: string() | undefined,
-		Reason :: term().
+		Reason :: offer_not_found | product_not_found
+				| service_not_found | invalid_service_type
+				| invalid_bundle_product | term().
 %% @doc Handle rating and balance management for used and reserved unit amounts.
 %%
 %% 	Subscriber balance buckets are permanently reduced by the
@@ -283,8 +285,10 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 				ReserveAmounts, SessionId, #rated{product = OfferName},
 				ChargingKey, ServiceNetwork)
 	catch
-		_:_ ->
-			mnesia:abort(invalid_bundle_product)
+		error:{badmatch, _} ->
+			mnesia:abort(invalid_bundle_product);
+		_:Reason ->
+			mnesia:abort(Reason)
 	end;
 rate1(Protocol, Service, ServiceId, Product, Buckets,
 		Timestamp, Address, Direction,
@@ -1583,7 +1587,7 @@ charge4(event,
 		Attributes :: [tuple()],
 		SessionList :: [tuple()],
 		Reason :: disabled | bad_password | service_not_found
-				| out_of_credit | offer_not_found | invalid_bundle_product
+				| out_of_credit | offer_not_found
 				| price_not_found | table_lookup_failed.
 %% @doc Authorize access request.
 %% 	If authorized returns attributes to be included in `Access-Accept' response.
@@ -1751,8 +1755,8 @@ authorize2(radius = Protocol, ServiceType,
 				authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
 		end
 	catch
-		_:_ ->
-			mnesia:abort(invalid_bundle_product)
+		_:Reason ->
+			mnesia:abort(Reason)
 	end;
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets,
@@ -2329,8 +2333,8 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey,
 				Remain < (Charge - ReservedAmount) ->
 			NewDebitedAmount = DebitedAmount + (Remain + ReservedAmount),
 			NewReservations2 = NewReservations1#{SessionId => #{ts => Now,
-			debit => NewDebitedAmount, reserve => 0, service_id => ServiceId,
-			charging_key => ChargingKey}},
+					debit => NewDebitedAmount, reserve => 0, service_id => ServiceId,
+					charging_key => ChargingKey}},
 			NewAcc = [B#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => NewReservations2}} | Acc],
