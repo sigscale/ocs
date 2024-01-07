@@ -2248,16 +2248,15 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey,
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain > 0, Remain < (Charge - Charged) ->
 	Reservations = maps:get(reservations, Attributes, #{}),
-	NewCharge = Charge - Charged,
 	NewReservation = Reservations#{SessionId => #{ts => Now,
-			debit => NewCharge, reserve => 0, service_id => ServiceId,
+			debit => Remain, reserve => 0, service_id => ServiceId,
 			charging_key => ChargingKey}},
 	NewAcc = [B#bucket{remain_amount = 0,
 			last_modified = {Now, erlang:unique_integer([positive])},
 			attributes = Attributes#{reservations => NewReservation}}
 			| Acc],
 	update(Type, Charge, Reserve, Now, ServiceId,
-			ChargingKey, SessionId, T, NewAcc, Charged + NewCharge,
+			ChargingKey, SessionId, T, NewAcc, Charged + Remain,
 			Reserved);
 update(_, Charge, Reserve, _, _, _, _, Buckets, Acc, Charged,
 		Reserved) when Charge =:= Charged, Reserve =:= Reserved ->
