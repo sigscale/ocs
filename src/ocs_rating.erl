@@ -2004,6 +2004,11 @@ update_session(Type, Charge, Reserve, Now, ServiceId,
 	update_session(Type, Charge, Reserve, Now,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged, Reserved);
 update_session(Type, Charge, Reserve, Now, ServiceId,
+		ChargingKey, SessionId, [H | T], Acc, Charged, Reserved)
+		when Charge =:= Charged, Reserve =:= Reserved ->
+	update_session(Type, Charge, Reserve, Now, ServiceId,
+			ChargingKey, SessionId, [H | T], Acc, Charged, Reserved);
+update_session(Type, Charge, Reserve, Now, ServiceId,
 		ChargingKey, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, attributes = Attributes} = B | T],
 		Acc, Charged, Reserved) ->
