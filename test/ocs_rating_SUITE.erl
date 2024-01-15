@@ -2723,9 +2723,13 @@ tariff_bucket(_Config) ->
 	ok = ocs_gtt:new(Table2, [], F($9, [])),
 	ok = ocs_gtt:new(Table3, [], F($9, [])),
 	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
-			values = [#char_value{value = Table1}]}],
+					values = [#char_value{value = Table1}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
 	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
-			values = [#char_value{value = Table2}]}],
+					values = [#char_value{value = Table2}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
 	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
 			values = [#char_value{value = Table3}]}],
 	PriceName1 = ocs:generate_identity(),
@@ -2806,32 +2810,43 @@ tariff_bucket(_Config) ->
 			Destination, originate, interim,
 			[{seconds, Debit3}], [{seconds, Reserve}], SessionId1),
 	Debit4 = Reserve - UnitSize + rand:uniform(UnitSize),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, calendar:local_time(),
 			Destination, originate, final,
 			[{seconds, Debit4}], undefined, SessionId1),
-	BucketUnits1 = (Amount1 div Rate1) * UnitSize,
-	BucketUnits2 = (Amount2 div Rate2) * UnitSize,
-	case Debit1 + Debit2 + Debit3 + Debit4 of
-		Debits when Debits > (BucketUnits1 + BucketUnits2) ->
-			{error, not_found} = ocs:find_bucket(BId1),
-			{error, not_found} = ocs:find_bucket(BId2),
-			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
-			Remain3 = Amount3 - ((Debits - Units1 - Units2) * Rate3);
-		Debits when Debits > BucketUnits1 ->
-			{error, not_found} = ocs:find_bucket(BId1),
-			{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId2),
-			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
-			Remain2 = Amount2 - ((Debits - Units1) * Rate2),
-			Remain3 = Amount3;
-		Debits ->
-			{ok, #bucket{remain_amount = Reamin1}} = ocs:find_bucket(BId1),
-			{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId2),
-			{ok, #bucket{remain_amount = Remain3}} = ocs:find_bucket(BId3),
-			Remain1 = Amount1 - (Debits * Rate1),
-			Remain2 = Amount2,
-			Remain3 = Amount3
-	end.
+	Debits = Debit1 + Debit2 + Debit3 + Debit4,
+	DebitedUnits = case Debits rem UnitSize of
+		0 ->
+			Debits;
+		_ ->
+			Debits + UnitSize - (Debits rem UnitSize)
+	end,
+	{DebitedCents1, DebitedUnits1}  = case ocs:find_bucket(BId1) of
+		{ok, #bucket{remain_amount = Remain1}} ->
+			D1 = Amount1 - Remain1,
+			0 = D1 rem Rate1,
+			{D1, (D1 div Rate1) * UnitSize};
+		{error, not_found} ->
+			{Amount1, (Amount1 div Rate1) * UnitSize}
+	end,
+	{DebitedCents2, DebitedUnits2}  = case ocs:find_bucket(BId2) of
+		{ok, #bucket{remain_amount = Remain2}} ->
+			D2 = Amount2 - Remain2,
+			0 = D2 rem Rate2,
+			{D2, (D2 div Rate2) * UnitSize};
+		{error, not_found} ->
+			{Amount2, (Amount2 div Rate2) * UnitSize}
+	end,
+	{DebitedCents3, DebitedUnits3}  = case ocs:find_bucket(BId3) of
+		{ok, #bucket{remain_amount = Remain3}} ->
+			D3 = Amount3 - Remain3,
+			0 = D3 rem Rate3,
+			{D3, (D3 div Rate3) * UnitSize};
+		{error, not_found} ->
+			{Amount3, (Amount3 div Rate3) * UnitSize}
+	end,
+	DebitedUnits = DebitedUnits1 + DebitedUnits2 + DebitedUnits3,
+	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
