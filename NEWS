@@ -1,3 +1,10 @@
+January 16, 2024
+----------------
+	- Multiple allowance buckets used within a session debits correctly
+	- DIAMETER message sequence charts in User Guide
+	- Document AAA HSS application environment variables
+	- Script for bulk subscriber provisioning
+
 September 27, 2023
 ------------------
 	- Improved DIAMETER error handling for AAA

@@ -1,3 +1,19 @@
+2024-01-16  Vance Shipley <vances@sigscale.org>
+
+	* refactor rating for allowance buckets
+	* new session in a bucket with balance < charge was being credited with full charge
+	* expire buckets during update while skipping when complete
+	* session overflow negative balance in normal, not session, bucket
+	* rating error reports reason
+	* test for new bucket with negative remain amount
+	* Revert "credit overrun leaves negative balance"
+	* correct unit calculation in tariff_bucket test case
+	* diameter message sequence charts in user guide
+	* document aaa hss app env vars
+	* escript for bulk subscriber provisioning
+	* erlang api functions for update product and service
+	* correct edoc for add_product/2,3
+
 2023-09-27  Vance Shipley <vances@sigscale.org>
 
 	* improve diameter auth port error handling
