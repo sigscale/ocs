@@ -1135,7 +1135,7 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product, Prices,
 					{Units2, DA2}, {Units2, 0},
 					SessionId, ChargingKey, false) of
 				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
-						when DA3 >= DA2 ->
+								when DA3 >= DA2 ->
 					Rated3 = lists:flatten([Rated1, Rated2]),
 					NewBuckets2 = lists:flatten([NewBuckets1,
 							PriceBuckets2, NewAcc, OtherBuckets]),
@@ -1143,7 +1143,8 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product, Prices,
 							DebitAmount, {Units2, DA1 + DA3},
 							{Units2, 0}, {Units2, 0}, SessionId, Rated3,
 							ChargingKey, OldBuckets);
-				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2} ->
+				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
+						when DA3 < DA2 ->
 					Rated3 = lists:flatten([Rated1, Rated2]),
 					NewAcc1 = lists:flatten([NewBuckets1, NewAcc]),
 					NewPrices = case PriceBuckets2 of
@@ -1192,7 +1193,8 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product, Prices,
 									DebitAmount, {Units2, DA1 + DA3},
 									{Units2, 0}, {Units2, 0}, SessionId, Rated3,
 									ChargingKey, OldBuckets);
-						{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2} ->
+						{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
+								when DA3 < DA2 ->
 							Rated3 = lists:flatten([Rated1, Rated2]),
 							NewAcc1 = lists:flatten([NewBuckets1, NewAcc]),
 							NewPrices = case PriceBuckets2 of
@@ -1282,7 +1284,8 @@ charge2(Protocol, event = Flag,
 							{Units2, 0}, {Units2, 0},
 							SessionId, Rated3,
 							ChargingKey, OldBuckets);
-				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2} ->
+				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
+						when DA3 < DA2 ->
 					Rated3 = lists:flatten([Rated1, Rated2]),
 					NewAcc1 = lists:flatten([NewBuckets1, NewAcc]),
 					NewPrices = case PriceBuckets2 of
@@ -1364,13 +1367,14 @@ charge3(interim, #service{enabled = false} = _Service, ServiceId,
 							ServiceId, ChargingKey,
 							SessionId, Buckets2) of
 						{NewChargeUnits, 0, Buckets3} ->
-							{{Units, UnitsCharged}, {Units, 0}, Buckets3, Rated};
-						{NewUnitsCharged, 0, Buckets3}
-								when Overflow == false ->
+							{{Units, UnitsCharged + NewChargeUnits},
+									{Units, 0}, Buckets3, Rated};
+						{NewUnitsCharged, 0, Buckets3} when Overflow == false,
+								NewUnitsCharged < NewChargeUnits ->
 							{{Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, Buckets3, Rated};
-						{NewUnitsCharged, 0, Buckets3}
-								when Overflow == true ->
+						{NewUnitsCharged, 0, Buckets3} when Overflow == true,
+								NewUnitsCharged < NewChargeUnits ->
 							Now = erlang:system_time(millisecond),
 							Reservation = #{ts => Now, reserve => 0,
 									debit => NewChargeUnits - NewUnitsCharged,
@@ -1386,6 +1390,8 @@ charge3(interim, #service{enabled = false} = _Service, ServiceId,
 							{{Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, Buckets4, Rated}
 					end;
+				false when Overflow == false ->
+					{{Units, UnitsCharged}, {Units, 0}, Buckets1, Rated};
 				false when Overflow == true ->
 					Now = erlang:system_time(millisecond),
 					Reservation = #{ts => Now, reserve => 0,
@@ -1399,9 +1405,7 @@ charge3(interim, #service{enabled = false} = _Service, ServiceId,
 							remain_amount = UnitsCharged - Amount,
 							attributes = Attributes, units = Units,
 							product = [ProductId]} | Buckets1],
-					{{Units, UnitsCharged}, {Units, 0}, Buckets2, Rated};
-				false when Overflow == false ->
-					{{Units, UnitsCharged}, {Units, 0}, Buckets1, Rated}
+					{{Units, UnitsCharged}, {Units, 0}, Buckets2, Rated}
 			end
 	end;
 charge3(interim, _Service, ServiceId,
@@ -1409,7 +1413,7 @@ charge3(interim, _Service, ServiceId,
 		#price{units = Units, size = UnitSize,
 				amount = UnitPrice} = _Price,
 		{Units, Damount} = DebitAmount,
-		{Units, Ramount} = _ReserveAmount,
+		{Units, Ramount} = ReserveAmount,
 		SessionId, ChargingKey, Overflow) ->
 	Rated = undefined,
 	case update_session(Units, Damount, Ramount,
@@ -1426,7 +1430,7 @@ charge3(interim, _Service, ServiceId,
 					{0, Ramount, Buckets3} = update_session(Units,
 							0, Ramount, ServiceId,
 							ChargingKey, SessionId, Buckets2),
-					{DebitAmount, {Units, Ramount}, Buckets3, Rated};
+					{DebitAmount, ReserveAmount, Buckets3, Rated};
 				false ->
 					{DebitAmount, {Units, UnitsReserved}, Buckets1, Rated}
 			end;
@@ -1439,16 +1443,15 @@ charge3(interim, _Service, ServiceId,
 				{ok, Buckets2} ->
 					case update_session(Units, NewChargeUnits, Ramount,
 							ServiceId, ChargingKey, SessionId, Buckets2) of
-						{NewChargeUnits, UnitsReserved, Buckets3}
-								when UnitsReserved >= Ramount ->
+						{NewChargeUnits, UnitsReserved, Buckets3} ->
 							{{Units, UnitsCharged + NewChargeUnits},
 									{Units, UnitsReserved}, Buckets3, Rated};
-						{NewUnitsCharged, 0, Buckets3}
-								when Overflow == false ->
+						{NewUnitsCharged, 0, Buckets3} when Overflow == false;
+								NewUnitsCharged < NewChargeUnits ->
 							{{Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, Buckets3, Rated};
-						{NewUnitsCharged, 0, Buckets3}
-								when Overflow == true ->
+						{NewUnitsCharged, 0, Buckets3} when Overflow == true;
+								NewUnitsCharged < NewChargeUnits ->
 							Now = erlang:system_time(millisecond),
 							Reservation = #{ts => Now, reserve => 0,
 									debit => NewChargeUnits - NewUnitsCharged,
@@ -1466,6 +1469,8 @@ charge3(interim, _Service, ServiceId,
 							{{Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, Buckets4, Rated}
 					end;
+				false when Overflow == false ->
+					{{Units, UnitsCharged}, {Units, 0}, Buckets1, Rated};
 				false when Overflow == true ->
 					Now = erlang:system_time(millisecond),
 					Reservation = #{ts => Now, reserve => 0,
@@ -1481,10 +1486,7 @@ charge3(interim, _Service, ServiceId,
 							remain_amount = UnitsCharged - Damount,
 							attributes = Attributes, units = Units,
 							product = [ProductId]} | Buckets1],
-					{{Units, UnitsCharged},
-							{Units, 0}, Buckets2, Rated};
-				false when Overflow == false ->
-					{{Units, UnitsCharged}, {Units, 0}, Buckets1, Rated}
+					{{Units, UnitsCharged}, {Units, 0}, Buckets2, Rated}
 			end
 	end;
 charge3(final, _Service, ServiceId,
@@ -1509,11 +1511,11 @@ charge3(final, _Service, ServiceId,
 			case charge_session(cents, PriceCharge,
 					ServiceId, ChargingKey, SessionId, Buckets1) of
 				{PriceCharge, Buckets2} ->
-					TotalUnits = UnitsCharged + UnitCharge,
 					{Debits, Buckets3} = get_final(ServiceId,
 							ChargingKey, SessionId, Buckets2),
 					Rated2 = rated(Debits, Rated1),
-					{{Units, TotalUnits}, ReserveAmount, Buckets3, Rated2};
+					{{Units, UnitsCharged + UnitCharge},
+							ReserveAmount, Buckets3, Rated2};
 				{PriceCharged, Buckets2} when PriceCharged < PriceCharge ->
 					TotalUnits = UnitsCharged + ((PriceCharged div UnitPrice) * 60),
 					{Debits, Buckets3} = get_final(ServiceId,
@@ -1558,9 +1560,9 @@ charge3(event, _Service, ServiceId,
 					UnitSize, UnitPrice),
 			case charge_event(cents, PriceCharge, Buckets1) of
 				{PriceCharge, Buckets2} ->
-					TotalUnits = UnitsCharged + UnitCharge,
 					Rated2 = rated(#{Units => Amount, cents => PriceCharge}, Rated1),
-					{{Units, TotalUnits}, ReserveAmount, Buckets2, Rated2};
+					{{Units, UnitsCharged + UnitCharge},
+							ReserveAmount, Buckets2, Rated2};
 				{PriceCharged, Buckets2} when PriceCharged < PriceCharge ->
 					TotalUnits = UnitsCharged + ((PriceCharged div UnitPrice) * 60),
 					Rated2 = rated(#{Units => Amount, cents => PriceCharged}, Rated1),
