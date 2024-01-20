@@ -1,3 +1,7 @@
+January 20, 2024
+----------------
+	- Multiple allowance buckets will not overcharge
+
 January 16, 2024
 ----------------
 	- Multiple allowance buckets used within a session debits correctly

@@ -1,3 +1,8 @@
+2024-01-20  Vance Shipley <vances@sigscale.org>
+
+	* refactor final bucket reap; refund unit over debit amount
+	* charge3 final should (also) return over debited amount
+
 2024-01-16  Vance Shipley <vances@sigscale.org>
 
 	* refactor rating for allowance buckets
