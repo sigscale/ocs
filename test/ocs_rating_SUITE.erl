@@ -128,8 +128,9 @@ initial_exact_fit() ->
 	[{userdata, [{doc, "Cents balance exactly equal to reservation price"}]}].
 
 initial_exact_fit(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 500000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -152,8 +153,9 @@ initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
 
 initial_insufficient(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -175,8 +177,9 @@ initial_insufficient_multisession() ->
 	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
 
 initial_insufficient_multisession(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -202,8 +205,9 @@ initial_add_session() ->
 	[{userdata, [{doc, "Add a session"}]}].
 
 initial_add_session(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -231,18 +235,19 @@ initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
 
 initial_overhead(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount1 = ocs_rest:millionths_in(233),
+	RemAmount1 = ocs_rest:millionths_in(PackagePrice * 10),
 	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
-	Reservation = 1555,
+	Reservation = MinReserve - rand:uniform(MinReserve - 1),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, #service{}, {PackageUnits, Reserved}} = ocs_rating:rate(radius,
@@ -256,7 +261,7 @@ initial_overhead(_Config) ->
 			(A) ->
 				(A div PackageSize + 1) * PackagePrice
 	end,
-	DebitAmount = F(Reservation),
+	DebitAmount = F(Reserved),
 	RemAmount2 = RemAmount1 - DebitAmount,
 	0 = Reserved rem PackageSize,
 	true = Reserved > Reservation,
@@ -266,8 +271,9 @@ initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
 
 initial_multiple_buckets(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -308,8 +314,9 @@ initial_expire_buckets() ->
 	[{userdata, [{doc, "Remove expired buckets"}]}].
 
 initial_expire_buckets(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -333,8 +340,9 @@ initial_ignore_expired_buckets() ->
 	[{userdata, [{doc, "Ignore expired buckets with sessions"}]}].
 
 initial_ignore_expired_buckets(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -366,8 +374,9 @@ initial_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and ignore"}]}].
 
 initial_negative_balance(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	PackageAmount = 100000000 + rand:uniform(2000000),
 	P1 = #price{name = "subscription", type = recurring,
@@ -389,8 +398,9 @@ interim_reserve() ->
 	[{userdata, [{doc, "Reservation amount equal to package size"}]}].
 
 interim_reserve(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(100000090),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -420,8 +430,9 @@ interim_reserve_within_unit_size() ->
 	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
 
 interim_reserve_within_unit_size(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -472,8 +483,9 @@ interim_reserve_available() ->
 	[{userdata, [{doc, "Reservation amount equal to balance and package size"}]}].
 
 interim_reserve_available(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -502,8 +514,9 @@ interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
 
 interim_reserve_out_of_credit(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -531,8 +544,9 @@ interim_reserve_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_reserve_remove_session(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -565,8 +579,9 @@ interim_reserve_multiple_buckets_available() ->
 	[{userdata, [{doc, "Reservation with multiple buckets"}]}].
 
 interim_reserve_multiple_buckets_available(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -600,8 +615,9 @@ interim_reserve_multiple_buckets_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit with multiple cents buckets"}]}].
 
 interim_reserve_multiple_buckets_out_of_credit(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -633,8 +649,9 @@ interim_debit_exact_balance() ->
 	[{userdata, [{doc, "Debit amount equal to package size"}]}].
 
 interim_debit_exact_balance(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -656,8 +673,9 @@ interim_debit_under_unit_size() ->
 	[{userdata, [{doc, "Debit amount less than package size"}]}].
 
 interim_debit_under_unit_size(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -680,8 +698,9 @@ interim_debit_out_of_credit() ->
 	[{userdata, [{doc, "Insufficient amount to debit"}]}].
 
 interim_debit_out_of_credit(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -706,8 +725,9 @@ interim_debit_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_debit_remove_session(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -735,8 +755,9 @@ interim_debit_and_reserve_available() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation, sufficient balance exists"}]}].
 
 interim_debit_and_reserve_available(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -772,8 +793,9 @@ interim_debit_and_reserve_insufficient1() ->
 			less than available balance, insufficient balance exists"}]}].
 
 interim_debit_and_reserve_insufficient1(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -804,8 +826,9 @@ interim_debit_and_reserve_insufficient2() ->
 			reservation amount greater than available balance"}]}].
 
 interim_debit_and_reserve_insufficient2(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -834,8 +857,9 @@ interim_debit_and_reserve_insufficient3() ->
 	[{userdata, [{doc, "Suffient balance for debit but not reservation"}]}].
 
 interim_debit_and_reserve_insufficient3(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -865,8 +889,9 @@ interim_debit_and_reserve_insufficient4() ->
 	[{userdata, [{doc, "Insuffient amount for debit and reservation"}]}].
 
 interim_debit_and_reserve_insufficient4(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -894,8 +919,9 @@ interim_debit_and_reserve_charging_key() ->
 	[{userdata, [{doc, "Multiple charging keys (Rating-Group) in session"}]}].
 
 interim_debit_and_reserve_charging_key(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(100000000),
-	PackageSize = 5000000 + rand:uniform(100000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -972,8 +998,8 @@ interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
 
 interim_out_of_credit_voice(_Config) ->
+	{ok, UnitSize} = application:get_env(ocs, min_reserve_seconds),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 60,
 	P1 = price(usage, seconds, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId),
@@ -1000,8 +1026,9 @@ interim_out_of_credit_negative() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (radius)"}]}].
 
 interim_out_of_credit_negative(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 1000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice,
 			char_value_use = [#char_value_use{name = "radiusReserveOctets",
@@ -1025,13 +1052,13 @@ interim_out_of_credit_negative(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS),
 			undefined, undefined,
 			initial, [], [], SessionAttributes),
-	UsedUnits1 = UnitSize + rand:uniform(UnitSize),
+	UsedUnits1 = UnitSize + rand:uniform(UnitSize - 1),
 	{out_of_credit, _, _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
 			interim, [{octets, UsedUnits1}], [], SessionAttributes),
-	UsedUnits2 = rand:uniform(UnitSize),
+	UsedUnits2 = rand:uniform(UnitSize - 1),
 	{out_of_credit, _, _, _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
@@ -1049,8 +1076,9 @@ interim_out_of_credit_negative1() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (diameter)"}]}].
 
 interim_out_of_credit_negative1(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice},
 	OfferId = add_offer([P1], 8),
@@ -1092,8 +1120,9 @@ final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
 
 final_remove_session(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -1129,8 +1158,9 @@ remove_session_after_multiple_interims() ->
 	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
 
 remove_session_after_multiple_interims(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 8),
@@ -1176,8 +1206,9 @@ final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
 
 final_refund_octets(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -1227,8 +1258,9 @@ final_refund_seconds() ->
 	[{userdata, [{doc, "Refund unused amount of seconds reservation"}]}].
 
 final_refund_seconds(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = seconds,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -1278,8 +1310,9 @@ final_multiple_buckets() ->
 	[{userdata, [{doc, "Debit applied to one of several available buckets"}]}].
 
 final_multiple_buckets(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve - 1),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
@@ -1319,8 +1352,8 @@ final_voice() ->
 	[{userdata, [{doc, "Final RADIUS accounting request for voice call"}]}].
 
 final_voice(_Config) ->
+	{ok, UnitSize} = application:get_env(ocs, min_reserve_seconds),
 	UnitPrice = rand:uniform(1000000),
-	UnitSize = 60,
 	ReserveTime = rand:uniform(10) * UnitSize,
 	P1 = #price{name = "Calls", type = usage,
 			units = seconds, size = UnitSize, amount = UnitPrice,
@@ -1663,8 +1696,8 @@ authorize_voice_with_partial_reservation() ->
 			"session time for available partial reservation amount"}]}].
 
 authorize_voice_with_partial_reservation(_Config) ->
+	{ok, PackageSize} = application:get_env(ocs, min_reserve_seconds),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 60,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
 			values = [#char_value{value = 300, default = true}]}],
@@ -1690,15 +1723,15 @@ authorize_incoming_voice() ->
 	[{userdata, [{doc, "Authorize incoming voice call"}]}].
 
 authorize_incoming_voice(_Config) ->
+	{ok, OutSize} = application:get_env(ocs, min_reserve_seconds),
 	OutPrice = 2000000,
-	OutSize = 60,
 	Price1 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
 			min = 1, max = 1, values = [#char_value{default = true,
 			value = "originate"}]}]},
 	InPrice = 1000000,
-	InSize = 60,
+	{ok, InSize} = application:get_env(ocs, min_reserve_seconds),
 	Price2 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
@@ -1728,15 +1761,15 @@ authorize_outgoing_voice() ->
 	[{userdata, [{doc, "Authorize outgoing voice call"}]}].
 
 authorize_outgoing_voice(_Config) ->
+	{ok, InSize} = application:get_env(ocs, min_reserve_seconds),
 	InPrice = 1000000,
-	InSize = 60,
 	Price1 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
 			min = 1, max = 1, values = [#char_value{default = true,
 			value = "answer"}]}]},
 	OutPrice = 2000000,
-	OutSize = 60,
+	{ok, OutSize} = application:get_env(ocs, min_reserve_seconds),
 	Price2 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
@@ -1766,12 +1799,12 @@ authorize_default_voice() ->
 	[{userdata, [{doc, "Authorize default outgoing voice call"}]}].
 
 authorize_default_voice(_Config) ->
+	{ok, OutSize} = application:get_env(ocs, min_reserve_seconds),
 	OutPrice = 2000000,
-	OutSize = 60,
 	Price1 = #price{name = "Outgoing Calls", type = usage,
 			units = seconds, size = OutSize, amount = OutPrice},
 	InPrice = 1000000,
-	InSize = 60,
+	{ok, InSize} = application:get_env(ocs, min_reserve_seconds),
 	Price2 = #price{name = "Incoming Calls", type = usage,
 			units = seconds, size = InSize, amount = InPrice,
 			char_value_use = [#char_value_use{name = "callDirection",
@@ -1851,8 +1884,8 @@ authorize_data_with_partial_reservation() ->
 			"rated on seconds with partial reservation"}]}].
 
 authorize_data_with_partial_reservation(_Config) ->
+	{ok, PackageSize} = application:get_env(ocs, min_reserve_seconds),
 	PackagePrice = rand:uniform(1000000),
-	PackageSize = 60,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	CharValueUse = [#char_value_use{name = "radiusReserveSessionTime",
 			values = [#char_value{value = 300, default = true}]}],
@@ -2013,7 +2046,8 @@ roaming_table_data(Config) ->
 	{_Cont, GTTs} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
 	#gtt{num = SN, value = Value2} = lists:nth(rand:uniform(length(GTTs)), GTTs),
 	PackagePrice = element(2, Value2),
-	PackageSize = 5000000 + rand:uniform(5000000),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackageUnits = octets,
 	CharValueUse = [#char_value_use{name = "roamingTable",
 		values = [#char_value{value = RoamingTable}]}],
@@ -2101,7 +2135,8 @@ roaming_table_voice(Config) ->
 	{_, GTTs2} = ocs_gtt:list(start, RatingTable),
 	#gtt{num = Address, value = Value4} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
 	PackagePrice = element(2, Value4),
-	PackageSize = 60 + rand:uniform(60),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
 	PackageUnits = seconds,
 	CharValueUse = [#char_value_use{name = "roamingTable",
 					values = [#char_value{value = RoamingTable}]},
