@@ -422,7 +422,7 @@ patch_replace(Path, Value, [H | T], Acc) ->
 %% 	Monetary values are represented internally as an integer
 %%		number of a million fractions.  This allows for six
 %% 	decimal places of precision while allowing purely integer
-%% 	arithmatic.
+%% 	arithmetic.
 %%
 %% 	A JSON number data type may be integer or float and this
 %% 	function will accept either as input. It also accepts a
@@ -456,7 +456,7 @@ millionths_in(In) when is_float(In) ->
 %% 	Monetary values are represented internally as an integer
 %%		number of a million fractions.  This allows for six
 %% 	decimal places of precision while allowing purely integer
-%% 	arithmatic.
+%% 	arithmetic.
 %%
 %% 	The output is a string representation to avoid
 %% 	floating point arithmetic.
