@@ -704,9 +704,10 @@ charge2(Protocol, Flag, Service, ServiceId, Product,
 			SessionId, ChargingKey, Address, ServiceNetwork, Rated,
 			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
 charge2(_Protocol, Flag, Service, ServiceId, Product,
-		[#price{type = usage, units = Units} = Price | _ ] = _Prices,
-		[{Units, DA1} = DebitAmount], [{Units, RA1} = ReserveAmount],
-		{Units, DA2} = _DebitedAmount, {Units, RA2} = _ReservedAmount,
+		[#price{type = usage, units = Units,
+				size = UnitSize} = Price | _ ] = _Prices,
+		[{Units, DA1} = DebitAmount], ReserveAmounts,
+		{Units, DA2} = _DebitedAmount, {Units, RA1} = _ReservedAmount,
 		SessionId, ChargingKey, _Address, _ServiceNetwork, Rated,
 		[] = _PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
 		when Flag == initial; Flag == interim ->
@@ -716,9 +717,10 @@ charge2(_Protocol, Flag, Service, ServiceId, Product,
 		false -> % @todo find POP with matching units {Units, 0}
 			0
 	end,
-	RA3 = case RA1 > RA2 of
+	RA2 = reserve_amount(Units, UnitSize, ReserveAmounts),
+	RA3 = case RA2 > RA1 of
 		true ->
-			RA1 - RA2;
+			RA2 - RA1;
 		false ->
 			0
 	end,
@@ -726,10 +728,10 @@ charge2(_Protocol, Flag, Service, ServiceId, Product,
 			= charge3(Flag, Service, ServiceId, Product, OtherBuckets, Price,
 			{Units, DA3}, {Units, RA3}, SessionId, ChargingKey, true),
 	NewDebitedAmount = {Units, DA2 + DA4},
-	NewReservedAmount = {Units, RA2 + RA4},
+	NewReservedAmount = {Units, RA1 + RA4},
 	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
 	charge4(Flag, Service, ServiceId, Product, NewBuckets2,
-			DebitAmount, NewDebitedAmount, ReserveAmount, NewReservedAmount,
+			DebitAmount, NewDebitedAmount, {Units, RA2}, NewReservedAmount,
 			SessionId, Rated, ChargingKey, OldBuckets);
 charge2(Protocol, final = Flag, Service, ServiceId, Product,
 		[#price{units = Units} | _ ] = Prices,
