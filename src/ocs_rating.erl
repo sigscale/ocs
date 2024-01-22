@@ -3261,7 +3261,7 @@ get_final2(RefundUnits, Now, Buckets,
 		false ->
 			get_final2(RefundUnits, Now, Buckets, T)
 	end;
-get_final2(RefundUnits, Now, Buckets, [H | T]) ->
+get_final2(RefundUnits, Now, Buckets, [_H | T]) ->
 	get_final2(RefundUnits, Now, Buckets, T);
 get_final2(0, _, Buckets, _) ->
 	Buckets;
