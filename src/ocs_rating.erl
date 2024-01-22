@@ -593,7 +593,9 @@ charge2(_Protocol, Flag,
 	charge4(Flag, Service, ServiceId, Product, NewBuckets,
 			{Units, 0}, {Units, 0}, {Units, 0}, {Units, 0},
 			SessionId, Rated, ChargingKey, OldBuckets);
-charge2(_Protocol, Flag, Service, ServiceId, Product, _Prices,
+charge2(_Protocol, Flag, Service, ServiceId, Product,
+		[#price{name = PriceName, type = PriceType,
+				currency = Currency} | _ ] = _Prices,
 		[{Units, DA1} = DebitAmount] = _DebitAmounts,
 		[{Units, RA1} = ReserveAmount] = _ReserveAmounts,
 		{Units, DA2} = DebitedAmount, {Units, RA2} = ReservedAmount,
@@ -601,9 +603,16 @@ charge2(_Protocol, Flag, Service, ServiceId, Product, _Prices,
 		PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
 		when DA2 >= DA1, RA2 >= RA1 ->
 	NewBuckets = lists:flatten([PriceBuckets, NewAcc, OtherBuckets]),
+	Rated1 = case Rated of
+		[] when Flag == final ->
+			[#rated{price_type = PriceType,
+					price_name = PriceName, currency = Currency}];
+		Rated ->
+			Rated
+	end,
 	charge4(Flag, Service, ServiceId, Product, NewBuckets,
 			DebitAmount, DebitedAmount, ReserveAmount, ReservedAmount,
-			SessionId, Rated, ChargingKey, OldBuckets);
+			SessionId, Rated1, ChargingKey, OldBuckets);
 charge2(radius, initial = Flag, Service, ServiceId, Product,
 		[#price{units = Units,
 				char_value_use = CharValueUse} = Price | _ ] = _Prices,
