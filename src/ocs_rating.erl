@@ -613,47 +613,6 @@ charge2(_Protocol, Flag, Service, ServiceId, Product,
 	charge4(Flag, Service, ServiceId, Product, NewBuckets,
 			DebitAmount, DebitedAmount, ReserveAmount, ReservedAmount,
 			SessionId, Rated1, ChargingKey, OldBuckets);
-charge2(radius, initial = Flag, Service, ServiceId, Product,
-		[#price{units = Units,
-				char_value_use = CharValueUse} = Price | _ ] = _Prices,
-		[] = _DebitAmounts, [] = _ReserveAmounts,
-		{_, 0} = _DebitedAmount, {_, 0} = _ReservedAmount,
-		SessionId, ChargingKey, _Address, _ServiceNetwork, Rated,
-		[] = _PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
-	DebitAmount = {Units, 0},
-	ReserveAmount = radius_reserve(Units, CharValueUse),
-	{DebitedAmount, ReservedAmount, NewBuckets1, undefined}
-			= charge3(Flag, Service, ServiceId, Product, OtherBuckets,
-			Price, DebitAmount, ReserveAmount, SessionId, ChargingKey, true),
-	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
-	charge4(Flag, Service, ServiceId, Product, NewBuckets2,
-			DebitAmount, DebitedAmount, ReserveAmount, ReservedAmount,
-			SessionId, Rated, ChargingKey, OldBuckets);
-charge2(radius = Protocol, interim = Flag, Service, ServiceId, Product,
-		[#price{type = usage, units = Units,
-				char_value_use = CharValueUse} | _ ] = Prices,
-		DebitAmounts, ReserveAmounts, {undefined, 0}, {undefined, 0},
-		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
-		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
-	DebitedAmount = {Units, 0},
-	ReservedAmount = {Units, 0},
-	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
-		{_, DA} ->
-			{Units, DA};
-		false -> % @todo find POP with matching units
-			{Units, 0}
-	end,
-	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
-		{_, RA1} ->
-			{Units, RA2} = radius_reserve(Units, CharValueUse),
-			{Units, RA1 + RA2};
-		false ->
-			radius_reserve(Units, CharValueUse)
-	end,
-	charge2(Protocol, Flag, Service, ServiceId, Product, Prices,
-			[DebitAmount], [ReserveAmount], DebitedAmount, ReservedAmount,
-			SessionId, ChargingKey, Address, ServiceNetwork, Rated,
-			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
 charge2(Protocol, Flag, Service, ServiceId, Product,
 		[#price{units = Units} | _ ] = Prices,
 		DebitAmounts, ReserveAmounts, {undefined, 0}, {undefined, 0},
@@ -701,7 +660,18 @@ charge2(Protocol, Flag, Service, ServiceId, Product,
 			DebitAmounts, [ReserveAmount], DebitedAmount, ReservedAmount,
 			SessionId, ChargingKey, Address, ServiceNetwork, Rated,
 			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
-charge2(Protocol, Flag, Service, ServiceId, Product,
+charge2(radius = Protocol, Flag, Service, ServiceId, Product,
+		[#price{units = Units, char_value_use = CharValueUse} | _ ] = Prices,
+		DebitAmounts, [] = ReserveAmounts, DebitedAmount, ReservedAmount,
+		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
+		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
+		when Flag == initial; Flag == interim ->
+	ReserveAmount = radius_reserve(Units, CharValueUse),
+	charge2(Protocol, Flag, Service, ServiceId, Product, Prices,
+			DebitAmounts, [ReserveAmount], DebitedAmount, ReservedAmount,
+			SessionId, ChargingKey, Address, ServiceNetwork, Rated,
+			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
+charge2(diameter = Protocol, Flag, Service, ServiceId, Product,
 		[#price{type = usage, units = Units, size = UnitSize} | _ ] = Prices,
 		DebitAmounts, [] = _ReserveAmounts, DebitedAmount, ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
