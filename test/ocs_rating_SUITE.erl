@@ -146,6 +146,7 @@ initial_exact_fit(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined, initial, [],
 			[{PackageUnits, PackageSize}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = 0, attributes = Attr}} = ocs:find_bucket(BId),
 	#{reservations := #{SessionId := #{debit := PackagePrice,
 			reserve := 0}}} = Attr.
@@ -172,6 +173,7 @@ initial_insufficient(_Config) ->
 	{out_of_credit, _, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{units = cents, remain_amount = RemAmount,
 			attributes = #{bucket_type := normal}}} = ocs:find_bucket(BId).
 
@@ -231,6 +233,7 @@ initial_add_session(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionAttr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{attributes = Attr}} = ocs:find_bucket(BId),
 	#{reservations := #{SessionId := #{debit := PackagePrice,
 			reserve := 0}}} = Attr.
@@ -259,6 +262,7 @@ initial_overhead(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId, Timestamp,
 			undefined, undefined, initial, [], [{PackageUnits, Reservation}],
 			SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2,
 			attributes = #{reservations := CReservation}}} = ocs:find_bucket(BId),
 	F = fun(A) when (A rem PackageSize) == 0 ->
@@ -340,6 +344,7 @@ initial_expire_buckets(_Config) ->
 	{out_of_credit, _, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #product{balance = []}} = ocs:find_product(ProdRef),
 	{error, not_found} = ocs:find_bucket(BId).
 
@@ -375,6 +380,7 @@ initial_ignore_expired_buckets(_Config) ->
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(Protocol,
 			ServiceType, undefined, undefined, undefined, ServiceId, Timestamp,
 			undefined, undefined, initial, [], [{PackageUnits, PackageSize}], SessionId2),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount1}} = ocs:find_bucket(BId1).
 
 initial_negative_balance() ->
@@ -430,6 +436,7 @@ interim_reserve(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [], [{PackageUnits, PackageSize}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2,
 			attributes = #{reservations := R}}} = ocs:find_bucket(BId),
 	#{SessionId := #{debit := PackagePrice, reserve := 0}} = R.
@@ -463,6 +470,7 @@ interim_reserve_within_unit_size(_Config) ->
 	{ok, #service{}, _} = ocs_rating:rate(Protocol, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, Reservation1}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2,
 			attributes = #{reservations := R1}}} = ocs:find_bucket(BId),
 	#{SessionId := #{debit := PackagePrice}} = R1,
@@ -472,6 +480,7 @@ interim_reserve_within_unit_size(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation2}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount3,
 			attributes = #{reservations := R2}}} = ocs:find_bucket(BId),
 	#{SessionId := #{debit := Reserved1}} = R2,
@@ -482,6 +491,7 @@ interim_reserve_within_unit_size(_Config) ->
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation3}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount4,
 			attributes = #{reservations := R3}}} = ocs:find_bucket(BId),
 	#{SessionId := #{debit := Reserved2, reserve := 0}} = R3,
@@ -516,6 +526,7 @@ interim_reserve_available(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim, [],
 			[{PackageUnits, PackageSize}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = 0,
 			attributes = #{reservations := R}}} = ocs:find_bucket(BId),
 	#{SessionId := #{debit := PackagePrice, reserve := 0}} = R.
@@ -549,6 +560,7 @@ interim_reserve_out_of_credit(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [], [{PackageUnits, UnitSize * 2}], SessionId),
 	Remain = StartingAmount - UnitPrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Remain}} = ocs:find_bucket(BId).
 
 interim_reserve_remove_session() ->
@@ -802,6 +814,7 @@ interim_debit_and_reserve_available(_Config) ->
 			initial, [], [{PackageUnits, Reservation}], SessionId),
 	RemAmount2 = RemAmount1 - (PackagePrice * 2),
 	DebitReserve = PackagePrice * 2,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{attributes = #{reservations
 					:= #{SessionId := #{debit := DebitReserve}}},
 			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
@@ -812,6 +825,7 @@ interim_debit_and_reserve_available(_Config) ->
 			undefined, interim, [{PackageUnits, Debit}],
 			[{PackageUnits, Reservation}], SessionId),
 	RemAmount3 = RemAmount2 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
@@ -846,6 +860,7 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 			undefined, interim, [{PackageUnits, Debit}],
 			[{PackageUnits, Reservation2}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient2() ->
@@ -879,6 +894,7 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 			undefined, interim, [{PackageUnits, PackageSize}],
 			[{PackageUnits, Reservation2}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient3() ->
@@ -912,6 +928,7 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 			undefined, interim, [{PackageUnits, UsedUnits}],
 			[{PackageUnits, Reservation2}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient4() ->
@@ -973,12 +990,14 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			ServiceType, undefined, RatingGroup2, undefined, ServiceId,
 			Timestamp, undefined, undefined, initial, [], [], SessionId),
 	RemAmount2 = RemAmount1 - (PackagePrice * 2),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId1),
 	F2 = fun(#bucket{attributes = #{bucket_type := session}} = B, Acc) ->
 				[B | Acc];
 			(_, Acc) ->
 				Acc
 	end,
+	ok = mnesia:sync_log(),
 	BucketList = lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
 	2 = length(BucketList),
 	Debit1 = rand:uniform(PackageSize),
@@ -993,6 +1012,7 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, interim, [{PackageUnits, Debit2}],
 			[], SessionId),
+	ok = mnesia:sync_log(),
 	[#bucket{attributes = #{reservations := _Reservations1}},
 			#bucket{attributes = #{reservations := _Reservations2}}]
 			= lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
@@ -1021,7 +1041,9 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			(((Debit2 + Debit4) div PackageSize) + 1) * PackagePrice
 	end,
 	RemAmount3 = RemAmount1 - Total1 - Total2,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId1),
+	ok = mnesia:sync_log(),
 	1 = length(ocs:get_buckets(ProdRef)).
 
 interim_out_of_credit_voice() ->
@@ -1094,12 +1116,14 @@ interim_out_of_credit_negative(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionAttributes),
+	ok = mnesia:sync_log(),
 	{error, not_found} = ocs:find_bucket(BId),
 	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
 				true;
 			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
 				false
 	end,
+	ok = mnesia:sync_log(),
 	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 interim_out_of_credit_negative1() ->
@@ -1139,12 +1163,14 @@ interim_out_of_credit_negative1(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionId),
+	ok = mnesia:sync_log(),
 	{error, not_found} = ocs:find_bucket(BId),
 	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
 				true;
 			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
 				false
 	end,
+	ok = mnesia:sync_log(),
 	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 final_remove_session() ->
@@ -1232,6 +1258,7 @@ remove_session_after_multiple_interims(_Config) ->
 			undefined, undefined, final,
 			[{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}],
 			undefined, SessionId),
+	ok = mnesia:sync_log(),
 	[#bucket{units = cents,
 			attributes = #{bucket_type := normal}}] = ocs:get_buckets(ProdRef).
 
@@ -1266,6 +1293,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(Protocol, ServiceType,
@@ -1286,6 +1314,7 @@ final_refund_octets(_Config) ->
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
 final_refund_seconds() ->
@@ -1319,6 +1348,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits1}], undefined, SessionId1),
 	Remain1 = StartingAmount - UsedUnits1,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(Protocol, ServiceType,
@@ -1339,6 +1369,7 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits3}], undefined, SessionId2),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
 final_multiple_buckets() ->
@@ -1382,6 +1413,7 @@ final_multiple_buckets(_Config) ->
 			[{PackageUnits, UnitSize * 3}], undefined, SessionId),
 	NewBalance = (Balance * NumBuckets) - (6 * UnitPrice),
 	F2 = fun(#bucket{remain_amount = N}, Acc) -> Acc + N end,
+	ok = mnesia:sync_log(),
 	NewBalance = lists:foldl(F2, 0, ocs:get_buckets(ProdRef)).
 
 final_voice() ->
@@ -1422,6 +1454,7 @@ final_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
 			undefined, final, [{seconds, UsedSeconds2}], undefined, SessionAttributes),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	TotalUsed = UsedSeconds1 + UsedSeconds2,
 	case (TotalUsed rem UnitSize) of
@@ -1470,6 +1503,7 @@ radius_reserve_data(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	ReservedUnits = case (ReserveOctets rem DataSize) of
 		0 ->
@@ -1520,6 +1554,7 @@ radius_reserve_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
 			undefined, initial, [], [], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	Reserved = case (ReserveTime rem VoiceSize) of
 		0 ->
@@ -1582,6 +1617,7 @@ radius_reserve_incoming(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
 			answer, initial, [], [], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	ReservedUnits = case (ReserveTime rem VoiceSize) of
 		0 ->
@@ -1637,6 +1673,7 @@ radius_interim_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, CallAddress, undefined,
 			interim, [{octets, UsedOctets}, {seconds, UsedSeconds}], [], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
 	ReservationTime = ReserveTime + UsedSeconds,
 	ReservationAmount = case (ReservationTime rem VoiceSize) of
@@ -1684,6 +1721,7 @@ time_of_day(_Config) ->
 	{ok, _, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp1, undefined,
 			undefined, final, [{octets, UsedOctets1}], undefined, SessionId1),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Amount1}} = ocs:find_bucket(BId),
 	UsedUnits1 = case UsedOctets1 rem DataSize of
 		0 ->
@@ -1701,6 +1739,7 @@ time_of_day(_Config) ->
 	{ok, _, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp2, undefined, undefined,
 			final, [{octets, UsedOctets2}], undefined, SessionId2),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = Amount2}} = ocs:find_bucket(BId),
 	UsedUnits2 = case UsedOctets2 rem DataSize of
 		0 ->
@@ -1734,6 +1773,7 @@ authorize_voice(_Config) ->
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_voice_with_partial_reservation() ->
@@ -1762,6 +1802,7 @@ authorize_voice_with_partial_reservation(_Config) ->
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = (RemAmount div PackagePrice) * PackageSize,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_incoming_voice() ->
@@ -1800,6 +1841,7 @@ authorize_incoming_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, answer, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_outgoing_voice() ->
@@ -1838,6 +1880,7 @@ authorize_outgoing_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, originate, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_default_voice() ->
@@ -1873,6 +1916,7 @@ authorize_default_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_data_1() ->
@@ -1898,6 +1942,7 @@ authorize_data_1(_Config) ->
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_2() ->
@@ -1922,6 +1967,7 @@ authorize_data_2(_Config) ->
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{authorized, _, _Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefined, SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_with_partial_reservation() ->
@@ -1949,6 +1995,7 @@ authorize_data_with_partial_reservation(_Config) ->
 			ServiceId, Password, Timestamp, undefined, undefibed, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = (RemAmount div PackagePrice) * PackageSize,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_negative_balance() ->
@@ -2034,6 +2081,7 @@ reserve_sms(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{messages, NumEvents}], SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = R,
 			attributes = #{reservations := Rs}}} = ocs:find_bucket(BId),
 	R = RemAmount - NumEvents,
@@ -2061,6 +2109,7 @@ debit_sms(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{messages, NumEvents}],
 		SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = R1,
 			attributes = #{reservations := Rs1}}} = ocs:find_bucket(BId),
 	R1 = RemAmount - NumEvents,
@@ -2069,6 +2118,7 @@ debit_sms(_Config) ->
 			final, [{messages, NumEvents}], undefined,
 		SessionId),
 	R2 = RemAmount - NumEvents,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = R2}} = ocs:find_bucket(BId).
 
 roaming_table_data() ->
@@ -2136,6 +2186,7 @@ roaming_table_data(Config) ->
 			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
 	end,
 	RemAmount2 = RemAmount1 - DebitTotal,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_voice() ->
@@ -2229,6 +2280,7 @@ roaming_table_voice(Config) ->
 			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
 	end,
 	RemAmount2 = RemAmount1 - DebitTotal,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_sms_ecur() ->
@@ -2320,6 +2372,7 @@ roaming_table_sms_ecur(Config) ->
 			(((DebitUnits1 + DebitUnits2) div PackageSize) + 1) * PackagePrice
 	end,
 	RemAmount2 = RemAmount1 - DebitTotal,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_sms_iec() ->
@@ -2393,6 +2446,7 @@ roaming_table_sms_iec(Config) ->
 			calendar:gregorian_seconds_to_datetime(TS),
 			Address, undefined, event, [], [], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 roaming_table_sms_iec_rsu() ->
@@ -2468,6 +2522,7 @@ roaming_table_sms_iec_rsu(Config) ->
 			Address, undefined, event, [], [DebitAmount],
 			SessionId),
 	RemAmount2 = RemAmount1 - (DebitUnits * PackagePrice),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 final_empty_mscc() ->
@@ -2506,6 +2561,7 @@ final_empty_mscc(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, final, [], undefined, SessionId),
+	ok = mnesia:sync_log(),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2559,6 +2615,7 @@ final_empty_mscc_multiple_services(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
 			undefined, final, [], undefined, SessionId1),
+	ok = mnesia:sync_log(),
 	BucketList = ocs:get_buckets(ProdRef),
 	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
 					when is_map(Reservation) ->
@@ -2624,6 +2681,7 @@ refund_unused_reservation(_Config) ->
 	{ok, _, [#rated{} | _]} = ocs_rating:rate(Protocol,
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined, final, [], undefined, SessionId),
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId).
 
 refund_partially_used_reservation() ->
@@ -2660,8 +2718,10 @@ refund_partially_used_reservation(_Config) ->
 			undefined, undefined, undefined, ServiceId, Timestamp,
 			undefined, undefined, final,
 			[{PackageUnits, 50}], undefined, SessionId),
+	ok = mnesia:sync_log(),
 	{error, not_found} = ocs:find_bucket(BId1),
 	RemainAmount3 = RemainAmount1 + RemainAmount2 - PackagePrice,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId2).
 
 tariff_prices() ->
@@ -2719,6 +2779,7 @@ tariff_prices(_Config) ->
 			calendar:local_time(), Destination, undefined,
 			initial, [], [], SessionId2),
 	RemainAmount2 = RemAmount1 - Rate,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId).
 
 allowance_bucket() ->
@@ -2788,6 +2849,7 @@ allowance_bucket(_Config) ->
 			{date(), {4, 0, 0}}, undefined, undefined,
 			final, [{octets, NightAmount2}], undefined, SessionId2),
 	RemainAmount2 = RemAmount1 - DayAmount1 - DayAmount2,
+	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId2),
 	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
 	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId1).
@@ -2913,6 +2975,7 @@ tariff_bucket(_Config) ->
 		_ ->
 			Debits + UnitSize - (Debits rem UnitSize)
 	end,
+	ok = mnesia:sync_log(),
 	{DebitedCents1, DebitedUnits1}  = case ocs:find_bucket(BId1) of
 		{ok, #bucket{remain_amount = Remain1}} ->
 			D1 = Amount1 - Remain1,
