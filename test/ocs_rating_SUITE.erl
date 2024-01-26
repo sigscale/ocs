@@ -750,7 +750,7 @@ interim_debit_remove_session(_Config) ->
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = rand:uniform(PackagePrice * 2),
+	RemAmount = PackagePrice + rand:uniform(PackagePrice),
 	_BId = add_bucket(ProdRef, bucket(cents, RemAmount)),
 	Protocol = protocol(),
 	SessionId = list_to_binary(ocs:generate_password()),
