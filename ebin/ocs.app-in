@@ -149,6 +149,7 @@
 				{min_reserve_octets, 5000000},
 				{min_reserve_seconds, 60},
 				{min_reserve_messages, 1},
+				{charge_overflow, true},
 				{acct_log_dir, "log/acct"},
 				{acct_log_name, ocs_acct},
 				{acct_log_size, 10485760},

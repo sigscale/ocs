@@ -691,11 +691,13 @@ The {@link //ocs. ocs} application may be configured using the following applica
 Rating configuration options:
 <dl>
 	<dt>min_reserve_octets</dt>
-		<dd>Centralized Unit Determination: minimum size of octets reserved</dd>
+		<dd>Centralized Unit Determination: minimum size of octets reserved. (default: 5000000)</dd>
 	<dt>min_reserve_seconds</dt>
-		<dd>Centralized Unit Determination: minimum size of seconds reserved</dd>
+		<dd>Centralized Unit Determination: minimum size of seconds reserved, (default: 60)</dd>
 	<dt>min_reserve_messages</dt>
-		<dd>Centralized Unit Determination: minimum number of messages reserved</dd>
+		<dd>Centralized Unit Determination: minimum number of messages reserved. (default: 1)</dd>
+	<dt>charge_overflow</dt>
+		<dd>Leave negative balance Bucket when usage over credit. (default: true)</dd>
 </dl>
 
 ===Logging===

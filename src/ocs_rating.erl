@@ -154,7 +154,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, sticky_write) of
-				[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
+				[#service{product = ProdRef} = Service] ->
 					case mnesia:read(product, ProdRef, read) of
 						[#product{product = OfferId,
 								balance = BucketRefs} = Product] ->
@@ -166,11 +166,6 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 												((EndDate > Now) or (EndDate == undefined)) ->
 									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 											|| Id <- BucketRefs]),
-									F2 = fun(#bucket{remain_amount = RM}) when RM < 0 ->
-												false;
-											(_) ->
-												true
-									end,
 									RedirectServerAddress = case lists:keyfind("redirectServer",
 											#char_value_use.name, CharValueUse) of
 										#char_value_use{values = [#char_value{value = Value}]}
@@ -179,17 +174,13 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 										_Other ->
 											undefined
 									end,
-									case lists:all(F2, Buckets) of
-										true ->
-											NewBuckets = lists:map(fun ocs:parse_bucket/1, Buckets),
-											{rate1(Protocol, Service, ServiceId, Product, NewBuckets,
-													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, ServiceType,
-													get_session_id(SessionAttributes), ChargingKey,
-															ServiceNetwork), RedirectServerAddress};
-										false ->
-											{out_of_credit, RedirectServerAddress, SessionList, [], []}
-									end;
+									NewBuckets = lists:map(fun ocs:parse_bucket/1, Buckets),
+									RateResult = rate1(Protocol, Service, ServiceId, Product,
+											NewBuckets, Timestamp, Address, Direction, Offer,
+											Flag, DebitAmounts, ReserveAmounts, ServiceType,
+											get_session_id(SessionAttributes), ChargingKey,
+											ServiceNetwork),
+									{RateResult, RedirectServerAddress};
 								_ ->
 									mnesia:abort(offer_not_found)
 							end;
@@ -242,11 +233,6 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{disabled, SL};
-		{atomic, {out_of_credit, RedirectServerAddress, SL,
-				DeletedBuckets, AccBalance}} ->
-			ok = send_notifications(DeletedBuckets),
-			ok = notify_accumulated_balance(AccBalance),
-			{out_of_credit, RedirectServerAddress, SL};
 		{atomic, {{pla_ref, Price}, _}} ->
 			{ok,  {pla_ref, Price}};
 		{aborted, Reason} ->
@@ -477,18 +463,13 @@ charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
 		case mnesia:read(service, SubscriberID, read) of
-			[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
+			[#service{product = ProdRef} = Service] ->
 				case mnesia:read(product, ProdRef, read) of
 					[#product{product = OfferId, balance = BucketRefs} = Product] ->
 						case mnesia:read(offer, OfferId, read) of
 							[#offer{char_value_use = CharValueUse} = _Offer] ->
 								Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 										|| Id <- BucketRefs]),
-								F1 = fun(#bucket{remain_amount = RM}) when RM < 0 ->
-										false;
-									(_) ->
-										true
-								end,
 								RedirectServerAddress = case lists:keyfind("redirectServer",
 										#char_value_use.name, CharValueUse) of
 									#char_value_use{values = [#char_value{value = Value}]}
@@ -497,18 +478,12 @@ charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
 									_Other ->
 										undefined
 								end,
-								case lists:all(F1, Buckets) of
-									true ->
-										{charge1(Protocol, Flag, Service, ServiceId,
-												Product, Buckets, Prices,
-												DebitAmounts, ReserveAmounts,
-												get_session_id(SessionAttributes),
-												ChargingKey, Address, ServiceNetwork),
-												RedirectServerAddress};
-									false ->
-										{out_of_credit, RedirectServerAddress,
-												SessionList, [], []}
-								end;
+								ChargeResult = charge1(Protocol, Flag, Service,
+										ServiceId, Product, Buckets, Prices,
+										DebitAmounts, ReserveAmounts,
+										get_session_id(SessionAttributes),
+										ChargingKey, Address, ServiceNetwork),
+								{ChargeResult,	RedirectServerAddress};
 							[] ->
 								mnesia:abort(offer_not_found)
 						end;
@@ -561,25 +536,51 @@ charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{disabled, SL};
-		{atomic, {out_of_credit, RedirectServerAddress, SL,
-				DeletedBuckets, AccBalance}} ->
-			ok = send_notifications(DeletedBuckets),
-			ok = notify_accumulated_balance(AccBalance),
-			{out_of_credit, RedirectServerAddress, SL};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
 
 %% @doc Split and order buckets.
 %% @hidden
-charge1(Protocol, Flag, Service, ServiceId, Product, Buckets, Prices,
+charge1(Protocol, Flag, Service, ServiceId, Product, Buckets,
+		[#price{units = Units, size = UnitSize, name = PriceName,
+				type = PriceType, currency = Currency} | _ ] = Prices,
 		DebitAmounts, ReserveAmounts, SessionId, ChargingKey,
 		Address, ServiceNetwork) ->
-	{PriceBuckets, OtherBuckets} = split_by_price(Buckets),
-	charge2(Protocol, Flag, Service, ServiceId, Product, Prices,
-			DebitAmounts, ReserveAmounts, {undefined, 0}, {undefined, 0},
-			SessionId, ChargingKey, Address, ServiceNetwork,
-			[], PriceBuckets, OtherBuckets, [], Buckets).
+	F = fun(#bucket{remain_amount = RemainAmount})
+					when RemainAmount < 0 ->
+				true;
+			(_) ->
+				false
+	end,
+	case lists:any(F, Buckets) of
+		true ->
+			DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
+				{Units, DA} ->
+					{Units, DA};
+				false ->
+					{Units, 0}
+			end,
+			Rated = case Flag of
+				final ->
+					[#rated{price_type = PriceType,
+							price_name = PriceName, currency = Currency}];
+				_ ->
+					[]
+			end,
+			ReserveAmount = {Units, reserve_amount(Units,
+					UnitSize, ReserveAmounts)},
+			charge4(Flag, Service, ServiceId, Product, Buckets,
+					DebitAmount, {Units, 0}, ReserveAmount, {Units, 0},
+					SessionId, Rated, ChargingKey, Buckets);
+		false ->
+			{PriceBuckets, OtherBuckets} = split_by_price(Buckets),
+			charge2(Protocol, Flag, Service, ServiceId,
+					Product, Prices, DebitAmounts, ReserveAmounts,
+					{undefined, 0}, {undefined, 0}, SessionId,
+					ChargingKey, Address, ServiceNetwork,
+					[], PriceBuckets, OtherBuckets, [], Buckets)
+	end.
 
 %% @doc Determine POP and amount of debit and reserve.
 %% @hidden
@@ -662,7 +663,7 @@ charge2(Protocol, Flag, Service, ServiceId, Product,
 			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
 charge2(radius = Protocol, Flag, Service, ServiceId, Product,
 		[#price{units = Units, char_value_use = CharValueUse} | _ ] = Prices,
-		DebitAmounts, [] = ReserveAmounts, DebitedAmount, ReservedAmount,
+		DebitAmounts, [] = _ReserveAmounts, DebitedAmount, ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
 		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
 		when Flag == initial; Flag == interim ->
@@ -703,9 +704,11 @@ charge2(_Protocol, Flag, Service, ServiceId, Product,
 		false ->
 			0
 	end,
+	{ok, Overflow} = application:get_env(ocs, charge_overflow),
 	{{Units, DA4}, {Units, RA4}, NewBuckets1, undefined}
-			= charge3(Flag, Service, ServiceId, Product, OtherBuckets, Price,
-			{Units, DA3}, {Units, RA3}, SessionId, ChargingKey, true),
+			= charge3(Flag, Service, ServiceId, Product,
+			OtherBuckets, Price, {Units, DA3}, {Units, RA3},
+			SessionId, ChargingKey, Overflow),
 	NewDebitedAmount = {Units, DA2 + DA4},
 	NewReservedAmount = {Units, RA1 + RA4},
 	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
@@ -736,9 +739,11 @@ charge2(_Protocol, final = Flag, Service, ServiceId, Product,
 		false ->
 			0
 	end,
+	{ok, Overflow} = application:get_env(ocs, charge_overflow),
 	{{Units, DA4}, {Units, 0}, NewBuckets1, Rated2}
-			= charge3(Flag, Service, ServiceId, Product, OtherBuckets,
-			Price, {Units, DA3}, {Units, 0}, SessionId, ChargingKey, true),
+			= charge3(Flag, Service, ServiceId, Product,
+			OtherBuckets, Price, {Units, DA3}, {Units, 0},
+			SessionId, ChargingKey, Overflow),
 	NewDebitedAmount = {Units, DA2 + DA4},
 	Rated3 = lists:flatten([Rated1, Rated2]),
 	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
@@ -757,9 +762,11 @@ charge2(_Protocol, event = Flag, Service, ServiceId, Product,
 		false ->
 			0
 	end,
+	{ok, Overflow} = application:get_env(ocs, charge_overflow),
 	{{Units, DA4}, {Units, 0}, NewBuckets1, Rated2}
-			= charge3(Flag, Service, ServiceId, Product, OtherBuckets,
-			Price, {Units, DA3}, {Units, 0}, SessionId, ChargingKey, true),
+			= charge3(Flag, Service, ServiceId, Product,
+			OtherBuckets, Price, {Units, DA3}, {Units, 0},
+			SessionId, ChargingKey, Overflow),
 	NewDebitedAmount = {Units, DA2 + DA4},
 	Rated3 = lists:flatten([Rated1, Rated2]),
 	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
@@ -787,10 +794,12 @@ charge2(Protocol, initial = Flag, Service, ServiceId, Product,
 			end,
 			Price2 = Price1#price{size = InitialUnitSize,
 					amount = InitialUnitPrice},
+			{ok, Overflow} = application:get_env(ocs, charge_overflow),
+cs, 
 			{DebitAmount, {Units, RA3}, NewBuckets1, undefined}
 					= charge3(Flag, Service, ServiceId, Product, OtherBuckets,
 							Price2, DebitAmount, {Units, RA2},
-							SessionId, ChargingKey, true),
+							SessionId, ChargingKey, Overflow),
 			NewReservedAmount = {Units, RA1 + RA3},
 			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
 			charge4(Flag, Service, ServiceId, Product, NewBuckets2,
@@ -829,10 +838,11 @@ charge2(Protocol, interim = Flag, Service, ServiceId, Product,
 			end,
 			Price2 = Price1#price{size = InitialUnitSize,
 					amount = InitialUnitPrice},
+			{ok, Overflow} = application:get_env(ocs, charge_overflow),
 			{{Units, DA4}, {Units, RA3}, NewBuckets1, undefined}
 					= charge3(Flag, Service, ServiceId, Product,
 					OtherBuckets, Price2, {Units, DA3}, {Units, RA2},
-					SessionId, ChargingKey, true),
+					SessionId, ChargingKey, Overflow),
 			NewDebitedAmount = {Units, DA2 + DA4},
 			NewReservedAmount = {Units, RA1 + RA3},
 			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
@@ -867,10 +877,11 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product,
 				when UnitSize == undefined; UnitSize == InitialUnitSize ->
 			Price2 = Price1#price{size = InitialUnitSize,
 					amount = InitialUnitPrice},
+			{ok, Overflow} = application:get_env(ocs, charge_overflow),
 			{{Units, DA4}, {Units, 0}, NewBuckets1, Rated2}
 					= charge3(Flag, Service, ServiceId, Product,
 					OtherBuckets, Price2, {Units, DA3},
-					ReserveAmount, SessionId, ChargingKey, true),
+					ReserveAmount, SessionId, ChargingKey, Overflow),
 			NewDebitedAmount = {Units, DA2 + DA4},
 			Rated3 = lists:flatten([Rated1, Rated2]),
 			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
@@ -906,10 +917,11 @@ charge2(Protocol, event = Flag, Service, ServiceId, Product,
 				_NewDA2 ->
 					{Units, 0}
 			end,
+			{ok, Overflow} = application:get_env(ocs, charge_overflow),
 			{{Units, DA3}, ReservedAmount2, NewBuckets1, Rated2}
 					= charge3(Flag, Service, ServiceId, Product,
 					OtherBuckets, Price2, DebitAmount, {Units, 0},
-					SessionId, ChargingKey, true),
+					SessionId, ChargingKey, Overflow),
 			NewDebitedAmount = {Units, DA1 + DA3},
 			Rated3 = lists:flatten([Rated1, Rated2]),
 			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
