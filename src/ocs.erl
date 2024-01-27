@@ -987,7 +987,7 @@ find_bucket(BucketId) ->
 		Result :: Buckets | {error, Reason},
 		Buckets :: [#bucket{}],
 		Reason :: term().
-%% @doc Get the all buckets product reference
+%% @doc Get all buckets.
 get_buckets() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun F(start, Acc) ->
@@ -1012,7 +1012,7 @@ get_buckets() ->
 		ProdRef :: string(),
 		Result :: [#bucket{}] | {error, Reason},
 		Reason :: term().
-%% @doc Get the all buckets for given product reference
+%% @doc Get all buckets for given product reference.
 get_buckets(ProdRef) when is_list(ProdRef) ->
 	F = fun() ->
 		case mnesia:read(product, ProdRef) of
