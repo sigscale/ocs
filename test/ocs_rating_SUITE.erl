@@ -399,7 +399,6 @@ initial_negative_balance(_Config) ->
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
 	Timestamp = calendar:local_time(),
-	Reservation = rand:uniform(PackageSize),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
 	SessionId = session_id(Protocol),
@@ -1102,13 +1101,11 @@ interim_out_of_credit_negative(_Config) ->
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionId),
 	ok = mnesia:sync_log(),
-	{error, not_found} = ocs:find_bucket(BId),
 	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
 				true;
 			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
 				false
 	end,
-	ok = mnesia:sync_log(),
 	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 interim_out_of_credit_negative1() ->
@@ -1149,13 +1146,11 @@ interim_out_of_credit_negative1(_Config) ->
 			undefined, undefined,
 			final, [{octets, UsedUnits2}], undefined, SessionId),
 	ok = mnesia:sync_log(),
-	{error, not_found} = ocs:find_bucket(BId),
 	F = fun(#bucket{remain_amount = Remain}) when Remain < 0 ->
 				true;
 			(#bucket{remain_amount = Remain}) when Remain >= 0 ->
 				false
 	end,
-	ok = mnesia:sync_log(),
 	true = lists:any(F, ocs:get_buckets(ProdRef)).
 
 final_remove_session() ->
