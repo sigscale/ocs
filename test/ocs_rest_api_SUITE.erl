@@ -2817,7 +2817,7 @@ simultaneous_updates_on_client_failure(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType1 = "application/json",
-	Address = inets:ntoa({172, 16, rand:uniform(256) - 1, rand:uniform(254)}),
+	Address = inet:ntoa({172, 16, rand:uniform(256) - 1, rand:uniform(254)}),
 	Port = 3699,
 	Protocol = "RADIUS",
 	Secret = ocs:generate_password(),
