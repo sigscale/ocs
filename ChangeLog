@@ -1,3 +1,27 @@
+2024-01-29  Vance Shipley <vances@sigscale.org>
+
+	* refactor balance in accounting test case
+	* corrections to log test suite cases
+	* refactor rated record creation
+	* modernize pwa dependency package versions
+	* discard empty log query results in test cases
+	* consistent session-id in log test cases
+	* avoid redundant rate/13 call with multiple services
+	* defer unit determination until tariff price selection
+	* correct test case for etag change
+	* Revert "correct filter path for buket filter by product"
+	* application environment variable for charging of overflow usage
+	* align test cases for interim out of credit with refactored charging
+	* refactor session-id creation in rating test suite
+	* wait for transactions to be written before using dirty reads in rating test suite
+	* correct starting amount in test case
+	* refactor radius reserve test cases with dynamic values
+	* rating test suite cases use radius or diameter randomly
+	* refactor radius charging clauses to generalize
+	* add rated information if missing in final
+	* use configured minimum reserve amount to set unit size
+	* usage rating uses greater of requested reserve, app var min, price unit size
+
 2024-01-20  Vance Shipley <vances@sigscale.org>
 
 	* refactor final bucket reap; refund unit over debit amount
