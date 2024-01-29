@@ -42,7 +42,7 @@
 init(Args) ->
 	SupFlags = #{auto_shutdown => any_significant},
 	ChildSpecs = [fsm(ocs_eap_akap_fsm, [self() | Args]),
-			fsm(ocs_eap_akap_auc_fsm, Args)],
+			fsm(ocs_eap_aka_auc_fsm, Args)],
 	{ok, {SupFlags, ChildSpecs}}.
 
 %% @doc Build a supervisor child specification for a
