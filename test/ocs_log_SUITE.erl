@@ -551,13 +551,16 @@ auth_query(_Config) ->
 	End = erlang:system_time(millisecond),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
-	Fget = fun(_F, {eof, Events}, Acc) ->
+	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
-			(F, {Cont, Events}, Acc) ->
-				F(F, ocs_log:auth_query(Cont, Start, End, [accept],
-						MatchReq, '_'), [Events | Acc])
+			F({Cont, []}, Acc) ->
+				F(ocs_log:auth_query(Cont, Start, End,
+						[accept], MatchReq, '_'), Acc);
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:auth_query(Cont, Start, End,
+						[accept], MatchReq, '_'), [Events | Acc])
 	end,
-	Events = Fget(Fget, ocs_log:auth_query(start, Start, End,
+	Events = Fget(ocs_log:auth_query(start, Start, End,
 						[accept], MatchReq, '_'), []),
 	3 = length(Events).
 
@@ -596,13 +599,16 @@ acct_query_radius(_Config) ->
 	End = erlang:system_time(millisecond),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
-	Fget = fun(_F, {eof, Events}, Acc) ->
+	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
-			(F, {Cont, Events}, Acc) ->
-				F(F, ocs_log:acct_query(Cont, Start, End, [stop],
-						MatchReq), [Events | Acc])
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						[stop], MatchReq), Acc);
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						[stop], MatchReq), [Events | Acc])
 	end,
-	Events = Fget(Fget, ocs_log:acct_query(start, Start, End,
+	Events = Fget(ocs_log:acct_query(start, Start, End,
 						[stop], MatchReq), []),
 	3 = length(Events).
 
@@ -642,11 +648,15 @@ acct_query_diameter(_Config) ->
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), Acc);
 			F({Cont, Events}, Acc) ->
 				F(ocs_log:acct_query(Cont, Start, End,
 						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	Events = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	Events = Fget(ocs_log:acct_query(start, Start, End,
+			diameter, '_', MatchSpec), []),
 	3 = length(Events).
 
 binary_tree_half() ->
@@ -825,9 +835,13 @@ abmf_query(_Config) ->
 	End = erlang:system_time(millisecond),
 	Fget = fun F({eof, Chunk}, Acc) ->
 				lists:flatten(lists:reverse([Chunk | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:abmf_query(Cont, Start, End, '_', '_',
+						'_', '_', [{product, {exact, ProdId}}]), Acc);
 			F({Cont, Chunk}, Acc) ->
-				F(ocs_log:abmf_query(Cont, Start, End,
-						'_', '_', '_', '_', [{product, {exact, ProdId}}]), [Chunk | Acc])
+				F(ocs_log:abmf_query(Cont, Start, End, '_', '_',
+						'_', '_', [{product, {exact, ProdId}}]),
+						[Chunk | Acc])
 	end,
 	Events = Fget(ocs_log:abmf_query(start, Start, End,
 			'_', '_', '_', '_', [{product, {exact, ProdId}}]), []),
@@ -866,9 +880,12 @@ diameter_scur(_Config) ->
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), Acc);
 			F({Cont, Events}, Acc) ->
-				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
-						MatchSpec), [Events | Acc])
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), [Events | Acc])
 	end,
 	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
@@ -942,9 +959,12 @@ diameter_scur_voice(_Config) ->
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), Acc);
 			F({Cont, Events}, Acc) ->
-				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
-						MatchSpec), [Events | Acc])
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), [Events | Acc])
 	end,
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
@@ -1011,9 +1031,12 @@ diameter_ecur(_Config) ->
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), Acc);
 			F({Cont, Events}, Acc) ->
-				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
-						MatchSpec), [Events | Acc])
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), [Events | Acc])
 	end,
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
@@ -1066,14 +1089,19 @@ diameter_iec(_Config) ->
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), Acc);
 			F({Cont, Events}, Acc) ->
-				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
-						MatchSpec), [Events | Acc])
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	[E1] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
-	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E1,
-	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
-			product = OfferId, price_type = usage} = Rated.
+	[E1] = Fget(ocs_log:acct_query(start, Start, End,
+			diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E1,
+	#rated{bucket_value = _RatedValue, bucket_type = messages,
+			is_billed = true, product = OfferId, price_type = usage} = Rated.
 
 dia_auth_to_ecs() ->
 	[{userdata, [{doc, "Convert diameter ocs_auth log to ECS"}]}].
