@@ -1120,39 +1120,21 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 	end;
 rate(ServiceType, ServiceNetwork, Subscriber,
 		Timestamp, Address, Direction, final, SessionId,
-		[], Acc, ResultCode, Rated1) ->
+		[], [], undefined, undefined) ->
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
 			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
 			[], [], [{'Session-Id', SessionId}]) of
-		{ok, _, Rated2}
-				when is_list(Rated2), Rated1 == undefined ->
-			{lists:reverse(Acc), ResultCode, Rated2};
-		{ok, _, Rated2}
-				when is_list(Rated2), is_list(Rated1) ->
-			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
-		{out_of_credit, _, _SessionList}
-				when Rated1 == undefined ->
-			{lists:reverse(Acc), ResultCode, []};
-		{out_of_credit, _, _SessionList}
-				when is_list(Rated1) ->
-			{lists:reverse(Acc), ResultCode, Rated1};
-		{out_of_credit, _, _SessionList, Rated2}
-				when is_list(Rated2), Rated1 == undefined ->
-			{lists:reverse(Acc), ResultCode, Rated2};
-		{out_of_credit, _, _SessionList, Rated2}
-				when is_list(Rated2), is_list(Rated1) ->
-			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
-		{disabled, _SessionList}
-				when Rated1 == undefined ->
-			{lists:reverse(Acc), ResultCode, []};
-		{disabled, _SessionList}
-				when is_list(Rated1) ->
-			{lists:reverse(Acc), ResultCode, rated1};
+		{ok, _, Rated} ->
+			{[], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', Rated};
+		{out_of_credit, _, _SessionList} ->
+			{[], ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', []};
+		{out_of_credit, _, _SessionList, Rated} ->
+			{[], ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', Rated};
+		{disabled, _SessionList} ->
+			{[], ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED', []};
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate(_, _, _, _, _, _, _, _, [], [], undefined, undefined) ->
-	{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
 	{lists:reverse(Acc), ResultCode};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, Rated) ->
