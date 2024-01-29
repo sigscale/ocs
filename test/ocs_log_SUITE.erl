@@ -187,6 +187,7 @@ radius_log_auth_event(_Config) ->
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_auth),
 	Fany = fun({TS, _, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
@@ -238,6 +239,7 @@ diameter_log_auth_event(_Config) ->
 			'Origin-Realm' = OR},
 	End = erlang:system_time(millisecond),
 	ok = ocs_log:auth_log(diameter, Server, Client, DiameterRequest, DiameterAnswer),
+	ok = disk_log:sync(ocs_auth),
 	Fany = fun({TS, _, P, N, S, C, R, A}) when P == Protocol,
 					TS >= Start, TS =< End, N == Node, S == Server, C == Client,
 					R == DiameterRequest, A == DiameterAnswer ->
@@ -275,6 +277,7 @@ radius_log_acct_event(_Config) ->
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs, undefined, undefined),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
 					element(3, E) == radius, element(4, E) == Node,
 					element(5, E) == Server, element(6, E) == Type,
@@ -311,6 +314,7 @@ diameter_log_acct_event(_Config) ->
 	ok = ocs_log:acct_log(Protocol, Server, RequestType,
 			#'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
 					element(3, E) == Protocol, element(4, E) == Node,
 					element(5, E) == Server, element(6, E) == RequestType,
@@ -441,6 +445,7 @@ get_range(_Config) ->
 	end,
 	Fill(Fill, NumItems),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
@@ -491,6 +496,7 @@ get_last(_Config) ->
 	end,
 	% check with half full wrap log
 	NumTotal1 = Fill(Fill, NumFiles div 2, 0, NumChunkItems),
+	ok = disk_log:sync(Log),
 	MaxSize = (NumChunkItems * 3) + 25,
 	{MaxSize, Items1} = ocs_log:last(Log, MaxSize),
 	Fcheck = fun({N, _}, N) ->
@@ -500,16 +506,19 @@ get_last(_Config) ->
 	StartItem1 = lists:foldl(Fcheck, NumTotal1, Items1),
 	% check while logging into last wrap file
 	NumTotal2 = Fill(Fill, NumFiles, NumTotal1, NumChunkItems),
+	ok = disk_log:sync(Log),
 	{MaxSize, Items2} = ocs_log:last(Log, MaxSize),
 	StartItem2 = NumTotal2 - MaxSize,
 	StartItem2 = lists:foldl(Fcheck, NumTotal2, Items2),
 	% check while logging into first file, after turnover
 	NumTotal3 = Fill(Fill, 1, NumTotal2, NumChunkItems),
+	ok = disk_log:sync(Log),
 	{MaxSize, Items3} = ocs_log:last(Log, MaxSize),
 	StartItem3 = NumTotal3 - MaxSize,
 	StartItem3 = lists:foldl(Fcheck, NumTotal3, Items3),
 	% check while logging into second file, after turnover
 	NumTotal4 = Fill(Fill, 2, NumTotal3, NumChunkItems),
+	ok = disk_log:sync(Log),
 	{MaxSize, Items4} = ocs_log:last(Log, MaxSize),
 	StartItem4 = NumTotal4 - MaxSize,
 	StartItem4 = lists:foldl(Fcheck, NumTotal4, Items4).
@@ -549,6 +558,7 @@ auth_query(_Config) ->
 			accept, ReqAttrs, RespAttrs),
 	ok = fill_auth(rand:uniform(2000)),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_auth),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun F({eof, Events}, Acc) ->
@@ -587,16 +597,21 @@ acct_query_radius(_Config) ->
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
-	NumItems = (FileSize div EventSize) * 5,
+	FileEvents = FileSize div EventSize,
 	Start = erlang:system_time(millisecond),
-	ok = fill_acct(NumItems, radius),
+	NumItems1 = FileEvents * 4,
+	ok = fill_acct(NumItems1, radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), radius),
+	NumItems2 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems2, radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), radius),
+	NumItems3 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems3, radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), radius),
+	NumItems4 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems4, radius),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun F({eof, Events}, Acc) ->
@@ -623,7 +638,7 @@ acct_query_diameter(_Config) ->
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
-	NumItems = (FileSize div EventSize) * 5,
+	FileEvents = FileSize div EventSize,
 	Start = erlang:system_time(millisecond),
 	Hostname = atom_to_binary(?FUNCTION_NAME),
 	SessionId = iolist_to_binary(diameter:session_id(Hostname)),
@@ -631,20 +646,28 @@ acct_query_diameter(_Config) ->
 	OriginRealm = <<"ap14.sigscale.net">>,
 	CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId, 'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
-	ok = fill_acct(NumItems, diameter),
+	NumItems1 = FileEvents * 4,
+	ok = fill_acct(NumItems1, diameter),
 	TS1 = [ocs_log:date(erlang:system_time(milli_seconds))],
-	CCR1 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS1},
+	CCR1 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS1,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, start, CCR1, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), diameter),
+	NumItems2 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems2, diameter),
 	TS2 = [ocs_log:date(erlang:system_time(milli_seconds))],
-	CCR2 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS2},
+	CCR2 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS2,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, interim, CCR2, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), diameter),
+	NumItems3 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems3, diameter),
 	TS3 = [ocs_log:date(erlang:system_time(milli_seconds))],
-	CCR3 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS3},
+	CCR3 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS3,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, stop, CCR3, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000), diameter),
+	NumItems4 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems4, diameter),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -670,6 +693,7 @@ binary_tree_half(_Config) ->
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	File = NumFiles div 4,
 	ok = fill_acct(File),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo1 = disk_log:info(ocs_acct),
 	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, CurrentFile - 1),
@@ -685,6 +709,7 @@ binary_tree_before(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	start = ocs_log:btree_search(ocs_acct, 1).
 
 binary_tree_after() ->
@@ -694,6 +719,7 @@ binary_tree_after(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
@@ -707,6 +733,7 @@ binary_tree_backward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles div 4),
@@ -721,6 +748,7 @@ binary_tree_forward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, ((NumFiles div 4) * 3) + 1),
@@ -735,6 +763,7 @@ binary_tree_last(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
@@ -749,6 +778,7 @@ binary_tree_first(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles),
@@ -774,6 +804,7 @@ abmf_log_event(_Config) ->
 			undefined, undefined, undefined, undefined, undefined,
 			undefined, undefined),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_abmf),
 	Fany = fun({TS, _, _, T, Sub, BI, _Un, PI, BA, BeA, AA, _, _, _, _, _, _, _})
 					when TS >= Start, TS =< End, Sub == Subscriber,
 					T == Type, BI == BucketId, BA == BucketAmount,
@@ -806,6 +837,7 @@ abmf_query(_Config) ->
 				++ integer_to_list(erlang:unique_integer([positive])),
 	ProdId = ocs:generate_password(),
 	ok = fill_abmf(1000),
+	ok = disk_log:sync(ocs_abmf),
 	LogInfo = disk_log:info(ocs_abmf),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -814,6 +846,7 @@ abmf_query(_Config) ->
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(millisecond),
 	ok = fill_abmf(NumItems),
+	ok = disk_log:sync(ocs_abmf),
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
 	C2 = C1 + Topup,
@@ -821,17 +854,20 @@ abmf_query(_Config) ->
 			ProdId, Topup, C1, C2, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
+	ok = disk_log:sync(ocs_abmf),
 	Transfer = rand:uniform(50000),
 	C3 = C2 - Transfer,
 	ok = ocs_log:abmf_log(transfer, Subscriber, BucketId, cents,
 			ProdId, Transfer, C2, C3, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
+	ok = disk_log:sync(ocs_abmf),
 	Adjustment = rand:uniform(50000),
 	ok = ocs_log:abmf_log(adjustment, Subscriber, BucketId, cents,
 			ProdId, Transfer, C3, C3 - Adjustment, undefined, undefined,
 			undefined, undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
+	ok = disk_log:sync(ocs_abmf),
 	End = erlang:system_time(millisecond),
 	Fget = fun F({eof, Chunk}, Acc) ->
 				lists:flatten(lists:reverse([Chunk | Acc]));
@@ -877,6 +913,7 @@ diameter_scur(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer2,
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -887,12 +924,17 @@ diameter_scur(_Config) ->
 				F(ocs_log:acct_query(Cont, Start, End,
 						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
-	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
-	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E3,
-	#rated{bucket_value = _RatedValue, bucket_type = octets, is_billed = true,
-			product = OfferId, price_type = usage} = Rated.
+	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End,
+			diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, undefined} = E1,
+	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, undefined} = E2,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, Rated} = E3,
+	[#rated{bucket_value = _RatedValue, bucket_type = octets,
+			is_billed = true, product = OfferId,
+			price_type = usage}] = Rated.
 
 diameter_scur_voice() ->
 	[{userdata, [{doc, "DIAMETER SCUR voice rated log event)"}]}].
@@ -900,7 +942,7 @@ diameter_scur_voice() ->
 diameter_scur_voice(_Config) ->
 	Start = erlang:system_time(millisecond),
 	UnitSize  = 60,
-	P1 = price(usage, seconds, UnitSize , rand:uniform(10000000)),
+	P1 = price(usage, seconds, UnitSize, rand:uniform(10000000)),
 	OfferId = add_offer([P1], 5),
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
@@ -920,8 +962,8 @@ diameter_scur_voice(_Config) ->
 			'Requested-Service-Unit' = [RSU]},
 	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
 	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
-	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
-			[#'3gpp_ro_IMS-Information'{
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'IMS-Information' = [#'3gpp_ro_IMS-Information'{
 					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
 					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
 					'Calling-Party-Address' = [CallingPartyAddress],
@@ -939,7 +981,7 @@ diameter_scur_voice(_Config) ->
 	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CCR, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	NewRequestNum = RequestNum0 + 1,
-	UsedUnits1 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UnitSize]},
+	UsedUnits1 = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UnitSize]},
 	MultiServices_CC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits1]},
 	CC_CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
@@ -956,6 +998,7 @@ diameter_scur_voice(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer1,
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -966,11 +1009,15 @@ diameter_scur_voice(_Config) ->
 				F(ocs_log:acct_query(Cont, Start, End,
 						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
-	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E2,
-	#rated{bucket_value = _RatedValue, bucket_type = seconds, is_billed = true,
-			product = OfferId, price_type = usage} = Rated.
+	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End,
+			diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, undefined} = E1,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, Rated} = E2,
+	[#rated{bucket_value = _RatedValue, bucket_type = seconds,
+			is_billed = true, product = OfferId,
+			price_type = usage}] = Rated.
 
 diameter_ecur() ->
 	[{userdata, [{doc, "DIAMETER ECUR rated log event)"}]}].
@@ -1028,6 +1075,7 @@ diameter_ecur(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer2,
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -1038,11 +1086,15 @@ diameter_ecur(_Config) ->
 				F(ocs_log:acct_query(Cont, Start, End,
 						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
-	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E2,
-	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
-			product = OfferId, price_type = usage} = Rated.
+	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End,
+			diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, undefined} = E1,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{},
+			#'3gpp_ro_CCA'{}, Rated} = E2,
+	[#rated{bucket_value = _RatedValue, bucket_type = messages,
+			is_billed = true, product = OfferId,
+			price_type = usage}] = Rated.
 
 diameter_iec() ->
 	[{userdata, [{doc, "DIAMETER IEC rated log event)"}]}].
@@ -1086,6 +1138,7 @@ diameter_iec(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer,
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -1099,9 +1152,10 @@ diameter_iec(_Config) ->
 	[E1] = Fget(ocs_log:acct_query(start, Start, End,
 			diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{},
-			#'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E1,
-	#rated{bucket_value = _RatedValue, bucket_type = messages,
-			is_billed = true, product = OfferId, price_type = usage} = Rated.
+			#'3gpp_ro_CCA'{}, Rated} = E1,
+	[#rated{bucket_value = _RatedValue, bucket_type = messages,
+			is_billed = true, product = OfferId,
+			price_type = usage}] = Rated.
 
 dia_auth_to_ecs() ->
 	[{userdata, [{doc, "Convert diameter ocs_auth log to ECS"}]}].
