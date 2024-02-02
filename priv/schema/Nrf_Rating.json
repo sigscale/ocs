@@ -1025,6 +1025,12 @@
               "$ref" : "#/components/schemas/ServiceInformation"
             } ]
           },
+          "userInformation" : {
+            "description" : "Information about the user and user equipment.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/UserInformation"
+            } ]
+          },
           "counter" : {
             "description" : "One or multiple Counter elements.",
             "type" : "array",
@@ -1511,6 +1517,14 @@
             "description" : "The international E.164 number of the serving Visitor Location Register (VLR).",
             "type" : "string",
             "pattern" : "^[0-9]{5,15}$"
+          }
+        }
+      },
+      "UserInformation" : {
+        "type" : "object",
+        "properties" : {
+          "servedPEI" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Pei"
           }
         }
       },
