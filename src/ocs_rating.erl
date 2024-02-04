@@ -1566,7 +1566,7 @@ charge3(event, _Service, ServiceId,
 
 %% @doc Finalize charging.
 %% @hidden
-charge4(final,
+charge4(final = _Flag,
 		#service{session_attributes = SessionList} = Service1, ServiceId,
 		Product, Buckets, {Units, Charge}, {Units, Charged},
 		{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey,
@@ -1583,7 +1583,7 @@ charge4(final,
 	ok = mnesia:write(Service2),
 	{ok, Service2, Rated1, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge4(final,
+charge4(final = _Flag,
 		#service{session_attributes = SessionList} = Service1, ServiceId,
 		Product, Buckets, {Units, _Charge}, {Units, _Charged},
 		{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, OldBuckets) ->
@@ -1611,12 +1611,13 @@ charge4(_Flag,
 	ok = mnesia:write(Service2),
 	{disabled, SessionList, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge4(_Flag,
+charge4(Flag,
 		#service{session_attributes = SessionList} = Service1, ServiceId,
 		Product, Buckets, {Units, Charge}, {Units, Charged},
 		{Units, Reserve}, {Units, Reserved}, SessionId, _Rated,
 		ChargingKey, OldBuckets)
-		when Charged < Charge; Reserved < Reserve ->
+		when ((Flag == initial) or (Flag == interim)),
+		Charged < Charge; Reserved < Reserve ->
 	NewBuckets = refund(ServiceId, ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, NewBuckets),
@@ -1625,7 +1626,7 @@ charge4(_Flag,
 	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge4(initial,
+charge4(initial = _Flag,
 		#service{session_attributes = SessionList} = Service1,
 		_ServiceId, Product, Buckets, {Units, 0},
 		{Units, 0}, {Units, _Reserve}, {Units, Reserved},
@@ -1643,7 +1644,7 @@ charge4(initial,
 			{grant, Service2, {Units, Reserved}, DeletedBuckets,
 					accumulated_balance(Buckets, Product#product.id)}
 	end;
-charge4(interim, Service, _ServiceId, Product,
+charge4(interim = _Flag, Service, _ServiceId, Product,
 		Buckets, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved}, _SessionId, _Rated,
 		_ChargingKey, OldBuckets) ->
@@ -1653,7 +1654,7 @@ charge4(interim, Service, _ServiceId, Product,
 	ok = mnesia:write(Service),
 	{grant, Service, {Units, Reserved}, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)};
-charge4(event, Service, _ServiceId, Product, Buckets,
+charge4(event = _Flag, Service, _ServiceId, Product, Buckets,
 		{Units, Charge}, {Units, Charged}, {Units, 0}, {Units, 0},
 		_SessionId, Rated, _ChargingKey, OldBuckets)
 		when Charged >= Charge ->
@@ -1663,7 +1664,7 @@ charge4(event, Service, _ServiceId, Product, Buckets,
 	ok = mnesia:write(Service),
 	{ok, Service, {Units, Charged}, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)};
-charge4(event,
+charge4(event = _Flag,
 		#service{session_attributes = SessionList} = Service1,
 		_ServiceId, Product, Buckets, {Units, _Charge},
 			{Units, _Charged}, {Units, 0}, {Units, 0},
