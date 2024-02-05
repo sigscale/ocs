@@ -1,3 +1,7 @@
+February 5, 2024
+----------------
+	- Correct Immediate Event Charging (IEC)(SMS) out-of-credit overcharging
+
 January 29, 2024
 ----------------
 	- Configurable usage overflow charge with negative balance

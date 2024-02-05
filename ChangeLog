@@ -1,3 +1,10 @@
+2024-02-05  Vance Shipley <vances@sigscale.org>
+
+	* test cases for topup buckets with sms iec and ecur
+	* immediate event charging (iec): rollback buckets on out-of-credit
+	* correct missing guard for event charging result
+	* add user information, including imei, in nrf oas
+
 2024-01-29  Vance Shipley <vances@sigscale.org>
 
 	* refactor balance in accounting test case
