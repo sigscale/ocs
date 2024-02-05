@@ -721,28 +721,37 @@ charge2(_Protocol, final = Flag, Service, ServiceId, Product,
 			DebitAmount, NewDebitedAmount, ReserveAmount, ReservedAmount,
 			SessionId, Rated3, ChargingKey, OldBuckets);
 charge2(_Protocol, event = Flag, Service, ServiceId, Product,
-		[#price{type = usage, units = Units} = Price | _ ] = _Prices,
-		[{Units, 0}], [{Units, DA1} = DebitAmount],
-		{Units, DA2} = _DebitedAmount, {Units, 0} = _ReservedAmount,
+		[#price{type = usage, units = Units,
+				size = UnitSize} = Price | _ ] = _Prices,
+		[{Units, 0}] = _DebitAmounts, ReserveAmounts,
+		{Units, DA1} = DebitedAmount, {Units, 0} = _ReservedAmount,
 		SessionId, ChargingKey, _Address, _ServiceNetwork, Rated1,
 		[] = _PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
-	DA3 = case DA1 > DA2 of
-		true ->
-			DA1 - DA2;
-		false ->
-			0
+	DA2 = reserve_amount(Units, UnitSize, ReserveAmounts),
+	DebitAmount = case DA2 - DA1 of
+		NewDA2 when NewDA2 > 0 ->
+			{Units, NewDA2};
+		_NewDA2 ->
+			{Units, 0}
 	end,
-	{ok, Overflow} = application:get_env(ocs, charge_overflow),
-	{{Units, DA4}, {Units, 0}, NewBuckets1, Rated2}
-			= charge3(Flag, Service, ServiceId, Product,
-			OtherBuckets, Price, {Units, DA3}, {Units, 0},
-			SessionId, ChargingKey, Overflow),
-	NewDebitedAmount = {Units, DA2 + DA4},
-	Rated3 = collect_rated([Rated1, Rated2]),
-	NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
-	charge4(Flag, Service, ServiceId, Product, NewBuckets2,
-			DebitAmount, NewDebitedAmount, {Units, 0}, {Units, 0},
-			SessionId, Rated3, ChargingKey, OldBuckets);
+	case charge3(Flag, Service, ServiceId, Product,
+			OtherBuckets, Price, {Units, DA2}, {Units, 0},
+			SessionId, ChargingKey, false) of
+		{{Units, DA3}, {Units, 0}, NewBuckets1, Rated2}
+				when DA3 >= DA2 ->
+			NewDebitedAmount = {Units, DA1 + DA3},
+			Rated3 = collect_rated([Rated1, Rated2]),
+			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
+			charge4(Flag, Service, ServiceId, Product, NewBuckets2,
+					DebitAmount, NewDebitedAmount, {Units, 0}, {Units, 0},
+					SessionId, Rated3, ChargingKey, OldBuckets);
+		{{Units, DA3}, {Units, 0}, _NewBuckets1, _Rated2}
+				when DA3 < DA2  ->
+			NewBuckets2 = lists:flatten([NewAcc, OtherBuckets]),
+			charge4(Flag, Service, ServiceId, Product, NewBuckets2,
+					DebitAmount, DebitedAmount, {Units, 0}, {Units, 0},
+					SessionId, Rated1, ChargingKey, OldBuckets)
+	end;
 charge2(Protocol, initial = Flag, Service, ServiceId, Product,
 		[#price{type = tariff, units = Units,
 				size = UnitSize} = Price1 | T ] = _Prices,
@@ -885,7 +894,7 @@ charge2(Protocol, event = Flag, Service, ServiceId, Product,
 		[#price{type = tariff, units = Units,
 				size = UnitSize} = Price1 | T ] = _Prices,
 		[] = DebitAmounts, ReserveAmounts,
-		{_, DA1} = DebitedAmount1, ReservedAmount1,
+		{_, DA1} = DebitedAmount, ReservedAmount1,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated1,
 		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
 	case tariff_rate(Address, ServiceNetwork, Price1) of
@@ -900,23 +909,30 @@ charge2(Protocol, event = Flag, Service, ServiceId, Product,
 				_NewDA2 ->
 					{Units, 0}
 			end,
-			{ok, Overflow} = application:get_env(ocs, charge_overflow),
-			{{Units, DA3}, ReservedAmount2, NewBuckets1, Rated2}
-					= charge3(Flag, Service, ServiceId, Product,
+			case charge3(Flag, Service, ServiceId, Product,
 					OtherBuckets, Price2, DebitAmount, {Units, 0},
-					SessionId, ChargingKey, Overflow),
-			NewDebitedAmount = {Units, DA1 + DA3},
-			Rated3 = collect_rated([Rated1, Rated2]),
-			NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
-			charge4(Flag, Service, ServiceId,
-					Product, NewBuckets2,
-					DebitAmount, NewDebitedAmount,
-					{Units, 0}, ReservedAmount2,
-					SessionId, Rated3, ChargingKey, OldBuckets);
+					SessionId, ChargingKey, false) of
+				{{Units, DA3}, {Units, 0}, NewBuckets1, Rated2}
+						when DA3 >= DA2 ->
+					NewDebitedAmount = {Units, DA1 + DA3},
+					Rated3 = collect_rated([Rated1, Rated2]),
+					NewBuckets2 = lists:flatten([NewAcc, NewBuckets1]),
+					charge4(Flag, Service, ServiceId, Product,
+							NewBuckets2, DebitAmount, NewDebitedAmount,
+							{Units, 0}, {Units, 0}, SessionId,
+							Rated3, ChargingKey, OldBuckets);
+				{{Units, DA3}, {Units, 0}, _NewBuckets1, _Rated2}
+						when DA3 < DA2 ->
+					NewBuckets2 = lists:flatten([NewAcc, OtherBuckets]),
+					charge4(Flag, Service, ServiceId, Product,
+							NewBuckets2, DebitAmount, {Units, DA1},
+							{Units, 0}, {Units, 0}, SessionId,
+							Rated1, ChargingKey, OldBuckets)
+			end;
 		undefined ->
 			charge2(Protocol, Flag, Service, ServiceId,
 					Product, T, DebitAmounts, ReserveAmounts,
-					DebitedAmount1, ReservedAmount1, SessionId,
+					DebitedAmount, ReservedAmount1, SessionId,
 					ChargingKey, Address, ServiceNetwork, Rated1,
 					PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
 	end;
@@ -1220,7 +1236,8 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product, Prices,
 					OtherBuckets, NewAcc1, OldBuckets)
 	end;
 charge2(Protocol, event = Flag,
-		Service, ServiceId, Product, Prices, [], DebitAmounts,
+		Service, ServiceId, Product, Prices,
+		[] = DebitAmounts, ReserveAmounts,
 		{Units1, DA1} = DebitedAmount, {Units1, 0} = ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated1,
 		[#bucket{price = PriceName} | _] = PriceBuckets1,
@@ -1232,19 +1249,14 @@ charge2(Protocol, event = Flag,
 	end,
 	{Buckets, PriceBuckets2} = lists:partition(F, PriceBuckets1),
 	case lists:keyfind(PriceName, #price.name, Prices) of
-		#price{type = usage, units = Units2} = Price
+		#price{type = usage, units = Units2, size = UnitSize} = Price
 				when Units1 == undefined; Units1 == Units2 ->
-			DebitAmount = case lists:keyfind(Units2, 1, DebitAmounts) of
-				Da when is_tuple(Da) ->
-					Da;
-				false ->
+			DA2 = reserve_amount(Units2, UnitSize, ReserveAmounts),
+			DebitAmount = case DA2 - DA1 of
+				NewDA2 when NewDA2 > 0 ->
+					{Units2, NewDA2};
+				_NewDA2 ->
 					{Units2, 0}
-			end,
-			DA2 = case DebitAmount of
-				{_, Du} when Du > DA1 ->
-					Du - DA1;
-				_ ->
-					0
 			end,
 			case charge3(Flag, Service, ServiceId, Product, Buckets,
 					Price, {Units2, DA2}, {Units2, 0},
@@ -1253,17 +1265,16 @@ charge2(Protocol, event = Flag,
 						when DA3 >= DA2 ->
 					Rated3 = collect_rated([Rated1, Rated2]),
 					NewBuckets2 = lists:flatten([NewBuckets1,
-							PriceBuckets2, NewAcc]),
+							PriceBuckets2, NewAcc, OtherBuckets]),
 					charge4(Flag, Service, ServiceId,
 							Product, NewBuckets2,
 							DebitAmount, {Units2, DA1 + DA3},
 							{Units2, 0}, {Units2, 0},
 							SessionId, Rated3,
 							ChargingKey, OldBuckets);
-				{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
+				{{Units2, DA3}, {Units2, 0}, _NewBuckets1, _Rated2}
 						when DA3 < DA2 ->
-					Rated3 = collect_rated([Rated1, Rated2]),
-					NewAcc1 = lists:flatten([NewBuckets1, NewAcc]),
+					NewAcc1 = lists:flatten([Buckets, NewAcc]),
 					NewPrices = case PriceBuckets2 of
 						[] ->
 							drop_fixed(Prices);
@@ -1271,11 +1282,75 @@ charge2(Protocol, event = Flag,
 							Prices
 					end,
 					charge2(Protocol, Flag, Service, ServiceId,
-							Product, NewPrices, [], [DebitAmount],
-							{Units2, DA1 + DA3}, {Units2, 0},
-							SessionId, ChargingKey, Address,
-							ServiceNetwork, Rated3, PriceBuckets2,
-							OtherBuckets, NewAcc1, OldBuckets)
+							Product, NewPrices, DebitAmounts,
+							ReserveAmounts, DebitedAmount,
+							ReservedAmount, SessionId, ChargingKey,
+							Address, ServiceNetwork, Rated1,
+							PriceBuckets2, OtherBuckets, NewAcc1,
+							OldBuckets)
+			end;
+		#price{type = tariff, units = Units2, size = UnitSize} = Price1
+				when Units1 == undefined; Units1 == Units2 ->
+			case tariff_rate(Address, ServiceNetwork, Price1) of
+				{_Description, InitialUnitSize, InitialUnitPrice, _, _}
+						when UnitSize == undefined;
+						UnitSize == InitialUnitSize ->
+					Price2 = Price1#price{size = InitialUnitSize,
+							amount = InitialUnitPrice},
+					DA2 = reserve_amount(Units2,
+							InitialUnitSize, ReserveAmounts),
+					DebitAmount = case DA2 - DA1 of
+						NewDA2 when NewDA2 > 0 ->
+							{Units2, NewDA2};
+						_NewDA2 ->
+							{Units2, 0}
+					end,
+					case charge3(Flag, Service, ServiceId, Product, Buckets,
+							Price2, {Units2, DA2}, {Units2, 0},
+							SessionId, ChargingKey, false) of
+						{{Units2, DA3}, {Units2, 0}, NewBuckets1, Rated2}
+								when DA3 >= DA2 ->
+							Rated3 = collect_rated([Rated1, Rated2]),
+							NewBuckets2 = lists:flatten([NewBuckets1,
+									PriceBuckets2, NewAcc, OtherBuckets]),
+							charge4(Flag, Service, ServiceId,
+									Product, NewBuckets2,
+									DebitAmount, {Units2, DA1 + DA3},
+									{Units2, 0}, {Units2, 0},
+									SessionId, Rated3,
+									ChargingKey, OldBuckets);
+						{{Units2, DA3}, {Units2, 0}, _NewBuckets1, _Rated2}
+								when DA3 < DA2 ->
+							NewAcc1 = lists:flatten([Buckets, NewAcc]),
+							NewPrices = case PriceBuckets2 of
+								[] ->
+									drop_fixed(Prices);
+								_ ->
+									Prices
+							end,
+							charge2(Protocol, Flag, Service, ServiceId,
+									Product, NewPrices, DebitAmounts,
+									ReserveAmounts, DebitedAmount,
+									ReservedAmount, SessionId, ChargingKey,
+									Address, ServiceNetwork, Rated1,
+									PriceBuckets2, OtherBuckets, NewAcc1,
+									OldBuckets)
+					end;
+				undefined ->
+					NewAcc1 = lists:flatten([Buckets, NewAcc]),
+					NewPrices = case PriceBuckets2 of
+						[] ->
+							drop_fixed(Prices);
+						_ ->
+							Prices
+					end,
+					charge2(Protocol, Flag, Service, ServiceId,
+							Product, NewPrices, DebitAmounts,
+							ReserveAmounts, DebitedAmount,
+							ReservedAmount, SessionId, ChargingKey,
+							Address, ServiceNetwork, Rated1,
+							PriceBuckets2, OtherBuckets, NewAcc1,
+							OldBuckets)
 			end;
 		false ->
 			NewAcc1 = lists:flatten([Buckets, NewAcc]),
@@ -1286,11 +1361,12 @@ charge2(Protocol, event = Flag,
 					Prices
 			end,
 			charge2(Protocol, Flag, Service, ServiceId,
-					Product, NewPrices, [], DebitAmounts,
-					DebitedAmount, ReservedAmount,
-					SessionId, ChargingKey, Address,
-					ServiceNetwork, Rated1, PriceBuckets2,
-					OtherBuckets, NewAcc1, OldBuckets)
+					Product, NewPrices, DebitAmounts,
+					ReserveAmounts, DebitedAmount,
+					ReservedAmount, SessionId, ChargingKey,
+					Address, ServiceNetwork, Rated1,
+					PriceBuckets2, OtherBuckets, NewAcc1,
+					OldBuckets)
 	end.
 
 %% @doc Apply debit and reserve to provided buckets.
