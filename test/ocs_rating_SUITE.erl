@@ -113,12 +113,14 @@ all() ->
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password,
-	reserve_sms, debit_sms, roaming_table_data, roaming_table_voice,
+	reserve_sms, debit_sms, iec_out_of_credit,
+	roaming_table_data, roaming_table_voice,
 	roaming_table_sms_ecur, roaming_table_sms_iec, roaming_table_sms_iec_rsu,
 	final_empty_mscc, final_empty_mscc_multiple_services,
 	initial_invalid_service_type, refund_unused_reservation,
 	refund_partially_used_reservation, tariff_prices,
-	allowance_bucket, tariff_bucket].
+	allowance_bucket, tariff_bucket_voice,
+	tariff_bucket_iec, tariff_bucket_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2098,6 +2100,29 @@ debit_sms(_Config) ->
 	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = R2}} = ocs:find_bucket(BId).
 
+iec_out_of_credit() ->
+	[{userdata, [{doc, "Balance remains after failed immediate event charging (IEC)"}]}].
+
+iec_out_of_credit(_Config) ->
+	PackagePrice = 1000000 + rand:uniform(1000000),
+	PackageSize = 1,
+	P1 = price(usage, messages, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemAmount = 1,
+	B1 = bucket(cents, RemAmount),
+	BId = add_bucket(ProdRef, B1),
+	ServiceType = 32274,
+	DebitAmount = {messages, 1},
+	SessionId = session_id(diameter),
+	{out_of_credit, _, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			calendar:local_time(), undefined, undefined, event,
+			[], [DebitAmount], SessionId),
+	ok = mnesia:sync_log(),
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
+
 roaming_table_data() ->
 	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
 
@@ -2831,10 +2856,10 @@ allowance_bucket(_Config) ->
 	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
 	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId1).
 
-tariff_bucket() ->
-	[{userdata, [{doc, "Topup bucket, pinned to tariff Price"}]}].
+tariff_bucket_voice() ->
+	[{userdata, [{doc, "Topup bucket, pinned to tariff Price (Voice)"}]}].
 
-tariff_bucket(_Config) ->
+tariff_bucket_voice(_Config) ->
 	{ok, UnitSize} = application:get_env(ocs, min_reserve_seconds),
 	Table1 = ocs:generate_identity(),
 	Table2 = ocs:generate_identity(),
@@ -2978,6 +3003,263 @@ tariff_bucket(_Config) ->
 			{Amount3, (Amount3 div Rate3) * UnitSize}
 	end,
 	DebitedUnits = DebitedUnits1 + DebitedUnits2 + DebitedUnits3,
+	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
+
+tariff_bucket_iec() ->
+	[{userdata, [{doc, "Topup bucket, pinned to tariff Price (SMS IEC)"}]}].
+
+tariff_bucket_iec(_Config) ->
+	Table1 = ocs:generate_identity(),
+	Table2 = ocs:generate_identity(),
+	Table3 = ocs:generate_identity(),
+	F = fun F(N, Items) when N >= $0, N =< $9 ->
+				Description = ocs:generate_identity(),
+				Rate = rand:uniform(4) * 1000000,
+				Value = {Description, Rate},
+				Number = [N],
+				Item = {Number, Value},
+				F(N - 1, [Item | Items]);
+			F(_N, Items) ->
+				Items
+	end,
+	ok = ocs_gtt:new(Table1, [], F($9, [])),
+	ok = ocs_gtt:new(Table2, [], F($9, [])),
+	ok = ocs_gtt:new(Table3, [], F($9, [])),
+	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table1}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table2}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table3}]}],
+	PriceName1 = ocs:generate_identity(),
+	PriceName2 = ocs:generate_identity(),
+	PriceName3 = ocs:generate_identity(),
+	P1 = #price{name = PriceName1, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse1},
+	P2 = #price{name = PriceName2, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse2},
+	P3 = #price{name = PriceName3, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse3},
+	OfferId = add_offer([P1, P2, P3], 11),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service(ServiceId,
+			undefined, undefined),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [ServiceRef]),
+	Destination = [$5 | ocs:generate_identity()],
+	{_, Rate1, _} = ocs_gtt:lookup_last(Table1, Destination),
+	{_, Rate2, _} = ocs_gtt:lookup_last(Table2, Destination),
+	{_, Rate3, _} = ocs_gtt:lookup_last(Table3, Destination),
+	Amount1 = ocs_rest:millionths_in(rand:uniform(4)),
+	Amount2 = ocs_rest:millionths_in(rand:uniform(4)),
+	Amount3 = ocs_rest:millionths_in(1000),
+	Today = calendar:date_to_gregorian_days(date()),
+	LastMonth = calendar:gregorian_days_to_date(Today - 30),	
+	LastWeek = calendar:gregorian_days_to_date(Today - 7),	
+	NextWeek = calendar:gregorian_days_to_date(Today + 7),	
+	NextMonth = calendar:gregorian_days_to_date(Today + 30),	
+	Bucket1 = #bucket{units = cents,
+			remain_amount = Amount1, price = PriceName1,
+			start_date = ocs_rest:date({LastMonth, time()}),
+			end_date = ocs_rest:date({NextWeek, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket2 = #bucket{units = cents,
+			remain_amount = Amount2, price = PriceName2,
+			start_date = ocs_rest:date({LastWeek, time()}),
+			end_date = ocs_rest:date({NextMonth, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket3 = bucket(cents, Amount3),
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, Bucket2),
+	{ok, _, #bucket{id = BId3}} = ocs:add_bucket(ProdRef, Bucket3),
+	Protocol = diameter,
+	ServiceType = service_type(diameter, message),
+	SessionId = session_id(Protocol),
+	DebitUnits = {messages, 1},
+	{ok, _, DebitUnits, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, event, [], [], SessionId),
+	{ok, _, DebitUnits, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, event, [], [], SessionId),
+	{ok, _, DebitUnits, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, event, [], [], SessionId),
+	{ok, _, DebitUnits, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, event, [], [], SessionId),
+	{ok, _, DebitUnits, _} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, event, [], [], SessionId),
+	ok = mnesia:sync_log(),
+	{DebitedCents1, DebitedUnits1} = case ocs:find_bucket(BId1) of
+		{ok, #bucket{remain_amount = Remain1}} ->
+			D1 = Amount1 - Remain1,
+			0 = D1 rem Rate1,
+			{D1, D1 div Rate1};
+		{error, not_found} ->
+			{Amount1, Amount1 div Rate1}
+	end,
+	{DebitedCents2, DebitedUnits2}  = case ocs:find_bucket(BId2) of
+		{ok, #bucket{remain_amount = Remain2}} ->
+			D2 = Amount2 - Remain2,
+			0 = D2 rem Rate2,
+			{D2, D2 div Rate2};
+		{error, not_found} ->
+			{Amount2, Amount2 div Rate2}
+	end,
+	{DebitedCents3, DebitedUnits3}  = case ocs:find_bucket(BId3) of
+		{ok, #bucket{remain_amount = Remain3}} ->
+			D3 = Amount3 - Remain3,
+			0 = D3 rem Rate3,
+			{D3, D3 div Rate3};
+		{error, not_found} ->
+			{Amount3, Amount3 div Rate3}
+	end,
+	DebitedCents = (DebitedUnits1 * Rate1) + (DebitedUnits2 * Rate2)
+			+ (DebitedUnits3 * Rate3),
+	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
+
+tariff_bucket_ecur() ->
+	[{userdata, [{doc, "Topup bucket, pinned to tariff Price (SMS ECUR)"}]}].
+
+tariff_bucket_ecur(_Config) ->
+	Table1 = ocs:generate_identity(),
+	Table2 = ocs:generate_identity(),
+	Table3 = ocs:generate_identity(),
+	F = fun F(N, Items) when N >= $0, N =< $9 ->
+				Description = ocs:generate_identity(),
+				Rate = rand:uniform(4) * 1000000,
+				Value = {Description, Rate},
+				Number = [N],
+				Item = {Number, Value},
+				F(N - 1, [Item | Items]);
+			F(_N, Items) ->
+				Items
+	end,
+	ok = ocs_gtt:new(Table1, [], F($9, [])),
+	ok = ocs_gtt:new(Table2, [], F($9, [])),
+	ok = ocs_gtt:new(Table3, [], F($9, [])),
+	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table1}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table2}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table3}]}],
+	PriceName1 = ocs:generate_identity(),
+	PriceName2 = ocs:generate_identity(),
+	PriceName3 = ocs:generate_identity(),
+	P1 = #price{name = PriceName1, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse1},
+	P2 = #price{name = PriceName2, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse2},
+	P3 = #price{name = PriceName3, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse3},
+	OfferId = add_offer([P1, P2, P3], 11),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service(ServiceId,
+			undefined, undefined),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [ServiceRef]),
+	Destination = [$5 | ocs:generate_identity()],
+	{_, Rate1, _} = ocs_gtt:lookup_last(Table1, Destination),
+	{_, Rate2, _} = ocs_gtt:lookup_last(Table2, Destination),
+	{_, Rate3, _} = ocs_gtt:lookup_last(Table3, Destination),
+	Amount1 = ocs_rest:millionths_in(rand:uniform(4)),
+	Amount2 = ocs_rest:millionths_in(rand:uniform(4)),
+	Amount3 = ocs_rest:millionths_in(1000),
+	Today = calendar:date_to_gregorian_days(date()),
+	LastMonth = calendar:gregorian_days_to_date(Today - 30),	
+	LastWeek = calendar:gregorian_days_to_date(Today - 7),	
+	NextWeek = calendar:gregorian_days_to_date(Today + 7),	
+	NextMonth = calendar:gregorian_days_to_date(Today + 30),	
+	Bucket1 = #bucket{units = cents,
+			remain_amount = Amount1, price = PriceName1,
+			start_date = ocs_rest:date({LastMonth, time()}),
+			end_date = ocs_rest:date({NextWeek, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket2 = #bucket{units = cents,
+			remain_amount = Amount2, price = PriceName2,
+			start_date = ocs_rest:date({LastWeek, time()}),
+			end_date = ocs_rest:date({NextMonth, time()}),
+			attributes = #{bucket_type => normal}},
+	Bucket3 = bucket(cents, Amount3),
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, Bucket2),
+	{ok, _, #bucket{id = BId3}} = ocs:add_bucket(ProdRef, Bucket3),
+	Protocol = diameter,
+	ServiceType = service_type(diameter, message),
+	SessionId = session_id(Protocol),
+	DebitUnits = {messages, 1},
+	{ok, _, DebitUnits} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial, [], [], SessionId),
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final, [], [], SessionId),
+	{ok, _, DebitUnits} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial, [], [], SessionId),
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final, [], [], SessionId),
+	{ok, _, DebitUnits} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial, [], [], SessionId),
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final, [], [], SessionId),
+	{ok, _, DebitUnits} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial, [], [], SessionId),
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final, [], [], SessionId),
+	{ok, _, DebitUnits} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, initial, [], [], SessionId),
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, calendar:local_time(),
+			Destination, originate, final, [], [], SessionId),
+	ok = mnesia:sync_log(),
+	{DebitedCents1, DebitedUnits1} = case ocs:find_bucket(BId1) of
+		{ok, #bucket{remain_amount = Remain1}} ->
+			D1 = Amount1 - Remain1,
+			0 = D1 rem Rate1,
+			{D1, D1 div Rate1};
+		{error, not_found} ->
+			{Amount1, Amount1 div Rate1}
+	end,
+	{DebitedCents2, DebitedUnits2}  = case ocs:find_bucket(BId2) of
+		{ok, #bucket{remain_amount = Remain2}} ->
+			D2 = Amount2 - Remain2,
+			0 = D2 rem Rate2,
+			{D2, D2 div Rate2};
+		{error, not_found} ->
+			{Amount2, Amount2 div Rate2}
+	end,
+	{DebitedCents3, DebitedUnits3}  = case ocs:find_bucket(BId3) of
+		{ok, #bucket{remain_amount = Remain3}} ->
+			D3 = Amount3 - Remain3,
+			0 = D3 rem Rate3,
+			{D3, D3 div Rate3};
+		{error, not_found} ->
+			{Amount3, Amount3 div Rate3}
+	end,
+	DebitedCents = (DebitedUnits1 * Rate1) + (DebitedUnits2 * Rate2)
+			+ (DebitedUnits3 * Rate3),
 	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
 
 %%---------------------------------------------------------------------
