@@ -32,6 +32,7 @@
 %%% 	After successful authentication an EAP-AKA/AKA' handler should
 %%% 	send a registration request event:<br  />
 %%% 	`{register, {AkaFsm, Identity}'<br />
+%%% 	`{register, {AkaFsm, Identity, APN}'<br />
 %%% 	and one of these replies is expected:<br />
 %%% 	`{ok, UserProfile, HssRealm, HssHost}'<br />
 %%% 	`{error, Reason}'
@@ -75,6 +76,7 @@
 -record(statedata,
 		{aka_fsm :: pid() | undefined,
 		identity :: binary() | undefined,
+		apn :: binary() | undefined,
 		rand :: binary() | undefined,
 		auts :: binary() | undefined,
 		rat_type :: non_neg_integer() | undefined,
@@ -251,10 +253,36 @@ idle({register, {AkaFsm, Identity}},
 			'Session-Timeout' = SessionTimeout},
 	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
 	{next_state, idle, StateData};
+idle({register, {AkaFsm, Identity, APN}},
+		#statedata{hss_realm = HssRealm, hss_host = HssHost,
+		aka_fsm = AkaFsm, identity = Identity,
+		attributes = Attributes} = StateData)
+		when is_pid(AkaFsm), is_binary(Identity), is_binary(APN),
+		HssRealm == undefined ->
+	SessionTimeout = case radius_attributes:find(?SessionTimeout,
+			Attributes) of
+		{ok, V1} ->
+			[V1];
+		{error, not_found} ->
+			[]
+	end,
+	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
+			'Session-Timeout' = SessionTimeout},
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
+	{next_state, idle, StateData};
 idle({register, {AkaFsm, Identity}},
 		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', StateData) of
+	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', [], StateData) of
+		ok ->
+			{next_state, register, StateData, ?TIMEOUT};
+		{error, Reason} ->
+			{stop, Reason, StateData}
+	end;
+idle({register, {AkaFsm, Identity, APN}},
+		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
+		when is_pid(AkaFsm), is_binary(Identity), is_binary(APN) ->
+	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', APN, StateData) of
 		ok ->
 			{next_state, register, StateData, ?TIMEOUT};
 		{error, Reason} ->
@@ -759,29 +787,31 @@ send_diameter_mar4(Request1,
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request2, [detach, {extra, [self()]}]).
 
--spec send_diameter_sar(ServerAssignmentType, StateData) -> Result
+-spec send_diameter_sar(ServerAssignmentType, APN, StateData) -> Result
 	when
 		ServerAssignmentType :: ?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', 
+		APN :: [binary()],
 		StateData :: #statedata{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Send DIAMETER Server-Assignment-Request (SAR) to HSS.
 %% @hidden
-send_diameter_sar(ServerAssignmentType, #statedata{hss_host = undefined,
+send_diameter_sar(ServerAssignmentType, APN, #statedata{hss_host = undefined,
 		hss_realm = HssRealm, origin_host = OriginHost,
 		origin_realm = OriginRealm} = StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = HssRealm},
+			'Destination-Realm' = HssRealm, 'Service-Selection' = APN},
 	send_diameter_sar1(Request, ServerAssignmentType, StateData);
-send_diameter_sar(ServerAssignmentType, #statedata{hss_host = HssHost,
+send_diameter_sar(ServerAssignmentType, APN, #statedata{hss_host = HssHost,
 		hss_realm = HssRealm, origin_host = OriginHost,
 		origin_realm = OriginRealm} = StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost]},
+			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost],
+			'Service-Selection' = APN},
 	send_diameter_sar1(Request, ServerAssignmentType, StateData).
 %% @hidden
 send_diameter_sar1(Request1, SAT,
