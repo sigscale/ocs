@@ -165,6 +165,10 @@ vectors from a Home Subscriber Server (HSS).
 <img id="wlan" class="diagram"
 		src="non-3gpp-untrusted.svg" alt="non-3GPP untrusted access" />
 
+====Wi-Fi Direct====
+<img id="wi-fi" class="diagram"
+		src="wifi-direct.svg" alt="wi-fi direct" />
+
 ==Schema==
 The table schema is a faithful mapping of TM Forum's Information Model
 <a target="_blank"
