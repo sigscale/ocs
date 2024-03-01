@@ -1,3 +1,8 @@
+March 1, 2024
+-------------
+	* APN selection for non-3GPP access
+	* Document Wi-Fi direct (RADIUS) use case for AAA
+
 February 5, 2024
 ----------------
 	- Correct Immediate Event Charging (IEC)(SMS) out-of-credit overcharging

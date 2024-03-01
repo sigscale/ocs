@@ -1,3 +1,10 @@
+2024-03-01  Vance Shipley <vances@sigscale.org>
+
+	* apn selection on sta interface (OCS-697 #close)
+	* apn selection on swm interface (OCS-696 #close)
+	* apn selection on swx interface (OCS-695 #close)
+	* diagram wi-fi direct aaa with radius
+
 2024-02-05  Vance Shipley <vances@sigscale.org>
 
 	* test cases for topup buckets with sms iec and ecur
