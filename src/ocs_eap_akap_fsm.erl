@@ -861,7 +861,12 @@ challenge1(EapMessage1, Request, RAT,
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						Response = {EapMessage3, []},
 						NextStateData = NewStateData#statedata{response = Response},
-						gen_fsm:send_event(AucFsm, {register, {self(), IMSI}}),
+						case Request#'3gpp_sta_DER'.'Service-Selection' of
+							[] ->
+								gen_fsm:send_event(AucFsm, {register, {self(), IMSI}});
+							[APN] ->
+								gen_fsm:send_event(AucFsm, {register, {self(), IMSI, APN}})
+						end,
 						{next_state, register, NextStateData};
 					_MAC ->
 						Notification = #eap_aka_notification{notification = 16384},
