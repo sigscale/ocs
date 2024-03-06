@@ -282,7 +282,7 @@ idle({register, {AkaFsm, Identity}},
 idle({register, {AkaFsm, Identity, APN}},
 		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity), is_binary(APN) ->
-	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', APN, StateData) of
+	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', [APN], StateData) of
 		ok ->
 			{next_state, register, StateData, ?TIMEOUT};
 		{error, Reason} ->
