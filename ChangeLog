@@ -1,3 +1,8 @@
+2024-03-06  Vance Shipley <vances@sigscale.org>
+
+	* correct apn avp
+	* handle swx experimental-result
+
 2024-03-01  Vance Shipley <vances@sigscale.org>
 
 	* apn selection on sta interface (OCS-697 #close)
