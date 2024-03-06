@@ -48,6 +48,7 @@
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include_lib("diameter/include/diameter.hrl").
 
+-define(IANA_PEN_3GPP, 10415).
 -define(MAX_HEAP_SIZE, 1000000).
 
 %%----------------------------------------------------------------------
@@ -521,6 +522,20 @@ peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, {'Result-Code
 			end;
 		error->
 			Acc#{Application => #{{CommandCode, RequestFlag, 'Result-Code', ResultCode} => Count}}
+	end,
+	peer_stat1(T, NewAcc);
+peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction,
+		{'3gpp_swx_Experimental-Result', ?IANA_PEN_3GPP, ResultCode}}, Count} | T], Acc) ->
+	NewAcc = case maps:find(Application, Acc) of
+		{ok, CommandMap} ->
+			case maps:find({CommandCode, 'Experimental-Result', ResultCode}, CommandMap) of
+				{ok, Value} ->
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, 'Experimental-Result', ResultCode} => Value + Count}};
+				error->
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, 'Experimental-Result', ResultCode} => Count}}
+			end;
+		error->
+			Acc#{Application => #{{CommandCode, RequestFlag, 'Experimental-Result', ResultCode} => Count}}
 	end,
 	peer_stat1(T, NewAcc);
 peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, error}, Count} | T], Acc) ->
