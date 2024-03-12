@@ -1,3 +1,7 @@
+March 12, 2024
+--------------
+	- Modernize release naming scheme
+
 March 6, 2024
 -------------
 	- Correction for APN selection in non-3GPP access
@@ -5,8 +9,8 @@ March 6, 2024
 
 March 1, 2024
 -------------
-	* APN selection for non-3GPP access
-	* Document Wi-Fi direct (RADIUS) use case for AAA
+	- APN selection for non-3GPP access
+	- Document Wi-Fi direct (RADIUS) use case for AAA
 
 February 5, 2024
 ----------------

@@ -1,5 +1,9 @@
 2024-03-06  Vance Shipley <vances@sigscale.org>
 
+	* application name in release package name
+
+2024-03-06  Vance Shipley <vances@sigscale.org>
+
 	* correct apn avp
 	* handle swx experimental-result
 
