@@ -155,5 +155,5 @@ AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		priv/mibs/Makefile mibs/Makefile priv/www/Makefile priv/examples/Makefile
 		priv/www/package.json
 		priv/schema/Makefile
-		test/Makefile ocs.rel sys.config ebin/ocs.appup])
+		test/Makefile $PACKAGE_NAME.rel sys.config ebin/ocs.appup])
 
