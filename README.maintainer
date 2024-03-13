@@ -13,8 +13,6 @@ You'll need the following GNU tools:
 	- automake
 	- libtool
 	- make
-	- m4
-	- perl
 
 ## Porting
 The only files which should (theoretically) be edited for portability are:
@@ -32,10 +30,11 @@ Note:
 
 ## Building
 	1. mkdir ../ocs.build        (create build directory)
-	2. cd ../ocs.build           (change working directory for build)
-	3. ../ocs/configure          (creates Makefiles)
-	4. make                      (builds entire package)
-	5. make check                (run dialyzer and common_test)
+	2. cp README.build ../ocs.build/README (detailed build instructions)
+	3. cd ../ocs.build           (change working directory for build)
+	4. ../ocs/configure          (creates Makefiles)
+	5. make                      (builds entire package)
+	6. make check                (run dialyzer and common_test)
 
 ## Installing
 	1. sudo make install         (installs embedded application in system)

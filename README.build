@@ -1,0 +1,31 @@
+#!/bin/false
+# Not a shell script!
+
+# Instructions for building in an adjacent directory
+# of the source directory (i.e. ../ocs.build)
+
+## Configure new build directory
+mkdir -p shell/lib
+ln -st shell/lib ../../$(ls -d ../radierl.build/shell/lib/radius-*)
+ln -st shell/lib ../../$(ls -d ../sigscale_mibs.build/shell/lib/sigscale_mibs-*)
+MOCHIWEWB_VERSION=`grep vsn /usr/lib/erlang/lib/mochiweb/ebin/mochiweb.app | cut -d'"' -f 2`
+ln -s /usr/lib/erlang/lib/mochiweb shell/lib/mochiweb-$MOCHIWEWB_VERSION
+
+## Make documentation and test reports available
+mkdir -p ~/public_html/ocs/
+ln -st ~/public_html/ocs ../../ocs.build/doc
+ln -st ~/public_html/ocs ../../ocs.build/test/log
+mv ~/public_html/ocs/log ~/public_html/ocs/test
+
+## Configure project
+ERLANG_INSTALL_LIB_DIR=$PWD/shell/lib ERL_LIBS=$PWD/shell/lib ../sigscale-ocs/configure --with-systemdsystemunitdir=no
+
+## Install in shell/lib
+ERL_LIBS=$PWD/shell/lib make install
+
+## Validate, verify and test
+ERL_LIBS=$PWD/shell/lib make check
+
+## Scrub it clean
+ERL_LIBS=$PWD/shell/lib make distclean; rm -rf c_src src ebin doc include priv mibs *.rel *.boot *.script *.tar.gz config.* Makefile stamp-h1 shell/lib/ocs-* sys.config test
+
