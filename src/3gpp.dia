@@ -1299,6 +1299,7 @@
       { Priority-Level }
       [ Pre-emption-Capability ]
       [ Pre-emption-Vulnerability ]
+     *[ AVP ]
 
    Conditional-APN-Aggregate-Max-Bitrate ::= <AVP Header: 2818>
       [ APN-Aggregate-Max-Bitrate-UL ]
