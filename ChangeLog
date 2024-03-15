@@ -1,3 +1,10 @@
+2024-03-15  Vance Shipley <vances@sigscale.org>
+
+	* OCS-698 #close #comment dependency: <vaadin-grid> ^6.0.0
+	* allow extentions in allocation-retension-priority avp on gx OCS-673 #close
+	* older automake insists on readme (without .md)
+	* modernize build instructions
+
 2024-03-06  Vance Shipley <vances@sigscale.org>
 
 	* application name in release package name

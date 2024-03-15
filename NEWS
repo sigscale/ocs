@@ -1,3 +1,8 @@
+March 15, 2024
+--------------
+	- Grid views were empty due to web component deprecation
+	- Allow extentions in Gx Allocation-Retension-Priority AVP
+
 March 12, 2024
 --------------
 	- Modernize release naming scheme
