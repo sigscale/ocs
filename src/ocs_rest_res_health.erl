@@ -20,7 +20,7 @@
 %%%
 %%% This module reports on the health of the system.
 %%%
-%%% @reference <a href="https://tools.ietf.org/id/draft-inadarei-api-health-check-05.html">
+%%% @reference <a href="https://tools.ietf.org/id/draft-inadarei-api-health-check-06.html">
 %%% 	Health Check Response Format for HTTP APIs</a>
 %%%
 -module(ocs_rest_res_health).
