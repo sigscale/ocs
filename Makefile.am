@@ -13,6 +13,7 @@ endif
 
 script_SCRIPTS = scripts/install_tables.escript \
 		scripts/join_cluster.escript \
+		scripts/snapshot.escript \
 		scripts/export_ipdr.escript \
 		scripts/send_sms.escript \
 		scripts/voice_call.escript \
