@@ -303,7 +303,7 @@ Event details are logged to fixed size FIFO logs consisting of a configurable
 number, and size, of internally formatted files. Events are written to archive
 log files on a scheduled basis (default daily). These internally formatted
 archive logs may be exported on demand to a supported file format (e.g. CSV).
-A shell script is provided (`bin/export_ipdr') for this pupose.
+A shell script is provided (`bin/export_ipdr') for this purpose.
 
 <img class="diagram" src="disk_logs.svg" alt="Disk Logs" />
 
