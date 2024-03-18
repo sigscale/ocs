@@ -61,18 +61,20 @@ get_health([] = _Query, _RequestHeaders) ->
 		DiameterChecks = get_diameter_statistics(),
 		case scheduler() of
 			{ok, HeadOptions, Check4} ->
-				{HeadOptions, {"checks", {struct, [Check1, Check2, Check3, Check4 |  DiameterChecks]}}};
+				{HeadOptions, {"checks", {struct,
+						[Check1, Check2, Check3, Check4 |  DiameterChecks]}}};
 			{error, _Reason1} ->
-				{[], {"checks", {struct, [Check1, Check2, Check3 |  DiameterChecks]}}}
+				{[], {"checks", {struct,
+						[Check1, Check2, Check3 |  DiameterChecks]}}}
 		end
 	of
-	        {CacheControl, {_, {_, [{"application", {_, [{_, [{_, ocs}, _,
+		{CacheControl, {_, {_, [{"application", {_, [{_, [{_, ocs}, _,
 				{_, "up"}]} | _]}} | _]}} = Checks} ->
 			Status = {"status", "pass"},
 			ServiceId = {"serviceId", atom_to_list(node())},
 			Description = {"description", "Health of SigScale OCS"},
 			Health = {struct, [Status, ServiceId, Description, Checks]},
-         ResponseBody = mochijson:encode(Health),
+			ResponseBody = mochijson:encode(Health),
 			ResponseHeaders = [{content_type, "application/health+json"}
 					| CacheControl],
 			{ok, ResponseHeaders, ResponseBody};
@@ -271,36 +273,36 @@ up() ->
 		DiameterChecks :: [tuple()].
 %% @doc Get Diameter statistics checks.
 get_diameter_statistics() ->
-   Services = diameter:services(),
-   Dictionaries = diameter_all_dictionaries(Services, []),
-   get_diameter_checks(Dictionaries, Services, []).
+	Services = diameter:services(),
+	Dictionaries = diameter_all_dictionaries(Services, []),
+	get_diameter_checks(Dictionaries, Services, []).
 
 %% @hidden
 get_diameter_checks([Dictionary | T], Services, Acc) ->
 	case get_diameter_counters(Dictionary, Services, #{}) of
-      {_, {array, []}} = _Check ->
-         get_diameter_checks(T, Services, Acc);
-      Check ->
-         get_diameter_checks(T, Services, [Check | Acc])
-   end;
+		{_, {array, []}} = _Check ->
+			get_diameter_checks(T, Services, Acc);
+		Check ->
+			get_diameter_checks(T, Services, [Check | Acc])
+	end;
 get_diameter_checks([], _Services, Acc) ->
-   Acc.
+	Acc.
 
 %% @doc Get all dictionaries.
 %% @hidden
 diameter_all_dictionaries([Service | T], Acc) ->
-   Applications = diameter:service_info(Service, applications),
-   Dictionaries = diameter_dictionaries(Applications, []),
-   diameter_all_dictionaries(T, [Dictionaries | Acc]);
+	Applications = diameter:service_info(Service, applications),
+	Dictionaries = diameter_dictionaries(Applications, []),
+	diameter_all_dictionaries(T, [Dictionaries | Acc]);
 diameter_all_dictionaries([], Acc) ->
-   lists:sort(lists:flatten(Acc)).
+	lists:sort(lists:flatten(Acc)).
 
 %% @hidden
 diameter_dictionaries([Application | T], Acc) ->
-   {dictionary, Dictionary} = lists:keyfind(dictionary, 1, Application),
-   diameter_dictionaries(T, [Dictionary | Acc]);
+	{dictionary, Dictionary} = lists:keyfind(dictionary, 1, Application),
+	diameter_dictionaries(T, [Dictionary | Acc]);
 diameter_dictionaries([], Acc) ->
-   Acc.
+	Acc.
 
 -spec get_diameter_counters(Dictionary, Services, Counters) -> DiameterCheck
 	when
@@ -311,75 +313,75 @@ diameter_dictionaries([], Acc) ->
 %% @doc Get Diameter count.
 %% @hidden
 get_diameter_counters(diameter_gen_base_rfc6733, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(0, Statistics, Counters), 
-   get_diameter_counters(diameter_gen_base_rfc6733, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(0, Statistics, Counters), 
+	get_diameter_counters(diameter_gen_base_rfc6733, T, NewCounters);
 get_diameter_counters(diameter_gen_base_rfc6733, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-base:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-base:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_ro_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(4, Statistics, Counters), 
-   get_diameter_counters(diameter_gen_3gpp_ro_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(4, Statistics, Counters), 
+	get_diameter_counters(diameter_gen_3gpp_ro_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_ro_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-ro:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-ro:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_gx_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777238, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_gx_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777238, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_gx_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_gx_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-gx:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-gx:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_s6a_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777251, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_s6a_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777251, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_s6a_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_s6a_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-s6a:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-s6a:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_s6b_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777272, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_s6b_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777272, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_s6b_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_s6b_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-s6b:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-s6b:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_sta_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777250, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_sta_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777250, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_sta_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_sta_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-sta:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-sta:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_swm_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777264, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_swm_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777264, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_swm_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_swm_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-swm:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-swm:counters", {array, Components}};
 get_diameter_counters(diameter_gen_3gpp_swx_application, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(16777265, Statistics, Counters),
-   get_diameter_counters(diameter_gen_3gpp_swx_application, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(16777265, Statistics, Counters),
+	get_diameter_counters(diameter_gen_3gpp_swx_application, T, NewCounters);
 get_diameter_counters(diameter_gen_3gpp_swx_application, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-swx:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-swx:counters", {array, Components}};
 get_diameter_counters(diameter_gen_eap_application_rfc4072, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(5, Statistics, Counters),
-   get_diameter_counters(diameter_gen_eap_application_rfc4072, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(5, Statistics, Counters),
+	get_diameter_counters(diameter_gen_eap_application_rfc4072, T, NewCounters);
 get_diameter_counters(diameter_gen_eap_application_rfc4072, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-eap:counters", {array, Components}};
+	Components = get_components(Counters),
+	{"diameter-eap:counters", {array, Components}};
 get_diameter_counters(diameter_gen_nas_application_rfc7155, [Service | T], Counters) ->
-   Statistics = diameter:service_info(Service, statistics),
-   NewCounters = service_counters(1, Statistics, Counters),
-   get_diameter_counters(diameter_gen_nas_application_rfc7155, T, NewCounters);
+	Statistics = diameter:service_info(Service, statistics),
+	NewCounters = service_counters(1, Statistics, Counters),
+	get_diameter_counters(diameter_gen_nas_application_rfc7155, T, NewCounters);
 get_diameter_counters(diameter_gen_nas_application_rfc7155, [], Counters) ->
-   Components = get_components(Counters),
-   {"diameter-nas:counters", {array, Components}}.
+	Components = get_components(Counters),
+	{"diameter-nas:counters", {array, Components}}.
 
 %% @hidden
 get_components(Counters) ->
@@ -399,10 +401,10 @@ get_components(Counters) ->
 %% @doc Parse service name statistics.
 %% @hidden
 service_counters(Application, [{_, PeerStat} | T] = _Statistics, Counters) ->
-   NewCounters = peer_stat(Application, PeerStat, Counters),
-   service_counters(Application, T, NewCounters);
+	NewCounters = peer_stat(Application, PeerStat, Counters),
+	service_counters(Application, T, NewCounters);
 service_counters(_Application, [], Counters) ->
-   Counters.
+	Counters.
 
 %% @doc Parse peer statistics.
 %% @hidden
@@ -412,11 +414,11 @@ peer_stat(Application, PeerStats, Counters) ->
 peer_stat1(Application, [{{{Application, CommandCode, 0}, send,
 		{'Result-Code', ResultCode}}, Count} | T], Acc) ->
 	NewAcc = case maps:find({CommandCode, ResultCode}, Acc) of
-  			   	{ok, Value} ->
-   	   	   	Acc#{{CommandCode, ResultCode} => Value + Count};
-      			error->
-         			Acc#{{CommandCode, ResultCode} => Count}
-      		end,
+		{ok, Value} ->
+			Acc#{{CommandCode, ResultCode} => Value + Count};
+		error->
+			Acc#{{CommandCode, ResultCode} => Count}
+	end,
 	peer_stat1(Application, T, NewAcc);
 peer_stat1(Application, [_ | T], Acc) ->
 	peer_stat1(Application, T, Acc);
@@ -434,80 +436,81 @@ dia_count(257, ResultCode, Count) ->
 		Component = "CEA Result-Code: " ++ integer_to_list(ResultCode),
 		{struct, [{"componentId", Component},
 			{"componentType", "Protocol"},
-         {"observedValue", Count}]};
+			{"observedValue", Count}]};
 dia_count(280, ResultCode, Count) ->
 		Component = "DWA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(271, ResultCode, Count) ->
 		Component = "ACA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(282, ResultCode, Count) ->
 		Component = "DPA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(258, ResultCode, Count) ->
 		Component = "RAA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(274, ResultCode, Count) ->
 		Component = "ASA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(275, ResultCode, Count) ->
 		Component = "STA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(272, ResultCode, Count) ->
 		Component = "CCA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(265, ResultCode, Count) ->
 		Component = "AAA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(268, ResultCode, Count) ->
 		Component = "DEA Result-Code: " ++ integer_to_list(ResultCode),
-     	{struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(301, ResultCode, Count) ->
 		Component = "SAA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(303, ResultCode, Count) ->
 		Component = "MAA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedUnit", "Count"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedUnit", "Count"},
+			{"observedValue", Count}]};
 dia_count(304, ResultCode, Count) ->
 		Component = "RTA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(316, ResultCode, Count) ->
 		Component = "ULA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(318, ResultCode, Count) ->
 		Component = "AIA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]};
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]};
 dia_count(321, ResultCode, Count) ->
 		Component = "PUA Result-Code: " ++ integer_to_list(ResultCode),
-      {struct, [{"componentId", Component},
-         {"componentType", "Protocol"},
-         {"observedValue", Count}]}.
+		{struct, [{"componentId", Component},
+			{"componentType", "Protocol"},
+			{"observedValue", Count}]}.
+
