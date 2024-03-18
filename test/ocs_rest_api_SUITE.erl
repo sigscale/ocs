@@ -240,7 +240,7 @@ sequences() ->
 %%
 all() ->
 	[get_balance_range, authenticate_user_request, unauthenticate_user_request,
-	add_user, get_user, head_user, delete_user,
+	add_user, get_user, head_user, delete_user, get_health, head_health,
 	update_user_characteristics_json_patch,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
@@ -420,6 +420,39 @@ delete_user(Config) ->
 	{ok, Result1} = httpc:request(delete, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
 	{error, no_such_user} = ocs:get_user(ID).
+
+get_health() ->
+	[{userdata, [{doc,"Get health in rest interface"}]}].
+
+get_health(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Accept = {"accept", "application/health+json"},
+	Request = {HostUrl ++ "/health", [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, "application/health+json"} = lists:keyfind("content-type", 1, Headers),
+	{struct, [Status, ServiceId, Description, Checks]} = mochijson:decode(Body),
+	{"status", "pass"} = Status,
+	{"serviceId", _Node} = ServiceId,
+	{"description", "Health of SigScale CSE"} = Description,
+	{"checks", {struct, Checked}} = Checks,
+	{"uptime", {array, Time}} = lists:keyfind("uptime", 1, Checked),
+	[{struct, [{"componentType", "system"},
+			{"observedUnit", "s"}, {"observedValue", Uptime}]}] = Time,
+	Uptime > 0.
+
+head_health() ->
+	[{userdata, [{doc,"Get headers (only) of health in rest interface"}]}].
+
+head_health(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Accept = {"accept", "application/health+json"},
+	Request = {HostUrl ++ "/health", [Accept, auth_header()]},
+	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, "application/health+json"} = lists:keyfind("content-type", 1, Headers).
 
 update_user_characteristics_json_patch() ->
 	[{userdata, [{doc,"Use HTTP PATCH to update users's characteristics using
