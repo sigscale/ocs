@@ -435,7 +435,7 @@ get_health(Config) ->
 	{struct, [Status, ServiceId, Description, Checks]} = mochijson:decode(Body),
 	{"status", "pass"} = Status,
 	{"serviceId", _Node} = ServiceId,
-	{"description", "Health of SigScale CSE"} = Description,
+	{"description", "Health of SigScale OCS"} = Description,
 	{"checks", {struct, Checked}} = Checks,
 	{"uptime", {array, Time}} = lists:keyfind("uptime", 1, Checked),
 	[{struct, [{"componentType", "system"},
