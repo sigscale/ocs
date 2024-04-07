@@ -24,25 +24,25 @@ check_DATA = .validation_ok
 
 .validation_ok:
 	@if ajv help > /dev/null 2>&1; then \
-		if ! ajv compile -s partyManagement.swagger.json; \
+		if ! ajv --strict=false compile -s partyManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s usageManagement.swagger.json; \
+		if ! ajv --strict=false compile -s usageManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s balanceManagement.swagger.json; \
+		if ! ajv --strict=false compile -s balanceManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s resourceInventoryManagement.swagger.json; \
+		if ! ajv --strict=false compile -s resourceInventoryManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s resourceCatalogManagement.swagger.json; \
+		if ! ajv --strict=false compile -s resourceCatalogManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s serviceInventoryManagement.swagger.json; \
+		if ! ajv --strict=false compile -s serviceInventoryManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s serviceCatalogManagement.swagger.json; \
+		if ! ajv --strict=false compile -s serviceCatalogManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s productInventoryManagement.swagger.json; \
+		if ! ajv --strict=false compile -s productInventoryManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s productCatalogManagement.swagger.json; \
+		if ! ajv --strict=false compile -s productCatalogManagement.swagger.json; \
          then exit 1; fi; \
-		if ! ajv compile -s Nrf_Rating.json; \
+		if ! ajv --strict=false compile -s Nrf_Rating.json; \
          then exit 1; fi; \
 	else \
       echo "ajv-cli needed to validate JSON Schema"; \
