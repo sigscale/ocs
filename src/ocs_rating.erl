@@ -2697,39 +2697,43 @@ convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
 					debit => DebitedAmount + Price1, reserve => ReservedAmount,
 					service_id => ServiceId,
 					charging_key => ChargingKey}} | Reservations2],
-			FromBucket = [#{id => BId, amount => Price1, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
+			FromBucket = #{id => BId, amount => Price1, unit_size => UnitSize,
+					unit_price => UnitPrice, expire => Expires},
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
+					attributes = Attributes#{reservations => maps:from_list(NewReservations)}},
+					[FromBucket | FBAcc1]};
 		{[{_, #{debit := DebitedAmount, reserve := ReservedAmount}}], Reservations2}
 				when R < Price1 ->
 			NewReservations = [{SessionId, #{ts => Now, debit => DebitedAmount + R,
 					reserve => ReservedAmount, service_id => ServiceId,
 					charging_key => ChargingKey}} | Reservations2],
-			FromBucket = [#{id => BId, amount => R, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
+			FromBucket = #{id => BId, amount => R, unit_size => UnitSize,
+					unit_price => UnitPrice, expire => Expires},
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
+					attributes = Attributes#{reservations => maps:from_list(NewReservations)}},
+					[FromBucket | FBAcc1]};
 		{[], _} when R >= Price1 ->
 			NewReservations = Reservations1#{SessionId => #{ts => Now,
 					debit => Price1, reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
-			FromBucket = [#{id => BId, amount => Price1, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
+			FromBucket = #{id => BId, amount => Price1, unit_size => UnitSize,
+					unit_price => UnitPrice, expire => Expires},
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => NewReservations}}, FromBucket};
+					attributes = Attributes#{reservations => NewReservations}},
+					[FromBucket | FBAcc1]};
 		{[], _} when R < Price1 ->
 			NewReservations = Reservations1#{SessionId => #{ts => Now, debit => R,
 					reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
-			FromBucket = [#{id => BId, amount => R, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
+			FromBucket = #{id => BId, amount => R, unit_size => UnitSize,
+					unit_price => UnitPrice, expire => Expires},
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => NewReservations}}, FromBucket}
+					attributes = Attributes#{reservations => NewReservations}},
+					[FromBucket | FBAcc1]}
 	end,
 	convert(Price2, Type, UnitPrice, UnitSize, TotalSize, ServiceId,
 			ChargingKey, SessionId, Now, T, UnitsBuckets, [B2 | Acc], FBAcc2);
