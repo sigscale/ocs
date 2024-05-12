@@ -140,13 +140,39 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
+idle(#'3gpp_s6b_AAR'{'MIP6-Feature-Vector' = MIP6FeatureVector} = Request,
+		From, StateData) ->
+	F = fun(FV) when (FV band ?GTPv2_SUPPORTED) =:= ?GTPv2_SUPPORTED ->
+				true;
+			(_FV) ->
+				false
+	end,
+	GTPv2Enabled = lists:any(F, MIP6FeatureVector),
+	idle1(GTPv2Enabled, Request, From, StateData);
+idle(#'3gpp_s6b_STR'{'User-Name' = [Identity],
+		'Session-Id' = SessionId, 'Termination-Cause' = _Cause} = Request,
+		_From, #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort, orig_host = OriginHost,
+		orig_realm = OriginRealm} = StateData) ->
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
+	NewStateData = StateData#statedata{session_id = SessionId,
+			identity = Identity, imsi = IMSI},
+	Server = {ServerAddress, ServerPort},
+	Client = {ClientAddress, ClientPort},
+	Answer = #'3gpp_s6b_STA'{'Session-Id' = SessionId,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	{stop, shutdown, Answer, NewStateData}.
+%% @hidden
+idle1(true = _GTPv2Enabled,
+		#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		'Origin-Host' = PgwHost, 'Origin-Realm' = PgwRealm,
 		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
 		'MIP6-Agent-Info' = AgentInfo, 'Visited-Network-Identifier' = VPLMN,
-		'MIP6-Feature-Vector' = [MIP6FeatureVector],
-		'Service-Selection' = [APN]} = Request, From, StateData)
-		when (MIP6FeatureVector band ?GTPv2_SUPPORTED) =:= ?GTPv2_SUPPORTED ->
+		'Service-Selection' = [APN]} = Request, From, StateData) ->
 	[IMSI | _] = binary:split(Identity, <<$@>>, []),
 	PGW = agent_info(AgentInfo),
 	NewStateData = StateData#statedata{from = From, request = Request,
@@ -185,7 +211,8 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 			Reply = response(ResultCode, NewStateData),
 			{stop, Reason, Reply, NewStateData}
 	end;
-idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
+idle1(false = _GTPv2Enabled,
+		#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		'Origin-Host' = PgwHost, 'Origin-Realm' = PgwRealm,
 		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
 		'MIP6-Agent-Info' = AgentInfo, 'Visited-Network-Identifier' = VPLMN,
@@ -203,24 +230,7 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode}]),
 	gen_fsm:reply(From, response(ResultCode, NewStateData)),
-	{stop, shutdown, NewStateData};
-idle(#'3gpp_s6b_STR'{'User-Name' = [Identity],
-		'Session-Id' = SessionId, 'Termination-Cause' = _Cause} = Request,
-		_From, #statedata{server_address = ServerAddress,
-		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort, orig_host = OriginHost,
-		orig_realm = OriginRealm} = StateData) ->
-	[IMSI | _] = binary:split(Identity, <<$@>>, []),
-	NewStateData = StateData#statedata{session_id = SessionId,
-			identity = Identity, imsi = IMSI},
-	Server = {ServerAddress, ServerPort},
-	Client = {ClientAddress, ClientPort},
-	Answer = #'3gpp_s6b_STA'{'Session-Id' = SessionId,
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OriginHost,
-			'Origin-Realm' = OriginRealm},
-	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	{stop, shutdown, Answer, NewStateData}.
+	{stop, shutdown, NewStateData}.
 
 -spec register(Event, StateData) -> Result
 	when
