@@ -74,7 +74,13 @@
 	-else.
 		-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 	-endif.
+	-if(?OTP_RELEASE >= 24).
+		-define(BROKEN_TLS, true).
+	-else.
+		-define(BROKEN_TLS, false).
+	-endif.
 -else.
+	-define(BROKEN_TLS, false).
 	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.
 
@@ -102,6 +108,10 @@ suite() ->
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
 %%
+init_per_suite(Config) when ?BROKEN_TLS == true ->
+	% The `ssl' application stopped being transport agnostic in OTP 24.1
+	% https://erlangforums.com/t/any-reason-why-the-ssl-application-is-no-longer-transport-agnostic/3467
+	{skip, broken_tls};
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
