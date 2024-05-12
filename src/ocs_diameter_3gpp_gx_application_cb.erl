@@ -401,7 +401,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 	when
 		PolicyResList :: [#resource{}],
 		Result :: [#'3gpp_gx_Charging-Rule-Install'{}].
-%% @doc Pharse a list of PCRF polcies
+%% @doc Parse a list of PCRF polcies
 charging_rule(PolicyResList) ->
 	charging_rule(PolicyResList, []).
 %% @hidden
