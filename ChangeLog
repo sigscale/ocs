@@ -1,3 +1,8 @@
+2024-05-12  Vance Shipley <vances@sigscale.org>
+
+	* handle multiple mobility protocols in aar from pgw
+	* skip eap ttls test suite if otp >= 24 (broken tls)
+
 2024-04-10  Vance Shipley <vances@sigscale.org>
 
 	* convert from price bucket handles zero rating; session buckets get product reference
