@@ -385,16 +385,35 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
 					{next_state, idle, NewStateData}
 			end
 	end;
-idle1({error, not_found}, #statedata{hss_realm = undefined,
-		aka_fsm = AkaFsm} = StateData) ->
+idle1({error, not_found},
+		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
-idle1({error, not_found}, #statedata{service = false,
-		aka_fsm = AkaFsm} = StateData) ->
+idle1({ok, #service{password = Password}},
+		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = StateData)
+		when not is_record(Password, aka_cred) ->
+	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
+	{next_state, idle, StateData};
+idle1({error, not_found},
+		#statedata{service = false, aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
+	{next_state, idle, StateData};
+idle1({ok, #service{password = Password}},
+		#statedata{service = false, aka_fsm = AkaFsm} = StateData)
+		when not is_record(Password, aka_cred) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
 idle1({error, not_found},
 		#statedata{hss_realm = _HssRealm} = StateData) ->
+	case send_diameter_mar(StateData) of
+		ok ->
+			{next_state, vector, StateData, ?TIMEOUT};
+		{error, Reason} ->
+			{stop, Reason, StateData}
+	end;
+idle1({ok, #service{password = Password}},
+		#statedata{hss_realm = _HssRealm} = StateData)
+		when not is_record(Password, aka_cred) ->
 	case send_diameter_mar(StateData) of
 		ok ->
 			{next_state, vector, StateData, ?TIMEOUT};
