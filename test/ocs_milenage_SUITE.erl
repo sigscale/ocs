@@ -1,7 +1,7 @@
 %%% ocs_milenage_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2018 - 2023 SigScale Global Inc.
+%%% @copyright 2018 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 %%%--------------------------------------------------------------------
 %%%
 -module(ocs_milenage_SUITE).
--copyright('Copyright (c) 2018 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2018 - 2024 SigScale Global Inc.').
 
 %% Note: This directive should only be used in test suites.
 -compile(export_all).

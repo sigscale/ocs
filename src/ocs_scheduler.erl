@@ -1,7 +1,7 @@
 %%% ocs_scheduler.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2023 SigScale Global Inc.
+%%% @copyright 2016 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_scheduler).
--copyright('Copyright (c) 2016 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
 %% private API
 -export([start/0, start/2]).

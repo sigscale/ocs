@@ -1,7 +1,7 @@
 %%% ocs_eap_aka.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2019 - 2023 SigScale Global Inc.
+%%% @copyright 2019 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 %%% 	RFC4187 - EAP Method for 3GPP AKA (EAP-AKA)</a>
 %%%
 -module(ocs_eap_aka).
--copyright('Copyright (c) 2019 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2019 - 2024 SigScale Global Inc.').
 
 % export public api
 -export([prf/1, compressed_imsi/1, encrypt_imsi/3, decrypt_imsi/2,

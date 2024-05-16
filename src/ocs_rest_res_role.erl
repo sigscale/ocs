@@ -1,7 +1,7 @@
 %%% ocs_rest_res_role.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2022 - 2023 SigScale Global Inc.
+%%% @copyright 2022 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 %%% 	Handle `Role' collection.
 %%%
 -module(ocs_rest_res_role).
--copyright('Copyright (c) 2022 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2022 - 2024 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, post_role/1,
 		delete_role/1, get_roles/2, get_role/2]).

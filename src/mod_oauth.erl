@@ -1,7 +1,7 @@
 %%% mod_oauth.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2023 SigScale Global Inc.
+%%% @copyright 2016 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@
 %% Note: if mod_oauth is the specified authentication module, mod_auth cannot be listed
 %% in the same module list.
 -module(mod_oauth).
--copyright('Copyright (c) 2016 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
 -export([do/1, load/2, store/2]).
 

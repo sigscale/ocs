@@ -1,7 +1,7 @@
 %%% ocs_rest_res_hub_balance.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2020 - 2023 SigScale Global Inc.
+%%% @copyright 2020 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_rest_res_hub_balance).
--copyright('Copyright (c) 2020 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2020 - 2024 SigScale Global Inc.').
 
 -include("ocs.hrl").
 

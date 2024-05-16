@@ -1,7 +1,7 @@
 %%% ocs_rest_hub_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2020 - 2023 SigScale Global Inc.
+%%% @copyright 2020 - 2024 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_rest_hub_fsm).
--copyright('Copyright (c) 2020 - 2023 SigScale Global Inc.').
+-copyright('Copyright (c) 2020 - 2024 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 -include("ocs.hrl").
