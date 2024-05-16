@@ -542,17 +542,18 @@ peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction,
 			Acc#{Application => #{{CommandCode, RequestFlag, 'Experimental-Result', ResultCode} => Count}}
 	end,
 	peer_stat1(T, NewAcc);
-peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, error}, Count} | T], Acc) ->
+peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, Error}, Count} | T], Acc)
+		when Error == error; Error == invalid_error_bit ->
 	NewAcc = case maps:find(Application, Acc) of
 		{ok, CommandMap} ->
-			case maps:find({CommandCode, RequestFlag, error}, CommandMap) of
+			case maps:find({CommandCode, RequestFlag, Error}, CommandMap) of
 				{ok, Value} ->
-					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, error} => Value + Count}};
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, Error} => Value + Count}};
 				error->
-					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, error} => Count}}
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, Error} => Count}}
 			end;
 		error->
-			Acc#{Application => #{{CommandCode, RequestFlag, error} => Count}}
+			Acc#{Application => #{{CommandCode, RequestFlag, Error} => Count}}
 	end,
 	peer_stat1(T, NewAcc);
 peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction}, Count} | T], Acc) ->
