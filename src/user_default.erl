@@ -525,7 +525,11 @@ peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, {'Result-Code
 	end,
 	peer_stat1(T, NewAcc);
 peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction,
-		{'3gpp_swx_Experimental-Result', ?IANA_PEN_3GPP, ResultCode}}, Count} | T], Acc) ->
+		{ExperimentalResult, ?IANA_PEN_3GPP, ResultCode}}, Count} | T], Acc)
+		when ExperimentalResult == '3gpp_swx_Experimental-Result';
+		ExperimentalResult == '3gpp_sta_Experimental-Result';
+		ExperimentalResult == '3gpp_s6a_Experimental-Result';
+		ExperimentalResult == '3gpp_gx_Experimental-Result' ->
 	NewAcc = case maps:find(Application, Acc) of
 		{ok, CommandMap} ->
 			case maps:find({CommandCode, 'Experimental-Result', ResultCode}, CommandMap) of
@@ -671,6 +675,10 @@ dia_count({321, 0}, Count) ->
         io:fwrite("        PUA: ~b~n", [Count]);
 dia_count({257, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        CEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({258, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        RAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({258, 0, 'Experimental-Result', ResultCode}, Count) ->
+	io:fwrite("        RAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({280, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        DWA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({271, 0, 'Result-Code', ResultCode}, Count) ->
@@ -685,22 +693,38 @@ dia_count({275, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        STA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({272, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        CCA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({272, 0, 'Experimental-Result', ResultCode}, Count) ->
+	io:fwrite("        CCA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({268, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        DEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({265, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        AAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({265, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        AAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({301, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        SAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({301, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        SAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({303, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        MAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({303, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        MAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({304, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        RTA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({304, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        RTA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({316, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        ULA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({316, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        ULA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({318, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        AIA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({318, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        AIA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({321, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        PUA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({321, 0, 'Experimental-Result', ResultCode}, Count) ->
+   io:fwrite("        PUA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
 dia_count({257, 1, error}, Count) ->
 	io:fwrite("        CER error: ~b~n", [Count]);
 dia_count({257, 0, error}, Count) ->
