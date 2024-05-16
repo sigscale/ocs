@@ -1,5 +1,7 @@
 2024-05-15  Vance Shipley <vances@sigscale.org>
 
+	* handle experimental-result in devops shell diameter statistics
+	* update copyright date
 	* eap aka auc ignores services without k/opc and uses swx
 
 2024-05-12  Vance Shipley <vances@sigscale.org>
