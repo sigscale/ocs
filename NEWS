@@ -1,3 +1,7 @@
+May 16, 2024
+------------
+	- Support AAA with OCS/PCRF by AUC using SWx for Services without AKA
+
 May 12, 2024
 ------------
 	- Handle multiple mobility protocols in S6b AAR MIP6-Feature-Vector AVP 
