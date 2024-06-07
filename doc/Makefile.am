@@ -154,7 +154,8 @@ doc_DATA = overview.edoc $(modhtml) \
 		pagination-msc.svg \
 		ctf-ro-msc.svg \
 		pcef-gx-msc.svg \
-		swm-swx-msc.svg
+		swm-swx-msc.svg \
+		wifi-direct.svg
 
 overview.edoc: overview.edoc-in
 	sed -e 's!%VERSION%!$(VERSION)!' \
@@ -188,6 +189,7 @@ overview.edoc: overview.edoc-in
 	-cp -n $(top_srcdir)/doc/ctf-ro-msc.svg .
 	-cp -n $(top_srcdir)/doc/pcef-gx-msc.svg .
 	-cp -n $(top_srcdir)/doc/swm-swx-msc.svg .
+	-cp -n $(top_srcdir)/doc/wifi-direct.svg .
 
 CLEANFILES = overview.edoc \
 		edoc-info \
@@ -213,6 +215,7 @@ CLEANFILES = overview.edoc \
 		ctf-ro-msc.svg \
 		pcef-gx-msc.svg \
 		swm-swx-msc.svg \
+		wifi-direct.svg \
 		schema.svg \
 		product-specifications.svg \
 		sigscale-logo.png
