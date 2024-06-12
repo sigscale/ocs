@@ -10,6 +10,7 @@
 	{inets, "@ERLANG_LIB_VER_inets@"},
 	{xmerl, "@ERLANG_LIB_VER_xmerl@"},
 	{compiler, "@ERLANG_LIB_VER_compiler@"},
+	{parsetools, "@ERLANG_LIB_VER_parsetools@"},
 	{syntax_tools, "@ERLANG_LIB_VER_syntax_tools@"},
 	{os_mon, "@ERLANG_LIB_VER_os_mon@"},
 	{snmp, "@ERLANG_LIB_VER_snmp@"},
