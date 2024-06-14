@@ -38,6 +38,7 @@
          [{httpd,
             [{server_name, "ocs"},
             {directory_index, ["index.html"]},
+            {directory, {"/health", []}},
             {directory, {"/partyRoleManagement", []}},
             {directory, {"/",
                   [{auth_type, mnesia},
