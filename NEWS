@@ -1,3 +1,9 @@
+June 14, 2024
+-------------
+	- Allow unauthenticated health checks (GET /health)
+	- Correct AAA DIAMETER statistics error handling
+	- Diagram Wi-Fi direct (RADIUS) use case for AAA
+
 May 16, 2024
 ------------
 	- Support AAA with OCS/PCRF by AUC using SWx for Services without AKA
