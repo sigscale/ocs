@@ -49,7 +49,7 @@
 		ServiceNetwork, SubscriberID, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
-		Protocol :: radius | diameter,
+		Protocol :: radius | diameter | nrf,
 		ServiceType :: integer() | binary(),
 		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
@@ -141,7 +141,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		{{_, _, _}, {_, _, _}} = Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes)
-		when ((Protocol == radius) or (Protocol == diameter)),
+		when ((Protocol == radius) or (Protocol == diameter) or (Protocol == nrf)),
 		(is_integer(ChargingKey) or (ChargingKey == undefined)),
 		(is_list(ServiceNetwork) or (ServiceNetwork == undefined)),
 		is_binary(SubscriberID),
@@ -242,7 +242,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 								and ((Spec == "4") orelse (Spec == "8"))) orelse
 								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
-							((Protocol == diameter)
+							(((Protocol == diameter) orelse (Protocol == nrf))
 								and
 								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
@@ -278,7 +278,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets,
 			and ((Spec == "4") orelse (Spec == "8"))) orelse
 			((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 		orelse
-		((Protocol == diameter)
+		(((Protocol == diameter) orelse (Protocol == nrf))
 			and
 			((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 			orelse
@@ -410,7 +410,7 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 		ChargingKey, ServiceNetwork, Address, Prices,
 		DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
-		Protocol :: radius | diameter,
+		Protocol :: radius | diameter | nrf,
 		Flag :: initial | interim | final | event,
 		SubscriberID :: binary(),
 		ServiceId :: integer() | undefined,
@@ -441,7 +441,8 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
 		ServiceNetwork, Address, Prices,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
-		when ((Protocol == radius) or (Protocol == diameter)),
+		when ((Protocol == radius) or (Protocol == diameter)
+				or (Protocol == nrf)),
 		is_binary(SubscriberID),
 		(is_integer(ChargingKey) or (ChargingKey == undefined)),
 		(is_integer(ServiceId) or (ServiceId== undefined)),
@@ -1760,7 +1761,7 @@ charge4(event = _Flag,
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
-		Protocol :: radius | diameter,
+		Protocol :: radius | diameter | nrf,
 		ServiceType :: binary() | char() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary() | string() | {ChapId :: 0..255,
@@ -1794,8 +1795,8 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 			Timestamp, Address, Direction, SessionAttributes);
 authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 		Address, Direction, SessionAttributes)
-		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberId),
-		length(SessionAttributes) > 0 ->
+		when ((Protocol == radius) or (Protocol == diameter) or (Protocol == nrf)),
+		is_binary(SubscriberId), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberId) of
 				[#service{enabled = false,
@@ -1902,9 +1903,10 @@ authorize1(radius, ServiceType,
 		[] ->
 			mnesia:abort(product_not_found)
 	end;
-authorize1(diameter, ServiceType,
+authorize1(Protocol, ServiceType,
 		#service{attributes = Attributes, product = ProdRef} =
-		Service, _Timestamp, _Address, _Direction, SessionAttributes) ->
+		Service, _Timestamp, _Address, _Direction, SessionAttributes)
+		when Protocol == diameter; Protocol == nrf ->
 	case mnesia:dirty_read(product, ProdRef) of
 		[#product{balance = BucketRefs}] ->
 			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
