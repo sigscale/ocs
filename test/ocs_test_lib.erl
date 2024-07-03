@@ -3,7 +3,7 @@
 %%%
 -module(ocs_test_lib).
 
--export([initialize_db/0, start/0, stop/0]).
+-export([initialize_db/0, start/0, start/1, stop/0, stop/1]).
 -export([load/1, unload/1]).
 -export([ipv4/0, port/0, mac/0]).
 -export([add_offer/0]).
@@ -60,7 +60,9 @@ stop([H | T]) ->
 			stop(T);
 		{error, Reason} ->
 			{error, Reason}
-	end.
+	end;
+stop([]) ->
+	ok.
 
 load(Application) ->
 	case application:load(Application) of
