@@ -467,7 +467,9 @@ post_initial_scur_class_b() ->
 	[{userdata, [{doc, "Post Inital Nrf Request to be rated"}]}].
 
 post_initial_scur_class_b(Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	UnitSize = rand:uniform(10000000),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, octets, UnitSize, UnitAmount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Password = ocs:generate_identity(),
@@ -478,13 +480,11 @@ post_initial_scur_class_b(Config) ->
 	Balance = rand:uniform(100000000000),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
-	InputOctets = rand:uniform(10000),
-	OutputOctets = rand:uniform(20000),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
@@ -492,19 +492,20 @@ post_initial_scur_class_b(Config) ->
 	{_, _Location1} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
 	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
-	TotalOctets = InputOctets + OutputOctets,
 	{"serviceRating", {_, [{_,ServiceRating1}]}} = lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
-	{_, {_, [{_, TotalOctets}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
+	{_, {_, [{_, UnitSize}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
 
 post_update_scur_class_b() ->
 	[{userdata, [{doc, "Post Interim Nrf Request to be rated"}]}].
 
 post_update_scur_class_b(Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	UnitSize = rand:uniform(10000000),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, octets, UnitSize, UnitAmount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Password = ocs:generate_identity(),
@@ -515,21 +516,20 @@ post_update_scur_class_b(Config) ->
 	Balance = rand:uniform(100000000000),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
-	InputOctets = rand:uniform(10000),
-	OutputOctets = rand:uniform(20000),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody} = Result,
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
-	InputOctets1 = rand:uniform(30000),
-	OutputOctets1 = rand:uniform(40000),
-	Body1 = nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets1, OutputOctets1),
+	InputOctets = rand:uniform(UnitSize),
+	OutputOctets = rand:uniform(UnitSize - InputOctets),
+	TotalOctets = InputOctets + OutputOctets,
+	Body1 = nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
@@ -537,7 +537,6 @@ post_update_scur_class_b(Config) ->
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
 	{struct, AttributeList} = mochijson:decode(ResponseBody1),
 	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
-	TotalOctets1 = InputOctets1 + OutputOctets1,
 	{"serviceRating", {_, [{_,ServiceRating1}, {_,ServiceRating2}]}}
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
@@ -548,13 +547,15 @@ post_update_scur_class_b(Config) ->
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating2),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating2),
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating2),
-	{_, {_, [{_, TotalOctets1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating2).
+	{_, {_, [{_, TotalOctets}]}} = lists:keyfind("consumedUnit", 1, ServiceRating2).
 
 post_final_scur_class_b() ->
 	[{userdata, [{doc, "Post Final Nrf Request to be rated"}]}].
 
 post_final_scur_class_b(Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	UnitSize = rand:uniform(10000000),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, octets, UnitSize, UnitAmount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Password = ocs:generate_identity(),
@@ -565,28 +566,27 @@ post_final_scur_class_b(Config) ->
 	Balance = rand:uniform(100000000000),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
-	InputOctets = rand:uniform(10000),
-	OutputOctets = rand:uniform(20000),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody} = Result,
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
-	InputOctets1 = rand:uniform(30000),
-	OutputOctets1 = rand:uniform(40000),
+	InputOctets1 = rand:uniform(UnitSize),
+	OutputOctets1 = rand:uniform(UnitSize - InputOctets1),
 	Body1 = nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets1, OutputOctets1),
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok1}, _Headers1, _ResponseBody1} = Result1,
-	InputOctets2 = rand:uniform(50000),
-	OutputOctets2 = rand:uniform(60000),
+	InputOctets2 = rand:uniform(UnitSize),
+	OutputOctets2 = rand:uniform(UnitSize - InputOctets2),
+	TotalOctets2 = InputOctets2 + OutputOctets2,
 	Body2 = nrf_post_final_scur_class_b(MSISDN, IMSI, InputOctets2, OutputOctets2),
 	RequestBody2 = lists:flatten(mochijson:encode(Body2)),
 	Request2 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/release",
@@ -600,7 +600,6 @@ post_final_scur_class_b(Config) ->
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
-	TotalOctets2 = InputOctets2 + OutputOctets2,
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
 send_iec_class_b() ->
@@ -704,7 +703,8 @@ post_iec_class_b() ->
 	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated"}]}].
 
 post_iec_class_b(Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, messages, 1, UnitAmount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	MSISDN = ocs:generate_identity(),
@@ -717,8 +717,7 @@ post_iec_class_b(Config) ->
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Messages = 1,
-	Body = nrf_post_iec_class_b(MSISDN, IMSI, Messages),
+	Body = nrf_post_iec_class_b(MSISDN, IMSI),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
@@ -736,7 +735,8 @@ post_initial_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
 
 post_initial_ecur_class_b(Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, messages, 1, UnitAmount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	MSISDN = ocs:generate_identity(),
@@ -769,7 +769,8 @@ post_final_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Final Nrf Request to be rated"}]}].
 
 post_final_ecur_class_b(Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	UnitAmount = rand:uniform(10000000),
+	P1 = price(usage, messages, 1, UnitAmount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	MSISDN = ocs:generate_identity(),
@@ -1283,7 +1284,7 @@ nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages) ->
 									{"destinationIdData", "14165556789"}]}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
-nrf_post_iec_class_b(MSISDN, IMSI, Messages) ->
+nrf_post_iec_class_b(MSISDN, IMSI) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -1298,7 +1299,6 @@ nrf_post_iec_class_b(MSISDN, IMSI, Messages) ->
 					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
 							{"serviceId", 4},
 							{"ratingGroup", 32},
-							{"consumedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
 							{"destinationId",
 									{array, [{struct, [{"destinationIdType", "DN"},
 									{"destinationIdData", "14165556789"}]}]}},
@@ -1395,7 +1395,7 @@ diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
 	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
 	Answer.
 
-nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_initial_scur_class_b(MSISDN, IMSI) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -1410,9 +1410,6 @@ nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
 							{"serviceId", 1},
 							{"ratingGroup", 32},
-							{"requestedUnit", {struct, [{"totalVolume", InputOctets + OutputOctets},
-										{"uplinkVolume", InputOctets},
-										{"downlinkVolume", OutputOctets}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
 nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
