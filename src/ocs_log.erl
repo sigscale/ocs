@@ -63,7 +63,8 @@
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
 
 %% export the ocs_log event types
--export_type([auth_event/0, acct_event/0, abmf_event/0, http_event/0]).
+-export_type([auth_event/0, acct_event/0, abmf_event/0,
+		http_event/0]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -85,8 +86,8 @@
 %% export the common log field types
 -type timestamp() :: pos_integer().
 -type unique() :: pos_integer().
--type protocol() :: radius | diameter.
--type server() :: {Address :: inet:ip_address(), Port :: pos_integer()}.
+-type protocol() :: radius | diameter | nrf.
+-type server() :: {Address :: inet:ip_address(), Port :: non_neg_integer()}.
 -export_type([timestamp/0, unique/0, protocol/0, server/0]).
 
 %% export the ocs_acct field types
@@ -121,9 +122,11 @@ acct_open() ->
 
 -type acct_type() :: on | off | start | stop | update | interim | final | 'event'.
 -type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
-		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{} |radius_attributes:attributes().
+		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{}
+		| radius_attributes:attributes() | map().
 -type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
-		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{} | radius_attributes:attributes().
+		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{}
+		| radius_attributes:attributes() | map().
 -type acct_rated() :: [#rated{}].
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
