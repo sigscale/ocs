@@ -72,12 +72,10 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
 	Address = ct:get_config({diameter, address}, {127,0,0,1}),
-	AuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
 	AcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
-	AppVar = [{auth, [{Address, AuthPort, []}]},
-		{acct, [{Address, AcctPort, [{rf_class, undefined},
-				{callback, ocs_diameter_3gpp_ro_nrf_app_cb},
-				{sub_id_type, [msisdn, imsi]}]}]}],
+	AppVar = [{acct, [{Address, AcctPort, [{rf_class, undefined},
+			{callback, ocs_diameter_3gpp_ro_nrf_app_cb},
+			{sub_id_type, [msisdn, imsi]}]}]}],
 	ok = application:set_env(ocs, diameter, AppVar),
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
@@ -126,8 +124,7 @@ init_per_suite1(Config) ->
 	SslOpts = [{verify, verify_peer}, {cacertfile, CAcert}],
 	HttpOpt = [{ssl, SslOpts}],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	Config1 = [{port, Port}, {host_url, HostUrl},
-			{http_options, HttpOpt} | Config],
+	Config1 = [{host_url, HostUrl}, {http_options, HttpOpt} | Config],
 	case inets:start(httpd,
 			[{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -137,12 +134,12 @@ init_per_suite1(Config) ->
 		{ok, HttpdPid} ->
 			[{port, NrfPort}] = httpd:info(HttpdPid, [port]),
 			NrfUri = "http://localhost:" ++ integer_to_list(NrfPort),
-			{ok, [Auth, {acct, [{Address, DPort, Options}]}]}
+			{ok, [{acct, [{DAddress, DPort, Options}]}]}
 					= application:get_env(ocs, diameter),
-			NewOptions = Options ++ [{nrf_uri, NrfUri}],
-			NewEnvVar = [Auth, {acct, [{Address, DPort, NewOptions}]}],
-			ok = application:set_env(ocs, diameter, NewEnvVar),
-			Config1;
+			Options1 = Options ++ [{nrf_uri, NrfUri}],
+			AppVar = [{acct, [{DAddress, DPort, Options1}]}],
+			ok = application:set_env(ocs, diameter, AppVar),
+			[{ct_nrf, NrfUri} | Config1];
 		{error, InetsReason} ->
 			ct:fail(InetsReason)
 	end.
@@ -170,12 +167,10 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_final_ecur_class_b;
 		TestCase == scur_vas_class_b;
 		TestCase == receive_initial_cud_scur_class_b ->
-	Address = ?config(diameter_acct_address, Config),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-	NewOptions = lists:keyreplace(rf_class, 1, Options,  {rf_class, b}),
-	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
-	ok = application:set_env(ocs, diameter, NewEnvVar),
+	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
+	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, b}),
+	AppVar = [{acct, [{Address, Port, Options1}]}],
+	ok = application:set_env(ocs, diameter, AppVar),
 	Config;
 init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur_class_a;
@@ -187,21 +182,17 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_initial_ecur_class_a;
 		TestCase == send_final_ecur_class_a;
 		TestCase == receive_final_ecur_class_a ->
-	Address = ?config(diameter_acct_address, Config),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-	NewOptions = lists:keyreplace(rf_class, 1, Options,  {rf_class, undefined}),
-	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
-	ok = application:set_env(ocs, diameter, NewEnvVar),
+	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
+	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, a}),
+	AppVar = [{acct, [{Address, Port, Options1}]}],
+	ok = application:set_env(ocs, diameter, AppVar),
 	Config;
 init_per_testcase(scur_imsi_class_b, Config) ->
-	Address = ?config(diameter_acct_address, Config),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-	NewOptions = lists:keyreplace(rf_class, 1, Options, {rf_class, b}),
-	NewOptions1 = lists:keyreplace(sub_id_type, 1, NewOptions , {sub_id_type, [imsi]}),
-	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions1}]}],
-	ok = application:set_env(ocs, diameter, NewEnvVar),
+	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
+	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, b}),
+	Options2 = lists:keyreplace(sub_id_type, 1, Options1, {sub_id_type, [imsi]}),
+	AppVar = [{acct, [{Address, Port, Options2}]}],
+	ok = application:set_env(ocs, diameter, AppVar),
 	Config;
 init_per_testcase(TestCase, Config)
 		when TestCase == post_initial_scur_class_b;
@@ -1242,7 +1233,7 @@ scur_imsi_class_b(_Config) ->
 %%---------------------------------------------------------------------
 
 price_pla(Config) ->
-	HostUrl = ?config(host_url, Config),
+	HostUrl = ?config(ct_nrf, Config),
 	PlaRef = #pla_ref{id = ocs:generate_password(),
 			href = HostUrl ++ "/nrf-rating/v1/ratingdata/tariffrequest",
 			name = tariff, class_type = a,
