@@ -51,20 +51,13 @@ start([]) ->
 	ok.
 
 stop() ->
-	case application:stop(ocs) of
+	stop([ocs, radius, diameter, inets]).
+
+stop([H | T]) ->
+	case application:stop(H) of
 		ok ->
-			ok = unload(ocs),
-			case application:stop(radius) of
-				ok ->
-					case application:stop(diameter) of
-						ok ->
-							ok;
-						{error, Reason} ->
-							{error, Reason}
-					end;
-				{error, Reason} ->
-					{error, Reason}
-			end;
+			ok = unload(H),
+			stop(T);
 		{error, Reason} ->
 			{error, Reason}
 	end.

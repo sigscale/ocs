@@ -128,6 +128,9 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 		openssl rsa -in $(CERT_DIR)/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
 		chmod 600 ocs_rest_api_SUITE_data/key.pem; \
 	fi
+	if [ ! -f ocs_re_interface_SUITE_data/CAcert.pem ]; then \
+		cp $(CERT_DIR)/CAcert.pem ocs_re_interface_SUITE_data; \
+	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg \
 			$(CT_RUN_ARGS) -dir . -erl_args -config sys -sname $(LOGNAME)-ct

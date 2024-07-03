@@ -15,7 +15,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  @doc Test suite for public API of the {@link //ocs. ocs} application.
+%%%  @doc Test suite for Re interface of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_re_interface_SUITE).
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
@@ -30,7 +30,6 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
--include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -71,17 +70,49 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
-   ok = ocs_test_lib:load(ocs),
-	{ok, [Auth, {acct, [{DAddress, DPort, DOptions}]}]} = application:get_env(ocs, diameter),
-	NewOptions = DOptions ++ [{callback, ocs_diameter_3gpp_ro_nrf_application_cb}],
-	NewEnvVar = [Auth, {acct, [{DAddress, DPort, NewOptions}]}],
-	ok = application:set_env(ocs, diameter, NewEnvVar),
-	{ok, Services} = application:get_env(inets, services),
+	ok = ocs_test_lib:load(ocs),
+	Address = ct:get_config({diameter, address}, {127,0,0,1}),
+	AuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
+	AcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
+	AppVar = [{auth, [{Address, AuthPort, []}]},
+		{acct, [{Address, AcctPort, [{rf_class, undefined},
+				{callback, ocs_diameter_3gpp_ro_nrf_app_cb},
+				{sub_id_type, [msisdn, imsi]}]}]}],
+	ok = application:set_env(ocs, diameter, AppVar),
+	ok = application:set_env(ocs, min_reserve_octets, 1000000),
+	ok = application:set_env(ocs, min_reserve_seconds, 60),
+	ok = application:set_env(ocs, min_reserve_messages, 1),
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
+   Config1 = [{diameter_host, Host}, {realm, Realm},
+         {diameter_acct_address, Address} | Config],
+	ok = ocs_test_lib:start(),
+   ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
+   true = diameter:subscribe(?MODULE),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+   {ok, _Ref2} = connect(?MODULE, Address, AcctPort, diameter_tcp),
+   receive
+      #diameter_event{service = ?MODULE, info = Info}
+            when element(1, Info) == up ->
+			init_per_suite1(Config1);
+      _Other ->
+         {skip, diameter_client_acct_service_not_started}
+   end.
+init_per_suite1(Config) ->
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
+	UserData = [{locale, "en"}, {rating, true}],
+	{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
 	Fport = fun FPort([{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
 					{_, "rest"} ->
-						H1 = lists:keyfind(bind_address, 1, L),
-						P1 = lists:keyfind(port, 1, L),
+						H1 = case lists:keyfind(bind_address, 1, L) of
+							{_, H2} ->
+								H2;
+							false ->
+								"127.0.0.1"
+						end,
+						{_, P1} = lists:keyfind(port, 1, L),
 						{H1, P1};
 					_ ->
 						FPort(T)
@@ -89,74 +120,29 @@ init_per_suite(Config) ->
 			FPort([_ | T]) ->
 				FPort(T)
 	end,
-	RestUser = ct:get_config({rest, user}),
-	RestPass = ct:get_config({rest, password}),
-	{Host, Port} = case Fport(Services) of
-		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			UserData = [{locale, "en"}, {rating, true}],
-			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
-			{"localhost", P2};
-		{{_, H2}, {_, P2}} ->
-			UserData = [{locale, "en"}, {rating, true}],
-			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
-			case H2 of
-				H2 when is_tuple(H2) ->
-					{inet:ntoa(H2), P2};
-				H2 when is_list(H2) ->
-					{H2, P2}
-			end;
-		{false, {_, P2}} ->
-			UserData = [{locale, "en"}, {rating, true}],
-			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
-			{"localhost", P2}
-	end,
-	Config1 = [{port, Port} | Config],
+	{ok, Services} = application:get_env(inets, services),
+	{Host, Port} = Fport(Services),
+	CAcert = ?config(data_dir, Config) ++ "CAcert.pem",
+	SslOpts = [{verify, verify_peer}, {cacertfile, CAcert}],
+	HttpOpt = [{ssl, SslOpts}],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	init_per_suite1([{host_url, HostUrl} | Config1]).
-%% @hidden
-init_per_suite1(Config) ->
-	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
-	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
-	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
-	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
-		{acct, [{DiameterAddress, DiameterAcctPort, [{rf_class, undefined},
-				{callback, ocs_diameter_3gpp_ro_nrf_app_cb}, {sub_id_type, [msisdn, imsi]}]}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar),
-	ok = application:set_env(ocs, min_reserve_octets, 1000000),
-	ok = application:set_env(ocs, min_reserve_seconds, 60),
-	ok = application:set_env(ocs, min_reserve_messages, 1),
-	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
-	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
-   Config1 = [{diameter_host, Host}, {realm, Realm},
-         {diameter_acct_address, DiameterAddress} | Config],
-	ok = ocs_test_lib:start(),
-   ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
-   true = diameter:subscribe(?MODULE),
-	{ok, _} = ocs:add_client(DiameterAddress, undefined, diameter, undefined, true),
-   {ok, _Ref2} = connect(?MODULE, DiameterAddress, DiameterAcctPort, diameter_tcp),
-   receive
-      #diameter_event{service = ?MODULE, info = Info}
-            when element(1, Info) == up ->
-			init_per_suite2(Config1);
-      _Other ->
-         {skip, diameter_client_acct_service_not_started}
-   end.
-init_per_suite2(Config) ->
+	Config1 = [{port, Port}, {host_url, HostUrl},
+			{http_options, HttpOpt} | Config],
 	case inets:start(httpd,
 			[{port, 0},
 			{server_name, atom_to_list(?MODULE)},
 			{server_root, "./"},
-			{document_root, ?config(data_dir, Config)},
+			{document_root, ?config(data_dir, Config1)},
 			{modules, [mod_ct_nrf]}]) of
 		{ok, HttpdPid} ->
-			[{port, Port}] = httpd:info(HttpdPid, [port]),
-			NrfUri = "http://localhost:" ++ integer_to_list(Port),
-			{ok, [Auth, {acct, [{Address, DPort, Options}]}]} = application:get_env(ocs, diameter),
+			[{port, NrfPort}] = httpd:info(HttpdPid, [port]),
+			NrfUri = "http://localhost:" ++ integer_to_list(NrfPort),
+			{ok, [Auth, {acct, [{Address, DPort, Options}]}]}
+					= application:get_env(ocs, diameter),
 			NewOptions = Options ++ [{nrf_uri, NrfUri}],
 			NewEnvVar = [Auth, {acct, [{Address, DPort, NewOptions}]}],
 			ok = application:set_env(ocs, diameter, NewEnvVar),
-			[{server_port, Port},
-					{server_pid, HttpdPid}, {nrf_uri, NrfUri} | Config];
+			Config1;
 		{error, InetsReason} ->
 			ct:fail(InetsReason)
 	end.
@@ -224,8 +210,6 @@ init_per_testcase(TestCase, Config)
 		TestCase == post_iec_class_b;
 		TestCase == post_initial_ecur_class_b;
 		TestCase == post_final_ecur_class_b ->
-	ServerPID = ?config(server_pid, Config),
-	inets:stop(httpd, ServerPID),
 	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -508,10 +492,11 @@ post_initial_scur_class_b(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
+	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, _Location1} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
@@ -544,10 +529,11 @@ post_update_scur_class_b(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request, [], []),
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody} = Result,
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
 	InputOctets1 = rand:uniform(30000),
@@ -556,7 +542,7 @@ post_update_scur_class_b(Config) ->
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
-	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
 	{struct, AttributeList} = mochijson:decode(ResponseBody1),
 	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
@@ -593,10 +579,11 @@ post_final_scur_class_b(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request, [], []),
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody} = Result,
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
 	InputOctets1 = rand:uniform(30000),
@@ -605,16 +592,16 @@ post_final_scur_class_b(Config) ->
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
-	{ok, Result1} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 200, _Ok}, _Headers1, _ResponseBody1} = Result1,
+	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
+	{{"HTTP/1.1", 200, _Ok1}, _Headers1, _ResponseBody1} = Result1,
 	InputOctets2 = rand:uniform(50000),
 	OutputOctets2 = rand:uniform(60000),
 	Body2 = nrf_post_final_scur_class_b(MSISDN, IMSI, InputOctets2, OutputOctets2),
 	RequestBody2 = lists:flatten(mochijson:encode(Body2)),
 	Request2 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/release",
 			[Accept, auth_header()], ContentType, RequestBody2},
-	{ok, Result2} = httpc:request(post, Request2, [], []),
-	{{"HTTP/1.1", 200, _Ok}, _Headers2, ResponseBody2} = Result2,
+	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
+	{{"HTTP/1.1", 200, _Ok2}, _Headers2, ResponseBody2} = Result2,
 	{struct, AttributeList} = mochijson:decode(ResponseBody2),
 	{"serviceRating", {_, [{_,ServiceRating1}]}}
 			= lists:keyfind("serviceRating", 1, AttributeList),
@@ -738,11 +725,12 @@ post_iec_class_b(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Messages = 1,
 	Body = nrf_post_iec_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
+	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
 	{"serviceRating", {_, [{_,ServiceRating}]}}
@@ -769,11 +757,12 @@ post_initial_ecur_class_b(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Messages = 1,
 	Body = nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
+	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, _Location} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
@@ -801,11 +790,12 @@ post_final_ecur_class_b(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
 	Messages = 1,
 	Body = nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request, [], []),
+	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _ResponseBody} = Result,
 	{_, Location} = lists:keyfind("location", 1, Headers),
 	Messages1 = 2,
@@ -813,7 +803,7 @@ post_final_ecur_class_b(Config) ->
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location ++ "/release",
 			[Accept, auth_header()], ContentType, RequestBody1},
-	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
 	{struct, AttributeList} = mochijson:decode(ResponseBody1),
 	{"serviceRating", {_, [{_, ServiceRating}]}}
@@ -1252,7 +1242,7 @@ scur_imsi_class_b(_Config) ->
 %%---------------------------------------------------------------------
 
 price_pla(Config) ->
-	HostUrl = ?config(nrf_uri, Config),
+	HostUrl = ?config(host_url, Config),
 	PlaRef = #pla_ref{id = ocs:generate_password(),
 			href = HostUrl ++ "/nrf-rating/v1/ratingdata/tariffrequest",
 			name = tariff, class_type = a,
