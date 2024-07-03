@@ -338,22 +338,25 @@ start14() ->
 		TopSup
 	of
 		Sup ->
-			catch ocs_mib:load(),
-			case ocs_scheduler:start() of
-				ok ->
-%					{ok, Sup};
-					start15(Sup);
-				{error, Reason2} ->
-					throw(Reason2)
-			end
+			start15(Sup)
 	catch
 		Reason ->
-			error_logger:error_report(["ocs application failed to start",
-					{reason, Reason}, {module, ?MODULE}]),
 			{error, Reason}
 	end.
 %% @hidden
 start15(Sup) ->
+	catch ocs_mib:load(),
+	start16(Sup).
+%% @hidden
+start16(Sup) ->
+	case ocs_scheduler:start() of
+		ok ->
+			start17(Sup);
+		{error, Reason2} ->
+			{error, Reason2}
+	end.
+%% @hidden
+start17(Sup) ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			case application:get_env(elastic_shipper) of
@@ -374,7 +377,7 @@ start15(Sup) ->
 					case supervisor:start_child(ocs_event_log_sup,
 							[Url, Profile, Options -- SetOptions]) of
 						{ok, _EventLogSup, _Id} ->
-							start16(Profile, ServicesInfo, Sup, SetOptions);
+							start18(Sup, Profile, ServicesInfo, SetOptions);
 						{error, Reason} ->
 							{error, Reason}
 					end
@@ -383,16 +386,16 @@ start15(Sup) ->
 			{error, Reason}
 	end.
 %% @hidden
-start16(Profile, [{httpc, _Pid, Info} | T], Sup, SetOptions) ->
+start18(Sup, Profile, [{httpc, _Pid, Info} | T], SetOptions) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			start17(Profile, Sup, SetOptions);
+			start19(Sup, Profile, SetOptions);
 		_ ->
-			start16(Profile, T, Sup, SetOptions)
+			start18(Sup, Profile, T, SetOptions)
 	end;
-start16(Profile, [_ | T], Sup, SetOptions) ->
-	start16(Profile, T, Sup, SetOptions);
-start16(Profile, [], Sup, _SetOptions) ->
+start18(Sup, Profile, [_ | T], SetOptions) ->
+	start18(Sup, Profile, T, SetOptions);
+start18(Sup, Profile, [], _SetOptions) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
 			{ok, Sup};
@@ -400,7 +403,7 @@ start16(Profile, [], Sup, _SetOptions) ->
 			{error, Reason}
 	end.
 %% @hidden
-start17(Profile, Sup, SetOptions) ->
+start19(Sup, Profile, SetOptions) ->
 	case httpc:set_options(SetOptions, Profile) of
 		ok ->
 			{ok, Sup};
