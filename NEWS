@@ -1,3 +1,8 @@
+July 9, 2024
+------------
+	- Updates for Nrf interface producer
+	- Support SigScale CHF as Nrf consumer
+
 June 14, 2024
 -------------
 	- Allow unauthenticated health checks (GET /health)

@@ -1,3 +1,18 @@
+2024-07-09  Vance Shipley <vances@sigscale.org>
+
+	* support nrf requests/responses in log api
+	* correct immediate event charging in nrf handler
+	* refactor and correct nrf test cases
+	* refactor initialization/configuration in re interface test suite
+	* export test lib partial start/stop api
+	* document diameter service start options
+	* remove redundant changelog entries inserted in error
+	* refactor application start sequence for consistency
+	* refactor rest nrf handler to remove diameter spoofing
+	* handle protocol type 'nrf' in rating api
+	* correct re interface test suite setup
+	* make variable to overide ct_run arguments
+
 2024-06-14  Vance Shipley <vances@sigscale.org>
 
 	* allow unauthenticated health check
