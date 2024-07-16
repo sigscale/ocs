@@ -390,7 +390,7 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 		Error :: term(),
 		InvalidParams :: [map()] | undefined,
 		Result :: map().
-%% @doc Construct a problem report for an error respponse.
+%% @doc Construct a problem report for an error response.
 rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
