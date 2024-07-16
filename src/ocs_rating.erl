@@ -36,21 +36,24 @@
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
-%% service types for radius
+%% RADIUS service types
 -define(RADIUSLOGIN, 1).
 -define(RADIUSFRAMED, 2).
 -define(RADIUSVOICE, 12).
-%% service types for diameter
--define(DIAMETERDATA, 32251).
--define(DIAMETERVOICE, 32260).
--define(DIAMETERSMS, 32274).
+%% 3GPP service types
+-define(PSDATA, 32251).
+-define('5GCDATA', 32255).
+-define(IMSVOICE, 32260).
+-define(SMS, 32274).
+-define(VCS, 32276).
 
 -spec rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		ServiceNetwork, SubscriberID, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter | nrf,
-		ServiceType :: integer() | binary(),
+		ServiceType :: ?RADIUSLOGIN | ?RADIUSFRAMED | ?RADIUSVOICE
+				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?SMS | ?VCS | binary(),
 		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
 		ServiceNetwork :: string() | binary() | undefined,
@@ -244,11 +247,13 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 							orelse
 							(((Protocol == diameter) orelse (Protocol == nrf))
 								and
-								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
+								(((ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
+										and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
+								(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS))
+										and ((Spec == "5") orelse (Spec == "9")))
 								orelse
-								((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
+								((ServiceType == ?SMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
 						[P | Acc];
 					_ ->
 						Acc
@@ -273,18 +278,20 @@ rate1(Protocol, Service, ServiceId, Product, Buckets,
 		((Status == active) orelse (Status == undefined))
 		and
 		(((Protocol == radius)
-			and
-			(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
-			and ((Spec == "4") orelse (Spec == "8"))) orelse
-			((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
+				and
+				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
+				and ((Spec == "4") orelse (Spec == "8"))) orelse
+				((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 		orelse
 		(((Protocol == diameter) orelse (Protocol == nrf))
-			and
-			((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
-			orelse
-			((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
-			orelse
-			((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
+				and
+				(((ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
+						and ((Spec == "4") orelse (Spec == "8")))
+				orelse
+				(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS))
+						and ((Spec == "5") orelse (Spec == "9")))
+				orelse
+				((ServiceType == ?SMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
 	rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
 			Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
 			SessionId, #rated{product = OfferName},
@@ -1762,7 +1769,9 @@ charge4(event = _Flag,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter | nrf,
-		ServiceType :: binary() | char() | undefined,
+		ServiceType :: ?RADIUSLOGIN | ?RADIUSFRAMED | ?RADIUSVOICE
+				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?SMS | ?VCS
+				| binary() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary() | string() | {ChapId :: 0..255,
 				ChapPassword :: binary(), Challenge :: binary()},
@@ -2059,13 +2068,16 @@ authorize4(_Protocol, ServiceType,
 authorize5(#service{session_attributes = ExistingAttr} = Service,
 		Buckets, ServiceType, SessionAttributes, Attributes) ->
 	F = fun(#bucket{remain_amount = R, units = U})
-				when
-				((ServiceType == undefined) orelse
-				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN) orelse (ServiceType == ?DIAMETERDATA)) and
-				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
-				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
-				((U == seconds) orelse (U == cents))) orelse
-				((ServiceType == ?DIAMETERSMS) and ((U == messages) orelse (U == cents)))) and (R > 0) ->
+				when ((ServiceType == undefined) orelse
+				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)
+						orelse (ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
+						and ((U == octets) orelse (U == cents) orelse (U == seconds)))
+				orelse (((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?IMSVOICE)
+						orelse (ServiceType == ?VCS)) and
+						((U == seconds) orelse (U == cents)))
+				orelse
+				((ServiceType == ?SMS) and ((U == messages) orelse (U == cents))))
+						and (R > 0) ->
 			true;
 		(_) ->
 			false
