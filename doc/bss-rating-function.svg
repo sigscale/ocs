@@ -1,43 +1,36 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="10 445 610.5 192" width="610.5" height="192">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="59 444 562.5 194" width="562.5" height="194">
   <defs/>
-  <g id="Gateway" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none" fill-opacity="1">
+  <g id="Gateway" fill="none" stroke="none" stroke-dasharray="none" fill-opacity="1" stroke-opacity="1">
     <title>Gateway</title>
     <g id="Gateway_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_2">
         <path d="M 221.5 445 L 399.5 445 C 403.9183 445 407.5 448.5817 407.5 453 L 407.5 629 C 407.5 633.4183 403.9183 637 399.5 637 L 221.5 637 C 217.08172 637 213.5 633.4183 213.5 629 L 213.5 453 C 213.5 448.5817 217.08172 445 221.5 445 Z" fill="#ffd6a9"/>
         <text transform="translate(218.5 455)" fill="black">
-          <tspan font-family="Montserrat" font-size="24" fill="black" x="12.524" y="23">SigScale OCS</tspan>
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="12.524" y="23" xml:space="preserve">SigScale OCS</tspan>
         </text>
       </g>
       <g id="Graphic_6">
         <path d="M 280.3 556.5 L 340.7 556.5 C 345.11828 556.5 348.7 560.0817 348.7 564.5 L 348.7 597.1 C 348.7 601.5183 345.11828 605.1 340.7 605.1 L 280.3 605.1 C 275.88172 605.1 272.3 601.5183 272.3 597.1 L 272.3 564.5 C 272.3 560.0817 275.88172 556.5 280.3 556.5 Z" fill="white"/>
         <text transform="translate(277.3 569.8)" fill="black">
-          <tspan font-family="Montserrat" font-size="18" fill="black" x="13.481" y="17">OCF</tspan>
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="13.481" y="17" xml:space="preserve">OCF</tspan>
         </text>
       </g>
       <g id="Graphic_10">
-        <path d="M 24.666625 586.36436 C 6.484375 580.8 13.735 533.95727 42.73975 541.95 C 45.43075 526.3696 79.159375 528.8985 78.938875 541.95 C 100.08775 525.25694 127.11475 558.5426 108.9865 575.23565 C 130.7395 583.3289 108.712 626.9341 90.85938 619.65 C 89.43062 631.7909 57.5155 636.0395 54.71425 619.65 C 36.64225 637.1532 -1.04075 610.24106 24.666625 586.36436 Z" fill="#d6d6d6"/>
-        <text transform="translate(31.875 571.576)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="4.311" y="15">Network</tspan>
+        <path d="M 74.666625 586.36436 C 56.484375 580.8 63.735 533.95727 92.73975 541.95 C 95.43075 526.3696 129.15938 528.8985 128.93888 541.95 C 150.08775 525.25694 177.11475 558.5426 158.9865 575.23565 C 180.7395 583.3289 158.712 626.9341 140.85938 619.65 C 139.43062 631.7909 107.5155 636.0395 104.71425 619.65 C 86.64225 637.1532 48.95925 610.24106 74.666625 586.36436 Z" fill="#d6d6d6"/>
+        <text transform="translate(81.875 571.576)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="4.311" y="15" xml:space="preserve">Network</tspan>
         </text>
       </g>
       <g id="Line_11">
-        <line x1="115.87438" y1="580.8" x2="272.3" y2="580.8" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-      </g>
-      <g id="Graphic_12">
-        <rect x="134.79214" y="565.8" width="67.22" height="30" fill="white"/>
-        <text transform="translate(135.79215 565.8)" fill="black">
-          <tspan font-family="Montserrat" font-size="12" fill="black" x="58264504e-20" y="12">DIAMETER</tspan>
-          <tspan font-family="Montserrat" font-size="12" fill="black" x="8.76" y="27">RADIUS</tspan>
-        </text>
+        <line x1="165.87438" y1="580.8" x2="272.3" y2="580.8" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
       </g>
       <g id="Graphic_14">
         <path d="M 506.5 445 L 612.5 445 C 616.9183 445 620.5 448.5817 620.5 453 L 620.5 629 C 620.5 633.4183 616.9183 637 612.5 637 L 506.5 637 C 502.0817 637 498.5 633.4183 498.5 629 L 498.5 453 C 498.5 448.5817 502.0817 445 506.5 445 Z" fill="#a8d7ff"/>
         <text transform="translate(503.5 455)" fill="black">
-          <tspan font-family="Montserrat" font-size="24" fill="black" x="32.192" y="23">BSS</tspan>
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="32.192" y="23" xml:space="preserve">BSS</tspan>
         </text>
       </g>
       <g id="Line_25">
@@ -46,19 +39,19 @@
       <g id="Graphic_24">
         <rect x="438.8609" y="569.8" width="29.954" height="22" fill="white"/>
         <text transform="translate(439.8609 569.8)" fill="black">
-          <tspan font-family="Montserrat" font-size="18" fill="black" x="7727152e-19" y="17">Nrf</tspan>
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="7727152e-19" y="17" xml:space="preserve">Nrf</tspan>
         </text>
       </g>
       <g id="Graphic_26">
         <path d="M 529.3 559 L 589.7 559 C 594.1183 559 597.7 562.5817 597.7 567 L 597.7 594.6 C 597.7 599.0183 594.1183 602.6 589.7 602.6 L 529.3 602.6 C 524.8817 602.6 521.3 599.0183 521.3 594.6 L 521.3 567 C 521.3 562.5817 524.8817 559 529.3 559 Z" fill="white"/>
         <text transform="translate(526.3 569.8)" fill="black">
-          <tspan font-family="Montserrat" font-size="18" fill="black" x="20.996" y="17">RF</tspan>
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="20.996" y="17" xml:space="preserve">RF</tspan>
         </text>
       </g>
       <g id="Graphic_27">
         <path d="M 529.3 498.5 L 589.7 498.5 C 594.1183 498.5 597.7 502.0817 597.7 506.5 L 597.7 534.1 C 597.7 538.5183 594.1183 542.1 589.7 542.1 L 529.3 542.1 C 524.8817 542.1 521.3 538.5183 521.3 534.1 L 521.3 506.5 C 521.3 502.0817 524.8817 498.5 529.3 498.5 Z" fill="white"/>
         <text transform="translate(526.3 509.3)" fill="black">
-          <tspan font-family="Montserrat" font-size="18" fill="black" x="5.669001" y="17">ABMF</tspan>
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="5.669001" y="17" xml:space="preserve">ABMF</tspan>
         </text>
       </g>
       <g id="Line_29">
@@ -67,7 +60,7 @@
       <g id="Graphic_30">
         <path d="M 280.3 498.5 L 340.7 498.5 C 345.11828 498.5 348.7 502.0817 348.7 506.5 L 348.7 534.1 C 348.7 538.5183 345.11828 542.1 340.7 542.1 L 280.3 542.1 C 275.88172 542.1 272.3 538.5183 272.3 534.1 L 272.3 506.5 C 272.3 502.0817 275.88172 498.5 280.3 498.5 Z" fill="white"/>
         <text transform="translate(277.3 509.3)" fill="black">
-          <tspan font-family="Montserrat" font-size="18" fill="black" x="5.669001" y="17">ABMF</tspan>
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="5.669001" y="17" xml:space="preserve">ABMF</tspan>
         </text>
       </g>
       <g id="Line_31">
