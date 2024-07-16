@@ -1,3 +1,8 @@
+2024-07-16  Vance Shipley <vances@sigscale.org>
+
+	* handle 5gc and vcs service types
+	* update diagrams with chf
+
 2024-07-09  Vance Shipley <vances@sigscale.org>
 
 	* support nrf requests/responses in log api
