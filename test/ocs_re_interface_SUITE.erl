@@ -496,7 +496,7 @@ post_initial_scur_class_b(Config) ->
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
-	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
+	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
 	{_, {_, [{_, UnitSize}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
 
 post_update_scur_class_b() ->
@@ -542,11 +542,11 @@ post_update_scur_class_b(Config) ->
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
-	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
+	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating2),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating2),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating2),
-	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating2),
+	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating2),
 	{_, {_, [{_, TotalOctets}]}} = lists:keyfind("consumedUnit", 1, ServiceRating2).
 
 post_final_scur_class_b() ->
@@ -599,7 +599,7 @@ post_final_scur_class_b(Config) ->
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
-	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
+	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
 send_iec_class_b() ->
@@ -1404,7 +1404,7 @@ nrf_post_initial_scur_class_b(MSISDN, IMSI) ->
 			{"invocationSequenceNumber", 1},
 			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
 			{"serviceRating",
-					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+					{array, [{struct, [{"serviceContextId", "32255@3gpp.org"},
 							{"serviceInformation",
 							{struct, [{"sgsnMccMnc",
 							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
@@ -1421,14 +1421,14 @@ nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 			{"invocationSequenceNumber", 2},
 			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
 			{"serviceRating",
-					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+					{array, [{struct, [{"serviceContextId", "32255@3gpp.org"},
 							{"serviceId", 1},
 							{"ratingGroup", 32},
 							{"requestSubType", "DEBIT"},
 							{"consumedUnit", {struct, [{"totalVolume", InputOctets + OutputOctets},
 									{"uplinkVolume", InputOctets},
 									{"downlinkVolume", OutputOctets}]}}]},
-					{struct, [{"serviceContextId", "32251@3gpp.org"},
+					{struct, [{"serviceContextId", "32255@3gpp.org"},
 							{"serviceId", 1},
 							{"ratingGroup", 32},
 							{"requestSubType", "RESERVE"}]}]}}]}.
@@ -1442,7 +1442,7 @@ nrf_post_final_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 			{"invocationSequenceNumber", 3},
 			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
 			{"serviceRating",
-					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+					{array, [{struct, [{"serviceContextId", "32255@3gpp.org"},
 							{"serviceId", 1},
 							{"ratingGroup", 32},
 							{"requestSubType", "DEBIT"},
