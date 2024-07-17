@@ -1,3 +1,10 @@
+2024-07-17  Vance Shipley <vances@sigscale.org>
+
+	* add 5g data test case; add nrf to protocols, add 5g data to service types
+	* correct nrf session id derivation
+	* handle nrf session id in rating
+	* 5g data connectivity context in re test suite
+
 2024-07-16  Vance Shipley <vances@sigscale.org>
 
 	* handle 5gc and vcs service types

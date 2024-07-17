@@ -1,3 +1,8 @@
+July 17, 2024
+-------------
+	- Rating test suite covers 5G in general test cases
+	- Nrf session handling in rating corrections
+
 July 16, 2024
 -------------
 	- Rating function API supports 5GC and VCS service types
