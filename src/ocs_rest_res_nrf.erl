@@ -87,7 +87,7 @@ initial_nrf1(ModData, NrfRequest) ->
 					_ ->
 						initial
 				end,
-				case rate(NrfMap, Flag) of
+				case rate(RatingDataRef, NrfMap, Flag) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
@@ -179,7 +179,7 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
-				case rate(NrfMap, interim) of
+				case rate(RatingDataRef, NrfMap, interim) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						NrfResponse = nrf(UpdatedMap),
@@ -270,7 +270,7 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
-				case rate(NrfMap, final) of
+				case rate(RatingDataRef, NrfMap, final) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
@@ -420,19 +420,20 @@ rest_error_response(decode_failed, InvalidParams) ->
 			title => "Request body could not be parsed as valid JSON",
 			invalidParams => InvalidParams}.
 
--spec rate(NrfRequest, Flag) -> Result
+-spec rate(RatingDataRef, NrfRequest, Flag) -> Result
 	when
+		RatingDataRef :: string(),
 		NrfRequest :: map(),
 		Flag :: initial | interim | final | event,
 		Result :: [map()] | {error, Reason},
 		Reason :: term().
 %% @doc Rate Nrf Service Ratings.
-rate(#{"serviceRating" := ServiceRating, "invocationSequenceNumber" := ISN,
+rate(RatingDataRef, #{"serviceRating" := ServiceRating,
 		"subscriptionId" := SubscriptionIds}, Flag) ->
-	rate(ServiceRating, ISN, SubscriptionIds, Flag, []).
+	rate(list_to_binary(RatingDataRef), ServiceRating, SubscriptionIds, Flag, []).
 %% @hidden
-rate([#{"serviceContextId" := SCI} = H | T],
-		ISN, SubscriptionIds, Flag, Acc) ->
+rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
+		SubscriptionIds, Flag, Acc) ->
 	{Map1, ServiceId} = case maps:find("serviceId", H) of
 		{ok, SI} ->
 			{#{"serviceId" => SI}, SI};
@@ -473,97 +474,98 @@ rate([#{"serviceContextId" := SCI} = H | T],
 	end,
 	ServiceType = service_type(SCI),
 	TS = calendar:universal_time(),
+	SessionAttributes = [{nrf_ref, RatingDataRef}],
 	case ocs_rating:rate(nrf, ServiceType, ServiceId, ChargingKey,
-			MCCMNC, get_subscriber(SubscriptionIds), TS, undefined, undefined, Flag,
-			Debits, Reserves, [{"invocationSequenceNumber", ISN}]) of
+			MCCMNC, get_subscriber(SubscriptionIds), TS, undefined, undefined,
+			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _, {octets, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, _} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
 			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
-			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate([], _ISN, _Subscriber, _Flag, Acc) ->
+rate(_RatingDataRef, [], _Subscriber, _Flag, Acc) ->
 	F = fun F([#{"resultCode" := "SUCCESS"} | _T]) ->
 			Acc;
 		F([_H | T]) ->
