@@ -120,7 +120,8 @@ all() ->
 	initial_invalid_service_type, refund_unused_reservation,
 	refund_partially_used_reservation, tariff_prices,
 	allowance_bucket, tariff_bucket_voice,
-	tariff_bucket_iec, tariff_bucket_ecur].
+	tariff_bucket_iec, tariff_bucket_ecur,
+	scur_5g_data_initial].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -3262,6 +3263,34 @@ tariff_bucket_ecur(_Config) ->
 			+ (DebitedUnits3 * Rate3),
 	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
 
+scur_5g_data_initial() ->
+	[{userdata, [{doc, "5G Data connectivity charging (initial)"}]}].
+
+scur_5g_data_initial(_Config) ->
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	PackageSize = MinReserve + rand:uniform(MinReserve - 1),
+	PackagePrice = rand:uniform(1000000),
+	PackageUnits = octets,
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 8),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = PackagePrice * 100,
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
+	Timestamp = calendar:local_time(),
+	Protocol = nrf,
+	ServiceType = 32255,
+	SessionId = session_id(nrf),
+	{ok, _, GrantedAmount} = ocs_rating:rate(Protocol, ServiceType, undefined,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [], SessionId),
+	{PackageUnits, PackageSize} = GrantedAmount,
+	ok = mnesia:sync_log(),
+	{ok, #bucket{units = cents, remain_amount = RemAmount2,
+			attributes = #{bucket_type := normal}}} = ocs:find_bucket(BId),
+	RemAmount2 == RemAmount1 - PackagePrice.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -3354,23 +3383,27 @@ units_cost(UsedUnits, UnitSize, UnitPrice) ->
 
 %% @hidden
 protocol() ->
-	protocol(rand:uniform(2)).
+	protocol(rand:uniform(3)).
 %% @hidden
 protocol(1) ->
 	radius;
 protocol(2) ->
-	diameter.
+	diameter;
+protocol(3) ->
+	nrf.
 
 %% @hidden
 service_type(radius, data) ->
 	2;
 service_type(radius, voice) ->
 	12;
+service_type(nrf, data) ->
+	32255;
 service_type(diameter, data) ->
 	32251;
-service_type(diameter, voice) ->
+service_type(_, voice) ->
 	32260;
-service_type(diameter, message) ->
+service_type(_, message) ->
 	32274.
 
 %%@hidden
@@ -3383,5 +3416,10 @@ session_id(radius) ->
 	[NasIp, NasId, AcctSessionId];
 session_id(diameter) ->
 	SessionId = list_to_binary(ocs:generate_password()),
-	[{'Session-Id', SessionId}].
+	[{'Session-Id', SessionId}];
+session_id(nrf) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	RatingDataRef = integer_to_list(TS) ++ integer_to_list(N),
+	[{nrf_ref, RatingDataRef}].
 
