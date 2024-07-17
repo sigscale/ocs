@@ -79,7 +79,7 @@
 		Service :: #service{},
 		GrantedAmount :: {UnitType, Amount},
 		Rated :: [#rated{}],
-		SessionList :: [{pos_integer(), [tuple()]}],
+		SessionList :: [{TS :: pos_integer(), SessionAttributes}],
 		RedirectServerAddress :: string() | undefined,
 		Reason :: offer_not_found | product_not_found
 				| service_not_found | invalid_service_type
@@ -2868,15 +2868,22 @@ add_session([], _, Acc) ->
 		SessionAttributes :: [tuple()],
 		SessionId :: [tuple()].
 %% @doc Get the session identifier value.
-%% 	Returns a list of DIAMETER/RADIUS attributes.
+%% 	Returns a list of Nrf/DIAMETER/RADIUS attributes.
 %% @private
 get_session_id(SessionAttributes) ->
-	case lists:keyfind('Session-Id', 1, SessionAttributes) of
-		false ->
-			session_attributes(SessionAttributes);
-		SessionId ->
-			[SessionId]
-	end.
+	get_session_id1(SessionAttributes,
+			lists:keyfind('Session-Id', 1, SessionAttributes)).
+%% @hidden
+get_session_id1(SessionAttributes, false) ->
+	get_session_id2(SessionAttributes,
+			lists:keyfind(nrf_ref, 1, SessionAttributes));
+get_session_id1(_SessionAttributes, SessionId) ->
+	[SessionId].
+%% @hidden
+get_session_id2(SessionAttributes, false) ->
+	session_attributes(SessionAttributes);
+get_session_id2(_SessionAttributes, SessionId) ->
+	[SessionId].
 
 -spec split_by_price(Buckets) -> Result
 	when
