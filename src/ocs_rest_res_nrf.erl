@@ -803,7 +803,7 @@ authorize_rating(#mod{data = Data,
 		{remote_user, Username} ->
 			authorize_rating1(Username, Host, Port, "/");
 		false ->
-			{error, 400}
+			{ok, authorized}
 	end.
 %% @hidden
 authorize_rating1(Username, Address, Port, Directory) ->
