@@ -1,3 +1,7 @@
+2024-07-18  Vance Shipley <vances@sigscale.org>
+
+	* nrf is authorized if no auth was configured
+
 2024-07-17  Vance Shipley <vances@sigscale.org>
 
 	* add 5g data test case; add nrf to protocols, add 5g data to service types

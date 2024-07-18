@@ -1,3 +1,7 @@
+July 18, 2024
+-------------
+	- Skip Nrf user permission check if no auth is configured
+
 July 17, 2024
 -------------
 	- Rating test suite covers 5G in general test cases
