@@ -69,10 +69,12 @@ content_types_provided() ->
 %%
 initial_nrf(ModData, NrfRequest) ->
 	case authorize_rating(ModData) of
+		{ok, authorized} ->
+			initial_nrf1(ModData, NrfRequest);
 		{error, Status} ->
 			{error, Status};
-		{ok, authorized} ->
-			initial_nrf1(ModData, NrfRequest)
+		{error, Status, Problem} ->
+			{error, Status, Problem}
 	end.
 %% @hidden
 initial_nrf1(ModData, NrfRequest) ->
@@ -155,10 +157,12 @@ initial_nrf1(ModData, NrfRequest) ->
 %%		Rate an interim Nrf Request.
 update_nrf(ModData, RatingDataRef, NrfRequest) ->
 	case authorize_rating(ModData) of
+		{ok, authorized} ->
+			update_nrf1(ModData, RatingDataRef, NrfRequest);
 		{error, Status} ->
 			{error, Status};
-		{ok, authorized} ->
-			update_nrf1(ModData, RatingDataRef, NrfRequest)
+		{error, Status, Problem} ->
+			{error, Status, Problem}
 	end.
 %% @hidden
 update_nrf1(ModData, RatingDataRef, NrfRequest) ->
@@ -246,10 +250,12 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 %%
 release_nrf(ModData, RatingDataRef, NrfRequest) ->
 	case authorize_rating(ModData) of
+		{ok, authorized} ->
+			release_nrf1(ModData, RatingDataRef, NrfRequest);
 		{error, Status} ->
 			{error, Status};
-		{ok, authorized} ->
-			release_nrf1(ModData, RatingDataRef, NrfRequest)
+		{error, Status, Problem} ->
+			{error, Status, Problem}
 	end.
 %% @hidden
 release_nrf1(ModData, RatingDataRef, NrfRequest) ->
@@ -393,32 +399,54 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 %% @doc Construct a problem report for an error response.
 rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
+			status => 403,
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied due to insufficient credit (usage applied)"};
 rest_error_response(service_not_found, InvalidParams) ->
-	#{cause => "USER_UNKNOWN",
+	#{cause => "SUBSCRIPTION_NOT_FOUND",
+			status => 404,
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the subscriber identity is unrecognized",
 			invalidParams => InvalidParams};
 rest_error_response(charging_failed, undefined) ->
 	#{cause => "CHARGING_FAILED",
+			status => 500,
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "RATING_DATA_REF_UNKNOWN",
+			status => 404,
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the rating data ref is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "INVALID_SERVICE_TYPE",
+			status => 400,
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the service context id is not recognized",
 			invalidParams => InvalidParams};
-rest_error_response(decode_failed, InvalidParams) ->
+rest_error_response(decode_failed, undefined) ->
 	#{cause => "DECODING_FAILED",
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
-			title => "Request body could not be parsed as valid JSON",
-			invalidParams => InvalidParams}.
+			status => 400,
+			title => "Request body could not be parsed as valid JSON"};
+rest_error_response(no_such_user, Username) ->
+	#{cause => "UNKNOWN_USER",
+			status => 403,
+			type => "https://www.rfc-editor.org/rfc/rfc9110#field.authorization",
+			title => "The provided credentials are not recognized",
+			details => "Username: " ++ Username};
+rest_error_response(bad_password, Username) ->
+	#{cause => "FAILED_AUTHENTICATION",
+			status => 403,
+			type => "https://www.rfc-editor.org/rfc/rfc9110#field.authorization",
+			title => "The provided credentials are not authenticated",
+			details => "Username: " ++ Username};
+rest_error_response(not_authorized, Username) ->
+	#{cause => "NOT_AUTHORIZED",
+			status => 403,
+			type => "https://www.rfc-editor.org/rfc/rfc9110#field.authorization",
+			title => "The provided credentials are not authorized",
+			details => "Username: " ++ Username}.
 
 -spec rate(RatingDataRef, NrfRequest, Flag) -> Result
 	when
@@ -793,19 +821,23 @@ server(#mod{init_data = #init_data{sockname = {Port, Host}}}) ->
 -spec authorize_rating(ModData) -> Result
 	when
 		ModData :: #mod{},
-		Result :: {ok, authorized} | {error, Status},
-		Status :: term().
+		Result :: {ok, authorized} | {error, Status}
+				| {error, Status, Problem},
+		Status :: term(),
+		Problem :: map().
 %% @doc Do Authorization for Re interface.
 %% @todo Handle other httpd configurations.
 authorize_rating(#mod{data = Data,
 		init_data = #init_data{sockname = {Port, Host}}} = _ModData) ->
 	case lists:keyfind(remote_user, 1, Data) of
 		{remote_user, Username} ->
-			authorize_rating1(Username, Host, Port, "/");
+			authorize_rating1(Username, Host, Port, "/nrf-rating");
 		false ->
 			{ok, authorized}
 	end.
 %% @hidden
+authorize_rating1(Username, "127.0.0.1", Port, Directory) ->
+	authorize_rating1(Username, undefined, Port, Directory);
 authorize_rating1(Username, Address, Port, Directory) ->
 	case mod_auth:get_user(Username, Address, Port, Directory) of
 		{ok, #httpd_user{user_data = UserData}} ->
@@ -813,9 +845,16 @@ authorize_rating1(Username, Address, Port, Directory) ->
 				{rating, true} ->
 					{ok, authorized};
 				{rating, false} ->
-					{error, 401}
+					Problem = rest_error_response(not_authorized, Username),
+					{error, 403, Problem}
 			end;
-		{error, no_such_user} ->
-			{error, 404}
+		{error, no_such_user = Reason} ->
+			Problem = rest_error_response(Reason, Username),
+			{error, 403, Problem};
+		{error, bad_password = Reason} ->
+			Problem = rest_error_response(Reason, Username),
+			{error, 403, Problem};
+		{error, _Reason} ->
+			{error, 500}
 	end.
 
