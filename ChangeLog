@@ -1,3 +1,7 @@
+2024-07-24  Vance Shipley <vances@sigscale.org>
+
+	 * problem details describe auth failures on nrf
+
 2024-07-18  Vance Shipley <vances@sigscale.org>
 
 	* nrf is authorized if no auth was configured

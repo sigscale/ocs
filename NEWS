@@ -1,3 +1,7 @@
+July 24, 2024
+-------------
+	- Nrf interface provides problem details for auth failures
+
 July 18, 2024
 -------------
 	- Skip Nrf user permission check if no auth is configured
