@@ -863,7 +863,7 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'CC-Service-Specific-Units' = [CCSpecUnits]} | _]})
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
 	[{messages, CCSpecUnits}];
-get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) ->
+get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = _}) ->
 	[].
 
 %% @hidden
