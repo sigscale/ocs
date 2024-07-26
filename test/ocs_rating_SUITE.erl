@@ -3415,7 +3415,7 @@ session_id(radius) ->
 	NasId = {?NasIdentifier, ocs:generate_password()},
 	[NasIp, NasId, AcctSessionId];
 session_id(diameter) ->
-	SessionId = list_to_binary(ocs:generate_password()),
+	SessionId = diameter:session_id(ocs:generate_password()),
 	[{'Session-Id', SessionId}];
 session_id(nrf) ->
 	TS = erlang:system_time(millisecond),
