@@ -1,3 +1,9 @@
+2024-07-26  Vance Shipley <vances@sigscale.org>
+
+	* correct ignoring zero usu on commit 35c6761
+	* get mod_auth parameters from httpd config db
+	* test cases use rfc6733 section 8.8 session-id values
+
 2024-07-24  Vance Shipley <vances@sigscale.org>
 
 	 * problem details describe auth failures on nrf

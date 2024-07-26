@@ -1,3 +1,8 @@
+July 26, 2024
+-------------
+	- Ignore explicitly zero USU values
+	- Nrf user rating authorization improvements
+
 July 24, 2024
 -------------
 	- Nrf interface provides problem details for auth failures
