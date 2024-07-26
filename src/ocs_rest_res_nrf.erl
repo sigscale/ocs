@@ -446,7 +446,12 @@ rest_error_response(not_authorized, Username) ->
 			status => 403,
 			type => "https://www.rfc-editor.org/rfc/rfc9110#field.authorization",
 			title => "The provided credentials are not authorized",
-			details => "Username: " ++ Username}.
+			details => "Username: " ++ Username};
+rest_error_response(httpd_directory_undefined, undefined) ->
+	#{cause => "DIRECTORY_UNDEFINED",
+			status => 500,
+			type => "https://www.erlang.org/doc/apps/inets/httpd#props_auth",
+			title => "The inets httpd configuration is missing `directory` for mod_auth"}.
 
 -spec rate(RatingDataRef, NrfRequest, Flag) -> Result
 	when
@@ -827,18 +832,33 @@ server(#mod{init_data = #init_data{sockname = {Port, Host}}}) ->
 		Problem :: map().
 %% @doc Do Authorization for Re interface.
 %% @todo Handle other httpd configurations.
-authorize_rating(#mod{data = Data,
-		init_data = #init_data{sockname = {Port, Host}}} = _ModData) ->
+authorize_rating(#mod{data = Data, config_db = ConfigDb} = _ModData) ->
 	case lists:keyfind(remote_user, 1, Data) of
 		{remote_user, Username} ->
-			authorize_rating1(Username, Host, Port, "/nrf-rating");
+			Dirs = [element(2, D) || D <- ets:lookup(ConfigDb, directory)],
+			authorize_rating1(Username, Dirs,
+					lists:keyfind("/nrf-rating", 1, Dirs));
 		false ->
 			{ok, authorized}
 	end.
 %% @hidden
-authorize_rating1(Username, "127.0.0.1", Port, Directory) ->
-	authorize_rating1(Username, undefined, Port, Directory);
-authorize_rating1(Username, Address, Port, Directory) ->
+authorize_rating1(Username, _Dirs, {Directory, Options}) ->
+	authorize_rating3(Username, Directory, Options);
+authorize_rating1(Username, Dirs, false) ->
+	authorize_rating2(Username, lists:keyfind("/", 1, Dirs)).
+%% @hidden
+authorize_rating2(Username, {Directory, Options}) ->
+	authorize_rating3(Username, Directory, Options);
+authorize_rating2(_Username, false) ->
+	Problem = rest_error_response(httpd_directory_undefined, undefined),
+	{error, 500, Problem}.
+%% @hidden
+authorize_rating3(Username, Directory, Options) ->
+	{_, Address} = lists:keyfind(bind_address, 1, Options),
+	{_, Port} = lists:keyfind(port, 1, Options),
+	authorize_rating4(Username, Address, Port, Directory).
+%% @hidden
+authorize_rating4(Username, Address, Port, Directory) ->
 	case mod_auth:get_user(Username, Address, Port, Directory) of
 		{ok, #httpd_user{user_data = UserData}} ->
 			case lists:keyfind(rating, 1, UserData) of
