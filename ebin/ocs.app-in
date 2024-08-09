@@ -190,5 +190,8 @@
 				{statistics_interval, 60},
 				{nrf_profile, nrf},
 				{nrf_options, [{keep_alive_timeout, 4000}]},
+				{nrf_valid_volume, undefined},
+				{nrf_valid_time, undefined},
+				{nrf_valid_unit, undefined},
 				{elastic_shipper, undefined}]},
 		{mod, {ocs_app, []}}]}.

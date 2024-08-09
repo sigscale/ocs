@@ -460,7 +460,7 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 		Flag :: initial | interim | final | event,
 		Result :: [map()] | {error, Reason},
 		Reason :: term().
-%% @doc Rate Nrf Service Ratings.
+%% @doc Rate Nrf `ServiceRatingRequest's.
 rate(RatingDataRef, #{"serviceRating" := ServiceRating,
 		"subscriptionId" := SubscriptionIds}, Flag) ->
 	rate(list_to_binary(RatingDataRef), ServiceRating, SubscriptionIds, Flag, []).
@@ -534,19 +534,37 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_volume) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_time) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_unit) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
@@ -574,19 +592,37 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_volume) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_time) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
+			RatedMap1 = case application:get_env(nrf_quota_unit) of
+				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
+					RatedMap#{"validUnits" => Threshold};
+				_ ->
+					RatedMap
+			end,
+			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, _} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
@@ -613,41 +649,41 @@ rate(_RatingDataRef, [], _Subscriber, _Flag, Acc) ->
 		Nrf :: map() | {struct, [tuple()]}.
 %% @doc CODEC for Nrf Reponse.
 nrf({struct, StructList}) ->
-	nrf(StructList, #{});
+	nrf1(StructList, #{});
 nrf(NrfRequest) when is_map(NrfRequest) ->
-	nrf1(NrfRequest, []).
+	nrf1(NrfRequest).
 %% @hidden
-nrf1(#{"invocationTimeStamp" := TS} = M, Acc) ->
-	nrf2(M, [{"invocationTimeStamp", TS} | Acc]).
-nrf2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
-	nrf3(M, [{"invocationSequenceNumber", SeqNum} | Acc]).
-nrf3(#{"subscriptionId" := SubIds} = M, Acc) ->
-	nrf4(M, [{"subscriptionId", {array, SubIds}} | Acc]).
-nrf4(#{"nodeFunctionality" := NF} = M, Acc) ->
-	nrf5(M, [{"nfConsumerIdentification",
-			{struct, [{"nodeFunctionality", NF}]}} | Acc]).
-nrf5(#{"serviceRating" := ServiceRating}, Acc) ->
-	Acc1 = [{"serviceRating", {array, struct_service_rating(ServiceRating)}} | Acc],
-	{struct, Acc1}.
+nrf1(#{"invocationTimeStamp" := TS,
+		"invocationSequenceNumber" := SeqNum,
+		"subscriptionId" := SubIds,
+		"nodeFunctionality" := NF,
+		"serviceRating" := ServiceRating}) ->
+	{struct, [{"invocationTimeStamp", TS},
+			{"invocationSequenceNumber", SeqNum},
+			{"subscriptionId", {array, SubIds}},
+			{"nfConsumerIdentification",
+					{struct, [{"nodeFunctionality", NF}]}},
+			{"serviceRating",
+					{array, struct_service_rating(ServiceRating)}}]}.
 %% @hidden
-nrf([{"invocationTimeStamp", TS} | T], Acc) ->
-	nrf(T, Acc#{"invocationTimeStamp" => TS});
-nrf([{"oneTimeEvent", OneTimeEvent} | T], Acc)
+nrf1([{"invocationTimeStamp", TS} | T], Acc) ->
+	nrf1(T, Acc#{"invocationTimeStamp" => TS});
+nrf1([{"oneTimeEvent", OneTimeEvent} | T], Acc)
 		when is_boolean(OneTimeEvent) ->
-	nrf(T, Acc#{"oneTimeEvent" => OneTimeEvent});
-nrf([{"oneTimeEventType", EventType} | T], Acc) ->
-	nrf(T, Acc#{"oneTimeEventType" => EventType});
-nrf([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
-	nrf(T, Acc#{"invocationSequenceNumber" => SeqNum});
-nrf([{"subscriptionId", SubscriptionIds} | T], Acc) ->
-	nrf(T, subscriptionId_map(SubscriptionIds, Acc));
-nrf([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
-	nrf(T, Acc#{"nodeFunctionality" => NF});
-nrf([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
-	nrf(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
-nrf([_H | T], Acc) ->
-	nrf(T, Acc);
-nrf([], Acc) ->
+	nrf1(T, Acc#{"oneTimeEvent" => OneTimeEvent});
+nrf1([{"oneTimeEventType", EventType} | T], Acc) ->
+	nrf1(T, Acc#{"oneTimeEventType" => EventType});
+nrf1([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
+	nrf1(T, Acc#{"invocationSequenceNumber" => SeqNum});
+nrf1([{"subscriptionId", SubscriptionIds} | T], Acc) ->
+	nrf1(T, subscriptionId_map(SubscriptionIds, Acc));
+nrf1([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
+	nrf1(T, Acc#{"nodeFunctionality" => NF});
+nrf1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
+	nrf1(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
+nrf1([_H | T], Acc) ->
+	nrf1(T, Acc);
+nrf1([], Acc) ->
 	Acc.
 
 %% @hidden
