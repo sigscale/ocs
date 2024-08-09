@@ -216,7 +216,7 @@ class subAdd extends PolymerElement {
 						<paper-tooltip
 								for="addSubscriberAkak"
 								offset="0">
-							Add a service authentication Akak
+							Add an AKA K value (32 hex chars)
 						</paper-tooltip>
 						<paper-input
 								id="addSubscriberAkaOpc"
@@ -231,7 +231,7 @@ class subAdd extends PolymerElement {
 						<paper-tooltip
 								for="addSubscriberAkaOpc"
 								offset="0">
-							Add a service authentication Aka Opc
+							Add an AKA OPc value (32 hex chars)
 						</paper-tooltip>
 						<div class="buttons">
 							<paper-button
