@@ -1,3 +1,11 @@
+2024-08-12  Vance Shipley <vances@sigscale.org>
+
+	* update nrf swaggerhub url
+	* optionally manage quota per upf (OCS-720)
+	* 5g data connectivity service specific information (OCS-717)
+	* quota thresholds on nrf producer (OCS-715)
+	* improve tooltips for k/opc
+
 2024-07-26  Vance Shipley <vances@sigscale.org>
 
 	* correct ignoring zero usu on commit 35c6761

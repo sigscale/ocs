@@ -1,3 +1,10 @@
+August 12, 2024
+---------------
+	- Configuration option to manage quota per upf
+	- 5G data connectivity service specific information
+	- Quota thresholds on Re interface (Nrf)
+	- Improve tooltips for K and OPc
+
 July 26, 2024
 -------------
 	- Ignore explicitly zero USU values
