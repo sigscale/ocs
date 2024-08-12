@@ -2886,9 +2886,9 @@ get_session_id2(SessionAttributes, NrfRef) ->
 	get_session_id3(NrfRef,
 			lists:keyfind(upfid, 1, SessionAttributes)).
 %% @hidden
-get_session_id2(NrfRef, false) ->
+get_session_id3(NrfRef, false) ->
 	[NrfRef];
-get_session_id2(NrfRef, UpfId) ->
+get_session_id3(NrfRef, UpfId) ->
 	[NrfRef, UpfId].
 
 -spec split_by_price(Buckets) -> Result

@@ -510,10 +510,10 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 	{Map5, SessionAttributes} = case maps:find("uPFID", H) of
 		{ok, UpfId} ->
 			case application:get_env(quota_per_upf) of
-				true ->
+				{ok, true} ->
 					{Map4#{"uPFID" => UpfId},
-							[{nrf_ref, RatingDataRef}, {upfid, UpdId}]};
-				false ->
+							[{nrf_ref, RatingDataRef}, {upfid, UpfId}]};
+				{ok, false} ->
 					{Map4, [{nrf_ref, RatingDataRef}]}
 			end;
 		_ ->
