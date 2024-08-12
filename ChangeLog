@@ -1,5 +1,7 @@
 2024-08-12  Vance Shipley <vances@sigscale.org>
 
+	* document quota threshold configuration
+	* correct valid units application variable names
 	* update nrf swaggerhub url
 	* optionally manage quota per upf (OCS-720)
 	* 5g data connectivity service specific information (OCS-717)
