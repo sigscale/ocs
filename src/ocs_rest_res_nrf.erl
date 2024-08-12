@@ -545,7 +545,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_volume) of
+			RatedMap1 = case application:get_env(nrf_valid_volume) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
@@ -557,7 +557,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_time) of
+			RatedMap1 = case application:get_env(nrf_valid_time) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
@@ -569,7 +569,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_unit) of
+			RatedMap1 = case application:get_env(nrf_valid_unit) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
@@ -603,7 +603,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_volume) of
+			RatedMap1 = case application:get_env(nrf_valid_volume) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
@@ -615,7 +615,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_time) of
+			RatedMap1 = case application:get_env(nrf_valid_time) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
@@ -627,7 +627,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
-			RatedMap1 = case application:get_env(nrf_quota_unit) of
+			RatedMap1 = case application:get_env(nrf_valid_unit) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
 					RatedMap#{"validUnits" => Threshold};
 				_ ->
