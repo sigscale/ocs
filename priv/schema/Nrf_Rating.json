@@ -1,7 +1,7 @@
 {
   "openapi" : "3.0.0",
   "info" : {
-    "version" : "1.0.0",
+    "version" : "1.1.0",
     "title" : "Nrf_Rating",
     "description" : "## RF Rating Service\nThe RF performs both monetary and non-monetary unit determination (rating) for all charging levels (bearer, session and service) before and after service delivery (prepaid and postpaid) and based on dynamic credit limit update. Rating considers cross-product, cross-channel, counter-based, rental-based and recharge-based discounts, benefits and allowances. Rating may be performed based on dimensions of volume, time and events.\n\nRate requests include various rating parameters such as service identifier, subscriber reference, network identification, user location, service usage time, transferred data volume, etc. The rate request may contain multiple service identifiers that reflect the list of active services contained in the context handled by the rating service consumer (CHF/OCF).\n\nThe RF determines the applicable price or tariff model and returns it to the NF consumer (CHF/OCF), according to rate requests, subscriber contractual terms, the rating rules configured by operators and billing related information. Note that in case of multiple service requests received, the RF may apply a special price or tariff which can be different to the price or tariff applied to the related services handled separately. For example a VoLTE call may have the data volume associated with the bearer usage free of charge while rating the time associated with the voice session.\n\nTo support the online rating process, the RF needs counters. The counters may be maintained by the RF or by the ABMF. In the former case counters are optional in rating requests.\n\nSee\\:\n  - [3GPP TS 32.296 Online Charging System (OCS) - Applications and Interfaces](https://www.3gpp.org/ftp/Specs/archive/32_series/32.296)\n  - [3GPP TS 32.290 Services, Operations and Procedures of Charging using Service Based Interface (SBI)](https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=290)\n  - [3GPP TS 32.291 5G System, Charging Service; Stage 3](https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=291)",
     "license" : {
@@ -21,9 +21,6 @@
         "description" : "apiRoot as defined in subclause 4.4 of 3GPP TS 29.501."
       }
     }
-  }, {
-    "description" : "SwaggerHub API Auto Mocking",
-    "url" : "https://virtserver.swaggerhub.com/SigScale/nrf-rating/1.0.0"
   } ],
   "security" : [ { }, {
     "oAuth2ClientCredentials" : [ "nrf-rating" ]
@@ -982,7 +979,10 @@
         "description" : "The function of the node.",
         "anyOf" : [ {
           "type" : "string",
-          "enum" : [ "CHF", "OCF" ]
+          "enum" : [ "CHF", "OC" ]
+        }, {
+          "type" : "string",
+          "enum" : [ "AMF", "SMF", "SMSF", "PGW_C_SMF", "SGW", "I_SMF", "ePDG", "CEF", "NEF", "MnS_Producer", "SGSN", "V_SMF", "5G_DDNMF", "IMS_Node", "EES", "PCF", "UDM", "UPF" ]
         }, {
           "type" : "string"
         } ]
@@ -1070,8 +1070,12 @@
             "allOf" : [ {
               "$ref" : "#/components/schemas/ConsumedUnit"
             } ]
+          },
+          "uPFID" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/NfInstanceId"
           }
-        }
+        },
+        "required" : [ "serviceContextId", "requestSubType" ]
       },
       "ServiceRatingResult" : {
         "type" : "object",
@@ -1174,6 +1178,9 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             }
           },
+          "uPFID" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/NfInstanceId"
+          },
           "resultCode" : {
             "anyOf" : [ {
               "type" : "string",
@@ -1218,7 +1225,7 @@
         }
       },
       "ServiceContextId" : {
-        "description" : "A unique identifier of the service specific document that applies to the request. This is an identifier allocated by the service provider/operator, by the service element manufacturer or by a standardization body and MUST uniquely identify a given service specific document. For offline charging, this identifies the service specific document (\"middle tier\" TS) on which associated CDRs should based.\nThe format of the Service-Context-Id is':'\n[extensions.MNC.MCC.Release.]<service-context>@domain\nThe 3GPP specific values for <service-context@domain include':'\n  32251@3gpp.org for PS charging\n  32260@3gpp.org for IMS charging\n  32274@3gpp.org for SMS service charging\n  32275@3gpp.org for MMTel service charging\n  32276@3gpp.org for VCS charging\n",
+        "description" : "A unique identifier of the service specific document that applies to the request. This is an identifier allocated by the service provider/operator, by the service element manufacturer or by a standardization body and MUST uniquely identify a given service specific document. For offline charging, this identifies the service specific document (\"middle tier\" TS) on which associated CDRs should based.\nThe format of the Service-Context-Id is':'\n[extensions.MNC.MCC.Release.]<service-context>@domain\nThe 3GPP specific values for <service-context@domain include':'\n  32251@3gpp.org for PS charging\n  32260@3gpp.org for IMS charging\n  32274@3gpp.org for SMS service charging\n  32275@3gpp.org for MMTel service charging\n  32276@3gpp.org for VCS charging\n  32255@3gpp.org for 5G data connectivity charging\n",
         "type" : "string"
       },
       "ServiceInformation" : {
@@ -1226,31 +1233,36 @@
         "oneOf" : [ {
           "description" : "PS Domain Charging Information",
           "allOf" : [ {
-            "$ref" : "#/components/schemas/PsInformation"
+            "$ref" : "#/components/schemas/PsChargingInformation"
           } ]
         }, {
           "description" : "SMS Charging Information",
           "allOf" : [ {
-            "$ref" : "#/components/schemas/SmsInformation"
+            "$ref" : "#/components/schemas/SmsChargingInformation"
           } ]
         }, {
           "description" : "MMS Charging Information",
           "allOf" : [ {
-            "$ref" : "#/components/schemas/MmsInformation"
+            "$ref" : "#/components/schemas/MmsChargingInformation"
           } ]
         }, {
           "description" : "IMS Charging Information",
           "allOf" : [ {
-            "$ref" : "#/components/schemas/ImsInformation"
+            "$ref" : "#/components/schemas/ImsChargingInformation"
           } ]
         }, {
           "description" : "Voice Call Charging Information",
           "allOf" : [ {
-            "$ref" : "#/components/schemas/VcsInformation"
+            "$ref" : "#/components/schemas/VcsChargingInformation"
+          } ]
+        }, {
+          "description" : "5G Data Connectivity",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/PDUSessionChargingInformation"
           } ]
         } ]
       },
-      "PsInformation" : {
+      "PsChargingInformation" : {
         "description" : "Packet Switched (PS) domain charging (3GPP TS 32.251).",
         "type" : "object",
         "properties" : {
@@ -1289,7 +1301,7 @@
         },
         "required" : [ "sgsnMccMnc" ]
       },
-      "SmsInformation" : {
+      "SmsChargingInformation" : {
         "description" : "Short Message Service (SMS) charging (3GPP TS 32.274).",
         "type" : "object",
         "properties" : {
@@ -1326,7 +1338,7 @@
           }
         }
       },
-      "MmsInformation" : {
+      "MmsChargingInformation" : {
         "description" : "Multimedia Messaging Service (MMS) charging (3GPP TS 32.270).",
         "type" : "object",
         "properties" : {
@@ -1425,7 +1437,7 @@
           }
         }
       },
-      "ImsInformation" : {
+      "ImsChargingInformation" : {
         "description" : "IP Multimedia Subsystem (IMS) charging (3GPP TS 32.260).",
         "type" : "object",
         "properties" : {
@@ -1451,7 +1463,7 @@
         },
         "required" : [ "nodeFunctionality" ]
       },
-      "VcsInformation" : {
+      "VcsChargingInformation" : {
         "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
         "type" : "object",
         "properties" : {
@@ -1520,9 +1532,129 @@
           }
         }
       },
+      "PDUSessionChargingInformation" : {
+        "description" : "5G data connectivity domain charging (3GPP TS 32.255).",
+        "type" : "object",
+        "properties" : {
+          "chargingId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ChargingId"
+          },
+          "userInformation" : {
+            "$ref" : "#/components/schemas/UserInformation"
+          },
+          "userLocationinfo" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
+          },
+          "pduSessionInformation" : {
+            "$ref" : "#/components/schemas/PDUSessionInformation"
+          }
+        }
+      },
+      "PDUSessionInformation" : {
+        "type" : "object",
+        "properties" : {
+          "networkSlicingInfo" : {
+            "$ref" : "#/components/schemas/NetworkSlicingInfo"
+          },
+          "pduSessionID" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PduSessionId"
+          },
+          "pduType" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PduSessionType"
+          },
+          "servingNetworkFunctionID" : {
+            "$ref" : "#/components/schemas/ServingNetworkFunctionID"
+          },
+          "ratType" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatType"
+          },
+          "dnnId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Dnn"
+          },
+          "chargingCharacteristics" : {
+            "type" : "string",
+            "pattern" : "^[0-9a-fA-F]{1,4}$"
+          },
+          "startTime" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+          },
+          "stopTime" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+          },
+          "pduAddress" : {
+            "$ref" : "#/components/schemas/PDUAddress"
+          },
+          "subscribedQoSInformation" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/SubscribedDefaultQos"
+          },
+          "authorizedSessionAMBR" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ambr"
+          },
+          "subscribedSessionAMBR" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ambr"
+          },
+          "servingCNPlmnId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+          }
+        },
+        "required" : [ "pduSessionID", "dnnId" ]
+      },
+      "NetworkSlicingInfo" : {
+        "type" : "object",
+        "properties" : {
+          "sNSSAI" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Snssai"
+          }
+        },
+        "required" : [ "sNSSAI" ]
+      },
+      "PDUAddress" : {
+        "type" : "object",
+        "properties" : {
+          "pduIPv4Address" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv4Addr"
+          },
+          "pduIPv6AddresswithPrefix" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv6Addr"
+          },
+          "pduAddressprefixlength" : {
+            "type" : "integer"
+          },
+          "iPv4dynamicAddressFlag" : {
+            "type" : "boolean"
+          },
+          "iPv6dynamicPrefixFlag" : {
+            "type" : "boolean"
+          },
+          "addIpv6AddrPrefixes" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv6Prefix"
+          },
+          "addIpv6AddrPrefixList" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv6Prefix"
+            }
+          }
+        }
+      },
+      "ServingNetworkFunctionID" : {
+        "type" : "object",
+        "properties" : {
+          "servingNetworkFunctionInformation" : {
+            "$ref" : "#/components/schemas/NFIdentification"
+          },
+          "aMFId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/AmfId"
+          }
+        },
+        "required" : [ "servingNetworkFunctionInformation" ]
+      },
       "UserInformation" : {
         "type" : "object",
         "properties" : {
+          "servedGPSI" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Gpsi"
+          },
           "servedPEI" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Pei"
           }
