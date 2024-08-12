@@ -702,6 +702,8 @@ Rating configuration options:
 		<dd>Centralized Unit Determination: minimum number of messages reserved. (default: 1)</dd>
 	<dt>charge_overflow</dt>
 		<dd>Leave negative balance Bucket when usage over credit. (default: true)</dd>
+	<dt>quota_per_upf</dt>
+		<dd>5G data connectivity charging manages a quota for each UPF. (default: true)</dd>
 </dl>
 
 ===Logging===

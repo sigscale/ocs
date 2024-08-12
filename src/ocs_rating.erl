@@ -2165,7 +2165,7 @@ session_attributes(Attributes) ->
 		Reserve :: non_neg_integer(),
 		ServiceId :: non_neg_integer() | undefined,
 		ChargingKey :: non_neg_integer() | undefined,
-		SessionId :: string() | binary(),
+		SessionId :: [tuple()],
 		Buckets :: [#bucket{}],
 		Result :: {Charged, Reserved, NewBuckets},
 		Charged :: non_neg_integer(),
@@ -2882,8 +2882,14 @@ get_session_id1(_SessionAttributes, SessionId) ->
 %% @hidden
 get_session_id2(SessionAttributes, false) ->
 	session_attributes(SessionAttributes);
-get_session_id2(_SessionAttributes, SessionId) ->
-	[SessionId].
+get_session_id2(SessionAttributes, NrfRef) ->
+	get_session_id3(NrfRef,
+			lists:keyfind(upfid, 1, SessionAttributes)).
+%% @hidden
+get_session_id2(NrfRef, false) ->
+	[NrfRef];
+get_session_id2(NrfRef, UpfId) ->
+	[NrfRef, UpfId].
 
 -spec split_by_price(Buckets) -> Result
 	when
@@ -3054,7 +3060,7 @@ reserve_amount(messages = _Units, UnitSize) ->
 		Buckets :: [#bucket{}],
 		ServiceId :: non_neg_integer() | undefined,
 		ChargingKey :: non_neg_integer() | undefined,
-		SessionId :: string() | binary().
+		SessionId :: [tuple()].
 %% @doc Refund unused reservations.
 %% @private
 refund(ServiceId, ChargingKey, SessionId, Buckets) ->

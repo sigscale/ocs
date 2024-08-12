@@ -507,31 +507,42 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 	end,
 	ServiceType = service_type(SCI),
 	TS = calendar:universal_time(),
-	SessionAttributes = [{nrf_ref, RatingDataRef}],
+	{Map5, SessionAttributes} = case maps:find("uPFID", H) of
+		{ok, UpfId} ->
+			case application:get_env(quota_per_upf) of
+				true ->
+					{Map4#{"uPFID" => UpfId},
+							[{nrf_ref, RatingDataRef}, {upfid, UpdId}]};
+				false ->
+					{Map4, [{nrf_ref, RatingDataRef}]}
+			end;
+		_ ->
+			{Map4, [{nrf_ref, RatingDataRef}]}
+	end,
 	case ocs_rating:rate(nrf, ServiceType, ServiceId, ChargingKey,
 			MCCMNC, get_subscriber(SubscriptionIds), TS, undefined, undefined,
 			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _, {octets, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_volume) of
@@ -543,7 +554,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_time) of
@@ -555,7 +566,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_unit) of
@@ -566,30 +577,30 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			end,
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {octets, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_volume) of
@@ -601,7 +612,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {seconds, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_time) of
@@ -613,7 +624,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _}
 				when Amount > 0 ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(nrf_quota_unit) of
@@ -624,11 +635,11 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			end,
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, _} ->
-			RatedMap = Map4#{"resultCode" => "SUCCESS",
+			RatedMap = Map5#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
-			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
+			RatedMap = Map5#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{error, Reason} ->
