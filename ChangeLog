@@ -1,5 +1,6 @@
 2024-08-12  Vance Shipley <vances@sigscale.org>
 
+	* include upf id and valid units in response codec
 	* correct getting ocs application variables from handler in inets
 	* document quota threshold configuration
 	* correct valid units application variable names
