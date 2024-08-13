@@ -776,13 +776,25 @@ struct_service_rating([H | T], Acc) ->
 		error ->
 			Acc5
 	end,
-	Acc7 = case maps:find("resultCode", H) of
-		{ok, RC} ->
-			[{"resultCode", RC} | Acc6];
+	Acc7 = case maps:find("validUnits", H) of
+		{ok, VU} ->
+			[{"validUnits", VU} | Acc6];
 		error ->
 			Acc6
 	end,
-	struct_service_rating(T, [{struct, Acc7} | Acc]);
+	Acc8 = case maps:find("uPFID", H) of
+		{ok, UPFID} ->
+			[{"uPFID", UPFID} | Acc7];
+		error ->
+			Acc7
+	end,
+	Acc9 = case maps:find("resultCode", H) of
+		{ok, RC} ->
+			[{"resultCode", RC} | Acc9];
+		error ->
+			Acc9
+	end,
+	struct_service_rating(T, [{struct, Acc9} | Acc]);
 struct_service_rating([], Acc) ->
 	lists:reverse(Acc).
 
