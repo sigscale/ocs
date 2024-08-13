@@ -790,9 +790,9 @@ struct_service_rating([H | T], Acc) ->
 	end,
 	Acc9 = case maps:find("resultCode", H) of
 		{ok, RC} ->
-			[{"resultCode", RC} | Acc9];
+			[{"resultCode", RC} | Acc8];
 		error ->
-			Acc9
+			Acc8
 	end,
 	struct_service_rating(T, [{struct, Acc9} | Acc]);
 struct_service_rating([], Acc) ->
