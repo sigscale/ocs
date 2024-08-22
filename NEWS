@@ -1,3 +1,8 @@
+August 22, 2024
+---------------
+	- DIAMETER disconnect cause changed to REBOOTING
+	- PDP-Address in Nrf PS service specific information
+
 August 12, 2024
 ---------------
 	- Configuration option to manage quota per upf

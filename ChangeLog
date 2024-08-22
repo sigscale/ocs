@@ -1,3 +1,8 @@
+2024-08-22  Vance Shipley <vances@sigscale.org>
+
+	* close diameter service before transport; changes dpr disconnect-reason from goaway to rebooting
+	* pdp address in ps service specific information (OCS-721 #done)
+
 2024-08-12  Vance Shipley <vances@sigscale.org>
 
 	* include upf id and valid units in response codec
