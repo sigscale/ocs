@@ -302,13 +302,13 @@ handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason1, _StateName,  #statedata{transport_ref = TransRef,
+terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port} = _StateData) ->
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
+	ok = diameter:stop_service(SvcName),
 	case diameter:remove_transport(SvcName, TransRef) of
 		ok ->
-			ocs_log:acct_close(),
-			diameter:stop_service(SvcName);
+			ocs_log:acct_close();
 		{error, Reason1} ->
 			error_logger:error_report(["Failed to remove transport",
 					{module, ?MODULE}, {error, Reason1}])
