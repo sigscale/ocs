@@ -3,26 +3,20 @@
 ## Install SigScale package repository configuration:
 
 ### Ubuntu 22.04 LTS (jammy)
-```bash
-curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-jammy/sigscale-release_1.4.5-1+ubuntu22.04_all_46d1cecfa87e978a64becc2cb0081fc3.deb
-sudo dpkg -i sigscale-release_*.deb
-sudo apt update
-```
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-jammy/sigscale-release_1.4.5-1+ubuntu22.04_all_46d1cecfa87e978a64becc2cb0081fc3.deb
+	sudo dpkg -i sigscale-release_*.deb
+	sudo apt update
 
 ### Ubuntu 20.04 LTS (focal)
-```bash
-curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-focal/sigscale-release_1.4.5-1+ubuntu20.04_all_047230675e88d1274fe97092eed30b87.deb
-sudo dpkg -i sigscale-release_*.deb
-sudo apt update
-```
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-focal/sigscale-release_1.4.5-1+ubuntu20.04_all_047230675e88d1274fe97092eed30b87.deb
+	sudo dpkg -i sigscale-release_*.deb
+	sudo apt update
 
 ## Install SigScale OCS:
-```bash
-sudo apt install ocs
-sudo systemctl enable ocs
-sudo systemctl start ocs
-sudo systemctl status ocs
-```
+	sudo apt install ocs
+	sudo systemctl enable ocs
+	sudo systemctl start ocs
+	sudo systemctl status ocs
 
 Contact <support@sigscale.com> for further assistance.
 
