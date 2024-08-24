@@ -1,8 +1,9 @@
 # [SigScale](http://www.sigscale.org) Online Charging System (OCS)
 
 Prebuilt packages available for [Ubuntu](https://raw.githubusercontent.com/sigscale/ocs/master/README.ubuntu),
-[Debian](https://raw.githubusercontent.com/sigscale/ocs/master/README.debian)
-and [Docker](https://raw.githubusercontent.com/sigscale/ocs/master/README.docker).
+[Debian](https://raw.githubusercontent.com/sigscale/ocs/master/README.debian),
+[Docker](https://raw.githubusercontent.com/sigscale/ocs/master/README.docker)
+and [Kubernetes](https://raw.githubusercontent.com/sigscale/ocs/master/README.kubernetes).
 
 [FAQ](https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833857/FAQ+on+OCS "FAQ")
 [HOWTO](https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833890/How-To+with+OCS "HOWTO")
