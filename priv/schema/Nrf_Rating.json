@@ -2082,9 +2082,14 @@
         "properties" : {
           "cgi" : {
             "$ref" : "#/components/schemas/Cgi"
+          },
+          "sai" : {
+            "$ref" : "#/components/schemas/Sai"
+          },
+          "rai" : {
+            "$ref" : "#/components/schemas/Rai"
           }
-        },
-        "required" : [ "cgi" ]
+        }
       },
       "Cgi" : {
         "type" : "object",
@@ -2092,22 +2097,52 @@
           "plmnId" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
           },
+          "lac" : {
+            "$ref" : "#/components/schemas/Lac"
+          },
           "utraCellId" : {
             "$ref" : "#/components/schemas/UtraCellId"
-          },
-          "lai" : {
-            "$ref" : "#/components/schemas/Lai"
           }
         },
         "required" : [ "plmnId", "utraCellId" ]
       },
       "UtraCellId" : {
         "type" : "string",
-        "pattern" : "^[A-Fa-f0-9]{8}$"
+        "pattern" : "^[A-Fa-f0-9]{4}$"
       },
-      "Lai" : {
+      "Lac" : {
         "type" : "string",
         "pattern" : "^[A-Fa-f0-9]{4}$"
+      },
+      "Sai" : {
+        "type" : "object",
+        "properties" : {
+          "plmnId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+          },
+          "lac" : {
+            "$ref" : "#/components/schemas/Lac"
+          },
+          "sac" : {
+            "type" : "string",
+            "pattern" : "^[A-Fa-f0-9]{4}$"
+          }
+        }
+      },
+      "Rai" : {
+        "type" : "object",
+        "properties" : {
+          "plmnId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+          },
+          "lac" : {
+            "$ref" : "#/components/schemas/Lac"
+          },
+          "rac" : {
+            "type" : "string",
+            "pattern" : "^[A-Fa-f0-9]{4}$"
+          }
+        }
       }
     }
   }
