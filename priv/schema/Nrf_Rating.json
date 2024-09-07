@@ -1307,6 +1307,9 @@
             }, {
               "type" : "string"
             } ]
+          },
+          "userLocationinfo" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
           }
         },
         "required" : [ "sgsnMccMnc" ]
@@ -1345,6 +1348,9 @@
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
+          },
+          "userLocationinfo" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
           }
         }
       },
@@ -1469,6 +1475,9 @@
           },
           "visitedNetworkIdentifier" : {
             "type" : "string"
+          },
+          "userLocationinfo" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
           }
         },
         "required" : [ "nodeFunctionality" ]
