@@ -2595,6 +2595,9 @@ plmn("45708" ++ Rest) ->
 %% Laos P.D.R., UNITEL/LAT
 plmn("45703" ++ Rest) ->
 	{"457", "03", Rest};
+%% Laos P.D.R., Best
+plmn("45707" ++ Rest) ->
+	{"457", "07", Rest};
 %% Latvia, Bite
 plmn("24705" ++ Rest) ->
 	{"247", "05", Rest};
