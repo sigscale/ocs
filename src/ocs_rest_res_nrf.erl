@@ -244,9 +244,9 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		Body :: iolist(),
 		Status :: 200 | 400 | 404 | 500,
 		Problem :: map().
-%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/final'.
+%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/release'.
 %%
-%%		Rate an final Nrf Request.
+%%		Rate a final Nrf Request.
 %%
 release_nrf(ModData, RatingDataRef, NrfRequest) ->
 	case authorize_rating(ModData) of
