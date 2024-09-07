@@ -1309,7 +1309,7 @@
             } ]
           },
           "userLocationinfo" : {
-            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
+            "$ref" : "#/components/schemas/UserLocation"
           }
         },
         "required" : [ "sgsnMccMnc" ]
@@ -1350,7 +1350,7 @@
             } ]
           },
           "userLocationinfo" : {
-            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
+            "$ref" : "#/components/schemas/UserLocation"
           }
         }
       },
@@ -1477,7 +1477,7 @@
             "type" : "string"
           },
           "userLocationinfo" : {
-            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
+            "$ref" : "#/components/schemas/UserLocation"
           }
         },
         "required" : [ "nodeFunctionality" ]
@@ -2064,6 +2064,50 @@
         }, {
           "type" : "string"
         } ]
+      },
+      "UserLocation" : {
+        "allOf" : [ {
+          "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/UserLocation"
+        }, {
+          "type" : "object",
+          "properties" : {
+            "utraLocation" : {
+              "$ref" : "#/components/schemas/UtraLocation"
+            }
+          }
+        } ]
+      },
+      "UtraLocation" : {
+        "type" : "object",
+        "properties" : {
+          "cgi" : {
+            "$ref" : "#/components/schemas/Cgi"
+          }
+        },
+        "required" : [ "cgi" ]
+      },
+      "Cgi" : {
+        "type" : "object",
+        "properties" : {
+          "plmnId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+          },
+          "utraCellId" : {
+            "$ref" : "#/components/schemas/UtraCellId"
+          },
+          "lai" : {
+            "$ref" : "#/components/schemas/Lai"
+          }
+        },
+        "required" : [ "plmnId", "utraCellId" ]
+      },
+      "UtraCellId" : {
+        "type" : "string",
+        "pattern" : "^[A-Fa-f0-9]{8}$"
+      },
+      "Lai" : {
+        "type" : "string",
+        "pattern" : "^[A-Fa-f0-9]{4}$"
       }
     }
   }
