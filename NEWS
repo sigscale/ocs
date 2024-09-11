@@ -1,3 +1,9 @@
+September 11, 2024
+------------------
+	- Update READMEs with new package repositories
+	- Nrf_Rating OAS v1.1.2
+	- Nrf server handles out-of-credit updates
+
 August 22, 2024
 ---------------
 	- DIAMETER disconnect cause changed to REBOOTING

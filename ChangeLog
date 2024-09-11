@@ -1,3 +1,15 @@
+2024-09-11  Vance Shipley <vances@sigscale.org>
+
+	* handle all rating results in nrf callback
+	* extend user location info with utra
+	* add utra location in nrf
+	* add plmn mcc, mnc for best
+	* user location in ims, sms and ps charging information
+	* remove markdown markup from install readme
+	* add kubernetes package readme to main
+	* helm chart instructions
+	* use new package repositories
+
 2024-08-22  Vance Shipley <vances@sigscale.org>
 
 	* close diameter service before transport; changes dpr disconnect-reason from goaway to rebooting
