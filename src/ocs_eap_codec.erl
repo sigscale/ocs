@@ -456,7 +456,7 @@ aka_attr(<<?AT_NEXT_REAUTH_ID, L1, _/bytes>> = B, Acc) ->
 	aka_attr(Rest, Acc#{?AT_NEXT_REAUTH_ID => NextReauthId});
 aka_attr(<<?AT_CHECKCODE, 1, _:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => <<>>});
-aka_attr(<<?AT_CHECKCODE, 5, _:16, CheckCode:16/bytes, Rest/bytes>>, Acc) ->
+aka_attr(<<?AT_CHECKCODE, 6, _:16, CheckCode:20/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_CHECKCODE, 9, _:16, CheckCode:32/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
