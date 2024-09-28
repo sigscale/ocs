@@ -16,12 +16,15 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for the 3GPP DIAMETER Ro in the {@link //ocs. ocs} application.
+%%% 	module receives {@link //diameter. diameter} messages for the
+%%% 	3GPP Ro application and interworks with a rating function (RF)
+%%% 	over the 3GPP Re interface using the Nrf Open API.
 %%%
 %%% @reference 3GPP TS 29.299 Diameter charging applications
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
 %%% 	RFC4006 - DIAMETER Credit-Control Application </a>
+%%% @reference <a href="https://app.swaggerhub.com/apis/SigScale/nrf-rating">
+%%% 	Nrf_Rating</a>
 %%%
 -module(ocs_diameter_3gpp_ro_nrf_app_cb).
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
@@ -398,7 +401,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		SubscriberIds, OHost, _, ORealm, _, IpAddress, Port, _) ->
+		SubscriberIds, OHost, _, ORealm, _, IpAddress, Port, _Class) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
@@ -1945,9 +1948,9 @@ service_type(Id) ->
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
 		Option :: atom(),
-		Result :: term().
+		Result :: term() | undefined.
 %% @doc Get the Nrf endpoint uri.
-get_option({IpAddress, Port}, Option)
+get_option({IpAddress, Port} = _ServiceName, Option)
 		when is_atom(Option) ->
 	{ok, Configurations} = application:get_env(ocs, diameter),
 	{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
@@ -2366,7 +2369,7 @@ charge1(Subscriber, SessionId, Flag, [#{rg := RG, si := SI, currency := Currency
 		units := Units, unitSize := UnitSize, unitPrice := UnitPrice, debits := Debits,
 		reserves := Reserves} | T], Acc, ResultCode1) ->
 case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG, [], [], [], Debits, Reserves, []) of
-%	case ocs_rating:charge(diameter, Subscriber, SI, [],
+%	case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG,
 %			UnitSize, Units, Currency, UnitPrice, undefined,
 %			RG, Flag, Debits,
 %			Reserves, [{'Session-Id', SessionId}]) of
