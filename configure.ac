@@ -104,6 +104,8 @@ AC_LANG_PUSH([Erlang])
 AC_ERLANG_CHECK_LIB([kernel], [], [AC_MSG_ERROR([kernel was not found!])])
 AC_ERLANG_CHECK_LIB([stdlib], [], [AC_MSG_ERROR([stdlib was not found!])])
 AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
+AM_CONDITIONAL([MAKE_TAR_EXTRA_FILES],
+		[AS_VERSION_COMPARE([$ERLANG_LIB_VER_sasl], ["4.0"], [false], [true], [true])])
 AC_ERLANG_CHECK_LIB([mnesia], [], [AC_MSG_ERROR([mnesia was not found!])])
 AC_ERLANG_CHECK_LIB([crypto], [], [AC_MSG_ERROR([crypto was not found!])])
 AC_ERLANG_CHECK_LIB([asn1], [], [AC_MSG_ERROR([asn1 was not found!])])
@@ -154,6 +156,6 @@ AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
 		priv/mibs/Makefile mibs/Makefile priv/www/Makefile priv/examples/Makefile
 		priv/www/package.json
-		priv/schema/Makefile
-		test/Makefile $PACKAGE_NAME.rel sys.config ebin/ocs.appup])
+		priv/schema/Makefile test/Makefile
+		sys.config $PACKAGE_NAME.rel ebin/$PACKAGE_NAME.appup])
 
