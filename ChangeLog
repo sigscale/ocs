@@ -1,3 +1,14 @@
+2024-09-28  Vance Shipley <vances@sigscale.org>
+
+	* create subdirectories in make install
+	* port installation scripts from debian package
+	* include application upgrade files in release package
+	* refactor diameter options to support outbound connections
+	* change default eap method to aka (was aka')
+	* safely get active hubs
+	* correct typespec and description in diameter ro callback for nrf
+	* correct at_checkcode for eap-aka in codec
+
 2024-09-11  Vance Shipley <vances@sigscale.org>
 
 	* handle all rating results in nrf callback

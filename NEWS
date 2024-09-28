@@ -1,3 +1,11 @@
+September 28, 2024
+------------------
+	- Refactored OTP release handling
+	- Include application upgrade files in release package
+	- Refactor diameter options to support outbound connections
+	- Change default EAP method to AKA (was AKA')
+	- Correct AT_CHECKCODE for EAP-AKA
+
 September 11, 2024
 ------------------
 	- Update READMEs with new package repositories
