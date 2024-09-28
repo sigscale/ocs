@@ -756,18 +756,23 @@ DIAMETER services may be configured with the following (optional) configuration 
 		<dd>List of IP source addresses to be used.</dd>
 	<dt>'Auth-Application-Id'</dt>
 		<dd>List of IANA-assigned Application IDs. (default: [[5,16777250,16777264,16777265])</dd>
-	<dt>capx_timeout</dt>
-		<dd>Time for a transport to complete capabilities exchange. (default: 10000)</dd>
-	<dt>incoming_maxlen</dt>
-		<dd>Maximum of size of incoming Diameter messages. (default: 16777215)</dd>
-	<dt>pool_size</dt>
+	<dt><strike>capx_timeout</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{capx_timeout, Time}]}.</dd>
+	<dt><strike>incoming_maxlen</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{incoming_maxlen, Len}]}.</dd>
+	<dt><strike>pool_size</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{pool_size, Size}]}.</dd>
 		<dd>Poolsize of socket listeners.</dd>
-	<dt>watchdog_timer</dt>
-		<dd>TwInit value for watchdog timer.</dd>
-	<dt>transport_module</dt>
-		<dd>Transport module may be <tt>diameter_tcp | diameter_sctp</tt>. (default: diameter_tcp)</dd>
-	<dt>transport_config</dt>
-		<dd>Config argument in the transport module's `start/3' function. (default: [])</dd>
+	<dt><strike>watchdog_timer</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{watchdog_timer, Time}]}.</dd>
+	<dt><strike>transport_module</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{transport_module, diameter_tcp}]}.</dd>
+	<dt><strike>transport_config</strike></dt>
+		<dd>Deprecated. Equivalent to {listen, [{transport_config, Options}]}.</dd>
+	<dt>listen</dt>
+		<dd>Transport options ([diameter:transport_opt()]) for a server listening for inbound connections.</dd>
+	<dt>connect</dt>
+		<dd>Transport options ([diameter:transport_opt()]) for a client making an outbound connection to a server.</dd>
 	<dt>eap_method_prefer</dt>
 		<dd>The EAP method which will be offered first. (default: akap)</dd>
 	<dt>eap_method_order</dt>
@@ -876,12 +881,17 @@ following environment variables:
                {acct,
                      [{{0,0,0,0}, 1813, []}]}]},
       {diameter,
-               [{auth,
-                      [{{0,0,0,0}, 3868,
-                             [{eap_method_prefer, pwd},
-                             {eap_method_order, [pwd, ttls]}]}]},
-               {acct,
-                     [{{0,0,0,0}, 3869, []}]}]},
+               [{acct,
+                      [{{0,0,0,0}, 3868, []}]},
+               {auth,
+                     [{{0,0,0,0}, 3869,
+                           [{eap_method_prefer, aka},
+                           {eap_method_order, [aka, akap, pwd]}]},
+                     {{0,0,0,0}, 0,
+                           [{connect,
+                                 [{raddr, {172,16,1,2}},
+                                 {rport, 3868}]}]}]}]},
+		{hss_realm, "epc.mnc001.mcc001.3gppnetwork.org"},
       {min_reserve_octets, 5000000},
       {min_reserve_seconds, 60},
       {min_reserve_messages, 1},
