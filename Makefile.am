@@ -63,6 +63,19 @@ endif
 install-data-hook: $(RELEASE_NAME).tar.gz
 	$(MKDIR_P) $(DESTDIR)/$(reldir)
 	$(INSTALL_DATA) $< $(DESTDIR)/$(reldir)
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/db
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/ssl
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/abmf
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/acct
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/auth
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/export
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/http
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/ipdr
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/sasl
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/snmp/conf
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/snmp/db
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/bin
 
 EXTRA_DIST = $(RELEASE_NAME).tar.gz
 
