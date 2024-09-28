@@ -113,7 +113,7 @@ post_hub(ReqBody, Authorization) ->
 get_product_hubs() ->
 	get_product_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
-get_product_hubs([{_, Pid, _, _} | T], Acc) ->
+get_product_hubs([{_, Pid, _, _} | T], Acc) when is_pid(Pid) ->
 	try
 		gen_fsm:sync_send_all_state_event(Pid, get)
 	of
