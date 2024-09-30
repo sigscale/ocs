@@ -322,14 +322,9 @@ handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port}= _StateData) ->
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
-	ok = diameter:stop_service(SvcName),
-	case diameter:remove_transport(SvcName, TransRef) of
-		ok ->
-			ocs_log:auth_close();
-		{error, Reason1} ->
-			error_logger:error_report(["Failed to remove transport",
-					{module, ?MODULE}, {error, Reason1}])
-	end.
+	catch diameter:stop_service(SvcName),
+	catch diameter:remove_transport(SvcName, TransRef),
+	catch ocs_log:auth_close().
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when
