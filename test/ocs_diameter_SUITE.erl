@@ -63,7 +63,9 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "Test suite for DIAMETER operations in OCS"}]},
+	Description = "Test suite for DIAMETER operations in SigScale OCS",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -189,7 +191,9 @@ all() ->
 %%---------------------------------------------------------------------
 
 acct_server() ->
-	[{userdata, [{doc, "Start an acct server."}]}].
+	Description = "Start an acct server.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_server(_Config) ->
 	Address = {127,0,0,1},
@@ -203,7 +207,9 @@ acct_server(_Config) ->
 	[Service] = diameter:services().
 
 auth_server() ->
-	[{userdata, [{doc, "Start an auth server."}]}].
+	Description = "Start an auth server.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_server(_Config) ->
 	Address = {127,0,0,1},
@@ -217,7 +223,9 @@ auth_server(_Config) ->
 	[Service] = diameter:services().
 
 acct_origin_host() ->
-	[{userdata, [{doc, "Set Origin-Host on diameter acct service."}]}].
+	Description = "Set Origin-Host on diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_origin_host(_Config) ->
 	Address = {127,0,0,1},
@@ -234,7 +242,9 @@ acct_origin_host(_Config) ->
 	OriginHost1 = binary_to_list(OriginHost2).
 
 auth_origin_host() ->
-	[{userdata, [{doc, "Set Origin-Host on diameter auth service."}]}].
+	Description = "Set Origin-Host on diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_origin_host(_Config) ->
 	Address = {127,0,0,1},
@@ -251,7 +261,9 @@ auth_origin_host(_Config) ->
 	OriginHost1 = binary_to_list(OriginHost2).
 
 acct_origin_realm() ->
-	[{userdata, [{doc, "Set Origin-Realm on diameter acct service."}]}].
+	Description = "Set Origin-Realm on diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_origin_realm(_Config) ->
 	Address = {127,0,0,1},
@@ -268,7 +280,9 @@ acct_origin_realm(_Config) ->
 	OriginRealm1 = binary_to_list(OriginRealm2).
 
 auth_origin_realm() ->
-	[{userdata, [{doc, "Set Origin-Realm on diameter auth service."}]}].
+	Description = "Set Origin-Realm on diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_origin_realm(_Config) ->
 	Address = {127,0,0,1},
@@ -285,7 +299,9 @@ auth_origin_realm(_Config) ->
 	OriginRealm1 = binary_to_list(OriginRealm2).
 
 acct_listen_tcp() ->
-	[{userdata, [{doc, "Explicit TCP listening diameter acct service."}]}].
+	Description = "Explicit TCP listening diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_listen_tcp(_Config) ->
 	Address = {127,0,0,1},
@@ -304,7 +320,9 @@ acct_listen_tcp(_Config) ->
 	{_, diameter_tcp} = lists:keyfind(transport_module, 1, TransportOptions2).
 
 auth_listen_tcp() ->
-	[{userdata, [{doc, "Explicit TCP listening diameter auth service."}]}].
+	Description = "Explicit TCP listening diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_listen_tcp(_Config) ->
 	Address = {127,0,0,1},
@@ -323,7 +341,9 @@ auth_listen_tcp(_Config) ->
 	{_, diameter_tcp} = lists:keyfind(transport_module, 1, TransportOptions2).
 
 acct_listen_sctp() ->
-	[{userdata, [{doc, "STCP listening diameter acct service."}]}].
+	Description = "STCP listening diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_listen_sctp(_Config) ->
 	Address = {127,0,0,1},
@@ -342,7 +362,9 @@ acct_listen_sctp(_Config) ->
 	{_, diameter_sctp} = lists:keyfind(transport_module, 1, TransportOptions2).
 
 auth_listen_sctp() ->
-	[{userdata, [{doc, "STCP listening diameter auth service."}]}].
+	Description = "STCP listening diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_listen_sctp(_Config) ->
 	Address = {127,0,0,1},
@@ -361,7 +383,9 @@ auth_listen_sctp(_Config) ->
 	{_, diameter_sctp} = lists:keyfind(transport_module, 1, TransportOptions2).
 
 acct_connect_tcp() ->
-	[{userdata, [{doc, "Connecting TCP client diameter acct service."}]}].
+	Description = "Connecting TCP client diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_connect_tcp(Config) ->
 	RemoteService = proplists:get_value(rservice, Config),
@@ -387,7 +411,9 @@ acct_connect_tcp(Config) ->
 	end.
 
 auth_connect_tcp() ->
-	[{userdata, [{doc, "Connecting TCP client diameter auth service."}]}].
+	Description = "Connecting TCP client diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_connect_tcp(Config) ->
 	RemoteService = proplists:get_value(rservice, Config),
@@ -413,7 +439,9 @@ auth_connect_tcp(Config) ->
 	end.
 
 acct_connect_sctp() ->
-	[{userdata, [{doc, "Connecting SCTP client diameter acct service."}]}].
+	Description = "Connecting SCTP client diameter acct service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 acct_connect_sctp(Config) ->
 	RemoteService = proplists:get_value(rservice, Config),
@@ -440,7 +468,9 @@ acct_connect_sctp(Config) ->
 	end.
 
 auth_connect_sctp() ->
-	[{userdata, [{doc, "Connecting SCTP client diameter auth service."}]}].
+	Description = "Connecting SCTP client diameter auth service.",
+	ct:comment(Description),
+	[{userdata, [{doc, Description}]}].
 
 auth_connect_sctp(Config) ->
 	RemoteService = proplists:get_value(rservice, Config),
