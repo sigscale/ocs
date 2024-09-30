@@ -8,6 +8,7 @@ CERT_DIR = certificates
 testmods = ocs_api_SUITE \
 			ocs_rest_api_SUITE \
 			ocs_rest_lib_SUITE \
+			ocs_diameter_SUITE \
 			ocs_codec_diameter_SUITE \
 			ocs_codec_eap_SUITE \
 			ocs_eap_pwd_SUITE \
@@ -25,6 +26,7 @@ testmods = ocs_api_SUITE \
 			ocs_re_interface_SUITE \
 			peer_tls_transport \
 			diameter_test_client_cb \
+			diameter_test_server_cb \
 			test_event \
 			ocs_test_lib \
 			mod_ct_nrf
