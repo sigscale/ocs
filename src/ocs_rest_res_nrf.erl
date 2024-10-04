@@ -121,8 +121,8 @@ initial_nrf1(ModData, NrfRequest) ->
 	of
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
 			Location = "/ratingdata/" ++ RatingDataRef,
-			ReponseBody = mochijson:encode(NrfResponse1),
 			Headers = [{content_type, "application/json"}, {location, Location}],
+			ReponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
 					LogRequest, LogResponse, undefined),
 			{ok, Headers, ReponseBody};
@@ -213,10 +213,11 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		end
 	of
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+			Headers = [{content_type, "application/json"}],
 			ReponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest, LogResponse, undefined),
-			{200, [], ReponseBody};
+			{200, Headers, ReponseBody};
 		{error, StatusCode, LogRequest, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest, Problem1, undefined),
@@ -307,10 +308,11 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		end
 	of
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+			Headers = [{content_type, "application/json"}],
 			ReponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest, LogResponse, undefined),
-			{200, [], ReponseBody};
+			{200, Headers, ReponseBody};
 		{error, StatusCode,  LogRequest, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest, Problem1, undefined),
