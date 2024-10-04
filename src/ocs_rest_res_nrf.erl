@@ -122,10 +122,10 @@ initial_nrf1(ModData, NrfRequest) ->
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
 			Location = "/ratingdata/" ++ RatingDataRef,
 			Headers = [{content_type, "application/json"}, {location, Location}],
-			ReponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
 					LogRequest, LogResponse, undefined),
-			{ok, Headers, ReponseBody};
+			{ok, Headers, ResponseBody};
 		{error, StatusCode, LogRequest, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
 					LogRequest, Problem1, undefined),
@@ -214,10 +214,10 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 	of
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
 			Headers = [{content_type, "application/json"}],
-			ReponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest, LogResponse, undefined),
-			{200, Headers, ReponseBody};
+			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest, Problem1, undefined),
@@ -309,10 +309,10 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 	of
 		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
 			Headers = [{content_type, "application/json"}],
-			ReponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest, LogResponse, undefined),
-			{200, Headers, ReponseBody};
+			{200, Headers, ResponseBody};
 		{error, StatusCode,  LogRequest, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest, Problem1, undefined),
@@ -666,7 +666,7 @@ rate(_RatingDataRef, [], _Subscriber, _Flag, Acc) ->
 -spec nrf(Nrf) -> Nrf
 	when
 		Nrf :: map() | {struct, [tuple()]}.
-%% @doc CODEC for Nrf Reponse.
+%% @doc CODEC for Nrf Response.
 nrf({struct, StructList}) ->
 	nrf1(StructList, #{});
 nrf(NrfRequest) when is_map(NrfRequest) ->
