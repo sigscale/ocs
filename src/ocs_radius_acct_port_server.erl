@@ -507,6 +507,6 @@ get_service_type(Attr) ->
 		{ok, ServiceType} ->
 			{ServiceType, undefined, undefined};
 		{error, not_found} ->
-			{undefined, undefined, undefined}
+			{2, undefined, undefined}
 	end.
 
