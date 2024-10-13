@@ -2659,8 +2659,7 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 	when
 		Username :: string(),
 		Password :: string(),
-		UserData :: [UserDataChar],
-		UserDataChar :: {Name, Value},
+		UserData :: [{Name, Value}],
 		Name :: atom(),
 		Value :: term(),
 		Result :: {ok, LastModified} | {error, Reason},
@@ -2672,9 +2671,6 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 %% 	`Authorization' header in requests.
 %%
 %%		`UserData' contains addtional properties specific to each user.
-%% 	`Locale' is a `UserData' property used to set the language for
-%%		text in the web UI.
-%% 	For English use `"en"', for Spanish use `"es'"..
 %%
 add_user(Username, Password, UserData) when is_list(Username),
 		is_list(Password), is_list(UserData) ->
@@ -2774,14 +2770,13 @@ delete_user3({error, Reason}) ->
 	when
 		Username :: string(),
 		Password :: string(),
-		UserData :: [UserDataChar],
-		UserDataChar :: {Name, Value},
+		UserData :: [{Name, Value}],
 		Name :: atom(),
 		Value :: term(),
 		Result :: {ok, LM} | {error, Reason},
 		LM :: {integer(), integer()},
 		Reason :: term().
-%% @hidden Update user password and language
+%% @hidden Update user password and data.
 update_user(Username, Password, UserData) ->
 	case get_user(Username) of
 		{error, Reason} ->
@@ -3381,19 +3376,22 @@ dues([], _Now, Buckets, _PName, _Period, _Amount, _ProdRef, Acc) ->
 
 -spec get_params() -> Result
 	when
-		Result :: {Port :: integer(), Address :: string(),
-				Directory :: string(), Group :: string()}
-				| {error, Reason :: term()}.
+		Result :: {Port, Address, Directory, Group} | {error, Reason},
+		Port :: integer(),
+		Address :: inet:ip_address() | inet:hostname() | any,
+		Directory :: string(),
+		Group :: string(),
+		Reason :: term().
 %% @doc Returns configurations details for currently running
 %% {@link //inets. httpd} service.
 %% @hidden
 get_params() ->
-	get_params(inets:services_info()).
-%% @hidden
-get_params({error, Reason}) ->
-	{error, Reason};
-get_params(ServicesInfo) ->
-	get_params1(lists:keyfind(httpd, 1, ServicesInfo)).
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			get_params1(lists:keyfind(httpd, 1, ServicesInfo));
+		{error, Reason} ->
+			{error, Reason}
+	end.
 %% @hidden
 get_params1({httpd, _, HttpdInfo}) ->
 	{_, Address} = lists:keyfind(bind_address, 1, HttpdInfo),
@@ -3427,7 +3425,7 @@ get_params4(_, _, []) ->
 %% @hidden
 get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 	{Port, Address, Directory, Group};
-get_params5(_, _, _, false) ->
+get_params5(_, _, _, _) ->
 	{error, httpd_group_undefined}.
 
 -spec charge(ProdRef, Amount, Buckets) -> Buckets
