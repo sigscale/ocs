@@ -71,7 +71,8 @@ notify(EventType, EventPayLoad, Category) ->
 		Args :: list(),
 		Result :: {ok, State}
 			| {ok, State, hibernate}
-			| {error, State :: term()}.
+			| {error, State :: term()},
+		State :: state().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_event:init/1
 %% @private
