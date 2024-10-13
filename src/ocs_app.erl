@@ -651,7 +651,7 @@ install16(Tables, false) ->
 %% @hidden
 install17(Tables) ->
 	case ocs:list_users() of
-		{ok, []} ->
+		{ok, Users} when length(Users) == 0 ->
 			UserData = [{locale, "en"}],
 			case ocs:add_user("admin", "admin", UserData) of
 				{ok, _LastModified} ->
