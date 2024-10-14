@@ -188,20 +188,22 @@ get_user(_, _, _) ->
 %% resource.
 post_user(RequestBody) ->
 	try
-		User = user(mochijson:decode(RequestBody)),
-		{Username, _, _, _} = User#httpd_user.username,
-		Password = User#httpd_user.password,
-		UserData = User#httpd_user.user_data,
-		case ocs:add_user(Username, Password, UserData) of
-			{ok, LastModified} ->
-				Body = mochijson:encode(user(User)),
-				Location = "/partyManagement/v1/individual/" ++ Username,
-				Headers = [{content_type, "application/json"},
-						{location, Location}, {etag, ocs_rest:etag(LastModified)}],
-				{ok, Headers, Body};
-			{error, _Reason} ->
-				{error, 400}
-		end
+		user(mochijson:decode(RequestBody))
+	of
+		#httpd_user{username = {Username, _, _, _},
+				password = Password, user_data = UserData} = User ->
+			case ocs:add_user(Username, Password, UserData) of
+				{ok, LastModified} ->
+					Body = mochijson:encode(user(User)),
+					Location = "/partyManagement/v1/individual/" ++ Username,
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(LastModified)}],
+					{ok, Headers, Body};
+				{error, _Reason} ->
+					{error, 400}
+			end;
+		#httpd_user{} ->
+			{error, 400}
 	catch
 		_:_Reason1 ->
 			{error, 400}
@@ -283,11 +285,18 @@ delete_user(Id) ->
 		Group :: string().
 %% @doc Get {@link //inets/httpd. httpd} configuration parameters.
 get_params() ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
-	{_, Address} = lists:keyfind(bind_address, 1, Info),
-	{ok, EnvObj} = application:get_env(inets, services),
-	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			get_params(ServicesInfo);
+		{error, _Reason} ->
+			exit(not_found)
+	end.
+%% @hidden
+get_params([{httpd, _, HttpdInfo} | _T]) when is_list(HttpdInfo) ->
+	{_, Port} = lists:keyfind(port, 1, HttpdInfo),
+	{_, Address} = lists:keyfind(bind_address, 1, HttpdInfo),
+	{ok, Inets} = application:get_env(inets, services),
+	{httpd, Httpd} = lists:keyfind(httpd, 1, Inets),
 	F = fun({directory, {Directory, Auth}})
 			when is_list(Auth), length(Auth) > 0 ->
 				case lists:keyfind(require_group, 1, Auth) of
@@ -299,12 +308,16 @@ get_params() ->
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, HttpdObj) of
+	case lists:filtermap(F, Httpd) of
 		[{Port, Address, Directory, Group}] ->
 			{Port, Address, Directory, Group};
 		[] ->
 			exit(not_found)
-	end.
+	end;
+get_params([_ | T]) ->
+	get_params(T);
+get_params([]) ->
+	exit(not_found).
 
 -spec user(User) -> User
 	when
