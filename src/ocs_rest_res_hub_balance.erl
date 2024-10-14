@@ -120,7 +120,7 @@ get_hubs([{_, Pid, _, _} | T], Acc) when is_pid(Pid) ->
 		_Hub ->
 			get_hubs(T, Acc)
 	catch
-		_:_Reson ->
+		_:_Reason ->
 			get_hubs(T, Acc)
 	end;
 get_hubs([], Acc) ->

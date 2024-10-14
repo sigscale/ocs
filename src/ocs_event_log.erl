@@ -206,7 +206,7 @@ handle_info(_Info, _Fsm) ->
 
 -spec terminate(Arg, State) -> term()
 	when
-		Arg :: Args :: term() | {stop, Reson :: term()} | {error, term()}
+		Arg :: Args :: term() | {stop, Reason :: term()} | {error, term()}
 				| stop | remove_handler | {error,{'EXIT', Reason :: term()}},
       State :: state().
 %% @doc Cleanup and exit.
