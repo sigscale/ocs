@@ -64,9 +64,7 @@
 %%
 suite() ->
 	Description = "Test suite for DIAMETER operations in SigScale OCS",
-	ct:comment(Description),
-	[{userdata, [{doc, Description}]},
-	{timetrap, {minutes, 1}}].
+	[{userdata, [{doc, Description}]}, {timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
