@@ -311,28 +311,9 @@ process_request(IpAddress, Port,
 			false ->
 				undefined
 		end,
-		SubscriberIds = case subscriber_id(SubscriptionIds, SubIdTypes) of
-			SubIds when length(SubIds) > 0 ->
-				SubIds;
-			[] ->
-				case UserName of
-					[] ->
-						throw(no_subscriber_identification_information);
-					[NAI] ->
-						case string:tokens(binary_to_list(NAI), ":@") of
-							[_Proto, User, _Domain] ->
-								User;
-							[User, _Domain] ->
-								User;
-							[User] ->
-								User;
-							_ ->
-								throw(no_subscriber_identification_information)
-						end
-				end
-		end,
+		SubscriberIDs = subscriber_id(SubscriptionIds, UserName, SubIdTypes),
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				SubscriberIds, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
+				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -347,7 +328,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
-		Subscriber, OHost, _, ORealm, _, IpAddress, Port, b = _Class) ->
+		{SubscriberIDs, SubscriptionId}, OHost, _, ORealm,
+		_, IpAddress, Port, b = _Class) ->
 	try
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
@@ -355,10 +337,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(Server, Subscriber, SvcContextId,
+				post_request_scur(Server, SubscriptionId, SvcContextId,
 						SessionId, MSCC1, [], Location, {initial, b});
 			Id when Id == 32260; Id == 32274 ->
-				post_request_ecur(Server, Subscriber, SvcContextId,
+				post_request_ecur(Server, SubscriptionId, SvcContextId,
 						SessionId, MSCC1, [], Location, Destination, {initial, b})
 		end,
 		case NrfResponse of
@@ -378,8 +360,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, get_mscc(MSCC1)}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, get_mscc(MSCC1)}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -401,7 +384,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		SubscriberIds, OHost, _, ORealm, _, IpAddress, Port, _Class) ->
+		{SubscriberIDs, SubscriptionId}, OHost, _, ORealm, _, IpAddress, Port, _Class) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
@@ -415,18 +398,18 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		RfResponse = case rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+		RfResponse = case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 				Address, Direction, initial, SessionId, Amounts) of
 			{{MSCC2, ResultCode, undefined}, [], []} ->
 				{ok, MSCC2, ResultCode, undefined};
 			{{MSCC2, _, undefined}, PLA, Amounts1} when is_list(MSCC2), length(PLA) > 0 ->
 				case ServiceType of
 					32251 ->
-						{ok, JSON} = post_request_scur(Server, SubscriberIds, SvcContextId,
+						{ok, JSON} = post_request_scur(Server, SubscriptionId, SvcContextId,
 								SessionId, PLA, Amounts1, [], {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
-						{ok, JSON} = post_request_ecur(Server, SubscriberIds, SvcContextId,
+						{ok, JSON} = post_request_ecur(Server, SubscriptionId, SvcContextId,
 								SessionId, PLA, Amounts1, [], Destination, {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2}
 				end;
@@ -438,7 +421,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				{struct, RatedStruct} = mochijson:decode(JSON1),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
 				{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
-				case charge(SubscriberIds, SessionId, initial, match_tariff(ServiceRating, Amounts2)) of
+				case charge(SubscriberIDs, SessionId, initial, match_tariff(ServiceRating, Amounts2)) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -453,8 +436,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 								{module, ?MODULE}, {error, Reason2},
 								{origin_host, OHost}, {origin_realm, ORealm},
 								{type, accounting_event_type(RequestType)},
-								{subscriber, SubscriberIds}, {address, Address},
-								{direction, Direction}, {amounts, Amounts}]),
+								{subscriber, print_sub(SubscriberIDs)},
+								{address, Address}, {direction, Direction},
+								{amounts, Amounts}]),
 						Reply = diameter_error(SessionId,
 								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 								OHost, ORealm, RequestType, RequestNum),
@@ -475,8 +459,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason2},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, SubscriberIds}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -497,14 +482,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, b = _Class) when length(MSCC1) > 0 ->
+		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
+		ORealm, _DRealm, IpAddress, Port, b = _Class) when length(MSCC1) > 0 ->
 	try
 		Server = {IpAddress, Port},
 		Location = get_service_location(ServiceInformation),
 		{Direction, Address} = direction_address(ServiceInformation),
 		Amounts = get_mscc(MSCC1),
-		case post_request_scur(Server, Subscriber, SvcContextId,
+		case post_request_scur(Server, SubscriptionId, SvcContextId,
 				SessionId, MSCC1, [], Location, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -522,8 +507,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -545,8 +531,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, _Class) when length(MSCC1) > 0 ->
+		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
+		ORealm, _DRealm, IpAddress, Port, _Class) when length(MSCC1) > 0 ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -560,7 +546,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		Price = case rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+		Price = case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 				Address, Direction, interim, SessionId, Amounts) of
 			{{MSCC2, ResultCode, undefined}, [], []} ->
 				{ok, MSCC2, ResultCode};
@@ -571,10 +557,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					{error, missing_tariff} ->
 						{ok, JSON} = case ServiceType of
 							32251 ->
-								post_request_scur(Server, SubscriberIds, SvcContextId,
+								post_request_scur(Server, SubscriptionId, SvcContextId,
 										SessionId, PLA, Amounts1, [], {initial, a});
 							Id when Id == 32260; Id == 32274 ->
-								post_request_ecur(Server, SubscriberIds, SvcContextId,
+								post_request_ecur(Server, SubscriptionId, SvcContextId,
 										SessionId, PLA, Amounts1, [], Destination, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
@@ -588,7 +574,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end,
 		case Price of
 			{ok, _PLA1, Prices1, MSCC3} ->
-				case charge(SubscriberIds, SessionId, interim, Prices1) of
+				case charge(SubscriberIDs, SessionId, interim, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -602,8 +588,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 								{module, ?MODULE}, {error, Reason2},
 								{origin_host, OHost}, {origin_realm, ORealm},
 								{type, accounting_event_type(RequestType)},
-								{subscriber, SubscriberIds}, {address, Address},
-								{direction, Direction}, {amounts, Amounts}]),
+								{subscriber, print_sub(SubscriberIDs)},
+								{address, Address}, {direction, Direction},
+								{amounts, Amounts}]),
 						Reply = diameter_error(SessionId,
 								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 								OHost, ORealm, RequestType, RequestNum),
@@ -624,8 +611,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason2},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, SubscriberIds}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -646,8 +634,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, b = _Class) ->
+		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
+		ORealm, _DRealm, IpAddress, Port, b = _Class) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -655,10 +643,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = get_destination(ServiceInformation),
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(Server, Subscriber, SvcContextId,
+				post_request_scur(Server, SubscriptionId, SvcContextId,
 						SessionId, MSCC1, [], Location, final);
 			Id when Id == 32260; Id == 32274 ->
-				post_request_ecur(Server, Subscriber, SvcContextId,
+				post_request_ecur(Server, SubscriptionId, SvcContextId,
 						SessionId, MSCC1, [], Location, Destination, final)
 		end,
 		Amounts = get_mscc(MSCC1),
@@ -680,8 +668,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason2},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				ok = remove_ref(SessionId),
 				Reply = diameter_error(SessionId, Reason2,
 						OHost, ORealm, RequestType, RequestNum),
@@ -703,8 +692,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, _Class) ->
+		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
+		ORealm, _DRealm, IpAddress, Port, _Class) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -718,7 +707,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		RfResponse = case rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+		RfResponse = case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 				Address, Direction, final, SessionId, Amounts) of
 			{{MSCC2, ResultCode, Rated}, [], []} ->
 				{ok, MSCC2, ResultCode, Rated};
@@ -729,10 +718,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					{error, missing_tariff} ->
 						{ok, JSON} = case ServiceType of
 							32251 ->
-								post_request_scur(Server, SubscriberIds, SvcContextId,
+								post_request_scur(Server, SubscriptionId, SvcContextId,
 										SessionId, PLA, Amounts1, [], {initial, a});
 							Id when Id == 32260; Id == 32274 ->
-								post_request_ecur(Server, SubscriberIds, SvcContextId,
+								post_request_ecur(Server, SubscriptionId, SvcContextId,
 										SessionId, PLA, Amounts1, [], Destination, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
@@ -754,7 +743,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						accounting_event_type(RequestType), Request, Reply, Rated1),
 				Reply;
 			{ok, _PLA1, Prices1, MSCC3} ->
-				case charge(SubscriberIds, SessionId, final, Prices1) of
+				case charge(SubscriberIDs, SessionId, final, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -769,8 +758,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 								{module, ?MODULE}, {error, Reason2},
 								{origin_host, OHost}, {origin_realm, ORealm},
 								{type, accounting_event_type(RequestType)},
-								{subscriber, SubscriberIds}, {address, Address},
-								{direction, Direction}, {amounts, Amounts}]),
+								{subscriber, print_sub(SubscriberIDs)},
+								{address, Address}, {direction, Direction},
+								{amounts, Amounts}]),
 						Reply = diameter_error(SessionId,
 								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 								OHost, ORealm, RequestType, RequestNum),
@@ -783,8 +773,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason2},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, SubscriberIds}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -806,14 +797,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, b = _Class) ->
+		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
+		ORealm, _DRealm, IpAddress, Port, b = _Class) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(Server, Subscriber, SvcContextId,
+		case post_request_iec(Server, SubscriptionId, SvcContextId,
 				SessionId, MSCC, Location, Destination) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -841,8 +832,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, []}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, []}]),
 				ok = remove_ref(SessionId),
 				Reply = diameter_error(SessionId, Reason,
 						OHost, ORealm, RequestType, RequestNum),
@@ -860,63 +852,102 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 
--spec subscriber_id(SubscriberIdAVPs, SubIdTypes) -> SubscriberIds
+-spec subscriber_id(SubscriptionIDs, UserName, SubIdTypes) -> Result
 	when
-		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
+		SubscriptionIDs :: [#'3gpp_ro_Subscription-Id'{}],
+		UserName :: [binary()],
 		SubIdTypes :: [SubIdType] | undefined,
 		SubIdType :: imsi | msisdn | nai | sip | private,
-		SubscriberIds :: [{IdType, SubId}] | [],
-		IdType :: integer(),
-		SubId :: binary().
-%% @doc Get SubscriberIds From Diameter SubscriberId AVP.
-subscriber_id(SubscriberIdAVPs, SubIdTypes) ->
-	subscriber_id(SubscriberIdAVPs, SubIdTypes, []).
+		Result :: {SubscriberIDs, SubscriptionIds},
+		SubscriberIDs :: [binary()],
+		SubscriptionIds :: [string()].
+%% @doc Get filtered subscriber IDs in priority order.
+subscriber_id(SubscriptionIDs, _UserName, undefined = _SubIdTypes)
+		when length(SubscriptionIDs) > 0 ->
+	subscriber_id(SubscriptionIDs, [msisdn, imsi], [], []);
+subscriber_id(SubscriptionIDs, _UserName, SubIdTypes)
+		when length(SubscriptionIDs) > 0 ->
+	subscriber_id(SubscriptionIDs, SubIdTypes, [], []);
+subscriber_id([], [] = _UserName, _SubIdTypes) ->
+	throw(no_subscriber_identification_information);
+subscriber_id([], [NAI] = _UserName, _SubIdTypes) ->
+	case binary:split(NAI, [<<":">>, <<"@">>], [global]) of
+		[<<"sip">>, User, _Domain] ->
+			{[User], "sip-" ++ binary_to_list(NAI)};
+		[_Proto, User, _Domain] ->
+			{[User], "nai-" ++ binary_to_list(NAI)};
+		[User, _Domain] ->
+			{[User], "nai-" ++ binary_to_list(NAI)};
+		[User] ->
+			{[User], "nai-" ++ binary_to_list(NAI)};
+		_ ->
+			throw(no_subscriber_identification_information)
+	end.
 %% @hidden
-subscriber_id(SubscriberIdAVPs, undefined = _SubIdTypes, Acc) ->
-	subscriber_id(SubscriberIdAVPs, [msisdn], Acc);
-subscriber_id(SubscriberIdAVP, [IdType | T], Acc) ->
-	Acc1 = subscriber_id1(SubscriberIdAVP, id_type(IdType)),
-	subscriber_id(SubscriberIdAVP, T, Acc ++ Acc1);
-subscriber_id(_, [], Acc) ->
-	Acc.
-%% @hidden
-subscriber_id1([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
-		'Subscription-Id-Type' = IdType} | _], IdType) ->
-	[{IdType, SubId}];
-subscriber_id1([_ | T], IdType) ->
-	subscriber_id1(T, IdType);
-subscriber_id1([], _) ->
-	[].
+subscriber_id(SubscriptionIDs, [imsi | T], Acc1, Acc2) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIDs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = IMSI} ->
+			subscriber_id(SubscriptionIDs, T, [IMSI | Acc1],
+					["imsi-" ++ binary_to_list(IMSI) | Acc2]);
+		_  ->
+			subscriber_id(SubscriptionIDs, T, Acc1, Acc2)
+	end;
+subscriber_id(SubscriptionIDs, [msisdn | T], Acc1, Acc2) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIDs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = MSISDN} ->
+			subscriber_id(SubscriptionIDs, T, [MSISDN | Acc1],
+					["msisdn-" ++ binary_to_list(MSISDN) | Acc2]);
+		_  ->
+			subscriber_id(SubscriptionIDs, T, Acc1, Acc2)
+	end;
+subscriber_id(SubscriptionIDs, [nai | T], Acc1, Acc2) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIDs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = NAI} ->
+			subscriber_id(SubscriptionIDs, T, [NAI | Acc1],
+					["nai-" ++ binary_to_list(NAI) | Acc2]);
+		_  ->
+			subscriber_id(SubscriptionIDs, T, Acc1, Acc2)
+	end;
+subscriber_id(SubscriptionIDs, [sip | T], Acc1, Acc2) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIDs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SIP} ->
+			subscriber_id(SubscriptionIDs, T, [SIP | Acc1],
+					["sip-" ++ binary_to_list(SIP) | Acc2]);
+		_  ->
+			subscriber_id(SubscriptionIDs, T, Acc1, Acc2)
+	end;
+subscriber_id(SubscriptionIDs, [private | T], Acc1, Acc2) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIDs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Private} ->
+			subscriber_id(SubscriptionIDs, T, [Private | Acc1],
+					["private-" ++ binary_to_list(Private) | Acc2]);
+		_  ->
+			subscriber_id(SubscriptionIDs, T, Acc1, Acc2)
+	end;
+subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
+	{lists:reverse(Acc1), lists:reverse(Acc2)}.
 
-%% @hidden
-id_type(imsi) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI';
-id_type(msisdn) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164';
-id_type(nai) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI';
-id_type(sip) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI';
-id_type(private) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
-id_type(_) ->
-	[].
-
--spec post_request_ecur(ServiceName, SubscriberIds, ServiceContextId,
-		SessionId, ServiceRatingData, Amounts, Location, Destination, Flag) -> Result
+-spec post_request_ecur(ServiceName, SubscriptionId,
+		ServiceContextId, SessionId, ServiceRatingData,
+		Amounts, Location, Destination, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
-		SubscriberIds :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: integer(),
-		Id :: binary(),
+		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
-		ServiceRatingData :: MSCCs | PLAs,
-		MSCCs :: [MSCC],
-		PLAs :: [PLA],
+		ServiceRatingData :: [MSCC] | [PLA],
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		PLA :: map(),
 		Amounts :: [{ServiceIdentifier, RatingGroup,
@@ -934,26 +965,26 @@ id_type(_) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
-post_request_ecur(_ServiceName, SubscriberIds, SvcContextId,
+post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
 		SessionId, [#{price := #price{type = #pla_ref{href = Path}}}
       | _], Amounts, Location, Destination, {initial, a}) ->
-	ServiceRating = initial_service_rating(SubscriberIds, Amounts, binary_to_list(SvcContextId),
-			Location, Destination, a),
-	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
-post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
+	ServiceRating = initial_service_rating(Amounts,
+			binary_to_list(SvcContextId), Location, a),
+	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
+post_request_ecur(ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, Destination, {initial, b}) ->
 	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(SubscriberIds, MSCC, binary_to_list(SvcContextId),
-			Location, Destination, b),
-	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
-post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
+	ServiceRating = initial_service_rating(MSCC,
+			binary_to_list(SvcContextId), Location, b),
+	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
+post_request_ecur(ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, Destination, final) ->
 	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location, Destination),
-	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path).
+	ServiceRating = final_service_rating(MSCC,
+			binary_to_list(SvcContextId), Location),
+	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path).
 %% @hidden
-post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
+post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -964,7 +995,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 					{"oneTimeEventType", "PEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_party(SubscriberIds)}},
+					{"subscriptionId", {array, SubscriptionId}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -985,16 +1016,13 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec post_request_iec(ServiceName, SubscriberIds, ServiceContextId,
+-spec post_request_iec(ServiceName, SubscriptionId, ServiceContextId,
 		SessionId, MSCC, Location, Destination) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
-		SubscriberIds :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: integer(),
-		Id :: binary(),
+		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [],
@@ -1004,18 +1032,18 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST IEC rating data to a Nrf Rating Server.
-post_request_iec(ServiceName, SubscriberIds, ServiceContextId, SessionId,
+post_request_iec(ServiceName, SubscriptionId, ServiceContextId, SessionId,
 		[], _Location, Destination) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
-	post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating);
-post_request_iec(ServiceName, SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
+	post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating);
+post_request_iec(ServiceName, SubscriptionId, ServiceContextId, SessionId, MSCC, Location, Destination) ->
 	ServiceRating = iec_service_rating(MSCC, binary_to_list(ServiceContextId), Location, Destination),
-	post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating).
+	post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating).
 %% @hidden
-post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
+post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -1026,7 +1054,7 @@ post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 					{"oneTimeEventType", "IEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_party(SubscriberIds)}},
+					{"subscriptionId", {array, SubscriptionId}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
@@ -1046,19 +1074,18 @@ post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 			{error, Reason}
 	end.
 
--spec post_request_scur(ServiceName, SubscriberIds, ServiceContextId,
+-spec post_request_scur(ServiceName, SubscriptionId, ServiceContextId,
 		SessionId, ServiceRatingData, Amounts, Location, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
-		SubscriberIds :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: integer(),
-		Id :: binary(),
+		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
-		ServiceRatingData :: MSCCs | PLAs,
+		ServiceRatingData :: [MSCC] | [PLA] | undefined,
+		MSCC :: #'3gpp_ro_Multiple-Services-Credit-Control'{},
+		PLA :: map(),
 		Amounts :: [{ServiceIdentifier, RatingGroup,
 				UsedAmounts, ReserveAmounts}] | [],
 		ServiceIdentifier :: [pos_integer()],
@@ -1066,45 +1093,39 @@ post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 		UsedAmounts :: [{Units, pos_integer()}],
 		ReserveAmounts :: [{Units, pos_integer()}],
 		Units :: octets | seconds | messages,
-		MSCCs :: [MSCC],
-		PLAs :: [PLA],
-		MSCC :: #'3gpp_ro_Multiple-Services-Credit-Control'{},
-		PLA :: map(),
 		Location :: [tuple()] | [],
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
-		PLAs :: [PLA] | undefined,
-		PLA :: map(),
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
-post_request_scur(_ServiceName, Subscriber, SvcContextId,
-		SessionId,  [#{price := #price{type = #pla_ref{href = Path}}} | _],
+post_request_scur(_ServiceName, SubscriptionId, SvcContextId, SessionId,
+		[#{price := #price{type = #pla_ref{href = Path}}} | _] = _ServiceRatingData,
 		Amounts, Location, {initial, a}) ->
-	ServiceRating = initial_service_rating(Subscriber, Amounts, binary_to_list(SvcContextId),
-			Location, undefined, a),
-	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, Subscriber, SvcContextId,
+	ServiceRating = initial_service_rating(Amounts,
+			binary_to_list(SvcContextId), Location, a),
+	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+post_request_scur(ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, {initial, b}) ->
 	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(Subscriber, MSCC, binary_to_list(SvcContextId),
-			Location, undefined, b),
-	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, Subscriber, SvcContextId,
+	ServiceRating = initial_service_rating(MSCC,
+			binary_to_list(SvcContextId), Location, b),
+	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+post_request_scur(ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, interim) ->
 	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
-	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location),
-	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, Subscriber, SvcContextId,
+	ServiceRating = update_service_rating(MSCC,
+			binary_to_list(SvcContextId), Location),
+	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+post_request_scur(ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, final) ->
 	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
-			undefined, Location),
-	post_request_scur1(Subscriber, SessionId, ServiceRating, Path).
+	ServiceRating = final_service_rating(MSCC,
+			binary_to_list(SvcContextId), Location),
+	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path).
 %% @hidden
-post_request_scur1(Subscriber, SessionId, ServiceRating, Path) ->
+post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -1113,7 +1134,7 @@ post_request_scur1(Subscriber, SessionId, ServiceRating, Path) ->
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_party(Subscriber)}},
+					{"subscriptionId", {array, SubscriptionId}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -1133,35 +1154,6 @@ post_request_scur1(Subscriber, SessionId, ServiceRating, Path) ->
 		{_RequestId, {error, Reason}} ->
 			{error, Reason}
 	end.
-
--spec charged_party(Subscriber) -> ChargedParty
-	when
-		Subscriber :: [SubscriberIds],
-		SubscriberIds :: {IdType, Id},
-		IdType :: integer(),
-		Id :: binary(),
-		ChargedParty :: [ChargedParties],
-		ChargedParties :: MSISDN | IMSI,
-		MSISDN :: string(),
-		IMSI :: string().
-%% @doc Format subsriber ids for nrf request.
-charged_party(Subscriber) ->
-	charged_party(Subscriber, []).
-%% @hidden
-charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164', MSISDN} | T], Acc) ->
-	charged_party(T, ["msisdn-" ++ binary_to_list(MSISDN) | Acc]);
-charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI', IMSI} | T], Acc) ->
-	charged_party(T, ["imsi-" ++ binary_to_list(IMSI) | Acc]);
-charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI', NAI} | T], Acc) ->
-	charged_party(T, ["nai-" ++ binary_to_list(NAI) | Acc]);
-charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI', SIP} | T], Acc) ->
-	charged_party(T, ["sip-" ++ binary_to_list(SIP) | Acc]);
-charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE', PRIVATE} | T], Acc) ->
-	charged_party(T, ["private-" ++ binary_to_list(PRIVATE) | Acc]);
-charged_party([_| T], Acc) ->
-	charged_party(T, Acc);
-charged_party([], Acc) ->
-	lists:reverse(Acc).
 
 -spec get_destination(ServiceInformation) -> RequestedPartyAddress
 	when
@@ -1729,36 +1721,24 @@ reserved_unit4([#'3gpp_ro_Requested-Service-Unit'
 reserved_unit4(_RSU, Acc) ->
 	Acc.
 
--spec initial_service_rating(Subscriber, MSCC, ServiceContextId, ServiceInformation,
-		Destination, Class) -> ServiceRating
+-spec initial_service_rating(MSCC, ServiceContextId,
+		ServiceInformation, Class) -> ServiceRating
 	when
-		Subscriber :: [SubscriberIds],
-		SubscriberIds :: {IdType, Id},
-		IdType :: msisdn | imsi,
-		Id :: binary(),
-		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | PLA,
-		PLA :: [PLAs],
-		PLAs :: map(),
+		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [PLA],
+		PLA :: map(),
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
-		Destination :: string() | undefined,
 		ServiceRating :: [{struct, [tuple()]}],
 		Class :: a | b.
-%% Create list of service elements to be rated.
-initial_service_rating(Subscriber, MSCC, ServiceContextId,
-		ServiceInformation, undefined, Class) ->
-	SCID = {"serviceContextId", ServiceContextId},
-	initial_service_rating(Subscriber, MSCC, SCID, ServiceInformation, undefined, Class, []);
-initial_service_rating(Subscriber, MSCC, ServiceContextId,
-		ServiceInformation, Destination, Class) ->
-	SCID = {"serviceContextId", ServiceContextId},
-	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
-			{"destinationIdData", Destination}]}]}},
-	initial_service_rating(Subscriber, MSCC, SCID, ServiceInformation, Des, Class, []).
 %% @hidden
-initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
+%% Create list of service elements to be rated.
+initial_service_rating(MSCC, ServiceContextId, ServiceInformation, Class) ->
+	SCID = {"serviceContextId", ServiceContextId},
+	initial_service_rating(MSCC, SCID, ServiceInformation, Class, []).
+%% @hidden
+initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, b, Acc) ->
+		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, b, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1777,22 +1757,16 @@ initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[SInfo | Acc2]
 	end,
-	Acc4 = case Des of
-	 undefined ->
-			Acc3;
-		_ ->
-			[Des | Acc3]
-	end,
 	case reserved_unit(RSU) of
 		[] ->
-			ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]},
-				initial_service_rating(Subscriber, T, SCID, SInfo, Des, b, [ServiceRating | Acc]);
+			ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]},
+				initial_service_rating(T, SCID, SInfo, b, [ServiceRating | Acc]);
 		ReservedUnits ->
 			ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
-					{"requestSubType", "RESERVE"} | Acc4]},
-			initial_service_rating(Subscriber, T, SCID, SInfo, Des, b, [ServiceRating | Acc])
+					{"requestSubType", "RESERVE"} | Acc3]},
+			initial_service_rating(T, SCID, SInfo, b, [ServiceRating | Acc])
 	end;
-initial_service_rating(Subscriber, [{SI, RG, _, _} | T], SCID, SInfo, Des, a, Acc) ->
+initial_service_rating([{SI, RG, _, _} | T], SCID, SInfo, a, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1805,16 +1779,8 @@ initial_service_rating(Subscriber, [{SI, RG, _, _} | T], SCID, SInfo, Des, a, Ac
 		[N2] when is_integer(N2) ->
 			[{"ratingGroup", N2} | Acc1]
 	end,
-	Acc3 = case Subscriber of
-		[{_, Destination} | _] when is_binary(Destination) ->
-			[{"destinationId", {array,
-					[binary_to_list(Destination)]}} | Acc2];
-		_ ->
-			Acc2
-	end,
-	initial_service_rating(Subscriber, T, SCID, SInfo, Des, a,
-			[{struct, [SCID | Acc3]}| Acc]);
-initial_service_rating(_, [], _, _, _, _, Acc) ->
+	initial_service_rating(T, SCID, SInfo, a, [{struct, [SCID | Acc2]} | Acc]);
+initial_service_rating([], _, _, _, Acc) ->
 	Acc.
 
 -spec update_service_rating(MSCC, ServiceContextId,
@@ -1868,28 +1834,20 @@ update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 update_service_rating1([], _SCID, _SI, Acc) ->
 	Acc.
 
--spec final_service_rating(MSCC, ServiceContextId,
-		Destination, ServiceInformation) -> ServiceRating
+-spec final_service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
-		Destination :: string() | undefined,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-final_service_rating(MSCC, ServiceContextId, undefined, ServiceInformation) ->
+final_service_rating(MSCC, ServiceContextId, ServiceInformation) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	final_service_rating1(MSCC, SCID, ServiceInformation, undefined, []);
-final_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
-	SCID = {"serviceContextId", ServiceContextId},
-	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
-			{"destinationIdData", Destination}]}]}},
-	final_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
+	final_service_rating1(MSCC, SCID, ServiceInformation, []).
 %% @hidden
 final_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Service-Identifier' = SI, 'Rating-Group' = RG,
-		'Used-Service-Unit' = USU} = _MSCC | T],
-		SCID, SInfo, Des, Acc) ->
+		'Used-Service-Unit' = USU} = _MSCC | T], SCID, SInfo, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1908,22 +1866,16 @@ final_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[SInfo | Acc2]
 	end,
-	Acc4 = case Des of
-		undefined ->
-			Acc3;
-		_ ->
-			[Des | Acc3]
-	end,
 	case used_unit(USU) of
 		[] ->
-			ServiceRating = {struct, [SCID, {"requestSubType", "DEBIT"} | Acc4]},
-			final_service_rating1(T, SCID, SInfo, Des, [ServiceRating | Acc]);
+			ServiceRating = {struct, [SCID, {"requestSubType", "DEBIT"} | Acc3]},
+			final_service_rating1(T, SCID, SInfo, [ServiceRating | Acc]);
 		ConsumedUnits ->
 			ServiceRating = {struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
-					{"requestSubType", "DEBIT"} | Acc4]},
-			final_service_rating1(T, SCID, SInfo, Des, [ServiceRating | Acc])
+					{"requestSubType", "DEBIT"} | Acc3]},
+			final_service_rating1(T, SCID, SInfo, [ServiceRating | Acc])
 	end;
-final_service_rating1([], _SCID, _SI, _Des, Acc) ->
+final_service_rating1([], _SCID, _SI, Acc) ->
 	Acc.
 
 %% @hidden
@@ -2090,15 +2042,13 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) -
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 	undefined.
 
--spec rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+-spec rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) -> Result
 	when
 		ServiceType :: pos_integer(),
 		ServiceNetwork :: binary(),
-		SubscriberIds :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: integer(),
-		Id :: binary(),
+		SubscriberIDs :: [SubscriberID],
+		SubscriberID :: binary(),
 		Timestamp :: calendar:datetime(),
 		Address :: binary() | undefined,
 		Direction :: answer | originate | undefined,
@@ -2122,13 +2072,13 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 		Rated :: [#rated{}] | undefined.
 %% @doc Rate all the MSCCs.
 %% @hidden
-rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) ->
-	rate(ServiceType, ServiceNetwork, SubscriberIds, Timestamp,
+	rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 			Address, Direction, Flag, SessionId,
 			Amounts, [], [], [], undefined, undefined).
 %% @hidden
-rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
+rate(ServiceType, ServiceNetwork, SubscriberIDs,
 		Timestamp, Address, Direction, Flag, SessionId,
 		[{SI, RG, Debits, Reserves} | T],
 				Acc1, Acc2, Acc3, ResultCode1, Rated1) ->
@@ -2145,12 +2095,12 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 			N2
 	end,
 	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
-			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
+			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, Flag,
 			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, {pla_ref, #price{} = Price}} ->
 			PLA = #{price => Price, serviceId => ServiceId,
 					ratingGroup => ChargingKey},
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, [PLA | Acc2], [{SI, RG, Debits, Reserves} | Acc3],
 					ResultCode1, Rated1);
@@ -2159,12 +2109,12 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
 					serviceId => ServiceId, ratingGroup => ChargingKey,
 					resultCode => ResultCode2},
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode2, Rated1);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, Acc2, Acc3, ResultCode2, Rated1);
 		{ok, _, {_, Amount} = GrantedAmount, Rated2} when Amount > 0,
@@ -2173,17 +2123,17 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
 					serviceId => ServiceId, ratingGroup => ChargingKey,
 					resultCode => ResultCode2},
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode2, Rated2);
 		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, Acc2, Acc3, ResultCode2, Rated2);
 		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, Acc2, Acc3, ResultCode2, Rated1 ++ Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
@@ -2203,7 +2153,7 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 							finalUnitIndication => fui(RedirectServerAddress),
 							resultCode => ResultCode2}
 			end,
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode3, Rated1);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
@@ -2224,7 +2174,7 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 							finalUnitIndication => fui(RedirectServerAddress),
 							resultCode => ResultCode2}
 			end,
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode3, Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
@@ -2245,7 +2195,7 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 							finalUnitIndication => fui(RedirectServerAddress),
 							resultCode => ResultCode2}
 			end,
-			rate(ServiceType, ServiceNetwork, SubscriberIds,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode3, Rated1 ++ Rated2);
 		{disabled, _SessionList} ->
@@ -2257,11 +2207,11 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = SubscriberIds,
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _],
+rate(ServiceType, ServiceNetwork, SubscriberIDs,
 		Timestamp, Address, Direction, final, SessionId,
 		[], Acc1, Acc2, Acc3, ResultCode, Rated1) ->
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
-			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
+			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, final,
 			[], [], [{'Session-Id', SessionId}]) of
 		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
 			{{lists:reverse(Acc1), ResultCode, Rated2}, lists:reverse(Acc2),
@@ -2344,12 +2294,10 @@ match_tariff(Tariffs, [H | T], Acc) ->
 match_tariff(_Tariffs, [], Acc) ->
 	lists:reverse(Acc).
 
--spec charge(SubscriberIds, SessionId, Flag, Prices) -> Result
+-spec charge(SubscriberIDs, SessionId, Flag, Prices) -> Result
 	when
-		SubscriberIds :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: 0..4,
-		Id :: binary(),
+		SubscriberIDs :: [SubscriberID],
+		SubscriberID :: binary(),
 		SessionId :: binary(),
 		Flag :: initial | interim | final | event,
 		Prices :: [Price],
@@ -2362,35 +2310,32 @@ match_tariff(_Tariffs, [], Acc) ->
 		MSCC :: map().
 %% @doc Rate all the MSCCs.
 %% @hidden
-charge([{_, Subscriber} | _], SessionId, Flag, Prices) ->
-	charge1(Subscriber, SessionId, Flag, Prices, [], undefined).
+charge(SubscriberIDs, SessionId, Flag, Prices) ->
+	charge1(SubscriberIDs, SessionId, Flag, Prices, [], undefined).
 %% @hidden
-charge1(Subscriber, SessionId, Flag, [#{rg := RG, si := SI, currency := Currency,
-		units := Units, unitSize := UnitSize, unitPrice := UnitPrice, debits := Debits,
-		reserves := Reserves} | T], Acc, ResultCode1) ->
-case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG, [], [], [], Debits, Reserves, []) of
-%	case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG,
-%			UnitSize, Units, Currency, UnitPrice, undefined,
-%			RG, Flag, Debits,
-%			Reserves, [{'Session-Id', SessionId}]) of
+charge1(SubscriberIDs, SessionId, Flag, [#{rg := RG, si := SI,
+		units := Units, unitSize := UnitSize, unitPrice := UnitPrice,
+		debits := Debits, reserves := Reserves} | T], Acc, ResultCode1) ->
+	case ocs_rating:charge(diameter, Flag, SubscriberIDs, SI, RG,
+			[], [], [], Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
 					serviceId => SI, ratingGroup => RG,
 					resultCode => ResultCode2},
-			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
+			charge1(SubscriberIDs, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge1(Subscriber, SessionId, Flag, T, Acc, ResultCode2);
+			charge1(SubscriberIDs, SessionId, Flag, T, Acc, ResultCode2);
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
 					serviceId => SI, ratingGroup => RG,
 					resultCode => ResultCode2},
-			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
+			charge1(SubscriberIDs, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, #service{}, _} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge1(Subscriber, SessionId, Flag, T, Acc, ResultCode2);
+			charge1(SubscriberIDs, SessionId, Flag, T, Acc, ResultCode2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -2408,7 +2353,7 @@ case ocs_rating:charge(diameter, Flag, Subscriber, SI, RG, [], [], [], Debits, R
 							finalUnitIndication => fui(RedirectServerAddress),
 							resultCode => ResultCode2}
 			end,
-			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode3);
+			charge1(SubscriberIDs, SessionId, Flag, T, [MSCC | Acc], ResultCode3);
 		{disabled, _SessionList} ->
 			{ok, Acc, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
 		{error, service_not_found} ->
@@ -2473,4 +2418,15 @@ accounting_event_type(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST') -> start;
 accounting_event_type(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST') -> interim;
 accounting_event_type(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST') -> stop;
 accounting_event_type(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST') -> event.
+
+%% @hidden
+print_sub(SubscriberIDs) ->
+	print_sub(SubscriberIDs, []).
+%% @hidden
+print_sub([H | T], []) ->
+	print_sub(T, binary_to_list(H));
+print_sub([H | T], Acc) ->
+	print_sub(T, Acc ++ "," ++ binary_to_list(H));
+print_sub([], Acc) ->
+	Acc.
 

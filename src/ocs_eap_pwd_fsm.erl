@@ -822,7 +822,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	{ServiceType, Direction, CallAddress} = get_service_type(RequestAttributes),
 	Timestamp = calendar:local_time(),
 	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
-	case ocs_rating:authorize(radius, ServiceType, PeerID, Password,
+	case ocs_rating:authorize(radius, ServiceType, [PeerID], Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
@@ -897,7 +897,7 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 	SessionAttributes = [{'Origin-Host', OH}, {'Origin-Realm', OR},
 			{'Session-Id', SessionID}],
 	NewStateData = StateData#statedata{mk = MK, msk = MSK},
-	case ocs_rating:authorize(diameter, ServiceType, PeerID, Password,
+	case ocs_rating:authorize(diameter, ServiceType, [PeerID], Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, _Subscriber, _Attributes, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},

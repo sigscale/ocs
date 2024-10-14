@@ -271,28 +271,9 @@ process_request(IpAddress, Port,
 			false ->
 				undefined
 		end,
-		Subscriber = case subscriber_id(SubscriptionIds, SubIdTypes) of
-			{_IdType, SubId} ->
-				SubId;
-			_ ->
-				case UserName of
-					[] ->
-						throw(no_subscriber_identification_information);
-					[NAI] ->
-						case string:tokens(binary_to_list(NAI), ":@") of
-							[_Proto, User, _Domain] ->
-								User;
-							[User, _Domain] ->
-								User;
-							[User] ->
-								User;
-							_ ->
-								throw(no_subscriber_identification_information)
-						end
-				end
-		end,
+		SubscriberIDs = subscriber_id(SubscriptionIds, UserName, SubIdTypes),
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				Subscriber, OHost, DHost, ORealm, DRealm, IpAddress, Port)
+				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress, Port)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -304,35 +285,45 @@ process_request(IpAddress, Port,
 	end.
 %% @hidden
 process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
-		SessionId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) ->
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
+		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		Server = {IpAddress, Port},
-		case mnesia:transaction(fun() -> mnesia:dirty_read(service, Subscriber) end) of
-			{atomic, [#service{enabled = true}]} ->
+		ServiceType = service_type(SvcContextId),
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+		case ocs_rating:authorize(diameter, ServiceType, SubscriberIDs, undefined,
+				Timestamp, undefined, undefined, [{'Session-Id', SessionId}]) of
+			{authorized, _Subscriber, _Attributes, _SessionList} ->
 				Reply = diameter_answer(SessionId, [],
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
+						accounting_event_type(RequestType),
+						Request, Reply, undefined),
 				Reply;
-			{atomic, [#service{enabled = false}]} ->
-				Reply = diameter_error(SessionId,
-						?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
-			{atomic, []} ->
+			{unauthorized, service_not_found, _SessionList} ->
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
+						accounting_event_type(RequestType),
+						Request, Reply, undefined),
 				Reply;
-			{aborted, Reason} ->
-				throw(Reason)
+			{unauthorized, _Reason, _SessionList} ->
+				Reply = diameter_error(SessionId,
+						?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType),
+						Request, Reply, undefined),
+				Reply
 		end
 	catch
 		?CATCH_STACK ->
@@ -348,7 +339,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		Subscriber, OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
+		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -361,7 +352,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, Subscriber,
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
 				Timestamp, Address, Direction, initial, SessionId,
 				Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
@@ -375,8 +366,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -398,7 +390,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) when length(MSCC1) > 0 ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -412,7 +404,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, Subscriber,
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
 				Timestamp, Address, Direction, interim, SessionId,
 				Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
@@ -426,8 +418,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
@@ -449,7 +442,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -471,7 +464,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			Amounts ->
-				case rate(ServiceType, ServiceNetwork, Subscriber,
+				case rate(ServiceType, ServiceNetwork, SubscriberIDs,
 						Timestamp, Address, Direction, final, SessionId,
 						Amounts) of
 					{MSCC2, ResultCode} when is_list(MSCC2) ->
@@ -491,8 +484,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 								{module, ?MODULE}, {error, Reason},
 								{origin_host, OHost}, {origin_realm, ORealm},
 								{type, accounting_event_type(RequestType)},
-								{subscriber, Subscriber}, {address, Address},
-								{direction, Direction}, {amounts, Amounts}]),
+								{subscriber, print_sub(SubscriberIDs)},
+								{address, Address}, {direction, Direction},
+								{amounts, Amounts}]),
 						Reply = diameter_error(SessionId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 								OHost, ORealm, RequestType, RequestNum),
 						ok = ocs_log:acct_log(diameter, Server,
@@ -515,7 +509,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -529,7 +523,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
-				ServiceNetwork, Subscriber, Timestamp, Address, Direction,
+				ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction,
 				event, [], [], [{'Session-Id', SessionId}]) of
 			{ok, _, {octets, Amount}, Rated} ->
 				ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -603,7 +597,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -617,7 +611,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, Subscriber,
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
 				Timestamp, Address, Direction, event, SessionId,
 				Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
@@ -637,8 +631,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction},
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -880,12 +875,12 @@ get_rg(#'3gpp_ro_Multiple-Services-Credit-Control'{'Rating-Group' = [RG]})
 get_rg(_) ->
 	[].
 
--spec rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+-spec rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) -> Result
 	when
 		ServiceType :: binary(),
 		ServiceNetwork :: binary(),
-		Subscriber :: binary(),
+		SubscriberIDs :: [binary()],
 		Timestamp :: calendar:datetime(),
 		Address :: binary() | undefined,
 		Direction :: answer | originate | undefined,
@@ -905,13 +900,13 @@ get_rg(_) ->
 		Rated :: [#rated{}].
 %% @doc Rate all the MSCCs.
 %% @hidden
-rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) ->
-	rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+	rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 			Address, Direction, Flag, SessionId,
 			Amounts, [], undefined, undefined).
 %% @hidden
-rate(ServiceType, ServiceNetwork, Subscriber,
+rate(ServiceType, ServiceNetwork, SubscriberIDs,
 		Timestamp, Address, Direction, Flag, SessionId,
 		[{SI, RG, Debits, Reserves} | T], Acc, ResultCode1, Rated1) ->
 	ServiceId = case SI of
@@ -927,7 +922,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			N2
 	end,
 	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
-			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
+			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, Flag,
 			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {seconds, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -937,7 +932,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {octets, Amount} = _GrantedAmount} when Amount > 0 ->
@@ -948,7 +943,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {messages, Amount} = _GrantedAmount} when Amount > 0 ->
@@ -959,12 +954,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc, ResultCode2, Rated1);
 		{ok, _, {octets, Amount}, Rated2} when Amount > 0,
@@ -976,7 +971,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {octets, Amount}, Rated2} when Amount > 0,
@@ -988,7 +983,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1 ++ Rated2);
 		{ok, _, {seconds, Amount}, Rated2} when Amount > 0,
@@ -1000,7 +995,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {messages, Amount}, Rated2} when Amount > 0,
@@ -1012,7 +1007,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {messages, Amount}, Rated2} when Amount > 0,
@@ -1024,17 +1019,17 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					'Service-Identifier' = SI,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1 ++ Rated2);
 		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc, ResultCode2, Rated2);
 		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc, ResultCode2, Rated1 ++ Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
@@ -1058,7 +1053,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
@@ -1083,7 +1078,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
@@ -1108,7 +1103,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
-			rate(ServiceType, ServiceNetwork, Subscriber,
+			rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
 		{disabled, _SessionList} ->
@@ -1118,11 +1113,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate(ServiceType, ServiceNetwork, Subscriber,
+rate(ServiceType, ServiceNetwork, SubscriberIDs,
 		Timestamp, Address, Direction, final, SessionId,
 		[], [], undefined, undefined) ->
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
-			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
+			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, final,
 			[], [], [{'Session-Id', SessionId}]) of
 		{ok, _, Rated} ->
 			{[], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', Rated};
@@ -1169,41 +1164,90 @@ fui(RedirectServerAddress)
 	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
 			'Redirect-Server' = [RedirectServer]}].
 
--spec subscriber_id(SubscriberIdAVPs, SubIdTypes) -> Subscribers
+-spec subscriber_id(SubscriptionIds, UserName, SubIdTypes) -> SubscriberIDs
 	when
-		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
+		SubscriptionIds :: [#'3gpp_ro_Subscription-Id'{}],
+		UserName :: [binary()],
 		SubIdTypes :: [SubIdType] | undefined,
 		SubIdType :: imsi | msisdn | nai | sip | private,
-		Subscribers :: {IdType, SubId} | [],
-		IdType :: integer(),
-		SubId :: binary().
-%% @doc Get Subscribers From Diameter SubscriberId AVP.
-subscriber_id(SubscriberIdAVPs, undefined = _SubIdTypes) ->
-	subscriber_id(SubscriberIdAVPs, [msisdn]);
-subscriber_id(SubscriberIdAVPs, [H | T])
-		when is_atom(H) ->
-	IdType = id_type(H),
-	case lists:keyfind(IdType, #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
-			SubscriberIdAVPs) of
+		SubscriberIDs :: [binary()].
+%% @doc Get filtered subscriber IDs in priority order.
+subscriber_id(SubscriptionIds, _UserName, undefined = _SubIdTypes)
+		when length(SubscriptionIds) > 0 ->
+	subscriber_id1(SubscriptionIds, [msisdn, imsi], []);
+subscriber_id(SubscriptionIds, _UserName, SubIdTypes)
+		when length(SubscriptionIds) > 0 ->
+	subscriber_id1(SubscriptionIds, SubIdTypes, []);
+subscriber_id([], [] = _UserName, _SubIdTypes) ->
+	throw(no_subscriber_identification_information);
+subscriber_id([], [NAI] = _UserName, _SubIdTypes) ->
+	case binary:split(NAI, [<<":">>, <<"@">>], [global]) of
+		[_Proto, User, _Domain] ->
+			[User];
+		[User, _Domain] ->
+			[User];
+		[User] ->
+			[User];
+		_ ->
+			throw(no_subscriber_identification_information)
+	end.
+%% @hidden
+subscriber_id1(SubscriptionIds, [imsi | T], Acc) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIds) of
 		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
-			{IdType, SubId};
+			subscriber_id1(SubscriptionIds, T, [SubId | Acc]);
 		_  ->
-			subscriber_id(SubscriberIdAVPs, T)
+			subscriber_id1(SubscriptionIds, T, Acc)
 	end;
-subscriber_id(_, []) ->
-	[].
+subscriber_id1(SubscriptionIds, [msisdn | T], Acc) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIds) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			subscriber_id1(SubscriptionIds, T, [SubId | Acc]);
+		_  ->
+			subscriber_id1(SubscriptionIds, T, Acc)
+	end;
+subscriber_id1(SubscriptionIds, [nai | T], Acc) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIds) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			subscriber_id1(SubscriptionIds, T, [SubId | Acc]);
+		_  ->
+			subscriber_id1(SubscriptionIds, T, Acc)
+	end;
+subscriber_id1(SubscriptionIds, [sip | T], Acc) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIds) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			subscriber_id1(SubscriptionIds, T, [SubId | Acc]);
+		_  ->
+			subscriber_id1(SubscriptionIds, T, Acc)
+	end;
+subscriber_id1(SubscriptionIds, [private | T], Acc) ->
+	case lists:keyfind(?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE',
+			#'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriptionIds) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			subscriber_id1(SubscriptionIds, T, [SubId | Acc]);
+		_  ->
+			subscriber_id1(SubscriptionIds, T, Acc)
+	end;
+subscriber_id1(_SubscriptionIds, [], Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
-id_type(imsi) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI';
-id_type(msisdn) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164';
-id_type(nai) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI';
-id_type(sip) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI';
-id_type(private) ->
-	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
-id_type(_) ->
-	[].
+print_sub(SubscriberIDs) ->
+	print_sub(SubscriberIDs, []).
+%% @hidden
+print_sub([H | T], []) ->
+	print_sub(T, binary_to_list(H));
+print_sub([H | T], Acc) ->
+	print_sub(T, Acc ++ "," ++ binary_to_list(H));
+print_sub([], Acc) ->
+	Acc.
 

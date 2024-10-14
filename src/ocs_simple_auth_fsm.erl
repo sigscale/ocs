@@ -256,7 +256,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
-	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
+	case ocs_rating:authorize(radius, ServiceType, [SubscriberId], <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, #service{password = <<>>} =
 				Subscriber, Attributes, ExistingSessionAttributes} ->
@@ -284,7 +284,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
-	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
+	case ocs_rating:authorize(radius, ServiceType, [SubscriberId], Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
@@ -344,7 +344,7 @@ handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 			{'Destination-Host', DHost}, {'Destination-Realm', DRealm},
 			{'Session-Id', SessionID}],
-	case ocs_rating:authorize(diameter, ServiceType, SubscriberId, Password,
+	case ocs_rating:authorize(diameter, ServiceType, [SubscriberId], Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, Subscriber, _Attributes, ExistingSessionAttributes} ->
 			handle_diameter1(Subscriber, ExistingSessionAttributes, StateData);

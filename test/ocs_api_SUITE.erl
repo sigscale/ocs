@@ -1045,7 +1045,7 @@ rating_deleted_bucket_event(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{out_of_credit, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
 			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		{depleted, #bucket{units = Units, remain_amount = RA}, balance} ->
@@ -1101,7 +1101,7 @@ accumulated_balance_event(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
 			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		{accumulated, [#acc_balance{total_balance = [#quantity{units = octets,

@@ -48,7 +48,7 @@
 -define(VCS, 32276).
 
 -spec rate(Protocol, ServiceType, ServiceId, ChargingKey,
-		ServiceNetwork, SubscriberID, Timestamp, Address, Direction,
+		ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter | nrf,
@@ -57,6 +57,7 @@
 		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
 		ServiceNetwork :: string() | binary() | undefined,
+		SubscriberIDs :: [SubscriberID],
 		SubscriberID :: string() | binary(),
 		Timestamp :: calendar:datetime(),
 		Address :: string() | binary() | undefined,
@@ -116,38 +117,30 @@
 %% 	known active sessions which should be disconnected.
 %%
 rate(Protocol, ServiceType, ServiceId, ChargingKey,
-		ServiceNetwork, SubscriberID, Timestamp, Address,
-		Direction, Flag, DebitAmounts, ReserveAmounts,
-		SessionAttributes) when is_list(SubscriberID) ->
-	rate(Protocol, ServiceType, ServiceId, ChargingKey,
-			ServiceNetwork, list_to_binary(SubscriberID),
-			Timestamp, Address, Direction, Flag, DebitAmounts,
-			ReserveAmounts, SessionAttributes);
-rate(Protocol, ServiceType, ServiceId, ChargingKey,
-		ServiceNetwork, SubscriberID, Timestamp, Address,
+		ServiceNetwork, SubscriberIDs, Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) when is_binary(ServiceNetwork) ->
 	rate(Protocol, ServiceType, ServiceId, ChargingKey,
-			binary_to_list(ServiceNetwork), SubscriberID,
+			binary_to_list(ServiceNetwork), SubscriberIDs,
 			Timestamp, Address, Direction, Flag, DebitAmounts,
 			ReserveAmounts, SessionAttributes);
 rate(Protocol, ServiceType, ServiceId, ChargingKey,
-		ServiceNetwork, SubscriberID, Timestamp, Address,
+		ServiceNetwork, SubscriberIDs, Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) when is_binary(Address) ->
 	rate(Protocol, ServiceType, ServiceId, ChargingKey,
-			ServiceNetwork, SubscriberID, Timestamp,
+			ServiceNetwork, SubscriberIDs, Timestamp,
 			binary_to_list(Address), Direction, Flag,
 			DebitAmounts, ReserveAmounts, SessionAttributes);
 rate(Protocol, ServiceType, ServiceId, ChargingKey,
-		ServiceNetwork, SubscriberID,
+		ServiceNetwork, SubscriberIDs,
 		{{_, _, _}, {_, _, _}} = Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter) or (Protocol == nrf)),
 		(is_integer(ChargingKey) or (ChargingKey == undefined)),
 		(is_list(ServiceNetwork) or (ServiceNetwork == undefined)),
-		is_binary(SubscriberID),
+		is_list(SubscriberIDs),
 		(is_list(Address) or (Address == undefined)),
 		((Direction == answer) or (Direction == originate)
 				or (Direction == undefined)),
@@ -155,46 +148,50 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		is_list(DebitAmounts),
 		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
 		length(SessionAttributes) > 0 ->
-	F = fun() ->
-			case mnesia:read(service, SubscriberID, sticky_write) of
-				[#service{product = ProdRef} = Service] ->
-					case mnesia:read(product, ProdRef, read) of
-						[#product{product = OfferId,
-								balance = BucketRefs} = Product] ->
-							Now = erlang:system_time(millisecond),
-							case mnesia:dirty_read(offer, OfferId) of
-								[#offer{char_value_use = CharValueUse,
-												end_date = EndDate, start_date = StartDate} = Offer]
-										when ((StartDate =< Now) or (StartDate == undefined)),
-												((EndDate > Now) or (EndDate == undefined)) ->
-									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
-											|| Id <- BucketRefs]),
-									RedirectServerAddress = case lists:keyfind("redirectServer",
-											#char_value_use.name, CharValueUse) of
-										#char_value_use{values = [#char_value{value = Value}]}
-												when is_list(Value) ->
-											Value;
-										_Other ->
-											undefined
-									end,
-									NewBuckets = lists:map(fun ocs:parse_bucket/1, Buckets),
-									RateResult = rate1(Protocol, Service, ServiceId, Product,
-											NewBuckets, Timestamp, Address, Direction, Offer,
-											Flag, DebitAmounts, ReserveAmounts, ServiceType,
-											get_session_id(SessionAttributes), ChargingKey,
-											ServiceNetwork),
-									{RateResult, RedirectServerAddress};
-								_ ->
-									mnesia:abort(offer_not_found)
-							end;
-						[] ->
-							mnesia:abort(product_not_found)
-					end;
-				[] ->
-					mnesia:abort(service_not_found)
-			end
+	F = fun F([SubscriberID | T]) when is_list(SubscriberID) ->
+				F([list_to_binary(SubscriberID) | T]);
+			F([SubscriberID | T]) when is_binary(SubscriberID) ->
+				case mnesia:read(service, SubscriberID, sticky_write) of
+					[#service{product = ProdRef} = Service] ->
+						case mnesia:read(product, ProdRef, read) of
+							[#product{product = OfferId,
+									balance = BucketRefs} = Product] ->
+								Now = erlang:system_time(millisecond),
+								case mnesia:dirty_read(offer, OfferId) of
+									[#offer{char_value_use = CharValueUse,
+													end_date = EndDate, start_date = StartDate} = Offer]
+											when ((StartDate =< Now) or (StartDate == undefined)),
+													((EndDate > Now) or (EndDate == undefined)) ->
+										Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
+												|| Id <- BucketRefs]),
+										RedirectServerAddress = case lists:keyfind("redirectServer",
+												#char_value_use.name, CharValueUse) of
+											#char_value_use{values = [#char_value{value = Value}]}
+													when is_list(Value) ->
+												Value;
+											_Other ->
+												undefined
+										end,
+										NewBuckets = lists:map(fun ocs:parse_bucket/1, Buckets),
+										RateResult = rate1(Protocol, Service, ServiceId, Product,
+												NewBuckets, Timestamp, Address, Direction, Offer,
+												Flag, DebitAmounts, ReserveAmounts, ServiceType,
+												get_session_id(SessionAttributes), ChargingKey,
+												ServiceNetwork),
+										{RateResult, RedirectServerAddress};
+									_ ->
+										mnesia:abort(offer_not_found)
+								end;
+							[] ->
+								mnesia:abort(product_not_found)
+						end;
+					[] ->
+						F(T)
+				end;
+			F([]) ->
+				mnesia:abort(service_not_found)
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(F, [SubscriberIDs], infinity) of
 		{atomic, {{ok, Sub, Rated, DeletedBuckets, AccBalance}, _}}
 				when is_list(Rated) ->
 			ok = send_notifications(DeletedBuckets),
@@ -413,13 +410,14 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 			SessionId, ChargingKey, Address, ServiceNetwork,
 			Rated).
 
--spec charge(Protocol, Flag, SubscriberID, ServiceId,
+-spec charge(Protocol, Flag, SubscriberIDs, ServiceId,
 		ChargingKey, ServiceNetwork, Address, Prices,
 		DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter | nrf,
 		Flag :: initial | interim | final | event,
-		SubscriberID :: binary(),
+		SubscriberIDs :: [SubscriberID],
+		SubscriberID :: string() | binary(),
 		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
 		ServiceNetwork :: [$0..$9],
@@ -445,12 +443,12 @@ rate3(Protocol, Service, ServiceId, Product, Buckets,
 		RedirectServerAddress :: string() | undefined,
 		Reason :: term().
 %% @doc Handle balance management for used and reserved unit amounts.
-charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
+charge(Protocol, Flag, SubscriberIDs, ServiceId, ChargingKey,
 		ServiceNetwork, Address, Prices,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)
 				or (Protocol == nrf)),
-		is_binary(SubscriberID),
+		is_list(SubscriberIDs),
 		(is_integer(ChargingKey) or (ChargingKey == undefined)),
 		(is_integer(ServiceId) or (ServiceId== undefined)),
 		is_list(Prices),
@@ -458,42 +456,46 @@ charge(Protocol, Flag, SubscriberID, ServiceId, ChargingKey,
 		is_list(DebitAmounts),
 		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
 		length(SessionAttributes) > 0 ->
-	F = fun() ->
-		case mnesia:read(service, SubscriberID, read) of
-			[#service{product = ProdRef} = Service] ->
-				case mnesia:read(product, ProdRef, read) of
-					[#product{product = OfferId, balance = BucketRefs} = Product] ->
-						case mnesia:read(offer, OfferId, read) of
-							[#offer{name = OfferName,
-									char_value_use = CharValueUse} = _Offer] ->
-								Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
-										|| Id <- BucketRefs]),
-								RedirectServerAddress = case lists:keyfind("redirectServer",
-										#char_value_use.name, CharValueUse) of
-									#char_value_use{values = [#char_value{value = Value}]}
-											when is_list(Value) ->
-										Value;
-									_Other ->
-										undefined
-								end,
-								ChargeResult = charge1(Protocol, Flag, Service,
-										ServiceId, Product, Buckets, Prices,
-										DebitAmounts, ReserveAmounts,
-										get_session_id(SessionAttributes),
-										ChargingKey, Address, ServiceNetwork,
-										#rated{product = OfferName}),
-								{ChargeResult,	RedirectServerAddress};
+	F = fun F([SubscriberID | T]) when is_list(SubscriberID) ->
+				F([list_to_binary(SubscriberID) | T]);
+			F([SubscriberID | T]) when is_binary(SubscriberID) ->
+				case mnesia:read(service, SubscriberID, read) of
+					[#service{product = ProdRef} = Service] ->
+						case mnesia:read(product, ProdRef, read) of
+							[#product{product = OfferId, balance = BucketRefs} = Product] ->
+								case mnesia:read(offer, OfferId, read) of
+									[#offer{name = OfferName,
+											char_value_use = CharValueUse} = _Offer] ->
+										Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
+												|| Id <- BucketRefs]),
+										RedirectServerAddress = case lists:keyfind("redirectServer",
+												#char_value_use.name, CharValueUse) of
+											#char_value_use{values = [#char_value{value = Value}]}
+													when is_list(Value) ->
+												Value;
+											_Other ->
+												undefined
+										end,
+										ChargeResult = charge1(Protocol, Flag, Service,
+												ServiceId, Product, Buckets, Prices,
+												DebitAmounts, ReserveAmounts,
+												get_session_id(SessionAttributes),
+												ChargingKey, Address, ServiceNetwork,
+												#rated{product = OfferName}),
+										{ChargeResult,	RedirectServerAddress};
+									[] ->
+										mnesia:abort(offer_not_found)
+								end;
 							[] ->
-								mnesia:abort(offer_not_found)
+								mnesia:abort(product_not_found)
 						end;
 					[] ->
-						mnesia:abort(product_not_found)
+						F(T)
 				end;
-			[] ->
+			F([]) ->
 				mnesia:abort(service_not_found)
-		end
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(F, [SubscriberIDs], infinity) of
 		{atomic, {{ok, Sub, Rated, DeletedBuckets, AccBalance}, _}}
 				when is_list(Rated) ->
 			ok = send_notifications(DeletedBuckets),
@@ -1765,16 +1767,18 @@ charge4(event = _Flag,
 	{out_of_credit, SessionList, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)}.
 
--spec authorize(Protocol, ServiceType, SubscriberId, Password,
+-spec authorize(Protocol, ServiceType, SubscriberIDs, Password,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter | nrf,
 		ServiceType :: ?RADIUSLOGIN | ?RADIUSFRAMED | ?RADIUSVOICE
 				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?SMS | ?VCS
 				| binary() | undefined,
-		SubscriberId :: binary() | string(),
-		Password :: binary() | string() | {ChapId :: 0..255,
-				ChapPassword :: binary(), Challenge :: binary()},
+		SubscriberIDs :: [SubscriberID],
+		SubscriberID :: binary() | string(),
+		Password :: binary() | string() | undefined
+				| {ChapId :: 0..255, ChapPassword :: binary(),
+						Challenge :: binary()},
 		Timestamp :: calendar:datetime(),
 		Address :: string() | undefined,
 		Direction :: answer | originate | undefined,
@@ -1788,51 +1792,57 @@ charge4(event = _Flag,
 				| out_of_credit | offer_not_found
 				| price_not_found | table_lookup_failed.
 %% @doc Authorize access request.
+%%
 %% 	If authorized returns attributes to be included in `Access-Accept' response.
 %%
 %% 	When subscriber's product instance includes the `radiusReserveSessionTime'
 %% 	characteristic a reservation is attempted for the given value of seconds.
 %% 	A `Session-Timeout' attribute will be included with the actual reservation.
 %%
-authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
-		Address, Direction, SessionAttributes) when is_list(SubscriberId) ->
-	authorize(Protocol, ServiceType, list_to_binary(SubscriberId),
-			Password, Timestamp, Address, Direction, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+authorize(Protocol, ServiceType, SubscriberIDs, Password, Timestamp,
 			Address, Direction, SessionAttributes) when is_list(Password) ->
-	authorize(Protocol, ServiceType, SubscriberId, list_to_binary(Password),
+	authorize(Protocol, ServiceType, SubscriberIDs, list_to_binary(Password),
 			Timestamp, Address, Direction, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+authorize(Protocol, ServiceType, SubscriberIDs, Password, Timestamp,
 		Address, Direction, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter) or (Protocol == nrf)),
-		is_binary(SubscriberId), length(SessionAttributes) > 0 ->
-	F = fun() ->
-			case mnesia:read(service, SubscriberId) of
-				[#service{enabled = false,
-						session_attributes = ExistingAttr} = S] ->
-					ok = mnesia:write(S#service{session_attributes = []}),
-					{unauthorized, disabled, ExistingAttr};
-				[#service{password = Password1} = S] when is_tuple(Password) ->
-					{ChapId, ChapPassword, Challenge} = Password,
-					case crypto:hash(md5, [ChapId, Password1, Challenge]) of
-						ChapPassword ->
-							authorize1(Protocol, ServiceType, S, Timestamp,
-									Address, Direction, SessionAttributes);
-						_Other ->
-							mnesia:abort(bad_password)
-					end;
-				[#service{password = MTPassword} = S] when
-						((Password == <<>>) and (Password =/= MTPassword)) orelse
-						(Password == MTPassword) ->
-					authorize1(Protocol, ServiceType, S, Timestamp,
-							Address, Direction, SessionAttributes);
-				[#service{}] ->
-					mnesia:abort(bad_password);
-				[] ->
-					mnesia:abort(service_not_found)
-			end
+		is_list(SubscriberIDs), length(SessionAttributes) > 0 ->
+	F = fun F([SubscriberID | T]) when is_list(SubscriberID) ->
+				F([list_to_binary(SubscriberID) | T]);
+			F([SubscriberID | T]) when is_binary(SubscriberID) ->
+				case mnesia:read(service, SubscriberID) of
+					[#service{enabled = false,
+							session_attributes = ExistingAttr} = S] ->
+						ok = mnesia:write(S#service{session_attributes = []}),
+						{unauthorized, disabled, ExistingAttr};
+					[#service{password = Password1} = S]
+						when Protocol == radius, is_tuple(Password) ->
+						{ChapId, ChapPassword, Challenge} = Password,
+						case crypto:hash(md5, [ChapId, Password1, Challenge]) of
+							ChapPassword ->
+								authorize1(Protocol, ServiceType, S, Timestamp,
+										Address, Direction, SessionAttributes);
+							_Other ->
+								mnesia:abort(bad_password)
+						end;
+					[#service{password = MTPassword} = Service]
+							when ((Protocol == radius) and
+							(((Password == <<>>) and (Password =/= MTPassword))
+							orelse (Password == MTPassword))) ->
+						authorize1(Protocol, ServiceType, Service, Timestamp,
+								Address, Direction, SessionAttributes);
+					[#service{}] when Protocol == radius ->
+						mnesia:abort(bad_password);
+					[#service{} = Service] ->
+						authorize1(Protocol, ServiceType, Service, Timestamp,
+								Address, Direction, SessionAttributes);
+					[] ->
+						F(T)
+				end;
+			F([]) ->
+				mnesia:abort(service_not_found)
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(F, [SubscriberIDs], infinity) of
 		{atomic, {authorized, Sub, Attr, SSA}} ->
 			{authorized, Sub, Attr, SSA};
 		{atomic, {unauthorized, Reason, SSA}} ->
@@ -1912,17 +1922,11 @@ authorize1(radius, ServiceType,
 		[] ->
 			mnesia:abort(product_not_found)
 	end;
-authorize1(Protocol, ServiceType,
-		#service{attributes = Attributes, product = ProdRef} =
-		Service, _Timestamp, _Address, _Direction, SessionAttributes)
+authorize1(Protocol, _ServiceType,
+		#service{attributes = Attributes} = Service, _Timestamp,
+		_Address, _Direction, SessionAttributes)
 		when Protocol == diameter; Protocol == nrf ->
-	case mnesia:dirty_read(product, ProdRef) of
-		[#product{balance = BucketRefs}] ->
-			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
-			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes);
-		[] ->
-			mnesia:abort(product_not_found)
-	end.
+	authorize6(Service, SessionAttributes, Attributes).
 %% @hidden
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets, Timestamp,

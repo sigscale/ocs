@@ -194,5 +194,6 @@
 				{nrf_valid_volume, undefined},
 				{nrf_valid_time, undefined},
 				{nrf_valid_unit, undefined},
+				{nrf_sub_id_type, [imsi, msisdn]},
 				{elastic_shipper, undefined}]},
 		{mod, {ocs_app, []}}]}.

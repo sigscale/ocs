@@ -702,6 +702,10 @@ Rating configuration options:
 		<dd>Centralized Unit Determination: minimum number of messages reserved. (default: 1)</dd>
 	<dt>charge_overflow</dt>
 		<dd>Leave negative balance Bucket when usage over credit. (default: true)</dd>
+	<dt>nrf_sub_id_type</dt>
+		<dd>Defines a list of Nrf subscription ID types, in order of priority,
+				to use to find a SubscriberID to use for rating. The complete
+				list is [imsi, msisdn, nai, gci, gli, iccid] (default: [imsi, msisdn])</dd>
 	<dt>nrf_valid_time</dt>
 		<dd>Threshold for time quota re-authorization in seconds. (default: undefined)</dd>
 	<dt>nrf_valid_volume</dt>

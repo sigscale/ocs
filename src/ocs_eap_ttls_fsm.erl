@@ -1071,7 +1071,7 @@ server_passthrough({accept, #service{name = Identity,
 	Timestamp = calendar:local_time(),
 	CallAddress = proplists:get_value(?CalledStationId, RequestAttributes, ""),
 	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
-	case ocs_rating:authorize(radius, ServiceType, Identity, Password,
+	case ocs_rating:authorize(radius, ServiceType, [Identity], Password,
 			Timestamp, CallAddress, undefined, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],

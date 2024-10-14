@@ -522,7 +522,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			{Map4, [{nrf_ref, RatingDataRef}]}
 	end,
 	case ocs_rating:rate(nrf, ServiceType, ServiceId, ChargingKey,
-			MCCMNC, get_subscriber(SubscriptionIds), TS, undefined, undefined,
+			MCCMNC, subscriber_id(SubscriptionIds), TS, undefined, undefined,
 			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
@@ -722,19 +722,108 @@ subscriptionId_map([], #{"subscriptionId" := SubscriptionIds} = Acc) ->
 	SubscriptionIds1 = lists:reverse(SubscriptionIds),
 	Acc#{"subscriptionId" := SubscriptionIds1}.
 
--spec get_subscriber(SubscriptionIds) -> Subscriber
+-spec subscriber_id(SubscriptionIds) -> SubscriberIDs
 	when
-		SubscriptionIds :: [Id],
-		Id :: string(),
-		Subscriber :: string().
-%% @hidden Get a subscriber id from list of subscribers.
-get_subscriber(["msisdn-" ++ MSISDN | _]) ->
-	MSISDN;
-get_subscriber(["imsi-" ++ IMSI | _]) ->
+		SubscriptionIds :: [string()],
+		SubscriberIDs :: [string()].
+%% @hidden Get a filtered list of subscriber IDs in priority order.
+subscriber_id(SubscriptionIds) ->
+	{ok, IdTypes} = application:get_env(ocs, nrf_sub_id_type),
+	subscriber_id(IdTypes, SubscriptionIds, []).
+%% @hidden
+subscriber_id([imsi | T], SubscriptionIds, Acc) ->
+	case get_imsi(SubscriptionIds) of
+		IMSI when is_list(IMSI) ->
+			subscriber_id(T, SubscriptionIds, [IMSI | Acc]);
+		undefined ->
+			subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([msisdn | T], SubscriptionIds, Acc) ->
+	case get_msisdn(SubscriptionIds) of
+		MSISDN when is_list(MSISDN) ->
+			subscriber_id(T, SubscriptionIds, [MSISDN | Acc]);
+		undefined ->
+		subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([nai | T], SubscriptionIds, Acc) ->
+	case get_nai(SubscriptionIds) of
+		NAI when is_list(NAI) ->
+			subscriber_id(T, SubscriptionIds, [NAI | Acc]);
+		undefined ->
+			subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([gci | T], SubscriptionIds, Acc) ->
+	case get_gci(SubscriptionIds) of
+		GCI when is_list(GCI) ->
+			subscriber_id(T, SubscriptionIds, [GCI | Acc]);
+		undefined ->
+			subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([gli | T], SubscriptionIds, Acc) ->
+	case get_gli(SubscriptionIds) of
+		GLI when is_list(GLI) ->
+			subscriber_id(T, SubscriptionIds, [GLI | Acc]);
+		undefined ->
+			subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([iccid | T], SubscriptionIds, Acc) ->
+	case get_iccid(SubscriptionIds) of
+		ICCID when is_list(ICCID) ->
+			subscriber_id(T, SubscriptionIds, [ICCID | Acc]);
+		undefined ->
+			subscriber_id(T, SubscriptionIds, Acc)
+	end;
+subscriber_id([_ | T], SubscriptionIds, Acc) ->
+	subscriber_id(T, SubscriptionIds, Acc);
+subscriber_id([], _SubscriptionIds, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+get_imsi(["imsi-" ++ IMSI | _]) ->
 	IMSI;
-get_subscriber([_ | T]) ->
-	get_subscriber(T);
-get_subscriber([]) ->
+get_imsi([_ | T]) ->
+	get_imsi(T);
+get_imsi([]) ->
+	undefined.
+
+%% @hidden
+get_msisdn(["msisdn-" ++ MSISDN | _]) ->
+	MSISDN;
+get_msisdn([_ | T]) ->
+	get_msisdn(T);
+get_msisdn([]) ->
+	undefined.
+
+%% @hidden
+get_nai(["nai-" ++ IMSI | _]) ->
+	IMSI;
+get_nai([_ | T]) ->
+	get_nai(T);
+get_nai([]) ->
+	undefined.
+
+%% @hidden
+get_gci(["gci-" ++ IMSI | _]) ->
+	IMSI;
+get_gci([_ | T]) ->
+	get_gci(T);
+get_gci([]) ->
+	undefined.
+
+%% @hidden
+get_gli(["gli-" ++ IMSI | _]) ->
+	IMSI;
+get_gli([_ | T]) ->
+	get_gli(T);
+get_gli([]) ->
+	undefined.
+
+%% @hidden
+get_iccid(["iccid-" ++ IMSI | _]) ->
+	IMSI;
+get_iccid([_ | T]) ->
+	get_iccid(T);
+get_iccid([]) ->
 	undefined.
 
 -spec struct_service_rating(ServiceRating) -> Result
