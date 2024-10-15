@@ -88,19 +88,22 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_service, update_service, delete_service, add_offer,
-	find_offer, get_offers, delete_offer, add_user, get_user,
-	delete_user, add_bucket, find_bucket, delete_bucket,
-	get_buckets, positive_adjustment, negative_adjustment_high,
-	negative_adjustment_equal, negative_adjustment_low, add_product,
-	update_product, find_product, delete_product, query_product,
-	ignore_delete_product, add_offer_event, delete_offer_event,
-	add_resource_event, delete_resource_event, add_service_event,
-	delete_service_event, add_product_event, delete_product_event,
-	add_bucket_event, delete_bucket_event, product_charge_event,
-	rating_deleted_bucket_event, accumulated_balance_event,
-	add_resource, get_resources, get_resource, delete_resource,
-	parse_access_network_information_string].
+			add_service, update_service, delete_service, add_offer,
+			find_offer, get_offers, delete_offer, add_user, get_user,
+			delete_user, add_bucket, find_bucket, delete_bucket,
+			get_buckets, positive_adjustment, negative_adjustment_high,
+			negative_adjustment_equal, negative_adjustment_low, add_product,
+			update_product, find_product, delete_product, query_product,
+			ignore_delete_product, add_offer_event, delete_offer_event,
+			add_resource_event, delete_resource_event, add_service_event,
+			delete_service_event, add_product_event, delete_product_event,
+			add_bucket_event, delete_bucket_event, product_charge_event,
+			rating_deleted_bucket_event, accumulated_balance_event,
+			add_resource, get_resources, get_resource, delete_resource,
+			parse_access_network_information_string, start_radius_acct,
+			start_radius_auth, start_diameter_acct, start_diameter_auth, 
+			stop_radius_auth, stop_radius_acct, stop_diameter_acct,
+			stop_diameter_auth].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1191,6 +1194,74 @@ parse_access_network_information_string(_Config) ->
 	ECI = "76B4321",
 	NetworkID = MCC ++ MNC ++ TAC ++ ECI,
 	{MCC, MNC, _Rest} = ocs_diameter:plmn(NetworkID).
+
+start_radius_auth() ->
+	[{userdata, [{doc, "Start a RADIUS auth handler."}]}].
+
+start_radius_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, _Pid} = ocs:start(radius, auth, {127, 0, 0, 1}, Port, Options).
+
+start_radius_acct() ->
+	[{userdata, [{doc, "Start a RADIUS acct handler."}]}].
+
+start_radius_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [],
+	{ok, _Pid} = ocs:start(radius, acct, {127, 0, 0, 1}, Port, Options).
+
+start_diameter_acct() ->
+	[{userdata, [{doc, "Start a DIAMETER acct handler."}]}].
+
+start_diameter_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{sub_id_type, [msisdn, imsi]}],
+	{ok, _Pid} = ocs:start(diameter, acct, {127, 0, 0, 1}, Port, Options).
+
+start_diameter_auth() ->
+	[{userdata, [{doc, "Start a DIAMETER auth handler."}]}].
+
+start_diameter_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, _Pid} = ocs:start(diameter, auth, {127, 0, 0, 1}, Port, Options).
+
+stop_radius_auth() ->
+	[{userdata, [{doc, "Stop a RADIUS auth handler."}]}].
+
+stop_radius_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, Pid} = ocs:start(radius, auth, {127, 0, 0, 1}, Port, Options),
+	ok = ocs:stop(radius, auth, Pid).
+
+stop_radius_acct() ->
+	[{userdata, [{doc, "Stop a RADIUS acct handler."}]}].
+
+stop_radius_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [],
+	{ok, Pid} = ocs:start(radius, acct, {127, 0, 0, 1}, Port, Options),
+	ok = ocs:stop(radius, acct, Pid).
+
+stop_diameter_acct() ->
+	[{userdata, [{doc, "Stop a DIAMETER acct handler."}]}].
+
+stop_diameter_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{sub_id_type, [msisdn, imsi]}],
+	{ok, Pid} = ocs:start(diameter, acct, {127, 0, 0, 1}, Port, Options),
+	ok = ocs:stop(diameter, acct, Pid).
+
+stop_diameter_auth() ->
+	[{userdata, [{doc, "Stop a DIAMETER auth handler."}]}].
+
+stop_diameter_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, Pid} = ocs:start(diameter, auth, {127, 0, 0, 1}, Port, Options),
+	ok = ocs:stop(diameter, auth, Pid).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
