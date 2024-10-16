@@ -573,9 +573,9 @@ class offerAdd extends PolymerElement {
 									Amount of bytes to reserve on RADIUS Accounting-Start and add to reported bytes on Accounting-Interim.
 								</paper-tooltip>
 							</div>
-							<div>
+							<div id="destPrefixInput1">
 								<paper-dropdown-menu
-										id="destPrefixTariff"
+										id="destPrefixTariff1"
 										value="{{priceTariff}}"
 										no-animations="true"
 										label="Prefix Tariff Table">
@@ -593,6 +593,15 @@ class offerAdd extends PolymerElement {
 								</paper-dropdown-menu>
 								<paper-tooltip>
 									Name of table for Tariff type Product Offering Price.
+								</paper-tooltip>
+							</div>
+							<div id="destPrefixInput2">
+								<paper-input
+										id="destPrefixTariff2"
+										value="{{priceTariff}}"
+										label="Prefix Tariff Table">
+								<paper-tooltip>
+									Suffix used with Roaming Table name for Tariff type Product Offering Price.
 								</paper-tooltip>
 							</div>
 							<div>
@@ -962,7 +971,8 @@ class offerAdd extends PolymerElement {
 				type: String
 			},
 			priceRoaming: {
-				type: String
+				type: String,
+				observer: '_roamingTable'
 			},
 			priceKey: {
 				type: Number
@@ -1184,6 +1194,16 @@ class offerAdd extends PolymerElement {
 				var priIndex = this.prices.findIndex(checkPr);
 				this.prices.splice(priIndex, 1);
 			}
+		}
+	}
+
+	_roamingTable() {
+		if (this.priceRoaming) {
+			this.$.destPrefixInput1.hidden = true;
+			this.$.destPrefixInput2.hidden = false;
+		} else {
+			this.$.destPrefixInput1.hidden = false;
+			this.$.destPrefixInput2.hidden = true;
 		}
 	}
 
@@ -1804,15 +1824,18 @@ class offerAdd extends PolymerElement {
 
 	_checkProductSpec() {
 		if(this.offerAddSpec == "Prepaid Data") {
-			this.$.destPrefixTariff.disabled = true;
+			this.$.destPrefixTariff1.disabled = true;
+			this.$.destPrefixTariff2.disabled = true;
 			this.$.addReserveSessionTime.disabled = false;
 			this.$.addReserveSessionOctets.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid Voice") {
 			this.$.addReserveSessionTime.disabled = false;
 			this.$.addReserveSessionOctets.disabled = true;
-			this.$.destPrefixTariff.disabled = false;
+			this.$.destPrefixTariff1.disabled = false;
+			this.$.destPrefixTariff2.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid SMS") {
-			this.$.destPrefixTariff.disabled = false;
+			this.$.destPrefixTariff1.disabled = false;
+			this.$.destPrefixTariff2.disabled = false;
 			this.$.addReserveSessionTime.disabled = true;
 			this.$.addReserveSessionOctets.disabled = true;
 		}
