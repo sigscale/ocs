@@ -66,7 +66,7 @@ class offerList extends PolymerElement {
 					<template class="header">
 							Status
 					</template>
-					<template>[[item.status]]</template>
+					<template>[[item.lifecycleStatus]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
