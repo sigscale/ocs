@@ -11,6 +11,9 @@ endif
 
 script_SCRIPTS = scripts/install_tables.escript \
 		scripts/join_cluster.escript \
+		scripts/install_snmp.sh \
+		scripts/install_certs.sh \
+		scripts/install_release.sh \
 		scripts/snapshot.escript \
 		scripts/export_ipdr.escript \
 		scripts/send_sms.escript \
