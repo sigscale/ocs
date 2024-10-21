@@ -116,6 +116,26 @@ handle_call({stop, diameter, acct, Pid}, _From, #state{sup = Sup} = State) ->
 	Children = supervisor:which_children(Sup),
 	{_, AcctSup, _, _} = lists:keyfind(ocs_diameter_acct_top_sup, 1, Children),
 	Result = supervisor:terminate_child(AcctSup, Pid),
+	{reply, Result, State};
+handle_call({get, radius, acct}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, AcctSup, _, _} = lists:keyfind(ocs_radius_acct_top_sup, 1, Children),
+	Result = [Acct || {_, Acct, _, _} <- supervisor:which_children(AcctSup)],
+	{reply, Result, State};
+handle_call({get, radius, auth}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, AuthSup, _, _} = lists:keyfind(ocs_radius_auth_sup, 1, Children),
+	Result = [Auth || {_, Auth, _, _} <- supervisor:which_children(AuthSup)],
+	{reply, Result, State};
+handle_call({get, diameter, acct}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, AcctSup, _, _} = lists:keyfind(ocs_diameter_acct_top_sup, 1, Children),
+	Result = [Acct || {_, Acct, _, _} <- supervisor:which_children(AcctSup)],
+	{reply, Result, State};
+handle_call({get, diameter, auth}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, AuthSup, _, _} = lists:keyfind(ocs_diameter_auth_sup, 1, Children),
+	Result = [Auth || {_, Auth, _, _} <- supervisor:which_children(AuthSup)],
 	{reply, Result, State}.
 
 -spec handle_cast(Request, State) -> Result

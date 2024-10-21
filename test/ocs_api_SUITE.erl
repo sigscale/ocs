@@ -103,7 +103,8 @@ all() ->
 			parse_access_network_information_string, start_radius_acct,
 			start_radius_auth, start_diameter_acct, start_diameter_auth, 
 			stop_radius_auth, stop_radius_acct, stop_diameter_acct,
-			stop_diameter_auth].
+			stop_diameter_auth, get_radius_acct, get_radius_auth,
+			get_diameter_acct, get_diameter_auth].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1262,6 +1263,42 @@ stop_diameter_auth(_Config) ->
 	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
 	{ok, Pid} = ocs:start(diameter, auth, {127, 0, 0, 1}, Port, Options),
 	ok = ocs:stop(diameter, auth, Pid).
+
+get_radius_auth() ->
+	[{userdata, [{doc, "Get RADIUS auth handlers."}]}].
+
+get_radius_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, Pid} = ocs:start(radius, auth, {127, 0, 0, 1}, Port, Options),
+	true = lists:member(Pid, ocs:get_auth(radius)).
+
+get_radius_acct() ->
+	[{userdata, [{doc, "Get RADIUS acct handlers."}]}].
+
+get_radius_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [],
+	{ok, Pid} = ocs:start(radius, acct, {127, 0, 0, 1}, Port, Options),
+	true = lists:member(Pid, ocs:get_acct(radius)).
+
+get_diameter_acct() ->
+	[{userdata, [{doc, "Get DIAMETER acct handlers."}]}].
+
+get_diameter_acct(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{sub_id_type, [msisdn, imsi]}],
+	{ok, Pid} = ocs:start(diameter, acct, {127, 0, 0, 1}, Port, Options),
+	true = lists:member(Pid, ocs:get_acct(diameter)).
+
+get_diameter_auth() ->
+	[{userdata, [{doc, "Get DIAMETER auth handlers."}]}].
+
+get_diameter_auth(_Config) ->
+	Port = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
+	{ok, Pid} = ocs:start(diameter, auth, {127, 0, 0, 1}, Port, Options),
+	true = lists:member(Pid, ocs:get_auth(diameter)).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

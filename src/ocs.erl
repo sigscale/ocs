@@ -42,7 +42,7 @@
 -export([clean_services/1, clean_buckets/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
--export([start/4, start/5, stop/3]).
+-export([start/4, start/5, stop/3, get_acct/1, get_auth/1]).
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([parse_bucket/1]).
@@ -2665,6 +2665,26 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 %% @doc Stop a RADIUS/DIAMETER request handler.
 stop(Protocol, Type, Pid) when is_pid(Pid) ->
 	gen_server:call(ocs, {stop, Protocol, Type, Pid}).
+
+-spec get_acct(Protocol) -> Result
+	when
+		Protocol :: radius | diameter,
+		Result :: [pid()] | {error, Reason},
+		Reason :: term().
+%% @doc Get RADIUS/DIAMETER acct request handlers.
+get_acct(Protocol)
+		when Protocol == radius; Protocol == diameter ->
+	gen_server:call(ocs, {get, Protocol, acct}).
+
+-spec get_auth(Protocol) -> Result
+	when
+		Protocol :: radius | diameter,
+		Result :: [pid()] | {error, Reason},
+		Reason :: term().
+%% @doc Get RADIUS/DIAMETER auth request handlers.
+get_auth(Protocol)
+		when Protocol == radius; Protocol == diameter ->
+	gen_server:call(ocs, {get, Protocol, auth}).
 
 -spec add_user(Username, Password, UserData) -> Result
 	when
