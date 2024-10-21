@@ -1,5 +1,7 @@
 2024-10-21  Vance Shipley <vances@sigscale.org>
 
+	* install install scripts
+	* make install target creates otp subdirs
 	* refactor diameter acct service for functionally parameterized handlers
 	* refactor re test suite for dynamic diameter handlers
 	* public api to get radius/diameter handlers
