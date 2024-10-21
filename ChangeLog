@@ -1,5 +1,8 @@
 2024-10-21  Vance Shipley <vances@sigscale.org>
 
+	* include old and new in code path for make relup
+	* include noble in ubuntu readme
+	* install install scripts
 	* install install scripts
 	* make install target creates otp subdirs
 	* refactor diameter acct service for functionally parameterized handlers
