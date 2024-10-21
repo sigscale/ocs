@@ -1,5 +1,6 @@
 2024-10-21  Vance Shipley <vances@sigscale.org>
 
+	* update reldir during in-service-upgrade
 	* include old and new in code path for make relup
 	* include noble in ubuntu readme
 	* install install scripts
