@@ -1,3 +1,24 @@
+2024-10-21  Vance Shipley <vances@sigscale.org>
+
+	* refactor diameter acct service for functionally parameterized handlers
+	* refactor re test suite for dynamic diameter handlers
+	* public api to get radius/diameter handlers
+	* display lifecycle status in product offering grid view
+	* change from dropdown list to input when roaming table provided
+	* add stop/3 api to terminate radius/diameter handlers
+	* support mutliple subscription identifiers in rating api
+	* refactor inets user handling
+	* comment in init_per_suite/1 unsupported
+	* cleanup type specifications in users api
+	* add guard to appease dialyzer
+	* correct type specification for state data
+	* default radius service-type to framed
+	* fix missing content-type header
+	* comment test suite and cases in test report
+	* correct service events in diameter test suite; add auth test cases
+	* test suite for diameter operations
+	* safely stop diameter service
+
 2024-09-28  Vance Shipley <vances@sigscale.org>
 
 	* create subdirectories in make install

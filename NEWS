@@ -1,3 +1,11 @@
+October 21, 2024
+----------------
+	* API for RADIUS/DIAMETER handler lifecycle management
+	* Display lifecycle status in Product Offering view
+	* Correct roaming tariff table names in add Price dialog
+	* Rating API now accepts multiple subscription IDs
+	* RADIUS Service-Type now defaults to Framed
+
 September 28, 2024
 ------------------
 	- Refactored OTP release handling
