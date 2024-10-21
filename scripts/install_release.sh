@@ -53,6 +53,8 @@ then
 		if echo -e "4.2\n$SASLVER"  | sort --check=quiet --version-sort;
 		then
 			if erl -noshell -sname $RPC_SNAME \
+					-eval "rpc:call('$OTP_NODE', application, stop, [sasl])" \
+					-eval "rpc:call('$OTP_NODE', application, set_env, [sasl, releases_dir, \"$HOME/releases\"])" \
 					-eval "rpc:call('$OTP_NODE', application, start, [sasl])" \
 					-eval "rpc:call('$OTP_NODE', systools, make_relup, [\"releases/$PKG_NEW\", [\"releases/$PKG_NAME-$OLD_VER\"], [\"releases/$PKG_NAME-$OLD_VER\"], [{path,[\"lib/*/ebin\"]}, {outdir, \"releases/$PKG_NEW\"}]])" \
 					-eval "{ok, _} = rpc:call('$OTP_NODE', release_handler, set_unpacked, [\"$HOME/releases/$PKG_NEW.rel\", $APPDIRS])" \
