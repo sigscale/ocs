@@ -26,9 +26,9 @@
 -module(ocs_diameter_3gpp_ro_application_cb).
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
--export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
-			prepare_retransmit/3, handle_answer/4, handle_error/4,
-			handle_request/3]).
+-export([peer_up/4, peer_down/4, pick_peer/5, prepare_request/4,
+			prepare_retransmit/4, handle_answer/5, handle_error/5,
+			handle_request/4]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -62,60 +62,67 @@
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
--spec peer_up(ServiceName, Peer, State) -> NewState
+-spec peer_up(ServiceName, Peer, State, Config) -> NewState
 	when
 		ServiceName :: diameter:service_name(),
 		Peer ::  peer(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
-peer_up(_ServiceName, _Peer, State) ->
+peer_up(_ServiceName, _Peer, State, _Config) ->
     State.
 
--spec peer_down(ServiceName, Peer, State) -> NewState
+-spec peer_down(ServiceName, Peer, State, Config) -> NewState
 	when
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
-peer_down(_ServiceName, _Peer, State) ->
+peer_down(_ServiceName, _Peer, State, _Config) ->
     State.
 
--spec pick_peer(LocalCandidates, RemoteCandidates, ServiceName, State) -> Result
+-spec pick_peer(LocalCandidates, RemoteCandidates,
+		ServiceName, State, Config) -> Result
 	when
 		LocalCandidates :: [peer()],
 		RemoteCandidates :: [peer()],
 		ServiceName :: diameter:service_name(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state(),
 		Selection :: {ok, Peer} | {Peer, NewState},
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request.
-pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
+pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates,
+		_ServiceName, _State, _Config) ->
 	{ok, Peer}.
 
--spec prepare_request(Packet, ServiceName, Peer) -> Action
+-spec prepare_request(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport
-prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
+prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer, _Config) ->
 	{send, Packet}.
 
--spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
+-spec prepare_retransmit(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
@@ -123,37 +130,40 @@ prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
-prepare_retransmit(Packet, ServiceName, Peer) ->
-	prepare_request(Packet, ServiceName, Peer).
+prepare_retransmit(Packet, ServiceName, Peer, Config) ->
+	prepare_request(Packet, ServiceName, Peer, Config).
 
--spec handle_answer(Packet, Request, ServiceName, Peer) -> Result
+-spec handle_answer(Packet, Request, ServiceName, Peer, Config) -> Result
 	when
 		Packet :: packet(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(_Packet, _Request, _ServiceName, _Peer) ->
+handle_answer(_Packet, _Request, _ServiceName, _Peer, _Config) ->
     not_implemented.
 
--spec handle_error(Reason, Request, ServiceName, Peer) -> Result
+-spec handle_error(Reason, Request, ServiceName, Peer, Config) -> Result
 	when
 		Reason :: timeout | failover | term(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(_Reason, _Request, _ServiceName, _Peer) ->
+handle_error(_Reason, _Request, _ServiceName, _Peer, _Config) ->
 	not_implemented.
 
--spec handle_request(Packet, ServiceName, Peer) -> Action
+-spec handle_request(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: term(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -163,10 +173,12 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
-		{_, IpAddress, Port} = _ServiceName, {_, Capabilities} = _Peer) ->
-	{reply, process_request(IpAddress, Port, Capabilities, Request)};
+		{_, IpAddress, Port} = _ServiceName,
+		{_, Capabilities} = _Peer,
+		Config) ->
+	{reply, process_request(IpAddress, Port, Capabilities, Request, Config)};
 handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
-		ServiceName, {_, Caps} = _Peer) ->
+		ServiceName, {_, Caps} = _Peer, _Config) ->
 	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------
@@ -237,11 +249,12 @@ errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{answer_message, ResultCode}.
 
--spec process_request(IpAddress, Port, Caps, Request) -> Result
+-spec process_request(IpAddress, Port, Caps, Request, Config) -> Result
 	when
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
 		Request :: #'3gpp_ro_CCR'{},
+		Config :: map(),
 		Caps :: capabilities(),
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
@@ -253,27 +266,14 @@ process_request(IpAddress, Port,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = SubscriptionIds} = Request) ->
+				'Subscription-Id' = SubscriptionIds} = Request,
+		Config) ->
 	try
-		{ok, Configurations} = application:get_env(ocs, diameter),
-		{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
-		F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
-				Options;
-			F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
-				Options;
-			F([{_, _, _} | T]) ->
-				F(T)
-		end,
-		ServiceOptions = F(AcctServices),
-		SubIdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
-			{sub_id_type, Ts} when is_list(Ts) ->
-				Ts;
-			false ->
-				undefined
-		end,
-		SubscriberIDs = subscriber_id(SubscriptionIds, UserName, SubIdTypes),
+		SubscriberIDs = subscriber_id(SubscriptionIds, UserName,
+				maps:get(sub_id_type, Config, undefined)),
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress, Port)
+				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress,
+				Port, Config)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -288,7 +288,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
+		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port,
+		_Config) ->
 	try
 		Server = {IpAddress, Port},
 		ServiceType = service_type(SvcContextId),
@@ -339,7 +340,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
+		SubscriberIDs, OHost, _DHost, ORealm, _DRealm, IpAddress, Port,
+		_Config) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -391,7 +393,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) when length(MSCC1) > 0 ->
+		IpAddress, Port, _Config) when length(MSCC1) > 0 ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -443,7 +445,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) ->
+		IpAddress, Port, _Config) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -510,7 +512,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) ->
+		IpAddress, Port, _Config) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -598,7 +600,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIDs, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) ->
+		IpAddress, Port, _Config) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),

@@ -29,9 +29,9 @@
 -module(ocs_diameter_3gpp_ro_nrf_app_cb).
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
--export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
-			prepare_retransmit/3, handle_answer/4, handle_error/4,
-			handle_request/3]).
+-export([peer_up/4, peer_down/4, pick_peer/5, prepare_request/4,
+			prepare_retransmit/4, handle_answer/5, handle_error/5,
+			handle_request/4]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -67,60 +67,67 @@
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
--spec peer_up(ServiceName, Peer, State) -> NewState
+-spec peer_up(ServiceName, Peer, State, Config) -> NewState
 	when
 		ServiceName :: diameter:service_name(),
 		Peer ::  peer(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
-peer_up(_ServiceName, _Peer, State) ->
+peer_up(_ServiceName, _Peer, State, _Config) ->
 	State.
 
--spec peer_down(ServiceName, Peer, State) -> NewState
+-spec peer_down(ServiceName, Peer, State, Config) -> NewState
 	when
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
-peer_down(_ServiceName, _Peer, State) ->
+peer_down(_ServiceName, _Peer, State, _Config) ->
 	State.
 
--spec pick_peer(LocalCandidates, RemoteCandidates, ServiceName, State) -> Result
+-spec pick_peer(LocalCandidates, RemoteCandidates,
+		ServiceName, State, Config) -> Result
 	when
 		LocalCandidates :: [peer()],
 		RemoteCandidates :: [peer()],
 		ServiceName :: diameter:service_name(),
 		State :: state(),
+		Config :: map(),
 		NewState :: state(),
 		Selection :: {ok, Peer} | {Peer, NewState},
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request.
-pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
+pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates,
+		_ServiceName, _State, _Config) ->
 	{ok, Peer}.
 
--spec prepare_request(Packet, ServiceName, Peer) -> Action
+-spec prepare_request(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport
-prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
+prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer, _Config) ->
 	{send, Packet}.
 
--spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
+-spec prepare_retransmit(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
@@ -128,37 +135,40 @@ prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
-prepare_retransmit(Packet, ServiceName, Peer) ->
-	prepare_request(Packet, ServiceName, Peer).
+prepare_retransmit(Packet, ServiceName, Peer, Config) ->
+	prepare_request(Packet, ServiceName, Peer, Config).
 
--spec handle_answer(Packet, Request, ServiceName, Peer) -> Result
+-spec handle_answer(Packet, Request, ServiceName, Peer, Config) -> Result
 	when
 		Packet :: packet(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(_Packet, _Request, _ServiceName, _Peer) ->
+handle_answer(_Packet, _Request, _ServiceName, _Peer, _Config) ->
 	not_implemented.
 
--spec handle_error(Reason, Request, ServiceName, Peer) -> Result
+-spec handle_error(Reason, Request, ServiceName, Peer, Config) -> Result
 	when
 		Reason :: timeout | failover | term(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Config :: map(),
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(_Reason, _Request, _ServiceName, _Peer) ->
+handle_error(_Reason, _Request, _ServiceName, _Peer, _Config) ->
 	not_implemented.
 
--spec handle_request(Packet, ServiceName, Peer) -> Action
+-spec handle_request(Packet, ServiceName, Peer, Config) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: term(),
 		Peer :: peer(),
+		Config :: map(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -168,21 +178,22 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
-		ServiceName, {_, Caps} = _Peer) ->
-	request(ServiceName, Caps, Request);
+		ServiceName, {_, Caps} = _Peer, Config) ->
+	request(ServiceName, Caps, Request, Config);
 handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
-		ServiceName, {_, Caps} = _Peer) ->
+		ServiceName, {_, Caps} = _Peer, _Config) ->
 	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Svc, Capabilities, Request) -> Action
+-spec request(Svc, Capabilities, Request, Config) -> Action
 	when
 		Svc :: atom(),
 		Capabilities :: capabilities(),
 		Request :: message(),
+		Config :: map(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -195,19 +206,20 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% 	to the accounting port server matching the service the
 %% 	request was received on.
 %% @private
-request(ServiceName, Capabilities, Request) ->
+request(ServiceName, Capabilities, Request, Config) ->
 	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(ServiceName, Capabilities, Request, HostIpAddresses).
+	request(ServiceName, Capabilities, Request, Config, HostIpAddresses).
 %% @hidden
-request({_, IpAddress, Port} = ServiceName, Capabilities, Request, [H | T]) ->
+request({_, IpAddress, Port} = ServiceName,
+		Capabilities, Request, Config, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			Class = get_option({IpAddress, Port}, rf_class),
-			{reply, process_request(IpAddress, Port, Capabilities, Request, Class)};
+			{reply, process_request(IpAddress, Port,
+					Capabilities, Request, Config)};
 		{error, not_found} ->
-			request(ServiceName, Capabilities, Request, T)
+			request(ServiceName, Capabilities, Request, Config, T)
 	end;
-request(_, _, _, []) ->
+request(_, _, _, _, []) ->
 	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER'}.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
@@ -272,17 +284,15 @@ errors(ServiceName, Capabilities, _Request,
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
-	request(ServiceName, Capabilities, Request).
+	{answer_message, ResultCode}.
 
--spec process_request(IpAddress, Port, Caps, Request, Class) -> Result
+-spec process_request(IpAddress, Port, Caps, Request, Config) -> Result
 	when
 		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
 		Request :: #'3gpp_ro_CCR'{},
+		Config :: map(),
 		Caps :: capabilities(),
-		Class :: a | b | undefined,
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
 %% @private
@@ -293,27 +303,14 @@ process_request(IpAddress, Port,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = SubscriptionIds} = Request, Class) ->
+				'Subscription-Id' = SubscriptionIds} = Request,
+		Config) ->
 	try
-		{ok, Configurations} = application:get_env(ocs, diameter),
-		{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
-		F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
-				Options;
-			F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
-				Options;
-			F([{_, _, _} | T]) ->
-				F(T)
-		end,
-		ServiceOptions = F(AcctServices),
-		SubIdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
-			{sub_id_type, Ts} when is_list(Ts) ->
-				Ts;
-			false ->
-				undefined
-		end,
-		SubscriberIDs = subscriber_id(SubscriptionIds, UserName, SubIdTypes),
+		SubscriberIDs = subscriber_id(SubscriptionIds, UserName,
+				maps:get(sub_id_type, Config, undefined)),
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
+				SubscriberIDs, OHost, DHost, ORealm, DRealm, IpAddress,
+				Port, Config)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -329,7 +326,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
 		{SubscriberIDs, SubscriptionId}, OHost, _, ORealm,
-		_, IpAddress, Port, b = _Class) ->
+		_, IpAddress, Port, #{nrf_uri := URL, rf_class := b} = _Config) ->
 	try
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
@@ -338,10 +335,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, {initial, b});
+						SessionId, MSCC1, [], Location, URL, {initial, b});
 			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, Destination, {initial, b})
+						SessionId, MSCC1, [], Location, Destination,
+						URL, {initial, b})
 		end,
 		case NrfResponse of
 			{ok, JSON} ->
@@ -384,7 +382,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		{SubscriberIDs, SubscriptionId}, OHost, _, ORealm, _, IpAddress, Port, _Class) ->
+		{SubscriberIDs, SubscriptionId}, OHost, _, ORealm, _, IpAddress, Port,
+		#{nrf_uri := URL} = _Config) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
@@ -406,11 +405,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(Server, SubscriptionId, SvcContextId,
-								SessionId, PLA, Amounts1, [], {initial, a}),
+								SessionId, PLA, Amounts1, [], URL, {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
 						{ok, JSON} = post_request_ecur(Server, SubscriptionId, SvcContextId,
-								SessionId, PLA, Amounts1, [], Destination, {initial, a}),
+								SessionId, PLA, Amounts1, [], Destination, URL, {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2}
 				end;
 			{error, Reason} ->
@@ -483,14 +482,16 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
 		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port, b = _Class) when length(MSCC1) > 0 ->
+		ORealm, _DRealm, IpAddress, Port,
+		#{nrf_uri := URL, rf_class := b} = _Config)
+		when length(MSCC1) > 0 ->
 	try
 		Server = {IpAddress, Port},
 		Location = get_service_location(ServiceInformation),
 		{Direction, Address} = direction_address(ServiceInformation),
 		Amounts = get_mscc(MSCC1),
 		case post_request_scur(Server, SubscriptionId, SvcContextId,
-				SessionId, MSCC1, [], Location, interim) of
+				SessionId, MSCC1, [], Location, URL, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -532,7 +533,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port, _Class) when length(MSCC1) > 0 ->
+		ORealm, _DRealm, IpAddress, Port, #{nrf_uri := URL} = _Config)
+		when length(MSCC1) > 0 ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -558,10 +560,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{ok, JSON} = case ServiceType of
 							32251 ->
 								post_request_scur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], {initial, a});
+										SessionId, PLA, Amounts1, [], URL, {initial, a});
 							Id when Id == 32260; Id == 32274 ->
 								post_request_ecur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], Destination, {initial, a})
+										SessionId, PLA, Amounts1, [], Destination,
+										URL, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -635,7 +638,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
 		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port, b = _Class) ->
+		ORealm, _DRealm, IpAddress, Port,
+		#{nrf_uri := URL, rf_class := b} = _Config) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -644,10 +648,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, final);
+						SessionId, MSCC1, [], Location, URL, final);
 			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, Destination, final)
+						SessionId, MSCC1, [], Location, Destination,
+						URL, final)
 		end,
 		Amounts = get_mscc(MSCC1),
 		case NrfResponse of
@@ -693,7 +698,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port, _Class) ->
+		ORealm, _DRealm, IpAddress, Port, #{nrf_uri := URL} = _Config) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
@@ -719,10 +724,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{ok, JSON} = case ServiceType of
 							32251 ->
 								post_request_scur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], {initial, a});
+										SessionId, PLA, Amounts1, [], URL, {initial, a});
 							Id when Id == 32260; Id == 32274 ->
 								post_request_ecur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], Destination, {initial, a})
+										SessionId, PLA, Amounts1, [], Destination,
+										URL, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -798,14 +804,15 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
 		RequestNum, {SubscriberIDs, SubscriptionId}, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port, b = _Class) ->
+		ORealm, _DRealm, IpAddress, Port,
+		#{nrf_uri := URL, rf_class := b} = _Config) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		case post_request_iec(Server, SubscriptionId, SvcContextId,
-				SessionId, MSCC, Location, Destination) of
+				SessionId, MSCC, Location, Destination, URL) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
 				case lists:keyfind("serviceRating", 1, RatedStruct) of
@@ -939,7 +946,7 @@ subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
 
 -spec post_request_ecur(ServiceName, SubscriptionId,
 		ServiceContextId, SessionId, ServiceRatingData,
-		Amounts, Location, Destination, Flag) -> Result
+		Amounts, Location, Destination, URL, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -961,25 +968,26 @@ subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
 		Destination :: string(),
+		URL :: string(),
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
 		SessionId, [#{price := #price{type = #pla_ref{href = Path}}}
-      | _], Amounts, Location, Destination, {initial, a}) ->
+      | _], Amounts, Location, Destination, _URL, {initial, a}) ->
 	ServiceRating = initial_service_rating(Amounts,
 			binary_to_list(SvcContextId), Location, a),
 	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_ecur(ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, Destination, {initial, b}) ->
-	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
+post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
+		SessionId, MSCC, _, Location, Destination, URL, {initial, b}) ->
+	Path = URL ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
 	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_ecur(ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, Destination, final) ->
-	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
+		SessionId, MSCC, _, Location, Destination, URL, final) ->
+	Path = URL ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
 	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path).
@@ -1017,7 +1025,7 @@ post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 	end.
 
 -spec post_request_iec(ServiceName, SubscriptionId, ServiceContextId,
-		SessionId, MSCC, Location, Destination) -> Result
+		SessionId, MSCC, Location, Destination, URL) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -1028,22 +1036,28 @@ post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [],
 		Location :: [tuple()],
 		Destination :: string(),
+		URL :: string(),
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
 %% @doc POST IEC rating data to a Nrf Rating Server.
 post_request_iec(ServiceName, SubscriptionId, ServiceContextId, SessionId,
-		[], _Location, Destination) ->
+		[], _Location, Destination, URL) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
-	post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating);
-post_request_iec(ServiceName, SubscriptionId, ServiceContextId, SessionId, MSCC, Location, Destination) ->
-	ServiceRating = iec_service_rating(MSCC, binary_to_list(ServiceContextId), Location, Destination),
-	post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating).
+	post_request_iec1(ServiceName, SubscriptionId,
+			SessionId, ServiceRating, URL);
+post_request_iec(ServiceName, SubscriptionId, ServiceContextId,
+			SessionId, MSCC, Location, Destination, URL) ->
+	ServiceRating = iec_service_rating(MSCC,
+			binary_to_list(ServiceContextId), Location, Destination),
+	post_request_iec1(ServiceName, SubscriptionId,
+			SessionId, ServiceRating, URL).
 %% @hidden
-post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
+post_request_iec1(_ServiceName, SubscriptionId,
+		SessionId, ServiceRating, URL) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -1057,7 +1071,7 @@ post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
 					{"subscriptionId", {array, SubscriptionId}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
-	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
+	Path = URL ++ ?BASE_URI,
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
@@ -1075,7 +1089,7 @@ post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
 	end.
 
 -spec post_request_scur(ServiceName, SubscriptionId, ServiceContextId,
-		SessionId, ServiceRatingData, Amounts, Location, Flag) -> Result
+		SessionId, ServiceRatingData, Amounts, Location, URL, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -1094,6 +1108,7 @@ post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
 		ReserveAmounts :: [{Units, pos_integer()}],
 		Units :: octets | seconds | messages,
 		Location :: [tuple()] | [],
+		URL :: string(),
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
 		Result :: {ok, Body} | {error, Reason},
@@ -1102,25 +1117,25 @@ post_request_iec1(ServiceName, SubscriptionId, SessionId, ServiceRating) ->
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(_ServiceName, SubscriptionId, SvcContextId, SessionId,
 		[#{price := #price{type = #pla_ref{href = Path}}} | _] = _ServiceRatingData,
-		Amounts, Location, {initial, a}) ->
+		Amounts, Location, _URL, {initial, a}) ->
 	ServiceRating = initial_service_rating(Amounts,
 			binary_to_list(SvcContextId), Location, a),
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, {initial, b}) ->
-	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
+post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
+		SessionId, MSCC, _, Location, URL, {initial, b}) ->
+	Path = URL ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, interim) ->
-	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
+post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
+		SessionId, MSCC, _, Location, URL, interim) ->
+	Path = URL ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_scur(ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, final) ->
-	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
+		SessionId, MSCC, _, Location, URL, final) ->
+	Path = URL ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path).
@@ -1891,33 +1906,6 @@ service_type(Id) ->
 					SeviceType
 			end;
 		_ ->
-			undefined
-	end.
-
--spec get_option(ServiceName, Option) -> Result
-	when
-		ServiceName :: {IpAddress, Port},
-		IpAddress :: inet:ip_address(),
-		Port :: inet:port_number(),
-		Option :: atom(),
-		Result :: term() | undefined.
-%% @doc Get the Nrf endpoint uri.
-get_option({IpAddress, Port} = _ServiceName, Option)
-		when is_atom(Option) ->
-	{ok, Configurations} = application:get_env(ocs, diameter),
-	{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
-	F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
-			Options;
-		F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
-			Options;
-		F([{_, _, _} | T]) ->
-			F(T)
-	end,
-	ServiceOptions = F(AcctServices),
-	case lists:keyfind(Option, 1, ServiceOptions) of
-		{Option, Value} ->
-			Value;
-		false ->
 			undefined
 	end.
 

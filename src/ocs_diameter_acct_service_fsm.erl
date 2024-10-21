@@ -90,14 +90,14 @@
 %%
 init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
-	{TOptions1, SOptions1} = split_options(Options),
-	TOptions2 = transport_options(Address, Port, TOptions1),
-	SOptions2 = service_options(SOptions1),
-	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
-	diameter:subscribe(SvcName),
-	case diameter:start_service(SvcName, SOptions2) of
+	{TransportOpts1, ServiceOpts1, ExtraOpts} = split_options(Options),
+	TransportOpts2 = transport_options(Address, Port, TransportOpts1),
+	ServiceOpts2 = service_options(ServiceOpts1, ExtraOpts),
+	ServiceName = ?DIAMETER_ACCT_SERVICE(Address, Port),
+	diameter:subscribe(ServiceName),
+	case diameter:start_service(ServiceName, ServiceOpts2) of
 		ok ->
-			case diameter:add_transport(SvcName, TOptions2) of
+			case diameter:add_transport(ServiceName, TransportOpts2) of
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
@@ -307,9 +307,9 @@ handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 %%
 terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port} = _StateData) ->
-	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
-	catch diameter:stop_service(SvcName),
-	catch diameter:remove_transport(SvcName, TransRef),
+	ServiceName = ?DIAMETER_ACCT_SERVICE(Address, Port),
+	catch diameter:stop_service(ServiceName),
+	catch diameter:remove_transport(ServiceName, TransRef),
 	catch ocs_log:acct_close().
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -330,32 +330,35 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec service_options(Options) -> Options
+-spec service_options(ServiceOpts, ExtraOpts) -> Options
 	when
-		Options :: [tuple()].
-%% @doc Returns options for a DIAMETER service
+		ServiceOpts :: [diameter:service_opt()],
+		ExtraOpts :: [tuple()],
+		Options :: [diameter:service_opt()].
+%% @doc Returns options for a DIAMETER service.
 %% @hidden
-service_options(Options) ->
+service_options(ServiceOpts, ExtraOpts) ->
+	Config = maps:from_list(ExtraOpts),
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	{CBModule, Options1} = case lists:keytake(callback, 1, Options) of
-		{_, {_, Callback}, Ops} ->
-			{Callback, Ops};
+	{Callback, ServiceOpts1} = case lists:keytake(callback, 1, ServiceOpts) of
+		{value, {callback, Module}, O1} ->
+			{Module, O1};
 		false ->
-			{ocs_diameter_3gpp_ro_application_cb, Options}
+			{ocs_diameter_3gpp_ro_application_cb, ServiceOpts}
 	end,
-	Options2 = case lists:keymember('Origin-Host', 1, Options1) of
+	ServiceOpts2 = case lists:keymember('Origin-Host', 1, ServiceOpts1) of
 		true ->
-			Options1;
+			ServiceOpts1;
 		false when length(Hostname) > 0 ->
-			[{'Origin-Host', Hostname} | Options1];
+			[{'Origin-Host', Hostname} | ServiceOpts1];
 		false ->
-			[{'Origin-Host', "ocs"} | Options1]
+			[{'Origin-Host', "ocs"} | ServiceOpts1]
 	end,
-	Options3 = case lists:keymember('Origin-Realm', 1, Options2) of
+	ServiceOpts3 = case lists:keymember('Origin-Realm', 1, ServiceOpts2) of
 		true ->
-			Options2;
+			ServiceOpts2;
 		false ->
 			OriginRealm = case inet_db:res_option(domain) of
 				S when length(S) > 0 ->
@@ -363,15 +366,15 @@ service_options(Options) ->
 				_ ->
 					"example.net"
 			end,
-			[{'Origin-Realm', OriginRealm} | Options2]
+			[{'Origin-Realm', OriginRealm} | ServiceOpts2]
 	end,
-	Options4 = case lists:keymember('Inband-Security-Id', 1, Options3) of
+	ServiceOpts4 = case lists:keymember('Inband-Security-Id', 1, ServiceOpts3) of
 		true ->
-			Options3;
+			ServiceOpts3;
 		false ->
-			[{'Inband-Security-Id', [0]} | Options3]
+			[{'Inband-Security-Id', [0]} | ServiceOpts3]
 	end,
-	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	ServiceOpts4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
@@ -388,7 +391,7 @@ service_options(Options) ->
 				{request_errors, callback}]},
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
-				{module, CBModule},
+				{module, [Callback, Config]},
 				{request_errors, callback}]},
 		{application, [{alias, ?Gx_APPLICATION},
 				{dictionary, ?Gx_APPLICATION_DICT},
@@ -434,106 +437,107 @@ transport_options1(connect, Config, TOptions) ->
 -spec split_options(Options) -> Result
 	when
 		Options :: [tuple()],
-		Result :: {TOptions, SOptions},
-		TOptions :: {Role, [diameter:transport_opt()]},
+		Result :: {TransportOpts, ServiceOpts, ExtraOpts},
+		TransportOpts :: {Role, [diameter:transport_opt()]},
 		Role :: listen | connect,
-		SOptions :: [diameter:service_opt()].
-%% @doc Split `Options' list into transport and service options.
+		ServiceOpts :: [diameter:service_opt()],
+		ExtraOpts :: list().
+%% @doc Split `Options' list into transport, service and application options.
 %% @private
 split_options(Options) ->
-	split_options(Options, [], []).
+	split_options(Options, [], [], []).
 %% @hidden
-split_options([{'Origin-Host', DiameterIdentity} = H | T], Acc1, Acc2)
+split_options([{'Origin-Host', DiameterIdentity} = H | T], Acc1, Acc2, Acc3)
 		when is_list(DiameterIdentity) ->
-	split_options(T, Acc1, [H | Acc2]);
-split_options([{'Origin-Realm', DiameterIdentity} = H | T], Acc1, Acc2)
+	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{'Origin-Realm', DiameterIdentity} = H | T], Acc1, Acc2, Acc3)
 		when is_list(DiameterIdentity) ->
-	split_options(T, Acc1, [H | Acc2]);
-split_options([{'Host-IP-Address', Addresses} = H | T], Acc1, Acc2)
+	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{'Host-IP-Address', Addresses} = H | T], Acc1, Acc2, Acc3)
 		when is_list(Addresses), is_tuple(hd(Addresses)) ->
-	split_options(T, Acc1, [H | Acc2]);
-split_options([{callback, _} = H | T], Acc1, Acc2) ->
-	split_options(T, Acc1, [H | Acc2]);
-split_options([{'Vendor-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Product-Name', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Origin-State-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Supported-Vendor-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Auth-Application-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Acct-Application-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Inband-Security-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Vendor-Specific-Application-Id', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{'Firmware-Revision', _} | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([{capx_timeout, Timeout} = H | T], [], Acc2)
+	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{callback, _} = H | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{'Vendor-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Product-Name', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Origin-State-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Supported-Vendor-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Auth-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Acct-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Inband-Security-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Vendor-Specific-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Firmware-Revision', _} | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, Acc3);
+split_options([{capx_timeout, Timeout} = H | T], [], Acc2, Acc3)
 		when is_integer(Timeout) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{capx_timeout, Timeout} = H | T], {listen, Acc}, Acc2)
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{capx_timeout, Timeout} = H | T], {listen, Acc}, Acc2, Acc3)
 		when is_integer(Timeout) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{incoming_maxlen, MaxLength} = H | T], [], Acc2)
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{incoming_maxlen, MaxLength} = H | T], [], Acc2, Acc3)
 		when is_integer(MaxLength) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{incoming_maxlen, MaxLength} = H | T], {listen, Acc}, Acc2)
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{incoming_maxlen, MaxLength} = H | T], {listen, Acc}, Acc2, Acc3)
 		when is_integer(MaxLength) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{pool_size, PoolSize} = H | T], [], Acc2)
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{pool_size, PoolSize} = H | T], [], Acc2, Acc3)
 		when is_integer(PoolSize) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{pool_size, PoolSize} = H | T], {listen, Acc}, Acc2)
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{pool_size, PoolSize} = H | T], {listen, Acc}, Acc2, Acc3)
 		when is_integer(PoolSize) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{watchdog_timer, TwInit} = H | T], [], Acc2)
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{watchdog_timer, TwInit} = H | T], [], Acc2, Acc3)
 		when is_integer(TwInit) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{watchdog_timer, TwInit} = H | T], {listen, Acc}, Acc2)
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{watchdog_timer, TwInit} = H | T], {listen, Acc}, Acc2, Acc3)
 		when is_integer(TwInit) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{transport_module, diameter_tcp} = H | T], [], Acc2) ->
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{transport_module, diameter_tcp} = H | T], [], Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{transport_module, diameter_tcp} = H | T], {listen, Acc}, Acc2) ->
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{transport_module, diameter_tcp} = H | T], {listen, Acc}, Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{transport_module, diameter_sctp} = H | T], [], Acc2) ->
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{transport_module, diameter_sctp} = H | T], [], Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{transport_module, diameter_sctp} = H | T], {listen, Acc}, Acc2) ->
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{transport_module, diameter_sctp} = H | T], {listen, Acc}, Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{transport_config, _} = H | T], [], Acc2) ->
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{transport_config, _} = H | T], [], Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H]}, Acc2);
-split_options([{transport_config, _} = H | T],  {listen, Acc}, Acc2) ->
+	split_options(T, {listen, [H]}, Acc2, Acc3);
+split_options([{transport_config, _} = H | T],  {listen, Acc}, Acc2, Acc3) ->
 	% deprecated in ocs-3.4.12
-	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{listen, Opts} = H | T],  Acc1, Acc2)
+	split_options(T, {listen, [H | Acc]}, Acc2, Acc3);
+split_options([{listen, Opts} | T],  Acc1, Acc2, Acc3)
 		when is_list(Acc1) ->
-	split_options(T, {listen, Opts ++ Acc1}, Acc2);
-split_options([{connect, Opts} = H | T],  Acc1, Acc2)
+	split_options(T, {listen, Opts ++ Acc1}, Acc2, Acc3);
+split_options([{connect, Opts} | T],  Acc1, Acc2, Acc3)
 		when is_list(Acc1) ->
-	split_options(T, {connect, Opts ++ Acc1}, Acc2);
-split_options([_H | T], Acc1, Acc2) ->
-	split_options(T, Acc1, Acc2);
-split_options([], Acc1, Acc2) when is_list(Acc1) ->
-	{{listen, Acc1}, Acc2};
-split_options([], {listen, Opts} = _Acc1, Acc2) ->
-	{{listen, Opts}, Acc2};
-split_options([], {connect, Opts} = _Acc1, Acc2) ->
-	{{connect, Opts}, Acc2}.
+	split_options(T, {connect, Opts ++ Acc1}, Acc2, Acc3);
+split_options([H | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, Acc2, [H | Acc3]);
+split_options([], Acc1, Acc2, Acc3) when is_list(Acc1) ->
+	{{listen, Acc1}, Acc2, Acc3};
+split_options([], {listen, Opts} = _Acc1, Acc2, Acc3) ->
+	{{listen, Opts}, Acc2, Acc3};
+split_options([], {connect, Opts} = _Acc1, Acc2, Acc3) ->
+	{{connect, Opts}, Acc2, Acc3}.
 
