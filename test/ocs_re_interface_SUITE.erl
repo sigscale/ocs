@@ -57,13 +57,16 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-   [{userdata, [{doc, "Test suite for Re Interface in OCS"}]},
+	[{userdata, [{doc, "Test suite for Re Interface in OCS"}]},
 	{require, diameter},
-	{default_config, diameter, [{address, {127,0,0,1}}]},
-   {timetrap, {minutes, 10}},
+	{default_config, diameter,
+			[{address, {127,0,0,1}},
+			{realm, "ocs.mnc001.mcc001.3gppnetwork.org"}]},
 	{require, rest},
-	{default_config, rest, [{user, "nrf"},
-			{password, "4yjhe6ydsrh4"}]}].
+	{default_config, rest,
+			[{user, "nrf"},
+			{password, "4yjhe6ydsrh4"}]},
+	{timetrap, {minutes, 10}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -71,32 +74,33 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	Address = ct:get_config({diameter, address}, {127,0,0,1}),
-	AcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
-	AppVar = [{acct, [{Address, AcctPort, [{rf_class, undefined},
-			{callback, ocs_diameter_3gpp_ro_nrf_app_cb},
-			{sub_id_type, [msisdn, imsi]}]}]}],
-	ok = application:set_env(ocs, diameter, AppVar),
+	ok = application:set_env(ocs, diameter, []),
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
 	ok = application:set_env(ocs, min_reserve_messages, 1),
-	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
-	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
-   Config1 = [{diameter_host, Host}, {realm, Realm},
-         {diameter_acct_address, Address} | Config],
+	Realm = ct:get_config({diameter, realm}),
+	Address = ct:get_config({diameter, address}, {127,0,0,1}),
+	Config1 = [{realm, Realm}, {acct_address, Address} | Config],
 	ok = ocs_test_lib:start(),
-   ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
-   true = diameter:subscribe(?MODULE),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-   {ok, _Ref2} = connect(?MODULE, Address, AcctPort, diameter_tcp),
-   receive
-      #diameter_event{service = ?MODULE, info = Info}
-            when element(1, Info) == up ->
-			init_per_suite1(Config1);
-      _Other ->
-         {skip, diameter_client_acct_service_not_started}
-   end.
-init_per_suite1(Config) ->
+	diameter:subscribe(?MODULE),
+	ok = diameter:start_service(?MODULE,
+			[{'Origin-Host', lists:concat([?MODULE, ".", Realm])},
+			{'Origin-Realm', Realm},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (Nrf)"},
+			{'Auth-Application-Id', [?RO_APPLICATION_ID]},
+			{string_decode, false},
+			{restrict_connections, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, cc_app_test},
+					{dictionary, diameter_gen_3gpp_ro_application},
+					{module, diameter_test_client_cb}]}]),
+	diameter_wait(?MODULE, start),
+	{ok, _} = ocs:add_client(Address,
+			undefined, diameter, undefined, true),
 	RestUser = ct:get_config({rest, user}),
 	RestPass = ct:get_config({rest, password}),
 	UserData = [{locale, "en"}, {rating, true}],
@@ -118,46 +122,44 @@ init_per_suite1(Config) ->
 			FPort([_ | T]) ->
 				FPort(T)
 	end,
-	{ok, Services} = application:get_env(inets, services),
-	{Host, Port} = Fport(Services),
-	CAcert = ?config(data_dir, Config) ++ "CAcert.pem",
+	{ok, InetsServices} = application:get_env(inets, services),
+	{HttpHost, HttpPort} = Fport(InetsServices),
+	CAcert = proplists:get_value(data_dir, Config) ++ "CAcert.pem",
 	SslOpts = [{verify, verify_peer}, {cacertfile, CAcert}],
 	HttpOpt = [{ssl, SslOpts}],
-	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	Config1 = [{host_url, HostUrl}, {http_options, HttpOpt} | Config],
+	HostUrl = "https://" ++ HttpHost ++ ":" ++ integer_to_list(HttpPort),
+	Config2 = [{host_url, HostUrl}, {http_options, HttpOpt} | Config1],
 	case inets:start(httpd,
 			[{port, 0},
 			{server_name, atom_to_list(?MODULE)},
 			{server_root, "./"},
-			{document_root, ?config(data_dir, Config1)},
+			{document_root, proplists:get_value(data_dir, Config2)},
 			{modules, [mod_ct_nrf]}]) of
 		{ok, HttpdPid} ->
 			[{port, NrfPort}] = httpd:info(HttpdPid, [port]),
 			NrfUri = "http://localhost:" ++ integer_to_list(NrfPort),
-			{ok, [{acct, [{DAddress, DPort, Options}]}]}
-					= application:get_env(ocs, diameter),
-			Options1 = Options ++ [{nrf_uri, NrfUri}],
-			AppVar = [{acct, [{DAddress, DPort, Options1}]}],
-			ok = application:set_env(ocs, diameter, AppVar),
-			[{ct_nrf, NrfUri} | Config1];
-		{error, InetsReason} ->
-			ct:fail(InetsReason)
+			[{ct_nrf, NrfUri} | Config2];
+		{error, Reason} ->
+			ct:fail(Reason)
 	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
-end_per_suite(Config) ->
-	ok = ocs_test_lib:stop(),
-	Config.
+end_per_suite(_Config) ->
+	ok = ocs_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
-%% Cleanup after the whole suite.
+%% Initialization before each test case.
 %%
-init_per_testcase(TestCase, Config)
-		when TestCase == send_initial_scur_class_b; TestCase == receive_initial_scur_class_b;
-		TestCase == send_interim_scur_class_b; TestCase == receive_interim_scur_class_b;
-		TestCase == send_final_scur_class_b; TestCase == receive_final_scur_class_b;
+init_per_testcase(TestCase, Config) when
+		TestCase == send_initial_scur_class_b;
+		TestCase == receive_initial_cud_scur_class_b;
+		TestCase == receive_initial_scur_class_b;
+		TestCase == send_interim_scur_class_b;
+		TestCase == receive_interim_scur_class_b;
+		TestCase == send_final_scur_class_b;
+		TestCase == receive_final_scur_class_b;
 		TestCase == receive_interim_no_usu_scur_class_b;
 		TestCase == send_iec_class_b;
 		TestCase == receive_iec_class_b;
@@ -166,14 +168,11 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_final_ecur_class_b;
 		TestCase == receive_final_ecur_class_b;
 		TestCase == scur_vas_class_b;
-		TestCase == receive_initial_cud_scur_class_b ->
-	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
-	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, b}),
-	AppVar = [{acct, [{Address, Port, Options1}]}],
-	ok = application:set_env(ocs, diameter, AppVar),
-	Config;
-init_per_testcase(TestCase, Config)
-		when TestCase == send_initial_scur_class_a;
+		TestCase == scur_imsi_class_b ->
+	RfClass = b,
+	init_diameter(Config, RfClass);
+init_per_testcase(TestCase, Config) when
+		TestCase == send_initial_scur_class_a;
 		TestCase == receive_initial_scur_class_a;
 		TestCase == send_interim_scur_class_a;
 		TestCase == receive_interim_scur_class_a;
@@ -182,26 +181,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_initial_ecur_class_a;
 		TestCase == send_final_ecur_class_a;
 		TestCase == receive_final_ecur_class_a ->
-	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
-	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, a}),
-	AppVar = [{acct, [{Address, Port, Options1}]}],
-	ok = application:set_env(ocs, diameter, AppVar),
-	Config;
-init_per_testcase(scur_imsi_class_b, Config) ->
-	{ok, [{acct, [{Address, Port, Options}]}]} = application:get_env(ocs, diameter),
-	Options1 = lists:keyreplace(rf_class, 1, Options, {rf_class, b}),
-	Options2 = lists:keyreplace(sub_id_type, 1, Options1, {sub_id_type, [imsi]}),
-	AppVar = [{acct, [{Address, Port, Options2}]}],
-	ok = application:set_env(ocs, diameter, AppVar),
-	Config;
-init_per_testcase(TestCase, Config)
-		when TestCase == post_initial_scur_class_b;
-		TestCase == post_update_scur_class_b;
-		TestCase == post_final_scur_class_b;
-		TestCase == post_iec_class_b;
-		TestCase == post_initial_ecur_class_b;
-		TestCase == post_final_ecur_class_b ->
-	Config;
+	RfClass = a,
+	init_diameter(Config, RfClass);
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -1676,39 +1657,81 @@ basic_auth() ->
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
 
-%% @doc Add a transport capability to diameter service.
-%% @hidden
-connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
-	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+init_diameter(Config, RfClass) ->
+	Realm = proplists:get_value(realm, Config),
+	Address = proplists:get_value(acct_address, Config),
+	Service = {ocs_diameter_acct_service, Address, 0},
+	diameter:subscribe(Service),
+	diameter:subscribe(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
+	case ocs:get_acct(diameter) of
+		[Acct1] ->
+			ok = ocs:stop(diameter, acct, Acct1),
+			diameter_wait(Service, stop);
+		[] ->
+			ok
+	end,
+	NrfUri = proplists:get_value(ct_nrf, Config),
+	Options = [{'Origin-Realm', Realm},
+			{callback, ocs_diameter_3gpp_ro_nrf_app_cb},
+			{listen,
+					[{transport_module, diameter_tcp},
+					{transport_config,
+							[{reuseaddr, true},
+							{ip, Address},
+							{port, 0}]}]},
+			{nrf_uri, NrfUri}, {rf_class, RfClass},
+			{sub_id_type, [msisdn, imsi]}],
+	{ok, _Acct2} = ocs:start(diameter, acct, Address, 0, Options),
+	diameter_wait(Service, start),
+	[#{ref := TransportRef}] = diameter:which_transports(Service),
+	[{{_, _, {_, {_, Socket}}}, _}] = diameter_reg:wait({diameter_tcp,
+			listener, {TransportRef, '_'}}),
+	{ok, Port} = inet:port(Socket),
+	{ok, _Ref} = diameter:add_transport(?MODULE,
+			{connect,
+					[{connect_timer, 30000},
+					{transport_module, diameter_tcp},
+					{transport_config,
+							[{reuseaddr, true},
+							{ip, Address},
+							{port, 0},
+							{raddr, Address},
+							{rport, Port}]}]}),
+	diameter_wait(?MODULE, up),
+	Config.
 
-%% @hidden
-connect(SvcName, Opts)->
-	diameter:add_transport(SvcName, {connect, Opts}).
-
-%% @hidden
-client_acct_service_opts(Config) ->
-	[{'Origin-Host', ?config(diameter_host, Config)},
-			{'Origin-Realm', ?config(realm, Config)},
-			{'Vendor-Id', ?IANA_PEN_SigScale},
-			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
-			{'Product-Name', "SigScale Test Client (Nrf)"},
-			{'Auth-Application-Id', [?RO_APPLICATION_ID]},
-			{string_decode, false},
-			{restrict_connections, false},
-			{application, [{alias, base_app_test},
-					{dictionary, diameter_gen_base_rfc6733},
-					{module, diameter_test_client_cb}]},
-			{application, [{alias, cc_app_test},
-					{dictionary, diameter_gen_3gpp_ro_application},
-					{module, diameter_test_client_cb}]}].
-
-%% @hidden
-transport_opts(Address, Port, Trans) when is_atom(Trans) ->
-	transport_opts1({Trans, Address, Address, Port}).
-
-%% @hidden
-transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans}, {transport_config,
-		[{raddr, RemAddr}, {rport, RemPort},
-		{reuseaddr, true}, {ip, LocalAddr}]}].
+diameter_wait(Service, start) ->
+	receive
+		#diameter_event{service = Service, info = start} ->
+			ok
+	after
+		10000 ->
+			ct:fail({wait_for_start, Service})
+	end;
+diameter_wait(Service, stop) ->
+	receive
+		#diameter_event{service = Service, info = stop} ->
+			ok;
+		#diameter_event{service = Service, info = _Info} ->
+			diameter_wait(Service, stop)
+	after
+		10000 ->
+			ct:fail({wait_for_stop, Service})
+	end;
+diameter_wait(Service, up) ->
+	receive
+		#diameter_event{service = Service, info = Info}
+				when element(1, Info) == up ->
+			ok;
+		#diameter_event{service = Service, info = Info}
+				when element(1, Info) == watchdog ->
+			diameter_wait(Service, up);
+		#diameter_event{service = Service, info = Info}
+				when element(1, Info) == closed ->
+			ct:fail({closed, Service})
+	after
+		10000 ->
+			ct:fail({wait_for_up, Service})
+	end.
 
