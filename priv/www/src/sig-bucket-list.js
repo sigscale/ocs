@@ -94,7 +94,7 @@ class bucketList extends PolymerElement {
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="Product Id"
-								path="product"
+								path="product.id"
 								value="[[_filterProductId]]">
 							<input
 									slot="filter"
@@ -236,7 +236,7 @@ class bucketList extends PolymerElement {
 		var ajax = bucketList.shadowRoot.getElementById("getBucketBalance");
 		delete ajax.params['filter'];
 		function checkHead(param) {
-			return param.path == "id" || param.path == "product";
+			return param.path == "id" || param.path == "product.id";
 		}
 		params.filters.filter(checkHead).forEach(function(filter) {
 			if (filter.value) {
