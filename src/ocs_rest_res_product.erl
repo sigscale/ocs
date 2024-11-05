@@ -2072,54 +2072,69 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			Buckets2 = lists:flatten(Buckets1),
 			Now = erlang:system_time(millisecond),
 			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
-							{undefined, B, S}) when EndDate == undefined;
+							{undefined, B, S, M}) when EndDate == undefined;
 							EndDate > Now ->
-						{N, B, S};
+						{N, B, S, M};
 					(#bucket{units = cents, remain_amount = N, end_date = EndDate},
-							{C, B, S}) when EndDate == undefined; EndDate > Now ->
-						{C + N, B, S};
+							{C, B, S, M}) when EndDate == undefined; EndDate > Now ->
+						{C + N, B, S, M};
 					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
-							{C, undefined, S}) when EndDate == undefined;
+							{C, undefined, S, M}) when EndDate == undefined;
 							EndDate > Now ->
-						{C , N, S};
+						{C, N, S, M};
 					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
-							{C, B, S}) when EndDate == undefined; EndDate > Now ->
-						{C , B + N, S};
+							{C, B, S, M}) when EndDate == undefined; EndDate > Now ->
+						{C, B + N, S, M};
 					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
-							{C, B, undefined}) when EndDate == undefined;
+							{C, B, undefined, M}) when EndDate == undefined;
 							EndDate > Now ->
-						{C , B, N};
+						{C, B, N, M};
 					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
-							{C, B, S}) when EndDate == undefined; EndDate > Now ->
-						{C , B, S + N};
-					(_, {C, B, S}) ->
-						{C , B, S}
+							{C, B, S, M}) when EndDate == undefined; EndDate > Now ->
+						{C, B, S + N, M};
+					(#bucket{units = messages, remain_amount = N, end_date = EndDate},
+							{C, B, S, undefined}) when EndDate == undefined;
+							EndDate > Now ->
+						{C, B, S, N};
+					(#bucket{units = messages, remain_amount = N, end_date = EndDate},
+							{C, B, S, M}) when EndDate == undefined; EndDate > Now ->
+						{C , B, S, M + N};
+					(_, {C, B, S, M}) ->
+						{C , B, S, M}
 			end,
-			{Cents, Bytes, Seconds} = lists:foldl(F2,
-					{undefined, undefined, undefined}, Buckets2),
-			CentsBalance = case Cents of
-				Cents when is_integer(Cents) ->
+			{Cents, Bytes, Seconds, Messages} = lists:foldl(F2,
+					{undefined, undefined, undefined, undefined}, Buckets2),
+			CentsBalance = case is_integer(Cents) of
+				true ->
 					[{struct, [{"name", "cents"}, {"totalBalance",
 					{struct, [{"amount", ocs_rest:millionths_out(Cents)}, {"units", "cents"}]}}]}];
-				undefined ->
+				false ->
 					[]
 			end,
-			BytesBalance = case Bytes of
-				Bytes when is_integer(Bytes) ->
+			BytesBalance = case is_integer(Bytes) of
+				true ->
 					[{struct, [{"name", "octets"}, {"totalBalance",
 					{struct, [{"amount", Bytes}, {"units", "octets"}]}}]}];
-				undefined ->
+				false ->
 					[]
 			end,
-			SecondBalance = case Seconds of
-				Seconds when is_integer(Seconds) ->
+			SecondsBalance = case is_integer(Seconds) of
+				true ->
 					[{struct, [{"name", "seconds"}, {"totalBalance",
 					{struct, [{"amount", Seconds}, {"units", "seconds"}]}}]}];
-				undefined ->
+				false ->
 					[]
 			end,
-			Balance = {"balance", {array, CentsBalance ++ BytesBalance ++ SecondBalance}},
-			inventory(T, Product, [Balance| Acc]);
+			MessagesBalance = case is_integer(Messages) of
+				true ->
+					[{struct, [{"name", "messages"}, {"totalBalance",
+					{struct, [{"amount", Messages}, {"units", "messages"}]}}]}];
+				false ->
+					[]
+			end,
+			Balance = {"balance", {array,
+					CentsBalance ++ BytesBalance ++ SecondsBalance ++ MessagesBalance}},
+			inventory(T, Product, [Balance | Acc]);
 		{aborted, Reason} ->
 			throw(Reason)
 	end;
