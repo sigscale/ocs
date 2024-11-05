@@ -1620,7 +1620,7 @@ class offerAdd extends PolymerElement {
 							out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s";
 						}
 					} else if(item.alterations.unit == "msg") {
-						out.productOfferPriceAlteration.unitOfMeasure = s + "msg";
+						out.productOfferPriceAlteration.unitOfMeasure = s1 + "msg";
 					}
 				}
 				var taxIncludedAmount;
