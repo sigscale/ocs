@@ -149,6 +149,16 @@ class bucketList extends PolymerElement {
 							</div>
 						</template>
 					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="2">
+						<template class="header">
+								Messages
+						</template>
+						<template>
+							<div class="cell numeric">
+								[[item.messages]]
+							</div>
+						</template>
+					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
@@ -289,19 +299,26 @@ class bucketList extends PolymerElement {
 						}
 						if(request.response[index].remainedAmount.units == "cents") {
 							newRecord.cents = request.response[index].remainedAmount.amount;
-						}
+						} else
 						if(request.response[index].remainedAmount.units == "seconds") {
 							var Str = request.response[index].remainedAmount.amount;
 							if(Str.includes("s")){
 								var NewStrSec = Str.substring(0, Str.length - 1);
 								newRecord.seconds = NewStrSec;
 							}
-						}
+						} else
 						if(request.response[index].remainedAmount.units == "octets") {
 							var Str = request.response[index].remainedAmount.amount;
 							if(Str.includes("b")){
 								var NewStr = Str.substring(0, Str.length - 1);
 								newRecord.remainedAmount = NewStr;
+							}
+						} else
+						if(request.response[index].remainedAmount.units == "messages") {
+							var Str = request.response[index].remainedAmount.amount;
+							if(Str.includes("msg")){
+								var NewStr = Str.substring(0, Str.length - 3);
+								newRecord.messages = NewStr;
 							}
 						}
 					}
