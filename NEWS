@@ -2,6 +2,8 @@ November 5, 2024
 ----------------
 	- Corrections tp update Product Offering dialog
 	- Fix SMS alteration amount in add Product Offering dialog
+	- Fix messages Buckets in Product Inventory API
+	- Add messages unit amount in Balance Buckets view
 
 November 3, 2024
 ----------------

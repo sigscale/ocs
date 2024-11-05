@@ -1,5 +1,7 @@
 2024-11-05  Vance Shipley <vances@sigscale.org>
 
+	* include message buckets in balance buckets list view
+	* include message buckets in acumalated balances of product inventory
 	* corrections to update offer dialog
 	* correct typo in unit of measure for sms add price dialog
 
