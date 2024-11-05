@@ -689,10 +689,13 @@ class offerUpdate extends PolymerElement {
 									<paper-item id="altSeconds">
 											Seconds
 									</paper-item>
+									<paper-item id="altMessages">
+											Messages
+									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
 							<paper-tooltip>
-								Select a value to update the offer price alteration unit (Bytes | Cents | Seconds)
+								Select a value to update the offer price alteration unit (Bytes | Cents | Seconds | Messages)
 							</paper-tooltip>
 						</div>
 						<div>
@@ -1186,6 +1189,10 @@ class offerUpdate extends PolymerElement {
 									newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
 									newAlt.unit = "s";
 									break;
+								case "g":
+									newAlt.size = parseInt(unitOfMeasure.slice(0, -3));
+									newAlt.unit = "msg";
+									break;
 								default:
 									newAlt.unit = "c";
 							}
@@ -1211,6 +1218,7 @@ class offerUpdate extends PolymerElement {
 								newAlt.period = "Yearly";
 								break;
 						}
+						newAlt.priceIndex = index;
 						this.push('alterations', newAlt);
 						newPrice.alteration = newAlt.name;
 					}
@@ -1319,12 +1327,20 @@ class offerUpdate extends PolymerElement {
 				if(this.updateOfferSpecification == "PrepaidData") {
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
+					this.$.priceMessages.disabled = true;
 					this.$.updatePriceUnits.selected = 0;
-				}
+				} else
 				if(this.updateOfferSpecification == "PrepaidVoice") {
 					this.$.priceSeconds.disabled = false;
 					this.$.priceBytes.disabled = true;
+					this.$.priceMessages.disabled = true;
 					this.$.updatePriceUnits.selected = 2;
+				} else
+				if(this.updateOfferSpecification == "PrepaidSMS") {
+					this.$.priceMessages.disabled = false;
+					this.$.priceSeconds.disabled = true;
+					this.$.priceBytes.disabled = true;
+					this.$.updatePriceUnits.selected = 3;
 				}
 				this.priceUpdatePla = null;
 				this.priceUpdateSize = null;
@@ -1357,6 +1373,11 @@ class offerUpdate extends PolymerElement {
 				this.updateOfferStartDatePrice = this.prices[indexUpdatePrice].start;
 				this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
 				this.priceUpdateType = this.prices[indexUpdatePrice].priceType;
+				if(this.priceUpdateType == 0) {
+					this.$.updatePricePerioddrop.disabled = false;
+				} else {
+					this.$.updatePricePerioddrop.disabled = true;
+				}
 				this.priceUpdatePla = this.prices[indexUpdatePrice].pla;
 				this.priceUpdateSize = this.prices[indexUpdatePrice].size;
 				switch(this.prices[indexUpdatePrice].unit) {
@@ -1470,12 +1491,20 @@ class offerUpdate extends PolymerElement {
 				if(this.updateOfferSpecification == "PrepaidData") {
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
+					this.$.altMessages.disabled = true;
 					this.$.updateAlterationUnits.selected = 0;
 				}
 				if(this.updateOfferSpecification == "PrepaidVoice") {
 					this.$.altSeconds.disabled = false;
 					this.$.altBytes.disabled = true;
+					this.$.altMessages.disabled = true;
 					this.$.updateAlterationUnits.selected = 2;
+				}
+				if(this.updateOfferSpecification == "PrepaidSMS") {
+					this.$.altMessages.disabled = false;
+					this.$.altSeconds.disabled = true;
+					this.$.altBytes.disabled = true;
+					this.$.updateAlterationUnits.selected = 3;
 				}
 				this.$.updateAltSize.value = null;
 				this.altUpdateUnits = null;
@@ -1499,6 +1528,9 @@ class offerUpdate extends PolymerElement {
 						break;
 					case "s":
 						this.$.updateAlterationUnits.selected = 2;
+						break;
+					case "msg":
+						this.$.updateAlterationUnits.selected = 3;
 						break;
 				}
 				if(this.alterations[indexAlt].currency || this.alterations[indexAlt].amount) {
@@ -2071,7 +2103,7 @@ class offerUpdate extends PolymerElement {
 					updatePriceNew.push(unitOfMeasure);
 				}
 			} else if(this.priceUpdateUnits == "Messages") {
-				var priceSizeLast = this.priceUpdateSize.slice(-1);
+				var priceSizeLast = this.priceUpdateSize.slice(-3);
 				var priceSizeN = new Number();
 				if(priceSizeLast === "msg") {
 					priceSizeN = parseInt(this.priceUpdateSize);
@@ -2578,22 +2610,23 @@ class offerUpdate extends PolymerElement {
 			return alts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updateAltName').value;;
 		}
 		var indexAlt = this.alterations.findIndex(checkAlterationName);
+		var indexPrice = this.alterations[indexAlt].priceIndex;
 		if(this.$.updateAltName.value != this.alterations[indexAlt].name) {
 			var alterationName = new Object();
 			alterationName.op = "add";
-			alterationName.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/name";
+			alterationName.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/name";
 			alterationName.value = this.$.updateAltName.value;
 			updateAlterationNew.push(alterationName);
 		}
 		if(this.altUpdateDescription != this.alterations[indexAlt].description) {
 			var alterationDesc = new Object();
 			alterationDesc.op = "add";
-			alterationDesc.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
+			alterationDesc.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/description";
 			alterationDesc.value = this.altUpdateDescription;
 			if(alterationDesc.value == "") {
 				var alterationDescDel = new Object();
 				alterationDescDel.op = "remove";
-				alterationDescDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
+				alterationDescDel.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/description";
 				updateAlterationNew.push(alterationDescDel);
 			} else {
 				updateAlterationNew.push(alterationDesc);
@@ -2602,7 +2635,7 @@ class offerUpdate extends PolymerElement {
 		if(this.altUpdateType != this.alterations[indexAlt].priceType) {
 			var alterationType = new Object();
 			alterationType.op = "add";
-			alterationType.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
+			alterationType.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/priceType";
 			switch(this.altUpdateType) {
 				case "Recurring":
 					alterationType.value = "recurring";
@@ -2617,7 +2650,7 @@ class offerUpdate extends PolymerElement {
 			if(alterationType.value == "") {
 				var alterationTypeDel = new Object();
 				alterationTypeDel.op = "remove";
-				alterationTypeDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
+				alterationTypeDel.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/priceType";
 				updateAlterationNew.push(alterationTypeDel);
 			} else {
 				updateAlterationNew.push(alterationType);
@@ -2626,13 +2659,16 @@ class offerUpdate extends PolymerElement {
 		if(this.$.updateAltSize.value != this.alterations[indexAlt].size) {
 			var alterationSize = new Object();
 			alterationSize.op = "add";
-			alterationSize.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
+			alterationSize.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/unitOfMeasure";
 			for(var indexUnit1 in this.alterations) {
 				if(this.$.updateAltsUnitsdrop.value == "Seconds") {
 					this.alterations[indexUnit1].unit = "s";
-				}
+				} else
 				if(this.$.updateAltsUnitsdrop.value == "Bytes") {
 					this.alterations[indexUnit1].unit = "b";
+				} else
+				if(this.$.updateAltsUnitsdrop.value == "Messages") {
+					this.alterations[indexUnit1].unit = "msg";
 				}
 				var unitDrop = this.alterations[indexUnit1].unit;
 				var sizeVal = this.$.updateAltSize.value + unitDrop;
@@ -2664,12 +2700,14 @@ class offerUpdate extends PolymerElement {
 						} else {
 							alterationSize.value = n.toString() + "s";
 						}
+					} else {
+						alterationSize.value = sizeVal;
 					}
 				}
 				if(alterationSize.value == "") {
 					var alterationSizeDel = new Object();
 					alterationSizeDel.op = "remove";
-					alterationSizeDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
+					alterationSizeDel.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/unitOfMeasure";
 					updateAlterationNew.push(alterationSizeDel);
 				} else {
 					updateAlterationNew.push(alterationSize);
@@ -2679,12 +2717,12 @@ class offerUpdate extends PolymerElement {
 		if(this.$.updateAltAmount.value != this.alterations[indexAlt].amount) {
 			var altAmount = new Object();
 			altAmount.op = "add";
-			altAmount.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
+			altAmount.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/price/taxIncludedAmount";
 			altAmount.value = this.$.updateAltAmount.value;
 			if(altAmount.value == "") {
 				var altAmountDel = new Object();
 				altAmountDel.op = "remove";
-				altAmountDel.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
+				altAmountDel.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/price/taxIncludedAmount";
 				updateAlterationNew.push(altAmountDel);
 			} else {
 				updateAlterationNew.push(altAmount);
@@ -2693,7 +2731,7 @@ class offerUpdate extends PolymerElement {
 		if(this.$.addAltPeriodDrop.value != this.alterations[indexAlt].period && !this.$.addAltPeriodDrop.disabled) {
 			var altCharge = new Object();
 			altCharge.op = "add";
-			altCharge.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
+			altCharge.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/recurringChargePeriod";
 			switch(this.$.updateAltPeriod.selected) {
 				case 0:
 					altCharge.value = "hourly";
@@ -2713,7 +2751,7 @@ class offerUpdate extends PolymerElement {
 			if(altCharge.value == "") {
 				var altChargeDel = new Object();
 				altChargeDel.op = "remove";
-				altChargeDel.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
+				altChargeDel.path = "/productOfferingPrice/" + indexPrice + "/productOfferPriceAlteration/recurringChargePeriod";
 				updateAlterationNew.push(altChargeDel);
 			} else {
 				updateAlterationNew.push(altCharge);
@@ -2760,6 +2798,12 @@ class offerUpdate extends PolymerElement {
 			this.$.updatePriceSize.disabled = false;
 			this.$.priceUpdateReserveTimeInput.disabled = false;
 			this.$.priceUpdateReserveOctetsInput.disabled = true;
+		} else if(this.$.updatePriceUnits.selected == 3) {
+			this.$.updatePriceSize.allowedPattern = "[0-9]";
+			this.$.updatePriceSize.pattern = "^[0-9]+$";
+			this.$.updatePriceSize.disabled = false;
+			this.$.priceUpdateReserveTimeInput.disabled = true;
+			this.$.priceUpdateReserveOctetsInput.disabled = true;
 		}
 	}
 
@@ -2773,6 +2817,9 @@ class offerUpdate extends PolymerElement {
 		} else if(this.$.updateAlterationUnits.selected == 2) {
 			this.$.updateAltSize.allowedPattern = "[0-9mh]";
 			this.$.updateAltSize.pattern = "^[0-9]+[mh]?$";
+		} else if(this.$.updateAlterationUnits.selected == 3) {
+			this.$.updateAltSize.allowedPattern = "[0-9]";
+			this.$.updateAltSize.pattern = "^[0-9]+$";
 		}
 	}
 
@@ -2781,6 +2828,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updatePricePerioddrop.disabled = false;
 			this.$.priceBytes.disabled = true;
 			this.$.priceSeconds.disabled = true;
+			this.$.priceMessages.disabled = true;
 			this.$.priceCents.disabled = false;
 			this.$.priceUpdateReserveTimeInput.disabled = true;
 			this.$.priceUpdateReserveOctetsInput.disabled = true;
@@ -2791,6 +2839,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
 			this.$.priceSeconds.disabled = true;
+			this.$.priceMessages.disabled = true;
 			this.$.priceCents.disabled = false;
 			this.$.priceUpdateReserveTimeInput.disabled = true;
 			this.$.priceUpdateReserveOctetsInput.disabled = true;
@@ -2803,12 +2852,20 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.priceBytes.disabled = false;
 				this.$.priceSeconds.disabled = false;
+				this.$.priceMessages.disabled = true;
 				this.$.updatePriceUnits.selected = 0;
-			}
+			} else
 			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.priceSeconds.disabled = false;
 				this.$.priceBytes.disabled = true;
+				this.$.priceMessages.disabled = true;
 				this.$.updatePriceUnits.selected = 2;
+			} else
+			if(this.updateOfferSpecification == "PrepaidSMS") {
+				this.$.priceMessages.disabled = false;
+				this.$.priceSeconds.disabled = true;
+				this.$.priceBytes.disabled = true;
+				this.$.updatePriceUnits.selected = 3;
 			}
 			this.$.updatePriceAmount.disabled = false;
 			this.$.updatePla.disabled = true;
@@ -2818,12 +2875,20 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.priceBytes.disabled = false;
 				this.$.priceSeconds.disabled = false;
+				this.$.priceMessages.disabled = true;
 				this.$.updatePriceUnits.selected = 0;
-			}
+			} else
 			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.priceSeconds.disabled = false;
 				this.$.priceBytes.disabled = true;
+				this.$.priceMessages.disabled = true;
 				this.$.updatePriceUnits.selected = 2;
+			} else
+			if(this.updateOfferSpecification == "PrepaidSMS") {
+				this.$.priceMessages.disabled = false;
+				this.$.priceSeconds.disabled = true;
+				this.$.priceBytes.disabled = true;
+				this.$.updatePriceUnits.selected = 3;
 			}
 			this.$.updatePriceAmount.disabled = true;
 			this.$.updatePriceAmount.value = null;
@@ -2837,9 +2902,16 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
 				this.$.altSeconds.disabled = false;
-			}
+				this.$.altMessages.disabled = true;
+			} else
 			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
+			} else
+			if(this.updateOfferSpecification == "PrepaidSMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altSeconds.disabled = true;
 				this.$.altBytes.disabled = true;
 			}
 			this.$.altCents.disabled = false;
@@ -2849,9 +2921,16 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
 				this.$.altSeconds.disabled = false;
-			}
+				this.$.altMessages.disabled = true;
+			} else
 			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
+			} else
+			if(this.updateOfferSpecification == "PrepaidSMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altSeconds.disabled = true;
 				this.$.altBytes.disabled = true;
 			}
 			this.$.altCents.disabled = false;
@@ -2861,12 +2940,19 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
 				this.$.altSeconds.disabled = false;
+				this.$.altMessages.disabled = true;
 				this.$.updateAlterationUnits.selected = 0;
-			}
+			} else
 			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
 				this.$.updateAlterationUnits.selected = 2;
+			} else
+			if(this.updateOfferSpecification == "PrepaidSMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altSeconds.disabled = true;
+				this.$.altBytes.disabled = true;
 			}
 			this.$.altCents.disabled = true;
 		}
@@ -3287,6 +3373,9 @@ class offerUpdate extends PolymerElement {
 			case 2:
 				updateAltNew.unit = "s";
 				break;
+			case 3:
+				updateAltNew.unit = "msg";
+				break;
 		}
 		updateAltNew.size = this.$.updateAltSize.value;
 		switch(this.$.updateAltPeriod.selected) {
@@ -3391,7 +3480,7 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateType = null;
 		this.$.updatePriceType.selected = null;
 		this.$.priceBytes.disabled = false;
-		this.$.priceSeconds.disabled = true;
+		this.$.priceSeconds.disabled = false;
 		this.priceUpdatePla = null;
 		this.priceUpdateUnits = null;
 		this.priceUpdateAmount = null;
