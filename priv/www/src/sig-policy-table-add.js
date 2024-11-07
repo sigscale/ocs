@@ -40,9 +40,7 @@ class tablePolicyAdd extends PolymerElement {
 							value="{{tableName}}">
 					</paper-input>
 					<paper-tooltip>
-						Policy table name.<br />
-						Note: An underlying <tt>mnesia</tt> table must have been
-						previously created by your system administrator.
+						Policy table name.
 					</paper-tooltip>
 				</div>
 				<div>
