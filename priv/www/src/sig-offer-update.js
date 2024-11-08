@@ -193,17 +193,6 @@ class offerUpdate extends PolymerElement {
 							</div>
 							<div>
 								<paper-input
-										label="Service Identifier"
-										type="number"
-										auto-validate
-										value="{{serviceIdentifier}}">
-								</paper-input>
-								<paper-tooltip>
-									Limit to specific service identifier
-								</paper-tooltip>
-							</div>
-							<div>
-								<paper-input
 										pattern="(^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})|(^http://.+)|(sip:.+)"
 										auto-validate
 										label="Redirect Server"
@@ -868,9 +857,6 @@ class offerUpdate extends PolymerElement {
 			updateRedirect: {
 				type: String
 			},
-			serviceIdentifier: {
-				type: Number
-			},
 			priceUpdateDescription: {
 				type: String
 			},
@@ -1038,9 +1024,6 @@ class offerUpdate extends PolymerElement {
 				}
 				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
 					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
-				}
-				if(current.prodSpecCharValueUse[indexCha].name == "serviceIdentifier") {
-					this.serviceIdentifier = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
 				if(current.prodSpecCharValueUse[indexCha].name == "policyTable") {
 					this.priceUpdatePolicy = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
@@ -1357,7 +1340,6 @@ class offerUpdate extends PolymerElement {
 				this.updateReserveSessionOctets = null;
 				this.$.updateReserveSessionOctets.disabled = false;
 				this.updateRedirect = null;
-				this.serviceIdentifier = null;
 				this.fixedUpdatePriceBucket = null;
 				this.priceUpdateRoamingTable = null;
 				this.priceUpdateChargingKey = null;
@@ -1780,49 +1762,6 @@ class offerUpdate extends PolymerElement {
 			redirectServer.op = "replace";
 			redirectServer.value = this.updateRedirect;
 			offerNew.push(redirectServer);
-		}
-		if(this.activeItem.prodSpecCharValueUse) {
-			function sidCheckName(charVal) {
-				return charVal.name == "serviceIdentifier";
-			}
-			var sidIndex = this.activeItem.prodSpecCharValueUse.findIndex(sidCheckName);
-		} else {
-			var sidIndex = -1;
-		}
-		if(!this.serviceIdentifier && (sidIndex != -1)) {
-			var serviceIdentifier = new Object();
-			serviceIdentifier.path = "/prodSpecCharValueUse/" + sidIndex;
-			serviceIdentifier.op = "remove";
-			offerNew.push(serviceIdentifier);
-		} else if(this.serviceIdentifier && (sidIndex == -1)) {
-			var serviceIdentifier = new Object();
-			serviceIdentifier.path = "/prodSpecCharValueUse/-";
-			serviceIdentifier.op = "add";
-			var sidCharValueArray  = new Array();
-			var sidCharValue = new Object();
-			sidCharValue.value = this.serviceIdentifier;
-			sidCharValueArray.push(sidCharValue);
-			var sidCharValueUse = new Object();
-			sidCharValueUse.name = "serviceIdentifier";
-			sidCharValueUse.minCardinality = 0;
-			sidCharValueUse.maxCardinality = 1;
-			sidCharValueUse.productSpecCharacteristicValue = sidCharValueArray;
-			var sidProductSpec = new Object();
-			sidProductSpec.id = "1";
-			sidProductSpec.href = "/catalogManagement/v2/productSpecification/1";
-			sidCharValueUse.productSpecification = sidProductSpec;
-			serviceIdentifier.value = sidCharValueUse;
-			offerNew.push(serviceIdentifier);
-		} else if(this.serviceIdentifier
-				&& this.activeItem.prodSpecCharValueUse[sidIndex].productSpecCharacteristicValue
-				&& this.activeItem.prodSpecCharValueUse[sidIndex].productSpecCharacteristicValue[0]
-				&& (this.serviceIdentifier != this.activeItem.prodSpecCharValueUse[sidIndex].productSpecCharacteristicValue[0].value)) {
-			var serviceIdentifier = new Object();
-			serviceIdentifier.path = "/prodSpecCharValueUse/"
-					+ sidIndex + "/productSpecCharacteristicValue/0/value";
-			serviceIdentifier.op = "replace";
-			serviceIdentifier.value = this.serviceIdentifier;
-			offerNew.push(serviceIdentifier);
 		}
 		if(this.activeItem.prodSpecCharValueUse) {
 			function checkPolicyTable(charVal) {

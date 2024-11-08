@@ -1022,20 +1022,14 @@ characteristic_product_network() ->
 	Value6 = {"productSpecCharacteristicValue",
 			{array, [Type61, Type62, Type63, Type64]}},
 	Char6 = {struct, [Name6, Description6, Config6, Type6, Value6]},
-	Name7 = {"name", "serviceIdentifier"},
-	Description7 = {"description", "Identifiers of services."},
-	Config7 = {"configurable", true},
-	Type7 = {"valueType", "Array"},
-	Value7 = {"productSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
-	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
-	Name8 = {"name", "redirectServer"},
-   Description8 = {"description", "Defines the address of the redirect server,"
+	Name7 = {"name", "redirectServer"},
+   Description7 = {"description", "Defines the address of the redirect server,"
 			" as an IPv4/IPv6 address, SIP URI or HTTP URL."},
-   Config8 = {"configurable", true},
-   Type8 = {"valueType", "String"},
-   Value8 = {"productSpecCharacteristicValue", {array, [{struct, [Type8]}]}},
-	Char8 = {struct, [Name8, Description8, Config8, Type8, Value8]},
-	[Char1, Char2, Char3, Char4, Char5, Char6, Char7, Char8].
+   Config7 = {"configurable", true},
+   Type7 = {"valueType", "String"},
+   Value7 = {"productSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
+	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
+	[Char1, Char2, Char3, Char4, Char5, Char6, Char7].
 
 %% @hidden
 characteristic_product_rate_plan() ->

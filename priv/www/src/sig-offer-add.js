@@ -231,17 +231,6 @@ class offerAdd extends PolymerElement {
 										An IPv4/IPv6 address, HTTP URL or SIP URI to which traffic will be redirected when out of credit.
 									</paper-tooltip>
 								</div>
-								<div>
-									<paper-input
-										label="Service Identifier"
-										type="number"
-										auto-validate
-										value="{{serviceIdentifier}}">
-									</paper-input>
-									<paper-tooltip>
-										characteristic serviceIdentifiers
-									</paper-tooltip>
-								</div>
 							</div>
 							<div>
 								<paper-dropdown-menu
@@ -1004,9 +993,6 @@ class offerAdd extends PolymerElement {
 			},
 			redirectAddress: {
 				type: String
-			},
-			serviceIdentifier: {
-				type: Number
 			}
 		}
 	}
@@ -1441,22 +1427,6 @@ class offerAdd extends PolymerElement {
 			prodSpec1.href = "/productCatalogManagement/v2/productSpecification/8",
 			redirect.productSpecification = prodSpec1;
 			prodSpecCharValueUse.push(redirect);
-		}
-		if(this.serviceIdentifier) {
-			var service = new Object();
-			service.name = "serviceIdentifier"
-			service.minCardinality = 0;
-			service.maxCardinality = 1;
-			var serviceUse = new Object();
-			serviceUse.value = this.serviceIdentifier;
-			var services = new Array();
-			services.push(serviceUse);
-			service.productSpecCharacteristicValue = services;
-			var prodSpec1 = new Object();
-			prodSpec1.id = "1";
-			prodSpec1.href = "/productCatalogManagement/v2/productSpecification/1",
-			service.productSpecification = prodSpec1;
-			prodSpecCharValueUse.push(service);
 		}
 		if (this.offerPolicy) {
 			var charValue = new Object();
