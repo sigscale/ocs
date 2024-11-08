@@ -481,11 +481,11 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 		_ ->
 			{Map1, undefined}
 	end,
-	{Map3, MCCMNC} = case maps:find("mccmnc", H) of
-		{ok, #{"serviceInformation" := #{"mcc" := MCC, "mnc" := MNC}}} ->
-			{Map2#{"serviceInformation" => #{"mcc" => MCC, "mnc" => MNC}}, MCC ++ MNC};
+	ServiceNetwork = case maps:find("serviceInformation", H) of
+		{ok, ServiceInformation} ->
+			service_network(ServiceInformation);
 		_ ->
-			{Map2, undefined}
+			undefined
 	end,
 	Reserves = case maps:find("requestedUnit", H) of
 		{ok, #{"totalVolume" := RTV}} when RTV > 0->
@@ -497,54 +497,54 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 		_ ->
 			[]
 	end,
-	{Debits, Map4} = case maps:find("consumedUnit", H) of
+	{Debits, Map3} = case maps:find("consumedUnit", H) of
 		{ok, #{"totalVolume" := CTV}} when CTV > 0 ->
-			{[{octets, CTV}], Map3#{"consumedUnit" => #{"totalVolume" => CTV}}};
+			{[{octets, CTV}], Map2#{"consumedUnit" => #{"totalVolume" => CTV}}};
 		{ok, #{"time" := CTime}} when CTime > 0 ->
-			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
+			{[{seconds, CTime}], Map2#{"consumedUnit" => #{"time" => CTime}}};
 		{ok, #{"serviceSpecificUnit" := CSSU}} when CSSU > 0 ->
-			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
+			{[{messages, CSSU}], Map2#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
 		_ ->
-			{[], Map3}
+			{[], Map2}
 	end,
 	ServiceType = service_type(SCI),
 	TS = calendar:universal_time(),
-	{Map5, SessionAttributes} = case maps:find("uPFID", H) of
+	{Map4, SessionAttributes} = case maps:find("uPFID", H) of
 		{ok, UpfId} ->
 			case application:get_env(ocs, quota_per_upf) of
 				{ok, true} ->
-					{Map4#{"uPFID" => UpfId},
+					{Map3#{"uPFID" => UpfId},
 							[{nrf_ref, RatingDataRef}, {upfid, UpfId}]};
 				{ok, false} ->
-					{Map4, [{nrf_ref, RatingDataRef}]}
+					{Map3, [{nrf_ref, RatingDataRef}]}
 			end;
 		_ ->
-			{Map4, [{nrf_ref, RatingDataRef}]}
+			{Map3, [{nrf_ref, RatingDataRef}]}
 	end,
 	case ocs_rating:rate(nrf, ServiceType, ServiceId, ChargingKey,
-			MCCMNC, subscriber_id(SubscriptionIds), TS, undefined, undefined,
+			ServiceNetwork, subscriber_id(SubscriptionIds), TS, undefined, undefined,
 			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {messages, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_volume) of
@@ -556,7 +556,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_time) of
@@ -568,7 +568,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _Service, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_unit) of
@@ -579,30 +579,30 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			end,
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _Service, {_, 0} = _GrantedAmount} ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {octets, Amount} = _GrantedAmount, _Rated}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount, _Rated}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {messages, Amount} = _GrantedAmount, _Rated}
 				when Flag == event, Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"consumedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _Service, {octets, Amount} = _GrantedAmount, _Rated}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_volume) of
@@ -614,7 +614,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount, _Rated}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_time) of
@@ -626,7 +626,7 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _, {messages, Amount} = _GrantedAmount, _Rated}
 				when Amount > 0 ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount},
 					"serviceContextId" => SCI},
 			RatedMap1 = case application:get_env(ocs, nrf_valid_unit) of
@@ -637,15 +637,15 @@ rate(RatingDataRef, [#{"serviceContextId" := SCI} = H | T],
 			end,
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap1 | Acc]);
 		{ok, _Service, _Rated} ->
-			RatedMap = Map5#{"resultCode" => "SUCCESS",
+			RatedMap = Map4#{"resultCode" => "SUCCESS",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{out_of_credit, _RedirectServerAddress, _SessionList} ->
-			RatedMap = Map5#{"resultCode" => "QUOTA_LIMIT_REACHED",
+			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{out_of_credit, _RedirectServerAddress, _SessionList, _Rated} ->
-			RatedMap = Map5#{"resultCode" => "QUOTA_LIMIT_REACHED",
+			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
 			rate(RatingDataRef, T, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{disabled, SessionList} ->
@@ -1033,4 +1033,36 @@ authorize_rating4(Username, Address, Port, Directory) ->
 		{error, _Reason} ->
 			{error, 500}
 	end.
+
+-spec service_network(ServiceInformation) -> ServiceNetwork
+	when
+		ServiceInformation :: map(),
+		ServiceNetwork :: string() | undefined.
+%% @doc Get serving PLMN.
+%% @private
+service_network(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"utraLocation"
+		:= #{"cgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"utraLocation"
+		:= #{"sai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"utraLocation"
+		:= #{"rai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"nrLocation"
+		:= #{"ncgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"nrLocation"
+		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"n3gaLocation"
+		:= #{"n3gppTai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"eutraLocation"
+		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(_) ->
+	undefined.
 
