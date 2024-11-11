@@ -1284,7 +1284,7 @@ dia_acct_to_ecs(_Config) ->
 			[rand:uniform(1000000000) - 1])),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1812,
-	Server = {{0, 0, 0, 0}, ServerPort},
+	Server = {ServerAddress, ServerPort},
 	OriginHost = <<"10.0.0.1">>,
 	Username = ocs:generate_identity(),
 	ServiceContextId = <<"10.32251@3gpp.org">>,
@@ -1495,25 +1495,56 @@ fill_acct(N, Protocal) ->
 			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
 			fill_acct(N - 1, radius);
 		diameter ->
+			SessionId = diameter:session_id(ClientAddress),
+			{CCRequestType, CCRequestNumber, MSCCRequest, MSCCResponse} = case Type of
+				start ->
+					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Granted-Service-Unit' = [#'3gpp_ro_Granted-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}]}};
+				interim ->
+					{?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST', rand:uniform(10),
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}],
+									'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+											'CC-Input-Octets' = [AcctInputOctets],
+											'CC-Output-Octets' = [AcctOutputOctets]}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Granted-Service-Unit' = [#'3gpp_ro_Granted-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}]}};
+				stop ->
+					{?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST', rand:uniform(10),
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+											'CC-Input-Octets' = [AcctInputOctets],
+											'CC-Output-Octets' = [AcctOutputOctets]}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{}}
+			end,
 			ServiceContextId = <<"10.32251@3gpp.org">>,
 			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
 			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
-					'CC-Time' = AcctSessionTime,
-					'CC-Input-Octets' = AcctInputOctets,
-					'CC-Output-Octets' = AcctOutputOctets}]},
-			IMSInfo = #'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(),
-					'Called-Party-Address' = ocs_test_lib:mac()},
-			ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' = [IMSInfo]},
-			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress,
+			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
+			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
+			Request = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
+					'Origin-Host' = ClientAddress,
+					'CC-Request-Type' = CCRequestType,
+					'CC-Request-Number' = CCRequestNumber,
 					'Service-Context-Id' = ServiceContextId,
 					'Subscription-Id' = [Sub1, Sub2],
-					'Multiple-Services-Credit-Control' = [MSCC],
+					'Multiple-Services-Credit-Control' = [MSCCRequest],
 					'Service-Information' = [ServiceInformation]},
-			ok = ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
+			Response =  #'3gpp_ro_CCA'{'Session-Id' = SessionId,
+					'Origin-Host' = ClientAddress,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'CC-Request-Type' = CCRequestType,
+					'CC-Request-Number' = CCRequestNumber,
+					'Multiple-Services-Credit-Control' = [MSCCResponse]},
+			ok = ocs_log:acct_log(diameter, Server, Type, Request, Response, undefined),
 			fill_acct(N - 1, diameter)
 	end.
 
