@@ -307,9 +307,22 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 -spec ql(Log, Match) -> Events
 	when
 		Log :: acct | auth,
-		Match :: DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -335,9 +348,22 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 -spec ql(Log, Match, Start) -> Events
 	when
 		Log :: acct | auth,
-		Match :: DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -365,9 +391,22 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 -spec ql(Log, Match, Start, End) -> Events
 	when
 		Log :: acct | auth,
-		Match :: DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -427,9 +466,22 @@ diameter_service_info([], _Info, Acc) ->
 
 -spec query_acct_log(Match, Start, End) -> Events
 	when
-	        Match :: DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -444,7 +496,7 @@ query_acct_log(Match, Start, End) ->
 query_acct_log(eof, _, _, _, Acc) ->
 	lists:flatten(lists:reverse(Acc));
 query_acct_log(Context1, Start, End, Match, Acc) ->
-	case ocs_log:acct_query(Context1, Start, End, diameter, '_', [Match]) of
+	case ocs_log:acct_query(Context1, Start, End, '_', '_', [Match]) of
 		{error, Reason} ->
 			exit(Reason);
 		{Context2, []} ->

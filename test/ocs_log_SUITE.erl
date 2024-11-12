@@ -149,9 +149,10 @@ sequences() ->
 %%
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
-			radius_log_acct_event, diameter_log_acct_event,
+			radius_log_acct_event, diameter_log_acct_event, nrf_log_acct_event,
 			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
-			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
+			acct_query_diameter, acct_query_nrf,
+			abmf_log_event, abmf_query, binary_tree_before,
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
@@ -320,6 +321,50 @@ diameter_log_acct_event(_Config) ->
 					element(5, E) == Server, element(6, E) == RequestType,
 					is_record(element(7, E), '3gpp_ro_CCR'),
 					is_record(element(8, E), '3gpp_ro_CCA') ->
+				true;
+			(_) ->
+				false	
+	end,
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
+				case lists:any(Fany, Chunk) of
+					false ->
+						F(F, disk_log:chunk(ocs_acct, Cont));
+					true ->
+						true
+				end;
+			(_F, eof) ->
+				false
+	end,
+	true = Find(Find, disk_log:chunk(ocs_acct, start)).
+
+nrf_log_acct_event() ->
+   [{userdata, [{doc, "Log an Nrf RatingData event"}]}].
+
+nrf_log_acct_event(_Config) ->
+	Start = erlang:system_time(millisecond),
+	Protocol = nrf,
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 8080,
+	Server = {ServerAddress, ServerPort},
+	RequestType = start,
+	SeqNo = rand:uniform(4294967296) - 1,
+	NrfRequest = #{"invocationTimeStamp" => ocs_log:iso8601(Start),
+			"invocationSequenceNumber" => SeqNo,
+			"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"}},
+	NrfReponse = #{"invocationTimeStamp" => ocs_log:iso8601(Start + 100),
+			"invocationSequenceNumber" => SeqNo},
+	ok = ocs_log:acct_log(Protocol, Server, RequestType,
+			NrfRequest, NrfReponse, undefined),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
+	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
+					element(3, E) == Protocol, element(4, E) == Node,
+					element(5, E) == Server, element(6, E) == RequestType,
+					is_map_key("invocationTimeStamp", element(7, E)),
+					is_map_key("invocationTimeStamp", element(8, E)) ->
 				true;
 			(_) ->
 				false	
@@ -680,6 +725,102 @@ acct_query_diameter(_Config) ->
 	end,
 	Events = Fget(ocs_log:acct_query(start, Start, End,
 			diameter, '_', MatchSpec), []),
+	3 = length(Events).
+
+acct_query_nrf() ->
+   [{userdata, [{doc, "Get matching accounting log events for nrf"}]}].
+
+acct_query_nrf(_Config) ->
+	Server = {{0,0,0,0}, 1812},
+	ok = fill_acct(1000, nrf),
+	LogInfo = disk_log:info(ocs_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	FileEvents = FileSize div EventSize,
+	Start = erlang:system_time(millisecond),
+	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(999999999)]),
+	SubscriptionId = ["imsi-" ++ IMSI],
+	RatingRequest = #{"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
+			"subscriptionId" => SubscriptionId},
+	PLMN = #{"mcc" => "001", "mnc" => "001"},
+	TAI = #{"plmnid" => PLMN, "tac" => "abcd"},
+	NCGI = #{"plmnid" => PLMN, "nrCellId" => "deadbeef1"},
+	UserLocation = #{"nrLocation" => #{"tai" => TAI, "ncgi" => NCGI}},
+	PDU = #{"pduSessionID" => 0, "dnnId" => "acme", "pduType" => "IPV4",
+			"pduAddress" => #{"pduIPv4Address" => "198.51.100.1"}},
+	ServiceInformation = #{"userLocationinfo" => UserLocation,
+			"pduSessionInformation" => PDU, "chargingId" => 732091},
+	ServiceRating = #{"serviceContextId" => "32255@3gpp.org",
+			"ratingGroup" => 32,
+			"uPFID" => "b7f8f226-a51a-45cf-859d-ff57c1613ab1"},
+	NumItems1 = FileEvents * 4,
+	ok = fill_acct(NumItems1, nrf),
+	TSreq1 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	SRreq1 = [ServiceRating#{"requestSubType" => "RESERVE",
+			"requestedUnit" => #{},
+			"serviceInformation" => ServiceInformation}],
+	RDreq1 = RatingRequest#{"invocationTimeStamp" => TSreq1,
+			"invocationSequenceNumber" => 1,
+			"serviceRating" => SRreq1},
+	SRres1 = [ServiceRating#{"resultCode" => "SUCCESS",
+			"grantedUnit" => #{"totalVolume" => 500000000}}],
+	TSres1 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	RDres1 = #{"invocationTimeStamp" => TSres1,
+			"invocationSequenceNumber" => 1,
+			"serviceRating" => SRres1},
+	ok = ocs_log:acct_log(nrf, Server, start, RDreq1, RDres1, undefined),
+	NumItems2 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems2, nrf),
+	TSreq2 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	SRreq2 = [ServiceRating#{"requestSubType" => "RESERVE",
+					"requestedUnit" => #{},
+					"serviceInformation" => ServiceInformation},
+			ServiceRating#{"requestSubType" => "DEBIT",
+					"consumedUnit" => #{"uplinkVolume" => 1204583,
+							"downlinkVolume" => 450100231}}],
+	RDreq2 = RatingRequest#{"invocationTimeStamp" => TSreq2,
+			"invocationSequenceNumber" => 2,
+			"serviceRating" => SRreq2},
+	SRres2 = [ServiceRating#{"resultCode" => "SUCCESS",
+			"grantedUnit" => #{"totalVolume" => 500000000}}],
+	TSres2 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	RDres2 = #{"invocationTimeStamp" => TSres2,
+			"invocationSequenceNumber" => 2,
+			"serviceRating" => SRres2},
+	ok = ocs_log:acct_log(nrf, Server, interim, RDreq2, RDres2, undefined),
+	NumItems3 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems3, nrf),
+	TSreq3 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	SRreq3 = [ServiceRating#{"requestSubType" => "DEBIT",
+			"consumedUnit" => #{"uplinkVolume" => 2018540,
+					"downlinkVolume" => 57491482}}],
+	RDreq3 = RatingRequest#{"invocationTimeStamp" => TSreq3,
+			"invocationSequenceNumber" => 3,
+			"serviceRating" => SRreq3},
+	TSres3 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	RDres3 = #{"invocationTimeStamp" => TSres3,
+			"invocationSequenceNumber" => 2,
+			"serviceRating" => []},
+	ok = ocs_log:acct_log(nrf, Server, stop, RDreq3, RDres3, undefined),
+	NumItems4 = FileEvents + rand:uniform(FileEvents),
+	ok = fill_acct(NumItems4, nrf),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
+	MatchSpec = [{#{"subscriptionId" => SubscriptionId}, []}],
+	Fget = fun F({eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						nrf, '_', MatchSpec), Acc);
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						nrf, '_', MatchSpec), [Events | Acc])
+	end,
+	Events = Fget(ocs_log:acct_query(start, Start, End,
+			nrf, '_', MatchSpec), []),
+erlang:display({?MODULE, ?FUNCTION_NAME, Events}),
 	3 = length(Events).
 
 binary_tree_half() ->
@@ -1466,6 +1607,8 @@ fill_acct(N) ->
 fill_acct(0, _Protocal) ->
 	ok;
 fill_acct(N, Protocal) ->
+	Timestamp = erlang:system_time(millisecond),
+	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
 	AcctInputOctets = rand:uniform(100000000),
 	AcctSessionTime = rand:uniform(3600) + 100,
@@ -1496,7 +1639,7 @@ fill_acct(N, Protocal) ->
 			fill_acct(N - 1, radius);
 		diameter ->
 			SessionId = diameter:session_id(ClientAddress),
-			{CCRequestType, CCRequestNumber, MSCCRequest, MSCCResponse} = case Type of
+			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
 					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
 							#'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -1533,7 +1676,7 @@ fill_acct(N, Protocal) ->
 			Request = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
 					'Origin-Host' = ClientAddress,
 					'CC-Request-Type' = CCRequestType,
-					'CC-Request-Number' = CCRequestNumber,
+					'CC-Request-Number' = CCRequestNum,
 					'Service-Context-Id' = ServiceContextId,
 					'Subscription-Id' = [Sub1, Sub2],
 					'Multiple-Services-Credit-Control' = [MSCCRequest],
@@ -1542,9 +1685,58 @@ fill_acct(N, Protocal) ->
 					'Origin-Host' = ClientAddress,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'CC-Request-Type' = CCRequestType,
-					'CC-Request-Number' = CCRequestNumber,
+					'CC-Request-Number' = CCRequestNum,
 					'Multiple-Services-Credit-Control' = [MSCCResponse]},
 			ok = ocs_log:acct_log(diameter, Server, Type, Request, Response, undefined),
+			fill_acct(N - 1, diameter);
+		nrf ->
+			ServiceContextId = "10.32255@3gpp.org",
+			Sub1 = lists:concat(["imsi-", IMSI]),
+			Sub2 = lists:concat(["msisdn-", MSISDN]),
+			PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
+			{SRRequest, SRResponse} = case Type of
+				start ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "RESERVE",
+							"requestedUnit" => #{},
+							"serviceInformation" => PSInfo}],
+					[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"resultCode" => "SUCCESS",
+							"grantedUnit" => #{"totalVolume" => 5000000}}]};
+				interim ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType" => "RESERVE",
+							"requestedUnit" => #{},
+							"serviceInformation" => PSInfo},
+					#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "DEBIT",
+							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+							"serviceInformation" => PSInfo}],
+					[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"resultCode" => "SUCCESS",
+							"grantedUnit" => #{"totalVolume" => 5000000}}]};
+				stop ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "DEBIT",
+							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+							"serviceInformation" => PSInfo}],
+					[]}
+			end,
+			Request = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+					"invocationSequenceNumber" => SeqNo,
+					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
+					"subscriptionId" => [Sub1, Sub2],
+					"serviceRating" => SRRequest},
+			Response = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+					"invocationSequenceNumber" => SeqNo,
+					"serviceRating" => SRResponse},
+			ok = ocs_log:acct_log(nrf, Server, Type, Request, Response, undefined),
 			fill_acct(N - 1, diameter)
 	end.
 

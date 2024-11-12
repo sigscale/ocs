@@ -120,13 +120,15 @@ acct_open() ->
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
+-type nrf_request() :: map().
+-type nrf_response() :: map().
 -type acct_type() :: on | off | start | stop | update | interim | final | 'event'.
 -type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
 		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{}
-		| radius_attributes:attributes() | map().
+		| radius_attributes:attributes() | nrf_request().
 -type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
 		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{}
-		| radius_attributes:attributes() | map().
+		| radius_attributes:attributes() | nrf_response().
 -type acct_rated() :: [#rated{}].
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
@@ -160,7 +162,7 @@ acct_close() ->
 		Types :: [Type] | '_',
 		Type :: acct_type(),
 		Matches :: [Match] | '_',
-		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -170,7 +172,12 @@ acct_close() ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: acct_request() | acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -192,7 +199,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		Types :: [Type] | '_',
 		Type :: acct_type(),
 		Matches :: [Match] | '_',
-		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -202,7 +209,12 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: acct_request() | acct_response(),
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -3175,7 +3187,7 @@ query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 		Types :: [Type] | '_',
 		Type :: atom(),
 		Matches :: [Match] | '_',
-		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -3185,14 +3197,18 @@ query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events}.
 %% @private
 %% @doc Query accounting log events with filters.
-%%
 acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches) ->
 	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
 %% @hidden
@@ -3226,31 +3242,54 @@ acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == radius ->
 			(_) ->
 				false
 	end,
-	RadiusMatch = lists:filter(F, Matches),
-	case length(RadiusMatch) of
-		0 ->
-			acct_query5(Events, Matches, []);
-		_ ->
+	case lists:filter(F, Matches) of
+		[] ->
+			acct_query3(T, Matches, Acc);
+		RadiusMatch ->
 			case acct_query4(element(7, H), RadiusMatch) of
 				true ->
-					acct_query3(T, RadiusMatch, [H | Acc]);
+					acct_query3(T, Matches, [H | Acc]);
 				false ->
-					acct_query3(T, RadiusMatch, Acc)
+					acct_query3(T, Matches, Acc)
 			end
 	end;
 acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
 	F = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_ro_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_CCR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
 			(_) ->
 				false
 	end,
-	MatchSpec = lists:filtermap(F, Matches),
-	case length(MatchSpec) of
-		0 ->
-			acct_query5(Events, Matches, []);
-		_ ->
+	case lists:filtermap(F, Matches) of
+		[] ->
+			acct_query3(T, Matches, Acc);
+		MatchSpec ->
 			case erlang:match_spec_test(element(7, H), MatchSpec, table) of
-				{ok, #'3gpp_ro_CCR'{}, [], []} ->
+				{ok, Event, [], []} when is_tuple(Event) ->
+					acct_query3(T, Matches, [H | Acc]);
+				{ok, false , [], []}->
+					acct_query3(T, Matches, Acc);
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end;
+acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == nrf ->
+	F = fun({#{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	case lists:filtermap(F, Matches) of
+		[] ->
+			acct_query3(T, Matches, Acc);
+		[MatchRequest | _MatchResponse] ->
+			case erlang:match_spec_test(element(7, H), [MatchRequest], table) of
+				{ok, #{}, [], []} ->
 					acct_query3(T, Matches, [H | Acc]);
 				{ok, false , [], []}->
 					acct_query3(T, Matches, Acc);
@@ -3288,19 +3327,24 @@ acct_query4(Attributes, [_ | T]) ->
 acct_query4(_Attributes, []) ->
 	true.
 %% @hidden
-acct_query5([H | T] = Events, Matches, Acc) ->
+acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
 	F = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_ro_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_CCA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_RAA'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
 			(_) ->
 				false
 	end,
-	MatchSpec = lists:filtermap(F, Matches),
-	case length(MatchSpec) of
-		0 ->
-			acct_query6(Events, Matches, []);
-		_ ->
+	case lists:filtermap(F, Matches) of
+		[] ->
+			acct_query5(T, Matches, [H | Acc]);
+		MatchSpec ->
 			case erlang:match_spec_test(element(8, H), MatchSpec, table) of
-				{ok, #'3gpp_ro_CCA'{}, [], []} ->
+				{ok, Event, [], []} when is_tuple(Event) ->
 					acct_query5(T, Matches, [H | Acc]);
 				{ok, false , [], []}->
 					acct_query5(T, Matches, Acc);
@@ -3308,6 +3352,27 @@ acct_query5([H | T] = Events, Matches, Acc) ->
 					{error, Reason}
 			end
 	end;
+acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == nrf ->
+	F = fun({#{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	case lists:filtermap(F, Matches) of
+		MatchSpec when length(MatchSpec) < 2 ->
+			acct_query5(T, Matches, [H | Acc]);
+		[_ | MatchSpec] ->
+			case erlang:match_spec_test(element(8, H), MatchSpec, table) of
+				{ok, #{}, [], []} ->
+					acct_query5(T, Matches, [H | Acc]);
+				{ok, false , [], []}->
+					acct_query5(T, Matches, Acc);
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end;
+acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == radius ->
+	acct_query5(T, Matches, [H | Acc]);
 acct_query5([], Matches, Acc) ->
 	acct_query6(lists:reverse(Acc), Matches, []).
 %% @hidden
@@ -3317,11 +3382,10 @@ acct_query6([H | T] = Events, Matches, Acc) ->
 			(_) ->
 				false
 	end,
-	MatchSpec = lists:filtermap(F, Matches),
-	case length(MatchSpec) of
-		0 ->
+	case lists:filtermap(F, Matches) of
+		[] ->
 			Events;
-		_ ->
+		MatchSpec ->
 			case element(9, H) of
 				[#rated{} = Rated | _] ->
 					case erlang:match_spec_test(Rated, MatchSpec, table) of
