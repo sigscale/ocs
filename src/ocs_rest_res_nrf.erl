@@ -94,15 +94,17 @@ initial_nrf1(ModData, NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, NrfMap, UpdatedMap};
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
+						{NrfResponse, LogRequest, UpdatedMap};
 					{error, out_of_credit = Reason} ->
 						Problem = rest_error_response(Reason, undefined),
 						{error, 403, NrfMap, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, NrfMap, Problem};
+						{error, 404, LogRequest, Problem};
 					{error, invalid_service_type = Reason} ->
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
@@ -119,16 +121,16 @@ initial_nrf1(ModData, NrfRequest) ->
 				{error, decode_failed}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
 			Location = "/ratingdata/" ++ RatingDataRef,
 			Headers = [{content_type, "application/json"}, {location, Location}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
-					LogRequest, LogResponse, undefined),
+					LogRequest1, LogResponse, undefined),
 			{ok, Headers, ResponseBody};
-		{error, StatusCode, LogRequest, Problem1} ->
+		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
-					LogRequest, Problem1, undefined),
+					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
 			Problem1 = rest_error_response(Reason1, undefined),
@@ -187,10 +189,12 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 					{ok, ServiceRating} when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, NrfMap, UpdatedMap};
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
+						{NrfResponse, LogRequest, UpdatedMap};
 					{error, out_of_credit = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(Reason, undefined),
-						{error, 403, NrfMap, Problem};
+						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
@@ -212,15 +216,15 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				{error, decode_failed}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
 			Headers = [{content_type, "application/json"}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
-					LogRequest, LogResponse, undefined),
+					LogRequest1, LogResponse, undefined),
 			{200, Headers, ResponseBody};
-		{error, StatusCode, LogRequest, Problem1} ->
+		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
-					LogRequest, Problem1, undefined),
+					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
 			Problem1 = rest_error_response(Reason1, undefined),
@@ -282,10 +286,12 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, NrfMap, UpdatedMap};
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
+						{NrfResponse, LogRequest, UpdatedMap};
 					{error, out_of_credit = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(Reason, undefined),
-						{error, 403, NrfMap, Problem};
+						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
@@ -307,15 +313,15 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				{error, decode_failed}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
 			Headers = [{content_type, "application/json"}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
-					LogRequest, LogResponse, undefined),
+					LogRequest1, LogResponse, undefined),
 			{200, Headers, ResponseBody};
-		{error, StatusCode,  LogRequest, Problem1} ->
+		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
-					LogRequest, Problem1, undefined),
+					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
 			Problem1 = rest_error_response(Reason1, undefined),
