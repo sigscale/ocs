@@ -339,6 +339,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 		or is_record(MatchHead, '3gpp_gx_CCA')
 		or is_record(MatchHead, '3gpp_gx_RAR')
 		or is_record(MatchHead, '3gpp_gx_RAA')
+		or is_map(MatchHead)
 		or is_record(MatchHead, rated)) ->
 	End = erlang:universaltime(),
 	EndS = calendar:datetime_to_gregorian_seconds(End),
@@ -384,6 +385,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		or is_record(MatchHead, '3gpp_gx_CCA')
 		or is_record(MatchHead, '3gpp_gx_RAR')
 		or is_record(MatchHead, '3gpp_gx_RAA')
+		or is_map(MatchHead)
 		or is_record(MatchHead, rated)) ->
 	End = erlang:universaltime(),
 	query_acct_log(Match, Start, End).
@@ -426,6 +428,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		or is_record(MatchHead, '3gpp_gx_CCA')
 		or is_record(MatchHead, '3gpp_gx_RAR')
 		or is_record(MatchHead, '3gpp_gx_RAA')
+		or is_map(MatchHead)
 		or is_record(MatchHead, rated)) ->
 	query_acct_log(Match, Start, End).
 
