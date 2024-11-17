@@ -1,3 +1,9 @@
+November 17, 2024
+-----------------
+	- Query acct log support for Nrf
+	- Deprecate service id characteristic in Product Offering
+	- Correct VPLMN in Nrf
+
 November 5, 2024
 ----------------
 	- Corrections tp update Product Offering dialog

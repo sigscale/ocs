@@ -1,3 +1,16 @@
+2024-11-17  Vance Shipley <vances@sigscale.org>
+
+	* correct guards in shell acct query
+	* include nrf rating session id in acct log
+	* refactor nrf rating error logging
+	* handle nrf in acct log query
+	* refactor diameter fill in log test suite
+	* test case for re interface session until depletion
+	* combine debit/reserve requests for same rating group
+	* remove service id characteristic from offer
+	* correct deriving vplmn from service information in nrf
+	* remove deprecated warning, policy does not need mnesia table
+
 2024-11-05  Vance Shipley <vances@sigscale.org>
 
 	* include message buckets in balance buckets list view
