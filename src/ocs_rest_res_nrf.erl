@@ -114,8 +114,8 @@ initial_nrf1(ModData, NrfRequest) ->
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
-						{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
-						{error, decode_failed}]),
+						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+						{operation, start}, {error, decode_failed}]),
 				{error, decode_failed}
 		end
 	of
@@ -137,8 +137,8 @@ initial_nrf1(ModData, NrfRequest) ->
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{flag, start}, {error, Reason1}, {stack, StackTrace}]),
+					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{operation, start}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 	
@@ -207,8 +207,8 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
-						{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-						{flag, interim}, {error, decode_failed}]),
+						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+						{operation, update}, {error, decode_failed}]),
 				{error, decode_failed}
 		end
 	of
@@ -229,8 +229,8 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{flag, interim}, {error, Reason1}, {stack, StackTrace}]),
+					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{operation, update}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 
@@ -302,8 +302,8 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
-						{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-						{error, decode_failed}]),
+						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+						{operation, release}, {error, decode_failed}]),
 				{error, decode_failed}
 		end
 	of
@@ -324,8 +324,8 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{error, Reason1}, {stack, StackTrace}]),
+					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{operation, release}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 
