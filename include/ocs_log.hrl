@@ -82,10 +82,7 @@
 -type abmf_event() :: {
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
 		Node :: atom(),
-		Server :: ocs_log:server(),
-		Client :: ocs_log:server(),
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
 		Bucket :: undefined | string(),
