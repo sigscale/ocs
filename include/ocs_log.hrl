@@ -83,7 +83,7 @@
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
 		Node :: atom(),
-		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
+		Type :: topup | adjustment | delete | deduct | reserve | unreserve | transfer,
 		Subscriber :: binary(),
 		Bucket :: undefined | string(),
 		Units :: cents | seconds | octets | messages,

@@ -1119,7 +1119,14 @@ delete_bucket(BucketId) ->
 		end
 	end,
 	case mnesia:transaction(F2) of
-		{atomic, {ok, Bucket}} ->
+		{atomic, {ok, #bucket{name = Channel,
+				units = Units, product = [ProdRef | _],
+				remain_amount = Before, end_date = Validity,
+				status = Status} = Bucket}} ->
+			ocs_log:abmf_log(delete, undefined, BucketId,
+					Units, ProdRef, 0, Before, 0, Validity,
+					Channel, undefined, undefined, undefined,
+					undefined, Status),
 			ok = ocs_event:notify(delete_bucket, Bucket, balance),
 			ok;
 		{aborted, Reason} ->

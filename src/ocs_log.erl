@@ -1068,7 +1068,7 @@ abmf_open() ->
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status) -> Result
 	when
-		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
+		Type :: topup | adjustment | delete | deduct | reserve | unreserve | transfer,
 		ServiceId :: undefined | binary(),
 		Bucket :: string(),
 		Units :: cents | seconds | octets | messages,
@@ -1088,16 +1088,19 @@ abmf_open() ->
 		Name :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a balance activity log
+%% @doc Write a balance activity log event.
 abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status)
-		when ((Type == transfer) orelse (Type == topup) orelse
-		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
-		orelse (Type == unreserve)), ((is_binary(ServiceId)) orelse (ServiceId == undefined)),
-		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse (Units == octets)
-		orelse (Units == messages)), (is_integer(AmountBefore) orelse (AmountBefore == undefined)),
-		(is_integer(AmountAfter) orelse (AmountAfter == undefined)), is_list(Product), is_integer(Amount)->
+		when ((Type == topup) orelse (Type == adjustment) orelse (Type == delete)
+				orelse (Type == transfer) orelse (Type == deduct)
+				orelse (Type == reserve) orelse (Type == unreserve)),
+		((is_binary(ServiceId)) orelse (ServiceId == undefined)),
+		is_list(Bucket), ((Units == cents) orelse (Units == seconds)
+				orelse (Units == octets) orelse (Units == messages)),
+		(is_integer(AmountBefore) orelse (AmountBefore == undefined)),
+		(is_integer(AmountAfter) orelse (AmountAfter == undefined)),
+		is_list(Product), is_integer(Amount)->
 	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],

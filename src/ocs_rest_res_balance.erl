@@ -428,25 +428,28 @@ units1(messages) -> "messages".
 
 -spec type(Type) -> Type
 	when
-		Type :: string() | deduct | reserve | unreserve | transfer | topup | adjustment.
+		Type :: topup | adjustment | delete | deduct
+				| reserve | unreserve | transfer | string().
 %% @doc Return the type of abmf logs.
 type(Type) when is_list(Type) ->
 	type1(string:to_lower(Type));
 type(Type) when is_atom(Type) ->
 	type1(Type).
 %% @hidden
+type1("topup") -> topup;
+type1("adjustment") -> adjustment;
+type1("delete") -> delete;
 type1("deduct") -> deduct;
 type1("reserve") -> reserve;
 type1("unreserve") -> unreserve;
 type1("transfer") -> transfer;
-type1("topup") -> topup;
-type1("adjustment") -> adjustment;
+type1(topup) -> "topup";
+type1(adjustment) -> "adjustment";
+type1(delete) -> "delete";
 type1(deduct) -> "deduct";
 type1(reserve) -> "reserve";
 type1(unreserve) -> "unreserve";
-type1(transfer) -> "transfer";
-type1(topup) -> "topup";
-type1(adjustment) -> "adjustment".
+type1(transfer) -> "transfer".
 
 -spec bucket_status(Status) -> Status
    when
