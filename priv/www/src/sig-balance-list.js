@@ -31,8 +31,8 @@ class balanceList extends PolymerElement {
 						width="24ex">
 					<template class="header">
 						<vaadin-grid-filter
-								aria-label="timeStamp"
-								path="timeStamp"
+								aria-label="date"
+								path="date"
 								value="{{filterTime}}">
 							<input
 									slot="filter"
@@ -41,7 +41,7 @@ class balanceList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.timeStamp]]</template>
+					<template>[[item.date]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column
 						id="check"
@@ -101,16 +101,7 @@ class balanceList extends PolymerElement {
 						width="13ex"
 						flex-grow="2">
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="amount"
-								path="amount"
-								value="{{filterAmount}}">
-							<input
-									slot="filter"
-									placeholder="Amount"
-									value="{{filterAmount::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+						Amount
 					</template>
 					<template>[[item.amount]]</template>
 				</vaadin-grid-column>
@@ -119,39 +110,21 @@ class balanceList extends PolymerElement {
 							<div class="grouptitle">Remain Amount</div>
 					</template>
 					<vaadin-grid-column
+							id="check6"
+							width="12ex">
+						<template class="header">
+							Before
+						</template>
+						<template>[[item.amountBefore]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column
 							id="check5"
 							width="10ex"
 							flex-grow="2">
 						<template class="header">
-							<vaadin-grid-filter
-									aria-label="amountAfter"
-									path="amountAfter"
-									value="{{filterAfter}}">
-								<input
-										slot="filter"
-										placeholder="After"
-										value="{{filterAfter::input}}"
-										focus-target>
-							</vaadin-grid-filter>
+							After
 						</template>
 						<template>[[item.amountAfter]]</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column
-							id="check6"
-							width="12ex">
-						<template class="header">
-							<vaadin-grid-filter
-									aria-label="amountBefore"
-									path="amountBefore"
-									value="{{filterBefore}}">
-								<input
-										slot="filter"
-										placeholder="Before"
-										value="{{filterBefore::input}}"
-										focus-target>
-							</vaadin-grid-filter>
-						</template>
-						<template>[[item.amountBefore]]</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
@@ -206,19 +179,25 @@ class balanceList extends PolymerElement {
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('balanceGrid');
-		grid.dataProvider = this._getBalanceResponse;
+		grid.dataProvider = this._getBalances;
 	}
 
-	_getBalanceResponse(params, callback) {
+	_getBalances(params, callback) {
 		var grid = this; 
 		var balanceList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-balance-list');
 		var ajax = balanceList.shadowRoot.getElementById('getBalanceAjax');
+		delete ajax.params['date'];
 		delete ajax.params['filter'];
-		function checkHead(param) {
-			return param.path == "timeStamp" || param.path == "type" ||
-				param.path == "amount" || param.path == "bucket" ||
-				param.path == "amountBefore" || param.path == "amountAfter" ||
-				param.path == "product";
+		function checkDate(filter) {
+			return filter.path == "date";
+		}
+		var dateFilter = params.filters.find(checkDate);
+		if (dateFilter && dateFilter.value) {
+			ajax.params['date'] = dateFilter.value;
+		}
+		function checkHead(filter) {
+			return filter.path == "type" || filter.path == "bucket"
+				|| filter.path == "product";
 		}
 		params.filters.filter(checkHead).forEach(function(filter) {
 			if (filter.value) {
@@ -242,13 +221,13 @@ class balanceList extends PolymerElement {
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
 				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
+					grid.size = Number(range2[1]) + (grid.pageSize * 2);
 				}
 				var vaadinItems = new Array();
 				var results = request.response;
 				for (var index in results) {
 					var balanceLog = new Object();
-					balanceLog.timeStamp = results[index].date;
+					balanceLog.date = results[index].date;
 					balanceLog.type = results[index].type;
 					balanceLog.amount = results[index].amount.amount;
 					balanceLog.bucket = results[index].bucketBalance.id;
