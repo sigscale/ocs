@@ -949,18 +949,19 @@ add_bucket(ProductRef, #bucket{id = undefined,
 				ok = mnesia:write(bucket, Bucket1, write),
 				Product = P#product{balance = lists:reverse([BId | B])},
 				ok = mnesia:write(product, Product, write),
-				{ok, undefined, Bucket1};
+				{ok, Bucket, Bucket1};
 			[] ->
 				throw(product_not_found)
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, OldBucket, NewBucket}} ->
-			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents,
-					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
-					undefined, undefined, undefined, undefined, undefined,
-					NewBucket#bucket.status),
+		{atomic, {ok, #bucket{remain_amount = Amount} = OldBucket,
+				#bucket{id = Bid1, name = Channel, product = [ProdRef | _],
+						units = Units, remain_amount = After,
+						end_date = Validity, status = Status} = NewBucket}} ->
+			ocs_log:abmf_log(topup, undefined, Bid1, Units, ProdRef,
+					Amount, 0, After, Validity, Channel, undefined,
+					undefined, undefined, undefined, Status),
 			ok = ocs_event:notify(create_bucket, NewBucket, balance),
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
