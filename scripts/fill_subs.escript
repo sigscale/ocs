@@ -96,7 +96,7 @@ fill4(_Node, _Offer, _MccMnc, _N, _MSIN,
 	halt(1).
 
 fill5(Node, Offer, MccMnc, N, MSIN,
-		{ok, undefined, #bucket{}}) ->
+		{ok, _, #bucket{}}) ->
 	fill(Node, Offer, MccMnc, N - 1, MSIN + 1);
 fill5(_Node, _Offer, _MccMnc, _N, _MSIN,
 		{error, Reason}) ->
