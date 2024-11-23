@@ -300,11 +300,11 @@ get_resource(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchId = match("id", Complex, Query),
-						MatchCategory = match("category", Complex, Query),
-						MatchSpecId = match("resourceSpecification.id", Complex, Query),
+						MatchId = match("id", Complex, Query1),
+						MatchCategory = match("category", Complex, Query1),
+						MatchSpecId = match("resourceSpecification.id", Complex, Query1),
 						MatchRelName = match("resourceRelationship", Complex, []),
-						{Query1, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
+						{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 				end;
 			false ->
 					MatchId = match("id", [], Query),
@@ -389,7 +389,32 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 	end.
 
 %% @hidden
-query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			ContentRange1 = case string:split(ContentRange, "/") of
+				[Range, "*"] ->
+					case erlang:fun_info(Codec, name) of
+						{_, resource} ->
+							Size = mnesia:table_info(resource, size),
+							lists:concat([Range, "/",  Size]);
+						_Other ->
+							ContentRange
+					end;
+				_Other ->
+					ContentRange
+			end,
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange1}],
+			{ok, Headers, Body}
+	end;
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};

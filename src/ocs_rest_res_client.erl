@@ -75,12 +75,12 @@ get_clients(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchAddress = match("id", Complex, Query),
-						MatchId = match("identifier", Complex, Query),
-						MatchPort = match("port", Complex, Query),
-						MatchProtocol = match("protocol", Complex, Query),
-						MatchSecret = match("secret", Complex, Query),
-						{Query1, [MatchAddress, MatchId, MatchPort, MatchProtocol, MatchSecret]}
+						MatchAddress = match("id", Complex, Query1),
+						MatchId = match("identifier", Complex, Query1),
+						MatchPort = match("port", Complex, Query1),
+						MatchProtocol = match("protocol", Complex, Query1),
+						MatchSecret = match("secret", Complex, Query1),
+						{Query, [MatchAddress, MatchId, MatchPort, MatchProtocol, MatchSecret]}
 				end;
 			false ->
 				MatchAddress = match("id", [], Query),
@@ -392,6 +392,31 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
+query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			ContentRange1 = case string:split(ContentRange, "/") of
+				[Range, "*"] ->
+					case erlang:fun_info(Codec, name) of
+						{_, client} ->
+							Size = mnesia:table_info(client, size),
+							lists:concat([Range, "/",  Size]);
+						_Other ->
+							ContentRange
+					end;
+				_Other ->
+					ContentRange
+			end,
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange1}],
+			{ok, Headers, Body}
+	end;
 query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->

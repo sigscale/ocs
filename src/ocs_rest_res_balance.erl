@@ -72,12 +72,12 @@ get_balance_log(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchType = match_abmf("type", Complex, Query),
-						MatchSubscriber = match_abmf("subscriber", Complex, Query),
-						MatchBucket = match_abmf("bucket", Complex, Query),
-						MatchUnits = match_abmf("units", Complex, Query),
-						MatchProducts = match_abmf("product", Complex, Query),
-						{Query1, [start, DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
+						MatchType = match_abmf("type", Complex, Query1),
+						MatchSubscriber = match_abmf("subscriber", Complex, Query1),
+						MatchBucket = match_abmf("bucket", Complex, Query1),
+						MatchUnits = match_abmf("units", Complex, Query1),
+						MatchProducts = match_abmf("product", Complex, Query1),
+						{Query, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
 				end;
 			false ->
 				MatchType = match_abmf("type", [], Query),
@@ -174,9 +174,9 @@ get_buckets(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchId = match("id", Complex, Query),
-						MatchProduct = match("product.id", Complex, Query),
-						{Query1, [MatchId, MatchProduct]}
+						MatchId = match("id", Complex, Query1),
+						MatchProduct = match("product.id", Complex, Query1),
+						{Query, [MatchId, MatchProduct]}
 				end;
 			false ->
 				MatchId = match("id", [], Query),
@@ -267,7 +267,7 @@ get_balance(ProdRef) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance'
-% with query request
+%% with query request
 get_balance(ProdRef, Query) ->
 	try
 		case ocs:get_buckets(ProdRef) of
@@ -956,6 +956,35 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
+query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			ContentRange1 = case string:split(ContentRange, "/") of
+				[Range, "*"] ->
+					case erlang:fun_info(Codec, name) of
+						{_, abmf} ->
+							LogInfo = disk_log:info(ocs_abmf),
+							{_, Size} = lists:keyfind(no_items, 1, LogInfo),
+							lists:concat([Range, "/",  Size]);
+						{_, bucket} ->
+							Size = mnesia:table_info(bucket, size),
+							lists:concat([Range, "/",  Size]);
+						_Other ->
+							ContentRange
+					end;
+				_Other ->
+					ContentRange
+			end,
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange1}],
+			{ok, Headers, Body}
+	end;
 query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->

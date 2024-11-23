@@ -32,7 +32,7 @@
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1]).
--export([inventory/1, offer/1]).
+-export([product/1, offer/1]).
 
 -include("ocs.hrl").
 
@@ -105,7 +105,7 @@ add_inventory(ReqData) ->
 	try
 		#product{start_date = SD, end_date = TD,
 				characteristics = Chars, product = OfferId,
-				service = ServiceRefs} = inventory(mochijson:decode(ReqData)),
+				service = ServiceRefs} = product(mochijson:decode(ReqData)),
 		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
 			{ok, Product} ->
 				Product;
@@ -114,7 +114,7 @@ add_inventory(ReqData) ->
 		end
 	of
 		Subscription ->
-			Body = mochijson:encode(inventory(Subscription)),
+			Body = mochijson:encode(product(Subscription)),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
 			Href = ?inventoryPath ++ Subscription#product.id,
 			Headers = [{content_type, "application/json"},
@@ -185,7 +185,7 @@ get_inventory(ID) ->
 		end
 	of
 		Product ->
-			Body = mochijson:encode(inventory(Product)),
+			Body = mochijson:encode(product(Product)),
 			Etag = ocs_rest:etag(Product#product.last_modified),
 			Href = ?inventoryPath ++ Product#product.id,
 			Headers = [{content_type, "application/json"},
@@ -234,13 +234,13 @@ get_offers(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchName = match("id", Complex, Query),
-						MatchDes = match("description", Complex, Query),
-						MatchStatus = match("lifecycleStatus", Complex, Query),
-						MatchSDT = match("startDate", Complex, Query),
-						MatchEDT = match("endDate", Complex, Query),
-						MatchPrice = match("price", Complex, Query),
-						{Query1, [MatchName, MatchDes, MatchStatus, MatchSDT, MatchEDT, MatchPrice]}
+						MatchName = match("id", Complex, Query1),
+						MatchDes = match("description", Complex, Query1),
+						MatchStatus = match("lifecycleStatus", Complex, Query1),
+						MatchSDT = match("startDate", Complex, Query1),
+						MatchEDT = match("endDate", Complex, Query1),
+						MatchPrice = match("price", Complex, Query1),
+						{Query, [MatchName, MatchDes, MatchStatus, MatchSDT, MatchEDT, MatchPrice]}
 				end;
 			false ->
 					MatchName = match("id", [], Query),
@@ -294,10 +294,10 @@ get_inventories(Query, Headers) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
-						MatchId = match("id", Complex, Query),
-						MatchProduct = match("product", Complex, Query),
-						MatchService = match("service", Complex, Query),
-						{Query1, [MatchId, MatchProduct, MatchService]}
+						MatchId = match("id", Complex, Query1),
+						MatchProduct = match("product", Complex, Query1),
+						MatchService = match("service", Complex, Query1),
+						{Query, [MatchId, MatchProduct, MatchService]}
 				end;
 			false ->
 				MatchId = match("id", [], Query),
@@ -307,7 +307,7 @@ get_inventories(Query, Headers) ->
 		end
 	of
 		{Query2, Args} ->
-			Codec = fun inventory/1,
+			Codec = fun product/1,
 			query_filter({ocs, query_product, Args}, Codec, Query2, Headers)
 	catch
 		_ ->
@@ -551,12 +551,12 @@ patch_inventory(ProdId, Etag, ReqData) ->
 						[#product{service = OldServices} = Product1] when
 								Product1#product.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Product1)) of
+							case catch ocs_rest:patch(Operations, product(Product1)) of
 								{struct, _} = Product2 ->
 									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									case inventory(Product2) of
+									case product(Product2) of
 										#product{service = []} = Product3 ->
 											OldRecords = [ocs:find_service(Id) || Id <- OldServices],
 											[mnesia:write(service, ServiceRecord#service{product
@@ -1987,66 +1987,66 @@ char_value_type(Value)
 		when is_integer(Value); is_list(Value); is_boolean(Value) ->
 	Value.
 	
--spec inventory(Instance) -> Instance
+-spec product(Instance) -> Instance
 	when
 		Instance :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Inventory.
-inventory({struct, ObjectMembers}) ->
-	inventory(ObjectMembers, #product{});
-inventory(ProductInstance) ->
-	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
+product({struct, ObjectMembers}) ->
+	product(ObjectMembers, #product{});
+product(ProductInstance) ->
+	{struct, product(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
-inventory([{"id", Id} | T], Acc) when is_list(Id) ->
-	inventory(T, Acc#product{id = Id});
-inventory([{"characteristic", Chars} | T], Acc) ->
-	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
-inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
+product([{"id", Id} | T], Acc) when is_list(Id) ->
+	product(T, Acc#product{id = Id});
+product([{"characteristic", Chars} | T], Acc) ->
+	product(T, Acc#product{characteristics = instance_chars(Chars)});
+product([{"productOffering", {struct, Offer}} | T], Acc) ->
 	case lists:keyfind("id", 1, Offer) of
 		{_, OfferId} ->
-			inventory(T, Acc#product{product = OfferId});
+			product(T, Acc#product{product = OfferId});
 		false ->
-			inventory(T, Acc)
+			product(T, Acc)
 	end;
-inventory([{"status", Status} | T], Acc) ->
-	inventory(T, Acc#product{status = product_status(Status)});
-inventory([{"startDate", SDate} | T], Acc) ->
-	inventory(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
-inventory([{"terminationDate", TDate} | T], Acc) ->
-	inventory(T, Acc#product{end_date = ocs_rest:iso8601(TDate)});
-inventory([{"realizingService", {array, RealizingServices}} | T], Acc) ->
+product([{"status", Status} | T], Acc) ->
+	product(T, Acc#product{status = product_status(Status)});
+product([{"startDate", SDate} | T], Acc) ->
+	product(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
+product([{"terminationDate", TDate} | T], Acc) ->
+	product(T, Acc#product{end_date = ocs_rest:iso8601(TDate)});
+product([{"realizingService", {array, RealizingServices}} | T], Acc) ->
 	F = fun({struct, Obj}) ->
 				{_, ID} = lists:keyfind("id", 1, Obj),
 				list_to_binary(ID)
 	end,
 	ServiceRefs = [F(RS) || RS <- RealizingServices],
-	inventory(T, Acc#product{service = ServiceRefs});
-inventory([{"@type", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([{"@baseType", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([{"@schemaLocation", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([_ | T], Acc) ->
-	inventory(T, Acc);
-inventory([], Acc) ->
+	product(T, Acc#product{service = ServiceRefs});
+product([{"@type", _} | T], Acc) ->
+	product(T, Acc);
+product([{"@baseType", _} | T], Acc) ->
+	product(T, Acc);
+product([{"@schemaLocation", _} | T], Acc) ->
+	product(T, Acc);
+product([_ | T], Acc) ->
+	product(T, Acc);
+product([], Acc) ->
 	Acc.
 %% @hidden
-inventory([id | T], #product{id = undefined} = Product, Acc) ->
-	inventory(T, Product, Acc);
-inventory([id | T], #product{id = Id} = Product, Acc) ->
+product([id | T], #product{id = undefined} = Product, Acc) ->
+	product(T, Product, Acc);
+product([id | T], #product{id = Id} = Product, Acc) ->
 	ID = {"id", Id},
 	Href = {"href", ?inventoryPath ++ Id},
-	inventory(T, Product, [ID, Href | Acc]);
-inventory([product | T], #product{product = OfferId} = Product, Acc) ->
+	product(T, Product, [ID, Href | Acc]);
+product([product | T], #product{product = OfferId} = Product, Acc) ->
 	Id = {"id", OfferId},
 	Href = {"href", ?offeringPath ++ OfferId},
 	Name = {"name", OfferId},
 	Offer = {"productOffering", {struct, [Id, Href, Name]}},
-	inventory(T, Product, [Offer | Acc]);
-inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
+	product(T, Product, [Offer | Acc]);
+product([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
-	inventory(T, Product, [Characteristics | Acc]);
-inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
+	product(T, Product, [Characteristics | Acc]);
+product([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 	F = fun(ServiceRef) ->
 			SR = binary_to_list(ServiceRef),
 			ID = {"id", SR},
@@ -2054,10 +2054,10 @@ inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 			{struct, [ID, Href]}
 	end,
 	RealizingServices = {"realizingService", {array, [F(SR) || SR <- ServiceRefs]}},
-	inventory(T, Product, [RealizingServices | Acc]);
-inventory([balance | T], #product{balance = []} = Product, Acc) ->
-	inventory(T, Product, Acc);
-inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
+	product(T, Product, [RealizingServices | Acc]);
+product([balance | T], #product{balance = []} = Product, Acc) ->
+	product(T, Product, Acc);
+product([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	F1 = fun() ->
 			[mnesia:read(bucket, BucketRef) || BucketRef <- BucketRefs]
 	end,
@@ -2128,25 +2128,25 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			end,
 			Balance = {"balance", {array,
 					CentsBalance ++ BytesBalance ++ SecondsBalance ++ MessagesBalance}},
-			inventory(T, Product, [Balance | Acc]);
+			product(T, Product, [Balance | Acc]);
 		{aborted, Reason} ->
 			throw(Reason)
 	end;
-inventory([status | T], #product{status = undefined} = Product, Acc) ->
-	inventory(T, Product,  Acc);
-inventory([status | T], #product{status = Status} = Product, Acc) ->
-	inventory(T, Product,  [{"status", product_status(Status)} |Acc]);
-inventory([start_date | T], #product{start_date = undefined} = Product, Acc) ->
-	inventory(T, Product,  Acc);
-inventory([start_date | T], #product{start_date = SDate} = Product, Acc) ->
-	inventory(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
-inventory([end_date | T], #product{end_date = undefined} = Product, Acc) ->
-	inventory(T, Product,  Acc);
-inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
-	inventory(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
-inventory([_ | T], Product, Acc) ->
-	inventory(T, Product,  Acc);
-inventory([], _Product, Acc) ->
+product([status | T], #product{status = undefined} = Product, Acc) ->
+	product(T, Product,  Acc);
+product([status | T], #product{status = Status} = Product, Acc) ->
+	product(T, Product,  [{"status", product_status(Status)} |Acc]);
+product([start_date | T], #product{start_date = undefined} = Product, Acc) ->
+	product(T, Product,  Acc);
+product([start_date | T], #product{start_date = SDate} = Product, Acc) ->
+	product(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
+product([end_date | T], #product{end_date = undefined} = Product, Acc) ->
+	product(T, Product,  Acc);
+product([end_date | T], #product{end_date = TDate} = Product, Acc) ->
+	product(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
+product([_ | T], Product, Acc) ->
+	product(T, Product,  Acc);
+product([], _Product, Acc) ->
 	Obj = [{"@schemaLocation",
 			"/schema/productInventoryManagement.swagger.json"
 					"#/definitions/Product"},
@@ -2247,6 +2247,34 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
+query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			ContentRange1 = case string:split(ContentRange, "/") of
+				[Range, "*"] ->
+					case erlang:fun_info(Codec, name) of
+						{_, offer} ->
+							Size = mnesia:table_info(offer, size),
+							lists:concat([Range, "/",  Size]);
+						{_, product} ->
+							Size = mnesia:table_info(product, size),
+							lists:concat([Range, "/",  Size]);
+						_Other ->
+							ContentRange
+					end;
+				_Other ->
+					ContentRange
+			end,
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange1}],
+			{ok, Headers, Body}
+	end;
 query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
