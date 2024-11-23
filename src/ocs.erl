@@ -3029,7 +3029,7 @@ clean_services(Before, Key) when is_binary(Key) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-clean_services(Before, '$end_of_table') ->
+clean_services(_Before, '$end_of_table') ->
 	ok.
 
 -spec clean_buckets(Before) -> Result
@@ -3084,7 +3084,7 @@ clean_buckets(Before, Key) when is_list(Key) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-clean_buckets(Before, '$end_of_table') ->
+clean_buckets(_Before, '$end_of_table') ->
 	ok.
 
 %%----------------------------------------------------------------------
