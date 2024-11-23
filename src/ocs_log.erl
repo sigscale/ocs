@@ -3666,7 +3666,6 @@ abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(8, Attributes) ->
 	true;
-
 abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
 		when is_atom(element(4, Attributes)) ->
 		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
@@ -3707,7 +3706,6 @@ abmf_query6(Attributes, [{product, {like, [H | _T1]}} | _])
 			false ->
 				false
 		end;
-
 abmf_query6(Attributes, [_H | T]) ->
 	false;
 abmf_query6(_Attributes, []) ->
