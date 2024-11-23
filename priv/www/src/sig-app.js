@@ -399,6 +399,7 @@ class SigApp extends PolymerElement {
 			var offer = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
 			if (!offer.loading) {
 				offer.splice('offers', 0, offer.offers.length);
+				offer.shadowRoot.getElementById('offerGrid').scrollToIndex();
 				offer.shadowRoot.getElementById('offerGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -407,6 +408,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "serviceView") {
 			var service = document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList');
 			if (!service.loading) {
+				service.shadowRoot.getElementById('subscriberGrid').scrollToIndex();
 				service.shadowRoot.getElementById('subscriberGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -415,6 +417,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "clientView") {
 			var client = document.body.querySelector('sig-app').shadowRoot.getElementById('clientList');
 			if (!client.loading) {
+				client.shadowRoot.getElementById('clientGrid').scrollToIndex();
 				client.shadowRoot.getElementById('clientGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -423,6 +426,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "userView") {
 			var user = document.body.querySelector('sig-app').shadowRoot.getElementById('userList');
 			if (!user.loading) {
+				user.shadowRoot.getElementById('userGrid').scrollToIndex();
 				user.shadowRoot.getElementById('userGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -431,6 +435,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "accessView") {
 			var access = document.body.querySelector('sig-app').shadowRoot.getElementById('accessList')
 			if (!access.loading) {
+				access.shadowRoot.getElementById('accessGrid').scrollToIndex();
 				access.shadowRoot.getElementById('accessGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -439,6 +444,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "accountingView") {
 			var account = document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList');
 			if (!account.loading) {
+				account.shadowRoot.getElementById('accountingGrid').scrollToIndex();
 				account.shadowRoot.getElementById('accountingGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -447,6 +453,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "ipdrWlanView") {
 			var wlan = document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan');
 			if (!wlan.loading) {
+				wlan.shadowRoot.getElementById('ipdrGrid').scrollToIndex();
 				wlan.shadowRoot.getElementById('ipdrGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -455,6 +462,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "ipdrVoipView") {
 			var voip = document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip');
 			if (!voip.loading) {
+				voip.shadowRoot.getElementById('ipdrGridVoip').scrollToIndex();
 				voip.shadowRoot.getElementById('ipdrGridVoip').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -496,6 +504,7 @@ class SigApp extends PolymerElement {
 		var policy = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 			if (!policy.loading) {
 				policy.shadowRoot.getElementById('tableList').open();
+				policy.shadowRoot.getElementById('policyGrid').scrollToIndex();
 				policy.shadowRoot.getElementById('policyGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -504,6 +513,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "balanceView") {
 			var balance = document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList');
 			if (!balance.loading) {
+				balance.shadowRoot.getElementById('balanceGrid').scrollToIndex();
 				balance.shadowRoot.getElementById('balanceGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -512,6 +522,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "productView") {
 			var product = document.body.querySelector('sig-app').shadowRoot.getElementById('productList');
 			if (!product.loading) {
+				product.shadowRoot.getElementById('productInventoryGrid').scrollToIndex();
 				product.shadowRoot.getElementById('productInventoryGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
@@ -520,6 +531,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "bucketView") {
 			var bucket = document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList');
 			if (!bucket.loading) {
+				bucket.shadowRoot.getElementById('balanceBucketGrid').scrollToIndex();
 				bucket.shadowRoot.getElementById('balanceBucketGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
