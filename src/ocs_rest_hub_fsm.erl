@@ -406,7 +406,7 @@ event(Resource, Category) ->
 		product ->
 			case Resource of
 				#product{} ->
-					ocs_rest_res_product:inventory(Resource);
+					ocs_rest_res_product:product(Resource);
 				#offer{} ->
 					ocs_rest_res_product:offer(Resource)
 			end;
