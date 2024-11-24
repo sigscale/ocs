@@ -636,7 +636,7 @@ acct_query_radius(_Config) ->
 			{?AcctSessionTime, rand:uniform(3600) + 100},
 			{?AcctInputOctets, rand:uniform(100000000)},
 			{?AcctOutputOctets, rand:uniform(100000)}],
-	ok = fill_acct(1000, radius),
+	ok = fill_acct(1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -645,16 +645,16 @@ acct_query_radius(_Config) ->
 	FileEvents = FileSize div EventSize,
 	Start = erlang:system_time(millisecond),
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1, radius),
+	ok = fill_acct(NumItems1),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2, radius),
+	ok = fill_acct(NumItems2),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3, radius),
+	ok = fill_acct(NumItems3),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4, radius),
+	ok = fill_acct(NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchReq = [{?UserName, {exact, Username}},
@@ -677,7 +677,7 @@ acct_query_diameter() ->
 
 acct_query_diameter(_Config) ->
 	Server = {{0,0,0,0}, 1812},
-	ok = fill_acct(1000, diameter),
+	ok = fill_acct(1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -692,25 +692,25 @@ acct_query_diameter(_Config) ->
 	CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId, 'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1, diameter),
+	ok = fill_acct(NumItems1),
 	TS1 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR1 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS1,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, start, CCR1, undefined, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2, diameter),
+	ok = fill_acct(NumItems2),
 	TS2 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR2 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS2,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, interim, CCR2, undefined, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3, diameter),
+	ok = fill_acct(NumItems3),
 	TS3 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR3 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS3,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, stop, CCR3, undefined, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4, diameter),
+	ok = fill_acct(NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
@@ -732,7 +732,7 @@ acct_query_nrf() ->
 
 acct_query_nrf(_Config) ->
 	Server = {{0,0,0,0}, 1812},
-	ok = fill_acct(1000, nrf),
+	ok = fill_acct(1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -756,7 +756,7 @@ acct_query_nrf(_Config) ->
 			"ratingGroup" => 32,
 			"uPFID" => "b7f8f226-a51a-45cf-859d-ff57c1613ab1"},
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1, nrf),
+	ok = fill_acct(NumItems1),
 	TSreq1 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq1 = [ServiceRating#{"requestSubType" => "RESERVE",
 			"requestedUnit" => #{},
@@ -772,7 +772,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => SRres1},
 	ok = ocs_log:acct_log(nrf, Server, start, RDreq1, RDres1, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2, nrf),
+	ok = fill_acct(NumItems2),
 	TSreq2 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq2 = [ServiceRating#{"requestSubType" => "RESERVE",
 					"requestedUnit" => #{},
@@ -791,7 +791,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => SRres2},
 	ok = ocs_log:acct_log(nrf, Server, interim, RDreq2, RDres2, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3, nrf),
+	ok = fill_acct(NumItems3),
 	TSreq3 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq3 = [ServiceRating#{"requestSubType" => "DEBIT",
 			"consumedUnit" => #{"uplinkVolume" => 2018540,
@@ -805,7 +805,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => []},
 	ok = ocs_log:acct_log(nrf, Server, stop, RDreq3, RDres3, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4, nrf),
+	ok = fill_acct(NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#{"subscriptionId" => SubscriptionId}, []}],
@@ -820,7 +820,6 @@ acct_query_nrf(_Config) ->
 	end,
 	Events = Fget(ocs_log:acct_query(start, Start, End,
 			nrf, '_', MatchSpec), []),
-erlang:display({?MODULE, ?FUNCTION_NAME, Events}),
 	3 = length(Events).
 
 binary_tree_half() ->
@@ -833,7 +832,7 @@ binary_tree_half(_Config) ->
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	File = NumFiles div 4,
-	ok = fill_acct(File),
+	ok = fill_log(File),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo1 = disk_log:info(ocs_acct),
 	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
@@ -849,7 +848,7 @@ binary_tree_before() ->
 binary_tree_before(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	start = ocs_log:btree_search(ocs_acct, 1).
 
@@ -859,7 +858,7 @@ binary_tree_after() ->
 binary_tree_after(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -873,7 +872,7 @@ binary_tree_backward() ->
 binary_tree_backward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -888,7 +887,7 @@ binary_tree_forward() ->
 binary_tree_forward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -903,7 +902,7 @@ binary_tree_last() ->
 binary_tree_last(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -918,7 +917,7 @@ binary_tree_first() ->
 binary_tree_first(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_acct(),
+	ok = fill_log(),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -1571,42 +1570,46 @@ fill_auth(N) ->
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
 	fill_auth(N - 1).
 
-fill_acct() ->
-	ok = fill_acct(10, diameter),
+fill_log() ->
+	ok = fill_acct(10, undefined),
 	receive
 		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
-			fill_acct();
+			fill_log();
 		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
 			LogInfo = disk_log:info(ocs_acct),
-			{items, Items} = lists:keyfind(items, 1, LogInfo),
-			fill_acct(Items div 4, diameter);
+			{_, Items} = lists:keyfind(items, 1, LogInfo),
+			fill_acct(Items div 4, undefined);
 		_Other ->
-			fill_acct()
+			fill_log()
 	after
 		500 ->
-			fill_acct()
+			fill_log()
 	end.
-fill_acct(N) ->
+fill_log(N) ->
 	ok = fill_acct(10, diameter),
 	receive
 		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
 			LogInfo = disk_log:info(ocs_acct),
-			{current_file, File} = lists:keyfind(current_file, 1, LogInfo),
+			{_, File} = lists:keyfind(current_file, 1, LogInfo),
 			case N > File of
 				true ->
-					fill_acct(N);
+					fill_log(N);
 				false ->
 					ok
 			end;
 		_Other ->
-			fill_acct(N)
+			fill_log(N)
 	after
 		500 ->
-			fill_acct(N)
+			fill_log(N)
 	end.
-fill_acct(0, _Protocal) ->
+
+fill_acct(N) ->
+	fill_acct(N, undefined).
+
+fill_acct(0, _Protocol) ->
 	ok;
-fill_acct(N, Protocal) ->
+fill_acct(N, Protocol) ->
 	Timestamp = erlang:system_time(millisecond),
 	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
@@ -1626,18 +1629,16 @@ fill_acct(N, Protocal) ->
 		2 -> stop;
 		3 -> interim
 	end,
-	case Protocal of
-		radius ->
-			Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-					{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
-					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
-					{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)},
-					{?AcctSessionTime, AcctSessionTime},
-					{?AcctInputOctets, AcctInputOctets},
-					{?AcctOutputOctets, AcctOutputOctets}],
-			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
-			fill_acct(N - 1, radius);
-		diameter ->
+	Fradius = fun() ->
+			ACR = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
+			{?AcctStatusType, rand:uniform(3)}, {?AcctSessionTime, AcctSessionTime},
+			{?AcctInputOctets, AcctInputOctets}, {?AcctOutputOctets, AcctOutputOctets}],
+			{ACR, undefined}
+	end,
+	Fdiameter = fun() ->
 			SessionId = diameter:session_id(ClientAddress),
 			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
@@ -1673,7 +1674,7 @@ fill_acct(N, Protocal) ->
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
 			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
 			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
-			Request = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
+			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
 					'Origin-Host' = ClientAddress,
 					'CC-Request-Type' = CCRequestType,
 					'CC-Request-Number' = CCRequestNum,
@@ -1681,15 +1682,15 @@ fill_acct(N, Protocal) ->
 					'Subscription-Id' = [Sub1, Sub2],
 					'Multiple-Services-Credit-Control' = [MSCCRequest],
 					'Service-Information' = [ServiceInformation]},
-			Response =  #'3gpp_ro_CCA'{'Session-Id' = SessionId,
+			CCA = #'3gpp_ro_CCA'{'Session-Id' = SessionId,
 					'Origin-Host' = ClientAddress,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'CC-Request-Type' = CCRequestType,
 					'CC-Request-Number' = CCRequestNum,
 					'Multiple-Services-Credit-Control' = [MSCCResponse]},
-			ok = ocs_log:acct_log(diameter, Server, Type, Request, Response, undefined),
-			fill_acct(N - 1, diameter);
-		nrf ->
+			{CCR, CCA}
+	end,
+	Fnrf = fun() ->
 			ServiceContextId = "10.32255@3gpp.org",
 			Sub1 = lists:concat(["imsi-", IMSI]),
 			Sub2 = lists:concat(["msisdn-", MSISDN]),
@@ -1728,17 +1729,32 @@ fill_acct(N, Protocal) ->
 							"serviceInformation" => PSInfo}],
 					[]}
 			end,
-			Request = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+			RatingDataRequest = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 					"invocationSequenceNumber" => SeqNo,
 					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
 					"subscriptionId" => [Sub1, Sub2],
 					"serviceRating" => SRRequest},
-			Response = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+			RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 					"invocationSequenceNumber" => SeqNo,
 					"serviceRating" => SRResponse},
-			ok = ocs_log:acct_log(nrf, Server, Type, Request, Response, undefined),
-			fill_acct(N - 1, diameter)
-	end.
+			{RatingDataRequest, RatingDataResponse}
+	end,
+	Protocol1 = case Protocol of
+		undefined ->
+			lists:nth(rand:uniform(3), [radius, diameter, nrf]);
+		_ ->
+			Protocol
+	end,
+	{Request, Response} = case Protocol1 of
+		radius ->
+			Fradius();
+		diameter ->
+			Fdiameter();
+		nrf ->
+			Fnrf()
+	end,
+	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
+	fill_acct(N - 1, Protocol).
 
 fill_abmf(0) ->
 	ok;
