@@ -3679,7 +3679,7 @@ notify_delete_product(Config) ->
 					= lists:keyfind("event", 1, ProductDelEvent),
 			ProductStuct1
 	end,
-	#product{} = ocs_rest_res_product:inventory(ProductStuct2),
+	#product{} = ocs_rest_res_product:product(ProductStuct2),
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
