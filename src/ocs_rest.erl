@@ -38,10 +38,9 @@
 
 -spec date(DateTimeFormat) -> Result
 	when
-		DateTimeFormat	:: pos_integer() | tuple(),
+		DateTimeFormat	:: pos_integer() | calendar:datetime1970(),
 		Result			:: calendar:datetime() | non_neg_integer().
-%% @doc Convert iso8610 to date and time or
-%%		date and time to timeStamp.
+%% @doc Convert between unix epoch milliseconds and calendar date-time.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds);
@@ -52,11 +51,11 @@ date(DateTime) when is_tuple(DateTime) ->
 -type timestamp() :: pos_integer() | string().
 -spec iso8601(DateTime) -> Result
 	when
-		DateTime			:: ISODateTime | MilliSeconds,
-		ISODateTime		:: string(),
+		DateTime			:: ISO8601 | MilliSeconds,
+		ISO8601			:: string(),
 		MilliSeconds	:: pos_integer(),
 		Result			:: timestamp().
-%% @doc Convert iso8610 to ISO 8601 format date and time.
+%% @doc Convert between ISO8601 and unix epoch milliseconds.
 iso8601(DateTime) when is_integer(DateTime) ->
 	{{Year, Month, Day}, {Hour, Minute, Second}} = date(DateTime),
 	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
