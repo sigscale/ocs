@@ -1505,7 +1505,7 @@ radius_acct_to_ecs(_Config) ->
 	Server = {ServerAddress, ServerPort},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
-	ClientAddress = <<"10.0.0.1">>,
+	ClientAddress = {10, 0, 0, 1},
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
 	Type = start,
@@ -1610,18 +1610,19 @@ fill_acct(N) ->
 fill_acct(0, _Protocol) ->
 	ok;
 fill_acct(N, Protocol) ->
+	Hostname = atom_to_binary(?FUNCTION_NAME),
 	Timestamp = erlang:system_time(millisecond),
 	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
 	AcctInputOctets = rand:uniform(100000000),
 	AcctSessionTime = rand:uniform(3600) + 100,
-	UserName = ocs:generate_identity(),
+	UserName = ocs_test_lib:rand_name(),
 	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
 	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
-	Server = {{0, 0, 0, 0}, 1812},
+	Server = {{0, 0, 0, 0}, ocs_test_lib:port()},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
-	ClientAddress = <<"10.0.0.1">>,
+	ClientAddress = ocs_test_lib:ipv4(),
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
 	Type = case rand:uniform(3) of
@@ -1639,7 +1640,7 @@ fill_acct(N, Protocol) ->
 			{ACR, undefined}
 	end,
 	Fdiameter = fun() ->
-			SessionId = diameter:session_id(ClientAddress),
+			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
 			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
 					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
@@ -1675,7 +1676,7 @@ fill_acct(N, Protocol) ->
 			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
 			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
 			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
-					'Origin-Host' = ClientAddress,
+					'Origin-Host' = Hostname,
 					'CC-Request-Type' = CCRequestType,
 					'CC-Request-Number' = CCRequestNum,
 					'Service-Context-Id' = ServiceContextId,
@@ -1683,7 +1684,7 @@ fill_acct(N, Protocol) ->
 					'Multiple-Services-Credit-Control' = [MSCCRequest],
 					'Service-Information' = [ServiceInformation]},
 			CCA = #'3gpp_ro_CCA'{'Session-Id' = SessionId,
-					'Origin-Host' = ClientAddress,
+					'Origin-Host' = Hostname,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'CC-Request-Type' = CCRequestType,
 					'CC-Request-Number' = CCRequestNum,
