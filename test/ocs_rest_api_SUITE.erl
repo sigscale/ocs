@@ -32,12 +32,16 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_3gpp.hrl").
 -include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("public_key/include/public_key.hrl").
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
+
+-define(RO_APPLICATION_ID, 4).
 
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
 -define(PathProductHub, "/productInventoryManagement/v2/hub/").
@@ -253,7 +257,7 @@ all() ->
 	get_service_not_found, get_service_range, delete_service,
 	update_service, get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
-	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
+	get_auth_usage_range, acct_usage_radius, acct_usage_diameter, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	topup_product, topup_service, topup_price,
 	get_balance_product, get_balance_service, query_buckets, head_bucket,
@@ -2146,10 +2150,10 @@ get_auth_usage_range(Config) ->
 	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
 	End >= NumLogged.
 
-get_acct_usage() ->
-	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
+acct_usage_radius() ->
+	[{userdata, [{doc,"Get TMF635 acct usage for RADIUS event"}]}].
 
-get_acct_usage(Config) ->
+acct_usage_radius(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ClientAddress = {192, 168, 159, 158},
@@ -2194,8 +2198,7 @@ get_acct_usage(Config) ->
 	{_, _} = lists:keyfind("href", 1, UsageSpecification),
 	{_, "AAAAccountingUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
 	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
-	F = fun({struct, [{"name", "protocol"}, {"value", Protocol}]})
-					when Protocol == "RADIUS"; Protocol == "DIAMETER" ->
+	F = fun({struct, [{"name", "protocol"}, {"value", "RADIUS"}]}) ->
 				true;
 			({struct, [{"name", "node"}, {"value", Node}]}) when is_list(Node) ->
 				true;
@@ -2273,6 +2276,298 @@ get_acct_usage(Config) ->
 			({struct, [{"name", "acctOutputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
 				true;
 			({struct, [{"name", "acctTerminateCause"}, {"value", Cause}]}) when is_list(Cause) ->
+				true
+	end,
+	true = lists:all(F, UsageCharacteristic).
+
+acct_usage_diameter() ->
+	[{userdata, [{doc,"Get TMF635 acct usage for DIAMETER event"}]}].
+
+acct_usage_diameter(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	ServerAddress = ocs_test_lib:ipv4(),
+	ServerPort = ocs_test_lib:port(),
+	Server = {ServerAddress, ServerPort},
+	MCC = "001",
+	MNC = "001",
+	PLMN = MCC ++ MNC,
+	OriginRealm = "epc.mnc" ++ MNC ++ ".mcc" ++ MCC ++ ".3gppnetwork.org",
+	OriginHost = ocs_test_lib:rand_name() ++ "." ++ OriginRealm,
+	SessionId = diameter:session_id(OriginHost),
+	ServiceContextId = "10.32251@3gpp.org",
+	CCRequestType = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+	CCRequestNum = rand:uniform(10),
+	MSISDN = ocs_test_lib:rand_dn(),
+	IMSI = PLMN ++ ocs_test_lib:rand_dn(9),
+	RatingGroup = rand:uniform(100),
+	ServiceId = rand:uniform(10),
+	QuotaAmount = rand:uniform(1000) + 1048576,
+	TotalSeconds = rand:uniform(3540) + 60,
+	InputOctets = rand:uniform(QuotaAmount div 2),
+	OutputOctets = rand:uniform(QuotaAmount div 2),
+	TotalOctets = InputOctets + OutputOctets,
+	RSU = #'3gpp_ro_Requested-Service-Unit'{},
+	USU = #'3gpp_ro_Used-Service-Unit'{
+			'CC-Time' = [TotalSeconds],
+			'CC-Input-Octets' = [InputOctets],
+			'CC-Output-Octets' = [OutputOctets],
+			'CC-Total-Octets' = [TotalOctets]},
+	GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [QuotaAmount]},
+	MSCCRequest = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Rating-Group' = [RatingGroup],
+			'Service-Identifier' = [ServiceId],
+			'Requested-Service-Unit' = [RSU],
+			'Used-Service-Unit' = [USU]},
+	MSCCResponse = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Rating-Group' = [RatingGroup],
+			'Service-Identifier' = [ServiceId],
+			'Requested-Service-Unit' = [RSU],
+			'Granted-Service-Unit' = [GSU]},
+	Sub1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = list_to_binary(MSISDN)},
+	Sub2 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = list_to_binary(IMSI)},
+	PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [list_to_binary(PLMN)]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = list_to_binary(SessionId),
+			'Origin-Host' = list_to_binary(OriginHost),
+			'Origin-Realm' = list_to_binary(OriginRealm),
+			'Auth-Application-Id' = [?RO_APPLICATION_ID],
+			'CC-Request-Type' = CCRequestType,
+			'CC-Request-Number' = CCRequestNum,
+			'Service-Context-Id' = list_to_binary(ServiceContextId),
+			'Subscription-Id' = [Sub1, Sub2],
+			'Multiple-Services-Credit-Control' = [MSCCRequest],
+			'Service-Information' = [ServiceInformation]},
+	CCA = #'3gpp_ro_CCA'{'Session-Id' = list_to_binary(SessionId),
+			'Origin-Host' = list_to_binary(OriginHost),
+			'Origin-Realm' = list_to_binary(OriginRealm),
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = [?RO_APPLICATION_ID],
+			'CC-Request-Type' = CCRequestType,
+			'CC-Request-Number' = CCRequestNum,
+			'Multiple-Services-Credit-Control' = [MSCCResponse]},
+	ok = ocs_log:acct_log(diameter, Server, interim, CCR, CCA, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date",
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
+	{_, _} = lists:keyfind("id", 1, Usage),
+	{_, _} = lists:keyfind("href", 1, Usage),
+	{_, _} = lists:keyfind("date", 1, Usage),
+	{_, "AAAAccountingUsage"} = lists:keyfind("type", 1, Usage),
+	{_, "received"} = lists:keyfind("status", 1, Usage),
+	{_, {struct, UsageSpecification}} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, _} = lists:keyfind("id", 1, UsageSpecification),
+	{_, _} = lists:keyfind("href", 1, UsageSpecification),
+	{_, "AAAAccountingUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
+	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
+	F = fun({struct, [{"name", "protocol"}, {"value", "DIAMETER"}]}) ->
+				true;
+			({struct, [{"name", "node"}, {"value", Node}]}) when is_list(Node) ->
+				true;
+			({struct, [{"name", "serverAddress"}, {"value", Address}]}) ->
+				case inet:parse_address(Address) of
+					{ok, ServerAddress} ->
+						true;
+					_ ->
+						false
+				end;
+			({struct, [{"name", "serverPort"}, {"value", Value}]})
+					when Value == ServerPort ->
+				true;
+			({struct, [{"name", "type"}, {"value", "interim"}]}) ->
+				true;
+			({struct, [{"name", "msisdn"}, {"value", Value}]})
+					when Value == MSISDN ->
+				true;
+			({struct, [{"name", "imsi"}, {"value", Value}]})
+					when Value == IMSI ->
+				true;
+			({struct, [{"name", "serviceContextId"}, {"value", Value}]})
+					when Value == ServiceContextId ->
+				true;
+			({struct, [{"name", "nasIdentifier"}, {"value", Value}]})
+					when Value == OriginHost ->
+				true;
+			({struct, [{"name", "acctSessionId"}, {"value", Value}]})
+					when Value == SessionId ->
+				true;
+			({struct, [{"name", "acctSessionTime"}, {"value", Value}]})
+					when Value == TotalSeconds ->
+				true;
+			({struct, [{"name", "inputOctets"}, {"value", Value}]})
+					when Value == InputOctets ->
+				true;
+			({struct, [{"name", "outputOctets"}, {"value", Value}]})
+					when Value == OutputOctets ->
+				true;
+			({struct, [{"name", "totalOctets"}, {"value", Value}]})
+					when Value == TotalOctets ->
+				true
+	end,
+	true = lists:all(F, UsageCharacteristic).
+
+acct_usage_nrf() ->
+	[{userdata, [{doc,"Get TMF635 acct usage for Nrf_Rating event"}]}].
+
+acct_usage_nrf(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	ServerAddress = ocs_test_lib:ipv4(),
+	ServerPort = ocs_test_lib:port(),
+	Server = {ServerAddress, ServerPort},
+	MCC = "001",
+	MNC = "001",
+	PLMN = MCC ++ MNC,
+	Timestamp1 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	SequenceNumber = rand:uniform(10),
+	NFName = ocs_test_lib:uuid(),
+	NFConsumer = #{"nfName" => NFName, "nodeFunctionality" => "CHF"},
+	SessionId = ocs_test_lib:rand_dn(),
+	ServiceContextId = "42.32255@3gpp.org",
+	MSISDN = ocs_test_lib:rand_dn(),
+	IMSI = PLMN ++ ocs_test_lib:rand_dn(9),
+	Subs = ["imsi-" ++ IMSI, "msisdn-" ++ MSISDN],
+	RatingGroup = rand:uniform(100),
+	ServiceId = rand:uniform(10),
+	UpfId = ocs_test_lib:uuid(),
+	ChargingId = rand:uniform(4294967295),
+	PDUSessionId = rand:uniform(10),
+	DnnId = ocs_test_lib:rand_name(),
+	QuotaAmount = rand:uniform(1000) + 1048576,
+	TotalSeconds = rand:uniform(3540) + 60,
+	InputOctets = rand:uniform(QuotaAmount div 2),
+	OutputOctets = rand:uniform(QuotaAmount div 2),
+	TotalOctets = InputOctets + OutputOctets,
+	GrantedUnit = #{"totalVolume" => QuotaAmount},
+	ConsumedUnit = #{"time" => TotalSeconds,
+			"totalVolume" => TotalOctets,
+			"uplinkVolume" => InputOctets,
+			"downlinkVolume" => OutputOctets},
+	AMFId = integer_to_list(rand:uniform(16#ffffff), 16),
+	ServingNFName = ocs_test_lib:uuid(),
+	ServingNFAddress = inet:ntoa(ocs_test_lib:ipv4()),
+	ServingNFInformation = #{"nodeFunctionality" => "CHF",
+			"nFName" => ServingNFName,
+			"nFIPv4Address" => ServingNFAddress,
+			"nFPLMNID" => #{"mnc" => MNC, "mnc" => MNC}},
+	ServingNetworkFunctionID = #{"aMFId" => AMFId,
+			"servingNetworkFunctionInformation" => ServingNFInformation},
+	PDUSessionInformation = #{"pduSessionID" => PDUSessionId,
+			"dnnId" => DnnId,
+			"servingNetworkFunctionID" => ServingNetworkFunctionID},
+	ServiceInformation = #{"chargingId" => ChargingId,
+			"pduSessionInformation" => PDUSessionInformation},
+	ServiceRatingRequest1 = #{"requestSubType" => "DEBIT",
+			"serviceContextId" => ServiceContextId,
+			"uPFID" => UpfId,
+			"ratingGroup" => RatingGroup,
+			"serviceId" => ServiceId,
+			"consumedUnit" => ConsumedUnit,
+			"serviceInformation" => ServiceInformation},
+	ServiceRatingRequest2 = #{"requestSubType" => "RESERVE",
+			"serviceContextId" => ServiceContextId,
+			"uPFID" => UpfId,
+			"ratingGroup" => RatingGroup,
+			"serviceId" => ServiceId,
+			"requestedUnit" => #{},
+			"serviceInformation" => ServiceInformation},
+	RatingDataRequest = #{"ratingSessionId" => SessionId,
+			"invocationTimeStamp" => Timestamp1,
+			"invocationSequenceNumber" => SequenceNumber,
+			"nfConsumerIdentification" => NFConsumer,
+			"subscriptionId" => Subs,
+			"serviceRating" => [ServiceRatingRequest1, ServiceRatingRequest2]},
+	ServiceRatingResult = #{"requestSubType" => "RESERVE",
+			"serviceContextId" => ServiceContextId,
+			"uPFID" => UpfId,
+			"ratingGroup" => RatingGroup,
+			"serviceId" => ServiceId,
+			"grantedUnit" => GrantedUnit,
+			"resultCode" => "SUCCESS"},
+	Timestamp2 = ocs_log:iso8601(erlang:system_time(millisecond)),
+	RatingDataResponse = #{"invocationTimeStamp" => Timestamp2,
+			"invocationSequenceNumber" => SequenceNumber,
+			"serviceRating" => [ServiceRatingResult]},
+	ok = ocs_log:acct_log(nrf, Server, interim,
+			RatingDataRequest, RatingDataResponse, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date",
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
+	{_, _} = lists:keyfind("id", 1, Usage),
+	{_, _} = lists:keyfind("href", 1, Usage),
+	{_, _} = lists:keyfind("date", 1, Usage),
+	{_, "AAAAccountingUsage"} = lists:keyfind("type", 1, Usage),
+	{_, "received"} = lists:keyfind("status", 1, Usage),
+	{_, {struct, UsageSpecification}} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, _} = lists:keyfind("id", 1, UsageSpecification),
+	{_, _} = lists:keyfind("href", 1, UsageSpecification),
+	{_, "AAAAccountingUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
+	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
+	F = fun({struct, [{"name", "protocol"}, {"value", "Nrf_Rating"}]}) ->
+				true;
+			({struct, [{"name", "node"}, {"value", Node}]}) when is_list(Node) ->
+				true;
+			({struct, [{"name", "serverAddress"}, {"value", Address}]}) ->
+				case inet:parse_address(Address) of
+					{ok, ServerAddress} ->
+						true;
+					_ ->
+						false
+				end;
+			({struct, [{"name", "serverPort"}, {"value", Value}]})
+					when Value == ServerPort ->
+				true;
+			({struct, [{"name", "type"}, {"value", "interim"}]}) ->
+				true;
+			({struct, [{"name", "msisdn"}, {"value", Value}]})
+					when Value == MSISDN ->
+				true;
+			({struct, [{"name", "imsi"}, {"value", Value}]})
+					when Value == IMSI ->
+				true;
+			({struct, [{"name", "serviceContextId"}, {"value", Value}]})
+					when Value == ServiceContextId ->
+				true;
+			({struct, [{"name", "nasIdentifier"}, {"value", Value}]})
+					when Value == NFName ->
+				true;
+			({struct, [{"name", "nasIpAddress"}, {"value", Value}]})
+					when Value == ServingNFAddress ->
+				true;
+			({struct, [{"name", "acctSessionId"}, {"value", Value}]})
+					when Value == SessionId ->
+				true;
+			({struct, [{"name", "acctSessionTime"}, {"value", Value}]})
+					when Value == TotalSeconds ->
+				true;
+			({struct, [{"name", "inputOctets"}, {"value", Value}]})
+					when Value == InputOctets ->
+				true;
+			({struct, [{"name", "outputOctets"}, {"value", Value}]})
+					when Value == OutputOctets ->
+				true;
+			({struct, [{"name", "totalOctets"}, {"value", Value}]})
+					when Value == TotalOctets ->
 				true
 	end,
 	true = lists:all(F, UsageCharacteristic).
@@ -7374,4 +7669,154 @@ is_all_spec(SpecId, [{struct, Attributes} | T]) ->
 	end;
 is_all_spec(_, []) ->
 	true.
+
+fill_acct(0, _Protocol) ->
+	ok;
+fill_acct(N, Protocol) ->
+	Hostname = atom_to_binary(?FUNCTION_NAME),
+	Timestamp = erlang:system_time(millisecond),
+	SeqNo = rand:uniform(1000000) + N,
+	AcctOutputOctets = rand:uniform(100000),
+	AcctInputOctets = rand:uniform(100000000),
+	AcctSessionTime = rand:uniform(3600) + 100,
+	UserName = ocstest_lib:rand_name(),
+	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
+	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
+	Server = {{0, 0, 0, 0}, ocs_test_lib:port()},
+	I3 = rand:uniform(256) - 1,
+	I4 = rand:uniform(254),
+	ClientAddress = ocs_test_lib:ipv4(),
+	NASn = integer_to_list((I3 bsl 8) + I4),
+	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	Type = case rand:uniform(3) of
+		1 -> start;
+		2 -> stop;
+		3 -> interim
+	end,
+	Fradius = fun() ->
+			ACR = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
+			{?AcctStatusType, rand:uniform(3)}, {?AcctSessionTime, AcctSessionTime},
+			{?AcctInputOctets, AcctInputOctets}, {?AcctOutputOctets, AcctOutputOctets}],
+			{ACR, undefined}
+	end,
+	Fdiameter = fun() ->
+			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
+			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
+				start ->
+					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Granted-Service-Unit' = [#'3gpp_ro_Granted-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}]}};
+				interim ->
+					{?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST', rand:uniform(10),
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}],
+									'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+											'CC-Input-Octets' = [AcctInputOctets],
+											'CC-Output-Octets' = [AcctOutputOctets]}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Granted-Service-Unit' = [#'3gpp_ro_Granted-Service-Unit'{
+											'CC-Total-Octets' = [5000000]}]}};
+				stop ->
+					{?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST', rand:uniform(10),
+							#'3gpp_ro_Multiple-Services-Credit-Control'{
+									'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+											'CC-Input-Octets' = [AcctInputOctets],
+											'CC-Output-Octets' = [AcctOutputOctets]}]},
+							#'3gpp_ro_Multiple-Services-Credit-Control'{}}
+			end,
+			ServiceContextId = <<"10.32251@3gpp.org">>,
+			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+					'Subscription-Id-Data' = list_to_binary(MSISDN)},
+			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+					'Subscription-Id-Data' = list_to_binary(IMSI)},
+			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
+			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
+			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
+					'Origin-Host' = Hostname,
+					'CC-Request-Type' = CCRequestType,
+					'CC-Request-Number' = CCRequestNum,
+					'Service-Context-Id' = ServiceContextId,
+					'Subscription-Id' = [Sub1, Sub2],
+					'Multiple-Services-Credit-Control' = [MSCCRequest],
+					'Service-Information' = [ServiceInformation]},
+			CCA = #'3gpp_ro_CCA'{'Session-Id' = SessionId,
+					'Origin-Host' = Hostname,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'CC-Request-Type' = CCRequestType,
+					'CC-Request-Number' = CCRequestNum,
+					'Multiple-Services-Credit-Control' = [MSCCResponse]},
+			{CCR, CCA}
+	end,
+	Fnrf = fun() ->
+			ServiceContextId = "10.32255@3gpp.org",
+			Sub1 = lists:concat(["imsi-", IMSI]),
+			Sub2 = lists:concat(["msisdn-", MSISDN]),
+			PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
+			{SRRequest, SRResponse} = case Type of
+				start ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "RESERVE",
+							"requestedUnit" => #{},
+							"serviceInformation" => PSInfo}],
+					[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"resultCode" => "SUCCESS",
+							"grantedUnit" => #{"totalVolume" => 5000000}}]};
+				interim ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType" => "RESERVE",
+							"requestedUnit" => #{},
+							"serviceInformation" => PSInfo},
+					#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "DEBIT",
+							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+							"serviceInformation" => PSInfo}],
+					[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"resultCode" => "SUCCESS",
+							"grantedUnit" => #{"totalVolume" => 5000000}}]};
+				stop ->
+					{[#{"serviceContextId" => ServiceContextId,
+							"ratingGroup" => 32,
+							"requestSubType*" => "DEBIT",
+							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+							"serviceInformation" => PSInfo}],
+					[]}
+			end,
+			RatingDataRequest = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+					"invocationSequenceNumber" => SeqNo,
+					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
+					"subscriptionId" => [Sub1, Sub2],
+					"serviceRating" => SRRequest},
+			RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+					"invocationSequenceNumber" => SeqNo,
+					"serviceRating" => SRResponse},
+			{RatingDataRequest, RatingDataResponse}
+	end,
+	Protocol1 = case Protocol of
+		undefined ->
+			lists:nth(rand:uniform(3), [radius, diameter, nrf]);
+		_ ->
+			Protocol
+	end,
+	{Request, Response} = case Protocol1 of
+		radius ->
+			Fradius();
+		diameter ->
+			Fdiameter();
+		nrf ->
+			Fnrf()
+	end,
+	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
+	fill_acct(N - 1, Protocol).
 
