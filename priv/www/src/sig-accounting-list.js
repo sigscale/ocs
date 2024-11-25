@@ -123,7 +123,7 @@ class accountingList extends PolymerElement {
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="client identity"
-								path="nasIpAddress"
+								path="nasIdentifier"
 								value="{{filterclientIdentityAcc}}">
 							<input
 									slot="filter"
@@ -132,7 +132,7 @@ class accountingList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.nasIpAddress]]</template>
+					<template>[[item.nasIdentifier]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
@@ -388,7 +388,7 @@ class accountingList extends PolymerElement {
 		var accountingList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-accounting-list');
 		var ajax = accountingList.shadowRoot.getElementById('getAccounting');
 		delete ajax.params['date'];
-		delete ajax.params['nasIpAddress'];
+		delete ajax.params['nasIdentifier'];
 		delete ajax.params['acctSessiontime'];
 		delete ajax.params['acctOutputoctets'];
 		delete ajax.params['acctInputoctets'];
@@ -399,7 +399,7 @@ class accountingList extends PolymerElement {
 		ajax.params['type'] = "AAAAccountingUsage";
 		function checkHead(param) {
 			return param.path == "date" || param.path == "status"
-				|| param.path == "nasIpAddress" || param.path == "msisdn"
+				|| param.path == "nasIdentifier" || param.path == "msisdn"
 				|| param.path == "imsi";
 		}
 		var head;
@@ -410,7 +410,7 @@ class accountingList extends PolymerElement {
 		});
 		function checkChar(param) {
 			return param.path != "date" && param.path != "status"
-				&& param.path != "nasIpAddress" && param.path != "msisdn"
+				&& param.path != "nasIdentifier" && param.path != "msisdn"
 				&& param.path != "imsi";
 		}
 		params.filters.filter(checkChar).forEach(function(filter) {
@@ -451,11 +451,11 @@ class accountingList extends PolymerElement {
 					newRecord.href = request.response[index].href;
 					newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
 					function checkCharClient(characteristicClient){
-						return characteristicClient.name == "nasIpAddress";
+						return characteristicClient.name == "nasIdentifier";
 					}
 					var clientId = request.response[index].usageCharacteristic.find(checkCharClient);
 					if(clientId  != undefined) {
-						newRecord.nasIpAddress = clientId.value;
+						newRecord.nasIdentifier = clientId.value;
 					}
 					function checkCharType(characteristicType){
 						return characteristicType.name == "type";
