@@ -739,7 +739,9 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 		radius ->
 			"RADIUS";
 		diameter ->
-			"DIAMETER"
+			"DIAMETER";
+		nrf ->
+			"Nrf_Rating"
 	end,
 	ServerAddress = inet:ntoa(ServerIP),
 	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
@@ -868,7 +870,7 @@ spec_aaa_auth() ->
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
 	End = {"endDateTime", undefined},
 	Valid = {"validFor", {struct, [Start, End]}},
-	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+	Chars = [spec_protocol1(), spec_node(), spec_server_address(),
 			spec_server_port(), spec_client_address(),
 			spec_client_port(), spec_type_access(), spec_attr_context(),
 			spec_attr_username(), spec_attr_nas_ip(),
@@ -892,21 +894,21 @@ spec_aaa_acct() ->
 	Href = {"href", ?usageSpecPath ++ "AAAAccountingUsageSpec"},
 	Name = {"name", "AAAAccountingUsageSpec"},
 	Desc = {"description", "Specification for SigScale OCS accounting requests."},
-	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
+	Start = {"startDateTime", "2024-11-25T00:00:00Z"},
 	End = {"endDateTime", undefined},
 	Valid = {"validFor", {struct, [Start, End]}},
-	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+	Chars = [spec_protocol2(), spec_node(), spec_server_address(),
 			spec_server_port(), spec_type_accounting(), spec_attr_context(),
 			spec_attr_username(),  spec_attr_msisdn(), spec_attr_imsi(),
-			spec_attr_nas_ip(), spec_attr_nas_port(),
+			spec_attr_nas_id(), spec_attr_nas_ip(), spec_attr_nas_port(),
 			spec_attr_service_type(), spec_attr_framed_address(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
 			spec_attr_filter_id(), spec_attr_framed_mtu(),
 			spec_attr_framed_route(), spec_attr_class(),
 			spec_attr_session_timeout(), spec_attr_idle_timeout(),
 			spec_attr_termination_action(), spec_attr_called_id(),
-			spec_attr_calling_id(), spec_attr_nas_id(),
-			spec_attr_nas_port_id(), spec_attr_delay(),
+			spec_attr_calling_id(), spec_attr_delay(),
+			spec_attr_nas_port_id(), spec_attr_nas_port_type(),
 			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
 			spec_attr_total_octets(), spec_attr_user_location(),
@@ -914,8 +916,7 @@ spec_aaa_acct() ->
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
 			spec_attr_cause(), spec_attr_multisession_id(),
-			spec_attr_link_count(), spec_attr_nas_port_type(),
-			spec_attr_port_limit()],
+			spec_attr_link_count(), spec_attr_port_limit()],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
@@ -1514,7 +1515,7 @@ spec_public_wlan47(Acc) ->
 	[{struct, [Name, Desc, Conf, Value]} | Acc].
 
 %% @hidden
-spec_protocol() ->
+spec_protocol1() ->
 	Name = {"name", "protocol"},
 	Desc = {"description", "AAA protocol used in request."},
 	Conf = {"configurable", true},
@@ -1525,6 +1526,22 @@ spec_protocol() ->
 	Val2 = {"value", "DIAMETER"},
 	Value2 = {struct, [Typ, Def, Val2]},
 	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_protocol2() ->
+	Name = {"name", "protocol"},
+	Desc = {"description", "AAA protocol used in request."},
+	Conf = {"configurable", true},
+	Typ = {"valueType", "String"},
+	Def = {"default", true},
+	Val1 = {"value", "RADIUS"},
+	Value1 = {struct, [Typ, Def, Val1]},
+	Val2 = {"value", "DIAMETER"},
+	Value2 = {struct, [Typ, Def, Val2]},
+	Val3 = {"value", "Nrf_Rating"},
+	Value3 = {struct, [Typ, Def, Val3]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -2180,30 +2197,57 @@ char_attr_username(Attributes, Acc)
 			Acc
 	end,
 	char_attr_nas_ip(Attributes, NewAcc);
-char_attr_username(CCR, Acc) ->
-	char_attr_nas_ip(CCR, Acc).
+char_attr_username(#{"subscriptionId" := SubscriptionId} = NrfRequest, Acc)
+		when length(SubscriptionId) > 0 ->
+	F = fun("msisdn-" ++ MSISDN, Acc1) ->
+			[{struct, [{"name", "msisdn"}, {"value", MSISDN}]} | Acc1];
+		("imsi-" ++  IMSI, Acc1) ->
+			[{struct, [{"name", "imsi"}, {"value", IMSI}]} | Acc1];
+		(_Other, Acc1) ->
+			Acc1
+	end,
+	NewAcc = lists:foldl(F, Acc, SubscriptionId),
+	char_attr_nas_ip(NrfRequest, NewAcc);
+char_attr_username(Request, Acc) ->
+	char_attr_nas_ip(Request, Acc).
 
 %% @hidden
-char_attr_nas_ip(#'3gpp_ro_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
+char_attr_nas_ip(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'PS-Information'
+		= [#'3gpp_ro_PS-Information'{'SGSN-Address'
+		= [Address]}]}]} = CCR, Acc) when is_tuple(Address) ->
 	NewAcc = [{struct, [{"name", "nasIpAddress"},
-			{"value", binary_to_list(Value)}]} | Acc],
+			{"value", inet:ntoa(Address)}]} | Acc],
 	char_attr_context(CCR, NewAcc);
-char_attr_nas_ip(#'3gpp_gx_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
+char_attr_nas_ip(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'PS-Information'
+		= [#'3gpp_ro_PS-Information'{'SGW-Address'
+		= [Address]}]}]} = CCR, Acc) when is_tuple(Address) ->
 	NewAcc = [{struct, [{"name", "nasIpAddress"},
-			{"value", binary_to_list(Value)}]} | Acc],
+			{"value", inet:ntoa(Address)}]} | Acc],
 	char_attr_context(CCR, NewAcc);
-char_attr_nas_ip(Attributes, Acc) ->
+char_attr_nas_ip(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?NasIpAddress, Attributes) of
 		{ok, Value} ->
-			Address = inet:ntoa(Value),
-			[{struct, [{"name", "nasIpAddress"}, {"value", Address}]} | Acc];
+			[{struct, [{"name", "nasIpAddress"},
+					{"value", inet:ntoa(Value)}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
-	char_attr_nas_port(Attributes, NewAcc).
+	char_attr_nas_port(Attributes, NewAcc);
+char_attr_nas_ip(#{"serviceRating" := [#{"serviceInformation"
+		:= #{"pduSessionInformation" := #{"servingNetworkFunctionID"
+		:= #{"servingNetworkFunctionInformation"
+		:= #{"nFIPv4Address" := Address}}}}} | _]} = NrfRequest, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIpAddress"}, {"value", Address}]} | Acc],
+	char_attr_context(NrfRequest, NewAcc);
+char_attr_nas_ip(Request, Acc) ->
+	char_attr_context(Request, Acc).
 
 %% @hidden
-char_attr_nas_port(Attributes, Acc) ->
+char_attr_nas_port(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?NasPort, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "nasPort"}, {"value", Value}]} | Acc];
@@ -2233,15 +2277,21 @@ char_attr_service_type(Attributes, Acc)
 	end,
 	char_attr_framed_address(Attributes, NewAcc).
 
-char_attr_context(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc) ->
+char_attr_context(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc)
+		when is_binary(Context) ->
 	Value = binary_to_list(Context),
 	NewAcc = [{struct, [{"name", "serviceContextId"}, {"value", Value}]} | Acc],
 	char_attr_called_id(CCR, NewAcc);
-char_attr_context(CCR, Acc) ->
-	char_attr_called_id(CCR, Acc).
+char_attr_context(#{"serviceRating"
+		:= [#{"serviceContextId" := Context} | _]} = NrfRequest, Acc) ->
+	NewAcc = [{struct, [{"name", "serviceContextId"}, {"value", Context}]} | Acc],
+	char_attr_called_id(NrfRequest, NewAcc);
+char_attr_context(Request, Acc) ->
+	char_attr_called_id(Request, Acc).
 
 %% @hidden
-char_attr_framed_address(Attributes, Acc) ->
+char_attr_framed_address(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedIpAddress, Attributes) of
 		{ok, Value} ->
 			Address = inet:ntoa(Value),
@@ -2252,7 +2302,8 @@ char_attr_framed_address(Attributes, Acc) ->
 	char_attr_framed_pool(Attributes, NewAcc).
 
 %% @hidden
-char_attr_framed_pool(Attributes, Acc) ->
+char_attr_framed_pool(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedPool, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "framedPool"}, {"value", Value}]} | Acc];
@@ -2262,7 +2313,8 @@ char_attr_framed_pool(Attributes, Acc) ->
 	char_attr_framed_netmask(Attributes, NewAcc).
 
 %% @hidden
-char_attr_framed_netmask(Attributes, Acc) ->
+char_attr_framed_netmask(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedIpNetmask, Attributes) of
 		{ok, Value} ->
 			Netmask = inet:ntoa(Value),
@@ -2273,7 +2325,8 @@ char_attr_framed_netmask(Attributes, Acc) ->
 	char_attr_framed_routing(Attributes, NewAcc).
 
 %% @hidden
-char_attr_framed_routing(Attributes, Acc) ->
+char_attr_framed_routing(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedRouting, Attributes) of
 		{ok, Value} ->
 			Routing = case Value of
@@ -2295,7 +2348,8 @@ char_attr_framed_routing(Attributes, Acc) ->
 	char_attr_filter_id(Attributes, NewAcc).
 
 %% @hidden
-char_attr_filter_id(Attributes, Acc) ->
+char_attr_filter_id(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FilterId, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "filterId"}, {"value", Value}]} | Acc];
@@ -2305,7 +2359,8 @@ char_attr_filter_id(Attributes, Acc) ->
 	char_attr_framed_mtu(Attributes, NewAcc).
 
 %% @hidden
-char_attr_framed_mtu(Attributes, Acc) ->
+char_attr_framed_mtu(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedMtu, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "framedMtu"}, {"value", Value}]} | Acc];
@@ -2315,7 +2370,8 @@ char_attr_framed_mtu(Attributes, Acc) ->
 	char_attr_framed_route(Attributes, NewAcc).
 
 %% @hidden
-char_attr_framed_route(Attributes, Acc) ->
+char_attr_framed_route(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?FramedRoute, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "framedRoute"}, {"value", Value}]} | Acc];
@@ -2325,7 +2381,8 @@ char_attr_framed_route(Attributes, Acc) ->
 	char_attr_class(Attributes, NewAcc).
 
 %% @hidden
-char_attr_class(Attributes, Acc) ->
+char_attr_class(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?Class, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "class"}, {"value", Value}]} | Acc];
@@ -2335,7 +2392,8 @@ char_attr_class(Attributes, Acc) ->
 	char_attr_session_timeout(Attributes, NewAcc).
 
 %% @hidden
-char_attr_session_timeout(Attributes, Acc) ->
+char_attr_session_timeout(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?SessionTimeout, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "sessionTimeout"}, {"value", Value}]} | Acc];
@@ -2345,7 +2403,8 @@ char_attr_session_timeout(Attributes, Acc) ->
 	char_attr_idle_timeout(Attributes, NewAcc).
 
 %% @hidden
-char_attr_idle_timeout(Attributes, Acc) ->
+char_attr_idle_timeout(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?IdleTimeout, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "idleTimeout"}, {"value", Value}]} | Acc];
@@ -2355,7 +2414,8 @@ char_attr_idle_timeout(Attributes, Acc) ->
 	char_attr_termination_action(Attributes, NewAcc).
 
 %% @hidden
-char_attr_termination_action(Attributes, Acc) ->
+char_attr_termination_action(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?TerminationAction, Attributes) of
 		{ok, Value} ->
 			Action = case Value of
@@ -2389,8 +2449,8 @@ char_attr_called_id(Attributes, Acc)
 			Acc
 	end,
 	char_attr_calling_id(Attributes, NewAcc);
-char_attr_called_id(CCR, Acc) ->
-	char_attr_calling_id(CCR, Acc).
+char_attr_called_id(Request, Acc) ->
+	char_attr_calling_id(Request, Acc).
 
 %% @hidden
 char_attr_calling_id(#'3gpp_ro_CCR'{'Service-Information'
@@ -2409,26 +2469,15 @@ char_attr_calling_id(Attributes, Acc)
 			Acc
 	end,
 	char_attr_nas_id(Attributes, NewAcc);
-char_attr_calling_id(CCR, Acc) ->
-	char_attr_nas_id(CCR, Acc).
+char_attr_calling_id(Request, Acc) ->
+	char_attr_nas_id(Request, Acc).
 
 %% @hidden
-char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
-		= [#'3gpp_ro_Service-Information'{'IMS-Information'
-		= [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
-		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
-		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
+char_attr_nas_id(#'3gpp_ro_CCR'{'Origin-Host' = Host} = CCR, Acc)
+		when is_binary(Host) ->
 	NewAcc = [{struct, [{"name", "nasIdentifier"},
-			{"value", binary_to_list(IOI)}]} | Acc],
+			{"value", binary_to_list(Host)}]} | Acc],
 	char_attr_event_timestamp(CCR, NewAcc);
-char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
-		% old record version (< ocs-3.1.4)
-		= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
-		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
-		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
-   NewAcc = [{struct, [{"name", "nasIdentifier"},
-         {"value", binary_to_list(IOI)}]} | Acc],
-   char_attr_event_timestamp(CCR, NewAcc);
 char_attr_nas_id(Attributes, Acc)
 		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?NasIdentifier, Attributes) of
@@ -2438,11 +2487,16 @@ char_attr_nas_id(Attributes, Acc)
 			Acc
 	end,
 	char_attr_port_id(Attributes, NewAcc);
-char_attr_nas_id(CCR, Acc) ->
-	char_attr_event_timestamp(CCR, Acc).
+char_attr_nas_id(#{"nfConsumerIdentification"
+		:= #{"nFName" := NfName}} = NrfRequest, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIdentifier"}, {"value", NfName}]} | Acc],
+	char_attr_event_timestamp(NrfRequest, NewAcc);
+char_attr_nas_id(Request, Acc) ->
+	char_attr_event_timestamp(Request, Acc).
 
 %% @hidden
-char_attr_port_id(Attributes, Acc) ->
+char_attr_port_id(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?NasPortId, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "nasPortId"}, {"value", Value}]} | Acc];
@@ -2452,7 +2506,8 @@ char_attr_port_id(Attributes, Acc) ->
 	char_attr_nas_port_type(Attributes, NewAcc).
 
 %% @hidden
-char_attr_nas_port_type(Attributes, Acc) ->
+char_attr_nas_port_type(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?NasPortType, Attributes) of
 		{ok, Value} ->
 			Type = case Value of
@@ -2492,7 +2547,8 @@ char_attr_port_limit(Attributes, Acc) ->
 	char_attr_delay(Attributes, NewAcc).
 
 %% @hidden
-char_attr_delay(Attributes, Acc) ->
+char_attr_delay(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctDelayTime"}, {"value", Value}]} | Acc];
@@ -2511,6 +2567,12 @@ char_attr_event_timestamp(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "eventTimestamp"},
 			{"value", ocs_log:iso8601(Seconds * 1000)}]} | Acc],
 	char_attr_session_id(CCR, NewAcc);
+char_attr_event_timestamp(#'3gpp_ro_CCR'{'Event-Timestamp'
+		= [TimeStamp]} = CCR, Acc) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(TimeStamp) - ?EPOCH,
+	NewAcc = [{struct, [{"name", "eventTimestamp"},
+			{"value", ocs_log:iso8601(Seconds * 1000)}]} | Acc],
+	char_attr_session_id(CCR, NewAcc);
 char_attr_event_timestamp(Attributes, Acc)
 		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
@@ -2521,8 +2583,8 @@ char_attr_event_timestamp(Attributes, Acc)
 			Acc
 	end,
 	char_attr_session_id(Attributes, NewAcc);
-char_attr_event_timestamp(CCR, Acc) ->
-	char_attr_session_id(CCR, Acc).
+char_attr_event_timestamp(Request, Acc) ->
+	char_attr_session_id(Request, Acc).
 
 %% @hidden
 char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
@@ -2544,8 +2606,11 @@ char_attr_session_id(Attributes, Acc)
 			Acc
 	end,
 	char_attr_multisession_id(Attributes, NewAcc);
-char_attr_session_id(CCR, Acc) ->
-	char_attr_session_time(CCR, Acc).
+char_attr_session_id(#{"ratingSessionId" := SessionId} = NrfRequest, Acc) ->
+	NewAcc = [{struct, [{"name", "acctSessionId"}, {"value", SessionId}]} | Acc],
+	char_attr_session_time(NrfRequest, NewAcc);
+char_attr_session_id(Request, Acc) ->
+	char_attr_session_time(Request, Acc).
 
 %% @hidden
 char_attr_multisession_id(Attributes, Acc) ->
@@ -2558,7 +2623,8 @@ char_attr_multisession_id(Attributes, Acc) ->
 	char_attr_link_count(Attributes, NewAcc).
 
 %% @hidden
-char_attr_link_count(Attributes, Acc) ->
+char_attr_link_count(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctLinkCount, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctLinkCount"}, {"value", Value}]} | Acc];
@@ -2568,7 +2634,8 @@ char_attr_link_count(Attributes, Acc) ->
 	char_attr_authentic(Attributes, NewAcc).
 
 %% @hidden
-char_attr_authentic(Attributes, Acc) ->
+char_attr_authentic(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctAuthentic, Attributes) of
 		{ok, Value} ->
 			Type = case Value of
@@ -2590,7 +2657,7 @@ char_attr_authentic(Attributes, Acc) ->
 %% @hidden
 char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Duration]}]}]} = CCR, Acc)
 		when is_integer(Duration) ->
 	NewAcc = [{struct, [{"name", "acctSessionTime"},
 			{"value", Duration}]} | Acc],
@@ -2604,8 +2671,22 @@ char_attr_session_time(Attributes, Acc)
 			Acc
 	end,
 	char_attr_input_octets(Attributes, NewAcc);
-char_attr_session_time(CCR, Acc) ->
-	char_attr_input_octets(CCR, Acc).
+char_attr_session_time(#{"serviceRating" := ServiceRating} = NrfRequest, Acc)
+		when length(ServiceRating) > 0 ->
+	Fold = fun(#{"consumedUnit" := #{"time" := Time}}, Acc1) ->
+				Time + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, ServiceRating) of
+		0 ->
+			Acc;
+		Time1 ->
+			[{struct, [{"name", "acctSessionTime"}, {"value", Time1}]} | Acc]
+	end,
+	char_attr_input_octets(NrfRequest, NewAcc);
+char_attr_session_time(Request, Acc) ->
+	char_attr_input_octets(Request, Acc).
 
 %% @hidden
 char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
@@ -2624,8 +2705,22 @@ char_attr_input_octets(Attributes, Acc)
 			Acc
 	end,
 	char_attr_output_octets(Attributes, NewAcc);
-char_attr_input_octets(CCR, Acc) ->
-	char_attr_output_octets(CCR, Acc).
+char_attr_input_octets(#{"serviceRating" := ServiceRating} = NrfRequest, Acc)
+		when length(ServiceRating) > 0 ->
+	Fold = fun(#{"consumedUnit" := #{"uplinkVolume" := Volume}}, Acc1) ->
+				Volume + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, ServiceRating) of
+		0 ->
+			Acc;
+		Volume1 ->
+			[{struct, [{"name", "inputOctets"}, {"value", Volume1}]} | Acc]
+	end,
+	char_attr_output_octets(NrfRequest, NewAcc);
+char_attr_input_octets(Request, Acc) ->
+	char_attr_output_octets(Request, Acc).
 
 %% @hidden
 char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
@@ -2644,8 +2739,22 @@ char_attr_output_octets(Attributes, Acc)
 			Acc
 	end,
 	char_attr_input_giga_words(Attributes, NewAcc);
-char_attr_output_octets(CCR, Acc) ->
-	char_attr_total_octets(CCR, Acc).
+char_attr_output_octets(#{"serviceRating" := ServiceRating} = NrfRequest, Acc)
+		when length(ServiceRating) > 0 ->
+	Fold = fun(#{"consumedUnit" := #{"downlinkVolume" := Volume}}, Acc1) ->
+				Volume + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, ServiceRating) of
+		0 ->
+			Acc;
+		Volume1 ->
+			[{struct, [{"name", "outputOctets"}, {"value", Volume1}]} | Acc]
+	end,
+	char_attr_total_octets(NrfRequest, NewAcc);
+char_attr_output_octets(Request, Acc) ->
+	char_attr_total_octets(Request, Acc).
 
 %% @hidden
 char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
@@ -2655,11 +2764,26 @@ char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 	NewAcc = [{struct, [{"name", "totalOctets"},
 			{"value", TotalOctets}]} | Acc],
 	char_attr_cause(CCR, NewAcc);
-char_attr_total_octets(CCR, Acc) ->
-	char_attr_cause(CCR, Acc).
+char_attr_total_octets(#{"serviceRating" := ServiceRating} = NrfRequest, Acc)
+		when length(ServiceRating) > 0 ->
+	Fold = fun(#{"consumedUnit" := #{"totalVolume" := Volume}}, Acc1) ->
+				Volume + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, ServiceRating) of
+		0 ->
+			Acc;
+		Volume1 ->
+			[{struct, [{"name", "totalOctets"}, {"value", Volume1}]} | Acc]
+	end,
+	char_attr_cause(NrfRequest, NewAcc);
+char_attr_total_octets(Request, Acc) ->
+	char_attr_cause(Request, Acc).
 
 %% @hidden
-char_attr_input_giga_words(Attributes, Acc) ->
+char_attr_input_giga_words(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctInputGigawords, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctInputGigawords"}, {"value", Value}]} | Acc];
@@ -2669,7 +2793,8 @@ char_attr_input_giga_words(Attributes, Acc) ->
 	char_attr_output_giga_words(Attributes, NewAcc).
 
 %% @hidden
-char_attr_output_giga_words(Attributes, Acc) ->
+char_attr_output_giga_words(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctOutputGigawords, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctOutputGigawords"}, {"value", Value}]} | Acc];
@@ -2679,7 +2804,8 @@ char_attr_output_giga_words(Attributes, Acc) ->
 	char_attr_input_packets(Attributes, NewAcc).
 
 %% @hidden
-char_attr_input_packets(Attributes, Acc) ->
+char_attr_input_packets(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctInputPackets, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctInputPackets"}, {"value", Value}]} | Acc];
@@ -2689,7 +2815,8 @@ char_attr_input_packets(Attributes, Acc) ->
 	char_attr_output_packets(Attributes, NewAcc).
 
 %% @hidden
-char_attr_output_packets(Attributes, Acc) ->
+char_attr_output_packets(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctOutputPackets, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctOutputPackets"}, {"value", Value}]} | Acc];
@@ -2699,7 +2826,8 @@ char_attr_output_packets(Attributes, Acc) ->
 	char_attr_data_rate(Attributes, NewAcc).
 
 %% @hidden
-char_attr_data_rate(Attributes, Acc) ->
+char_attr_data_rate(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AscendDataRate, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "ascendDataRate"}, {"value", Value}]} | Acc];
@@ -2709,7 +2837,8 @@ char_attr_data_rate(Attributes, Acc) ->
 	char_attr_xmit_rate(Attributes, NewAcc).
 
 %% @hidden
-char_attr_xmit_rate(Attributes, Acc) ->
+char_attr_xmit_rate(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AscendXmitRate, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "ascendXmitRate"}, {"value", Value}]} | Acc];
@@ -2719,7 +2848,8 @@ char_attr_xmit_rate(Attributes, Acc) ->
 	char_attr_interim_interval(Attributes, NewAcc).
 
 %% @hidden
-char_attr_interim_interval(Attributes, Acc) ->
+char_attr_interim_interval(Attributes, Acc)
+		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?AcctInterimInterval, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctInterimInterval"}, {"value", Value}]} | Acc];
@@ -2784,14 +2914,14 @@ char_attr_cause(Attributes, Acc)
 		{error, not_found} ->
 			char_attr_user_location(Attributes, Acc)
 	end;
-char_attr_cause(CCR, Acc) ->
-	char_attr_user_location(CCR, Acc).
+char_attr_cause(Request, Acc) ->
+	char_attr_user_location(Request, Acc).
 
 %% @hidden
 char_attr_user_location(#'3gpp_ro_CCR'{'Service-Information'
 		= [#'3gpp_ro_Service-Information'{'PS-Information'
 		= [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
-		= [Info]}]}]} = CCR, Acc) when is_binary(Info) ->
+		= [Info]}]}]}, Acc) when is_binary(Info) ->
 	[{struct, [{"name", "userLocationInfo"},
 			{"value", base64:encode_to_string(Info)}]} | Acc];
 char_attr_user_location(_, Acc) ->
