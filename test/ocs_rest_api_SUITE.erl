@@ -2657,6 +2657,7 @@ query_acct_usage_radius(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Usages} = mochijson:decode(Body),
+	true = length(Usages) > 0,
 	F = fun({struct, Usage}) ->
 				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
 				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
@@ -2689,6 +2690,7 @@ query_acct_usage_diameter(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Usages} = mochijson:decode(Body),
+	true = length(Usages) > 0,
 	F = fun({struct, Usage}) ->
 				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
 				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
@@ -2721,6 +2723,7 @@ query_acct_usage_nrf(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Usages} = mochijson:decode(Body),
+	true = length(Usages) > 0,
 	F = fun({struct, Usage}) ->
 				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
 				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
@@ -2753,6 +2756,7 @@ query_acct_usage_type(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Usages} = mochijson:decode(Body),
+	true = length(Usages) > 0,
 	F = fun({struct, Usage}) ->
 				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
 				case lists:keyfind("type", 1, char_pairs(Chars)) of
@@ -2787,6 +2791,7 @@ query_acct_usage_nas_id(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Usages} = mochijson:decode(Body),
+	true = length(Usages) > 0,
 	F = fun({struct, Usage}) ->
 				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
 				case lists:keyfind("nasIdentifier", 1, char_pairs(Chars)) of
