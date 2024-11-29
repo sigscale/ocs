@@ -2491,6 +2491,10 @@ char_attr_nas_id(#{"nfConsumerIdentification"
 		:= #{"nFName" := NfName}} = NrfRequest, Acc) ->
 	NewAcc = [{struct, [{"name", "nasIdentifier"}, {"value", NfName}]} | Acc],
 	char_attr_event_timestamp(NrfRequest, NewAcc);
+char_attr_nas_id(#{"nfConsumerIdentification"
+		:= #{"nodeFunctionality" := NodeFunctionality}} = NrfRequest, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIdentifier"}, {"value", NodeFunctionality}]} | Acc],
+	char_attr_event_timestamp(NrfRequest, NewAcc);
 char_attr_nas_id(Request, Acc) ->
 	char_attr_event_timestamp(Request, Acc).
 
@@ -3792,18 +3796,38 @@ characteristic2("nasIdentifier", like, Like,
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
 	{Request1, Response, VarNum + 1};
-characteristic2("nasIdentifier",  exact, NasId,
+characteristic2("nasIdentifier", exact, NasId,
 		nrf, Request, Response, VarNum) when is_list(NasId) ->
-	Nrf = #{"nfConsumerIdentification" =>
-			#{"nodeFunctionality" => NasId}},
+	VarMatch = build_var_match(VarNum),
+	Nrf = #{"nfConsumerIdentification" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{is_map_key, "nFName", VarMatch},
+					{'==', NasId, {map_get, "nFName", VarMatch}}},
+			{'andalso',
+					{is_map_key, "nodeFunctionality", VarMatch},
+					{'==', NasId, {map_get, "nodeFunctionality", VarMatch}}}}],
 	Request1 = merge({Nrf, []}, Request),
-	{Request1, Response, VarNum};
+	{Request1, Response, VarNum + 1};
 characteristic2("nasIdentifier", like, Like,
 		nrf, Request, Response, VarNum) when is_list(Like) ->
-	Nrf = #{"nfConsumerIdentification" =>
-			#{"nodeFunctionality" => hd(like(Like)) ++ '_'}},
-	Request1 = merge({Nrf, []}, Request),
-	{Request1, Response, VarNum};
+	VarMatch = build_var_match(VarNum),
+	Prefix = hd(like(Like)),
+	Pre = lists:droplast(Prefix),
+	Char = lists:last(Prefix) + 1,
+	Prefix1 = Pre ++ [Char],
+	Nrf = #{"nfConsumerIdentification" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{is_map_key, "nFName", VarMatch},
+					{'=<', Prefix, {map_get, "nFName", VarMatch}},
+					{'>', Prefix1, {map_get, "nFName", VarMatch}}},
+			{'andalso',
+					{is_map_key, "nodeFunctionality", VarMatch},
+					{'=<', Prefix, {map_get, "nodeFunctionality", VarMatch}},
+					{'>', Prefix1, {map_get, "nodeFunctionality", VarMatch}}}}],
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Request1, Response, VarNum + 1};
 characteristic2("nasPortId", exact, NasPortId,
 		radius, Request, Response, VarNum) when is_list(NasPortId) ->
 	Request1 = add_char(Request, {?NasPortId, {exact, NasPortId}}),
