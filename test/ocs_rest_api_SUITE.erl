@@ -714,7 +714,7 @@ get_client_range(Config) ->
 	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
 	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
 	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	["items", "1", RangeEndS1, _RangeTotal] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
 	{array, Clients1} = mochijson:decode(Body1),
@@ -734,16 +734,16 @@ get_client_range(Config) ->
 				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
 				RangeStart2 = list_to_integer(RangeStartS),
 				case EndS of
-					"*" ->
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS);
+					_ ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
 						{array, Clients2} = mochijson:decode(Body2),
 						RangeSize = length(Clients2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
+						F(F, NewRangeStart, NewRangeEnd)
 				end
 	end,
 	CollectionSize = length(ocs:get_clients()),
@@ -1691,7 +1691,7 @@ get_service_range(Config) ->
 	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
 	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
 	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	["items", "1", RangeEndS1, _] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
 	{array, Service1} = mochijson:decode(Body1),
@@ -1711,16 +1711,16 @@ get_service_range(Config) ->
 				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
 				RangeStart2 = list_to_integer(RangeStartS),
 				case EndS of
-					"*" ->
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS);
+					_ ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
 						{array, Service2} = mochijson:decode(Body2),
 						RangeSize = length(Service2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						Fget(NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
+						Fget(NewRangeStart, NewRangeEnd)
 				end
 	end,
 	CollectionSize = length(ocs:get_services()),
@@ -2115,7 +2115,7 @@ get_auth_usage_range(Config) ->
 	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
 	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
 	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	["items", "1", RangeEndS1, _] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
 	{array, Usages1} = mochijson:decode(Body1),
@@ -2135,16 +2135,16 @@ get_auth_usage_range(Config) ->
 				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
 				RangeStart2 = list_to_integer(RangeStartS),
 				case EndS of
-					"*" ->
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS);
+					_ ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
 						{array, Usages2} = mochijson:decode(Body2),
 						RangeSize = length(Usages2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
+						F(F, NewRangeStart, NewRangeEnd)
 				end
 	end,
 	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
@@ -2686,7 +2686,7 @@ get_balance_range(Config) ->
 	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
 	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
 	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	["items", "1", RangeEndS1, _] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
 	{array, Usages1} = mochijson:decode(Body1),
@@ -2706,16 +2706,16 @@ get_balance_range(Config) ->
 				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
 				RangeStart2 = list_to_integer(RangeStartS),
 				case EndS of
-					"*" ->
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS);
+					_ ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
 						{array, Usages2} = mochijson:decode(Body2),
 						RangeSize = length(Usages2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
+						F(F, NewRangeStart, NewRangeEnd)
 				end
 	end,
 	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
@@ -2763,7 +2763,7 @@ get_acct_usage_range(Config) ->
 	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
 	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
 	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	["items", "1", RangeEndS1, _] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
 	{array, Usages1} = mochijson:decode(Body1),
@@ -2783,16 +2783,16 @@ get_acct_usage_range(Config) ->
 				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
 				RangeStart2 = list_to_integer(RangeStartS),
 				case EndS of
-					"*" ->
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS);
+					_ ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
 						{array, Usages2} = mochijson:decode(Body2),
 						RangeSize = length(Usages2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
+						F(F, NewRangeStart, NewRangeEnd)
 				end
 	end,
 	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
