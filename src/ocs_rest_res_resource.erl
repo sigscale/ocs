@@ -120,8 +120,15 @@ get_resource_spec(_) ->
 %% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [tariff_table_spec(), tariff_row_spec(),
-			policy_table_spec(), policy_row_spec()]},
+	Object = {array,
+			[tariff_table_spec(),
+			tariff_row_spec(),
+			policy_table_spec(),
+			policy_row_spec(),
+			tariff_periods_table_spec(),
+			tariff_periods_row_spec(),
+			roaming_table_spec(),
+			roaming_row_spec()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_specs(_Query) ->
