@@ -259,7 +259,8 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, acct_usage_radius, acct_usage_diameter, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	topup_product, topup_service, topup_price,
+	query_acct_usage_radius, query_acct_usage_diameter, query_acct_usage_nrf,
+	query_acct_usage_nas_id, topup_product, topup_service, topup_price,
 	get_balance_product, get_balance_service, query_buckets, head_bucket,
 	simultaneous_updates_on_client_failure, get_product, head_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
@@ -2294,7 +2295,7 @@ acct_usage_diameter(Config) ->
 	PLMN = MCC ++ MNC,
 	OriginRealm = "epc.mnc" ++ MNC ++ ".mcc" ++ MCC ++ ".3gppnetwork.org",
 	OriginHost = ocs_test_lib:rand_name() ++ "." ++ OriginRealm,
-	SessionId = diameter:session_id(OriginHost),
+	SessionId = lists:flatten(diameter:session_id(OriginHost)),
 	ServiceContextId = "10.32251@3gpp.org",
 	CCRequestType = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 	CCRequestNum = rand:uniform(10),
@@ -2634,6 +2635,168 @@ get_acct_usage_filter(Config) ->
 	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
 	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
+
+query_acct_usage_radius() ->
+	[{userdata, [{doc,"Query TMF635 acct usage for RADIUS events"}]}].
+
+query_acct_usage_radius(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	FillCount = (PageSize * rand:uniform(5)) + rand:uniform(PageSize), 
+	ok = fill_acct(FillCount, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Filter = "%22%5B%7BusageCharacteristic.contains%3D%5B%7Bname%3Dprotocol%2Cvalue%3DRADIUS%7D%5D%7D%5D%22",
+	Query = "?type=AAAAccountingUsage&filter=" ++ Filter,
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage" ++ Query,
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	F = fun({struct, Usage}) ->
+				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
+				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
+					{_,  "RADIUS"} ->
+						true;
+					_ ->
+						false
+				end
+	end,
+	true = lists:all(F, Usages).
+
+query_acct_usage_diameter() ->
+	[{userdata, [{doc,"Query TMF635 acct usage for DIAMETER events"}]}].
+
+query_acct_usage_diameter(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	FillCount = (PageSize * rand:uniform(5)) + rand:uniform(PageSize), 
+	ok = fill_acct(FillCount, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Filter = "%22%5B%7BusageCharacteristic.contains%3D%5B%7Bname%3Dprotocol%2Cvalue%3DDIAMETER%7D%5D%7D%5D%22",
+	Query = "?type=AAAAccountingUsage&filter=" ++ Filter,
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage" ++ Query,
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	F = fun({struct, Usage}) ->
+				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
+				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
+					{_,  "DIAMETER"} ->
+						true;
+					_ ->
+						false
+				end
+	end,
+	true = lists:all(F, Usages).
+
+query_acct_usage_nrf() ->
+	[{userdata, [{doc,"Query TMF635 acct usage for Nrf_Rating events"}]}].
+
+query_acct_usage_nrf(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	FillCount = (PageSize * rand:uniform(5)) + rand:uniform(PageSize), 
+	ok = fill_acct(FillCount, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Filter = "%22%5B%7BusageCharacteristic.contains%3D%5B%7Bname%3Dprotocol%2Cvalue%3DNrf_Rating%7D%5D%7D%5D%22",
+	Query = "?type=AAAAccountingUsage&filter=" ++ Filter,
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage" ++ Query,
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	F = fun({struct, Usage}) ->
+				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
+				case lists:keyfind("protocol", 1, char_pairs(Chars)) of
+					{_,  "Nrf_Rating"} ->
+						true;
+					_ ->
+						false
+				end
+	end,
+	true = lists:all(F, Usages).
+
+query_acct_usage_type() ->
+	[{userdata, [{doc,"Query TMF635 acct usage for event type=st* (start/stop)"}]}].
+
+query_acct_usage_type(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	FillCount = (PageSize * rand:uniform(5)) + rand:uniform(PageSize), 
+	ok = fill_acct(FillCount, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Filter = "%22%5B%7BusageCharacteristic.contains%3D%5B%7Bname%3Dtype%2Cvalue.like%3D%5Bst%25%5D%7D%5D%7D%5D%22",
+	Query = "?type=AAAAccountingUsage&filter=" ++ Filter,
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage" ++ Query,
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	F = fun({struct, Usage}) ->
+				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
+				case lists:keyfind("type", 1, char_pairs(Chars)) of
+					{_,  "start"} ->
+						true;
+					{_,  "stop"} ->
+						true;
+					_ ->
+						false
+				end
+	end,
+	true = lists:all(F, Usages).
+
+query_acct_usage_nas_id() ->
+	[{userdata, [{doc,"Query TMF635 acct usage for events with nasIdentifier=ap-1*"}]}].
+
+query_acct_usage_nas_id(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	FillCount = (PageSize * rand:uniform(5)) + rand:uniform(PageSize), 
+	ok = fill_acct(FillCount, undefined),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Filter = "%22%5B%7BusageCharacteristic.contains%3D%5B%7Bname%3DnasIdentifier%2Cvalue.like%3D%5Bap-1%25%5D%7D%5D%7D%5D%22",
+	Query = "?type=AAAAccountingUsage&filter=" ++ Filter,
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage" ++ Query,
+	Request = {RequestUri, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	F = fun({struct, Usage}) ->
+				{_, {array, Chars}} = lists:keyfind("usageCharacteristic", 1, Usage),
+				case lists:keyfind("nasIdentifier", 1, char_pairs(Chars)) of
+					{_,  "ap-1" ++ _} ->
+						true;
+					_ ->
+						false
+				end
+	end,
+	true = lists:all(F, Usages).
 
 get_balance_range() ->
 	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
@@ -7673,13 +7836,12 @@ is_all_spec(_, []) ->
 fill_acct(0, _Protocol) ->
 	ok;
 fill_acct(N, Protocol) ->
-	Hostname = atom_to_binary(?FUNCTION_NAME),
 	Timestamp = erlang:system_time(millisecond),
 	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
 	AcctInputOctets = rand:uniform(100000000),
 	AcctSessionTime = rand:uniform(3600) + 100,
-	UserName = ocstest_lib:rand_name(),
+	UserName = ocs_test_lib:rand_name(),
 	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
 	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
 	Server = {{0, 0, 0, 0}, ocs_test_lib:port()},
@@ -7703,6 +7865,7 @@ fill_acct(N, Protocol) ->
 			{ACR, undefined}
 	end,
 	Fdiameter = fun() ->
+			Hostname = NasIdentifier,
 			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
 			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
