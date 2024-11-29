@@ -195,7 +195,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | timestamp(),
 		End :: calendar:datetime() | timestamp(),
-		Protocol :: protocol() | '_',
+		Protocol :: protocol() | [protocol()] | '_',
 		Types :: [Type] | '_',
 		Type :: acct_type(),
 		Matches :: [Match] | '_',
@@ -240,8 +240,8 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
-acct_query(Continuation, Start, End, Protocol, Types, MatchSpec) ->
-	MFA = {?MODULE, acct_query, [Protocol, Types, MatchSpec]},
+acct_query(Continuation, Start, End, Protocol, Types, Matches) ->
+	MFA = {?MODULE, acct_query, [Protocol, Types, Matches]},
 	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
 -spec auth_open() -> Result
@@ -3186,9 +3186,9 @@ query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 		Continuation :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
-		Protocol :: radius | diameter | '_',
+		Protocol :: protocol() | [protocol()] | '_',
 		Types :: [Type] | '_',
-		Type :: atom(),
+		Type :: start | interim | stop | event | on | off,
 		Matches :: [Match] | '_',
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
@@ -3232,6 +3232,15 @@ acct_query2(Events, '_', Matches, _Acc) ->
 acct_query2([H | T], Protocol, Matches, Acc)
 		when element(3, H) == Protocol ->
 	acct_query2(T, Protocol, Matches, [H |Acc]);
+acct_query2([H | T], [Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
+acct_query2([H | T], [_, Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
+acct_query2([H | T], [_, _, Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
 acct_query2([_ | T], Protocol, Matches, Acc) ->
 	acct_query2(T, Protocol, Matches, Acc);
 acct_query2([], _Protocol, Matches, Acc) ->
@@ -3311,7 +3320,8 @@ acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
 		_ ->
 			false
 	end;
-acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2])
+		when is_list(H) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Value} ->
 			case lists:prefix(H, Value) of
@@ -3470,7 +3480,7 @@ ipdr_query4(_Attributes, []) ->
 -spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Continuation :: {Continuation2, Events},
-		Protocol :: atom() | '_',
+		Protocol :: radius | diameter | '_',
 		Types :: [Type] | '_',
 		Type :: atom(),
 		ReqAttrsMatch :: [tuple()] | '_',
