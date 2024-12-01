@@ -142,16 +142,16 @@ class accountingList extends PolymerElement {
 						<template class="header">
 							<vaadin-grid-filter
 									aria-label="duration"
-									path="acctSessiontime"
-									value="{{filteracctSessiontime}}">
+									path="acctSessionTime"
+									value="{{filteracctSessionTime}}">
 								<input
 										slot="filter"
 										placeholder="Duration"
-										value="{{filteracctSessiontime::input}}"
+										value="{{filteracctSessionTime::input}}"
 										focus-target>
 							</vaadin-grid-filter>
 						</template>
-						<template>[[item.acctSessiontime]]</template>
+						<template>[[item.acctSessionTime]]</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 				<vaadin-grid-column-group>
@@ -161,23 +161,8 @@ class accountingList extends PolymerElement {
 					<vaadin-grid-column width="10ex" flex-grow="1">
 						<template class="header">
 							<vaadin-grid-filter
-									aria-label="out"
-									path="acctOutputoctets"
-									value="{{filterout}}">
-								<input
-										slot="filter"
-										placeholder="Out"
-										value="{{filterout::input}}"
-										focus-target>
-							</vaadin-grid-filter>
-						</template>
-						<template>[[item.acctOutputoctets]]</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="10ex" flex-grow="1">
-						<template class="header">
-							<vaadin-grid-filter
 									aria-label="in"
-									path="acctInputoctets"
+									path="inputOctets"
 									value="{{filterin}}">
 								<input
 										slot="filter"
@@ -186,13 +171,28 @@ class accountingList extends PolymerElement {
 										focus-target>
 							</vaadin-grid-filter>
 						</template>
-						<template>[[item.acctInputoctets]]</template>
+						<template>[[item.inputOctets]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="10ex" flex-grow="1">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="out"
+									path="outputOctets"
+									value="{{filterout}}">
+								<input
+										slot="filter"
+										placeholder="Out"
+										value="{{filterout::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.outputOctets]]</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="10ex" flex-grow="1">
 						<template class="header">
 							<vaadin-grid-filter
 									aria-label="total"
-									path="acctTotaloctets"
+									path="totalOctets"
 									value="{{filtertotal}}">
 								<input
 										slot="filter"
@@ -201,7 +201,7 @@ class accountingList extends PolymerElement {
 										focus-target>
 							</vaadin-grid-filter>
 						</template>
-						<template>[[item.acctTotaloctets]]</template>
+						<template>[[item.totalOctets]]</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 				<vaadin-grid-column width="12ex" flex-grow="1">
@@ -310,7 +310,7 @@ class accountingList extends PolymerElement {
 				type: Boolean,
 				observer: '_filterChanged'
 			},
-			filteracctSessiontime: {
+			filteracctSessionTime: {
 				type: Boolean,
 				observer: '_filterChanged'
 			},
@@ -366,7 +366,7 @@ class accountingList extends PolymerElement {
 		delete this.$.getAccounting.headers['If-Range'];
 		this.filterTimeStamp = null;
 		this.filterclientIdentityAcc = null;
-		this.filteracctSessiontime = null;
+		this.filteracctSessionTime = null;
 		this.filterout = null;
 		this.filterin = null;
 		this.filtertotal = null;
@@ -389,18 +389,16 @@ class accountingList extends PolymerElement {
 		var ajax = accountingList.shadowRoot.getElementById('getAccounting');
 		delete ajax.params['date'];
 		delete ajax.params['nasIdentifier'];
-		delete ajax.params['acctSessiontime'];
-		delete ajax.params['acctOutputoctets'];
-		delete ajax.params['acctInputoctets'];
-		delete ajax.params['acctTotaloctets'];
+		delete ajax.params['acctSessionTime'];
+		delete ajax.params['outputOctets'];
+		delete ajax.params['inputOctets'];
+		delete ajax.params['totalOctets'];
 		delete ajax.params['msisdn'];
 		delete ajax.params['imsi'];
 		delete ajax.params['filter'];
 		ajax.params['type'] = "AAAAccountingUsage";
 		function checkHead(param) {
 			return param.path == "date" || param.path == "status"
-				|| param.path == "nasIdentifier" || param.path == "msisdn"
-				|| param.path == "imsi";
 		}
 		var head;
 		params.filters.filter(checkHead).forEach(function(filter) {
@@ -410,8 +408,6 @@ class accountingList extends PolymerElement {
 		});
 		function checkChar(param) {
 			return param.path != "date" && param.path != "status"
-				&& param.path != "nasIdentifier" && param.path != "msisdn"
-				&& param.path != "imsi";
 		}
 		params.filters.filter(checkChar).forEach(function(filter) {
 			if (filter.value) {
@@ -420,10 +416,11 @@ class accountingList extends PolymerElement {
 				} else {
 					ajax.params['filter'] += ",";
 				}
-				if(isNaN(filter.value)) {
-					ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "%}";
-				} else {
+				var stringChars = ['nasIdentifier', 'imsi', 'msisdn'];
+				if (stringChars.includes(filter.path)) {
 					ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+				} else {
+					ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "}";
 				}
 			}
 		});
@@ -483,28 +480,28 @@ class accountingList extends PolymerElement {
                }
                var input = request.response[index].usageCharacteristic.find(checkCharIn);
                if(input != undefined) {
-                  newRecord.acctInputoctets = input.value;
+                  newRecord.inputOctets = input.value;
                }
                function checkCharOut(characteristicOut){
                   return characteristicOut.name == "outputOctets";
                }
                var output = request.response[index].usageCharacteristic.find(checkCharOut);
                if(output != undefined) {
-                  newRecord.acctOutputoctets = output.value;
+                  newRecord.outputOctets = output.value;
                }
                function checkCharTotal(characteristicTotal){
                   return characteristicTotal.name == "totalOctets";
                }
                var total = request.response[index].usageCharacteristic.find(checkCharTotal);
                if(total != undefined) {
-                  newRecord.acctTotaloctets = total.value;
+                  newRecord.totalOctets = total.value;
                }
                function checkCharDuration(characteristicDuration){
                   return characteristicDuration.name == "acctSessionTime";
                }
                var duration = request.response[index].usageCharacteristic.find(checkCharDuration);
                if(duration != undefined) {
-                  newRecord.acctSessiontime = duration.value;
+                  newRecord.acctSessionTime = duration.value;
                }
                function checkCharUser(characteristicUser){
                   return characteristicUser.name == "username";
