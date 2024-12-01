@@ -3945,7 +3945,7 @@ characteristic2("acctSessionTime", Op, AcctSessionTime,
 		is_integer(AcctSessionTime) ->
 	Request1 = add_char(Request, {?AcctSessionTime, {Op, AcctSessionTime}}),
 	{Protocols, Request1, Response, VarNum};
-characteristic2("acctSessiontime", Op, AcctSessionTime,
+characteristic2("acctSessionTime", Op, AcctSessionTime,
 		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == notexact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctSessionTime) ->
