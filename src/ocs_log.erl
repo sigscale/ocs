@@ -187,8 +187,8 @@ acct_close() ->
 		Reason :: term().
 %% @doc Query accounting log events with filters.
 %% @equiv acct_query(Continuation, Start, End, '_', Types, AttrsMatch)
-acct_query(Continuation, Start, End, Types, AttrsMatch) ->
-	acct_query(Continuation, Start, End, '_', Types, AttrsMatch).
+acct_query(Continuation, Start, End, Types, Matches) ->
+	acct_query(Continuation, Start, End, '_', Types, Matches).
 
 -spec acct_query(Continuation, Start, End, Protocol, Types, Matches) -> Result
 	when
@@ -3228,7 +3228,7 @@ acct_query1([], Protocol, _Types,  Matches, Acc) ->
 	acct_query2(lists:reverse(Acc), Protocol, Matches, []).
 %% @hidden
 acct_query2(Events, '_', Matches, _Acc) ->
-	acct_query3(Events, Matches, []);
+	acct_query3(Events, Matches);
 acct_query2([H | T], Protocol, Matches, Acc)
 		when element(3, H) == Protocol ->
 	acct_query2(T, Protocol, Matches, [H |Acc]);
@@ -3244,29 +3244,15 @@ acct_query2([H | T], [_, _, Protocol | _] = Protocols, Matches, Acc)
 acct_query2([_ | T], Protocol, Matches, Acc) ->
 	acct_query2(T, Protocol, Matches, Acc);
 acct_query2([], _Protocol, Matches, Acc) ->
-	acct_query3(lists:reverse(Acc), Matches, []).
+	acct_query3(lists:reverse(Acc), Matches).
 %% @hidden
-acct_query3(Events, '_', _Acc) ->
-	Events;
-acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == radius ->
-	F = fun({Attribute, _Match}) when is_integer(Attribute) ->
+acct_query3(Events, Matches) when is_list(Matches) ->
+	Fradius = fun({Attribute, _Match}) when is_integer(Attribute) ->
 				true;
 			(_) ->
 				false
 	end,
-	case lists:filter(F, Matches) of
-		[] ->
-			acct_query3(T, Matches, Acc);
-		RadiusMatch ->
-			case acct_query4(element(7, H), RadiusMatch) of
-				true ->
-					acct_query3(T, Matches, [H | Acc]);
-				false ->
-					acct_query3(T, Matches, Acc)
-			end
-	end;
-acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
-	F = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
+	Fdiameter = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
 			({#'3gpp_ro_RAR'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
@@ -3277,71 +3263,93 @@ acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, Matches) of
-		[] ->
-			acct_query3(T, Matches, Acc);
-		MatchSpec ->
-			case erlang:match_spec_test(element(7, H), MatchSpec, table) of
-				{ok, Event, [], []} when is_tuple(Event) ->
-					acct_query3(T, Matches, [H | Acc]);
-				{ok, false , [], []}->
-					acct_query3(T, Matches, Acc);
-				{error, Reason} ->
-					{error, Reason}
-			end
-	end;
-acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == nrf ->
-	F = fun({#{} = MatchHead, MatchConds}) ->
+	Fnrf = fun({MatchHead, MatchConds}) when is_map(MatchHead) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, Matches) of
-		[] ->
-			acct_query3(T, Matches, Acc);
-		[MatchRequest | _MatchResponse] ->
-			case erlang:match_spec_test(element(7, H), [MatchRequest], table) of
-				{ok, #{}, [], []} ->
-					acct_query3(T, Matches, [H | Acc]);
-				{ok, false , [], []}->
-					acct_query3(T, Matches, Acc);
-				{error, Reason} ->
-					{error, Reason}
-			end
-	end;
-acct_query3([], Matches, Acc) ->
-	acct_query5(lists:reverse(Acc), Matches, []).
+	RadiusMatchSpec = lists:filtermap(Fradius, Matches),
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	NrfMatchSpec = lists:filtermap(Fnrf, Matches),
+	acct_query4(Events, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, []);
+acct_query3(Events, '_') ->
+	Events.
 %% @hidden
-acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == radius, length(RadiusMatchSpec) > 0 ->
+	case acct_query5(element(7, H), RadiusMatchSpec) of
+		true ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		false ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc)
+	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(7, H), DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			acct_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == nrf, length(NrfMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(7, H), NrfMatchSpec, table) of
+		{ok, #{}, [], []} ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query4([H | T], Matches, RadiusMatchSpec,
+		DiameterMatchSpec, NrfMatchSpec, Acc) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+acct_query4([], Matches, _, _, _, Acc) ->
+	acct_query6(lists:reverse(Acc), Matches).
+%% @hidden
+acct_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Match1} when
 				(Match1 == Match) or (Match == '_') ->
-			acct_query4(Attributes, T);
+			acct_query5(Attributes, T);
 		_ ->
 			false
 	end;
-acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2])
+acct_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2])
 		when is_list(H) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Value} ->
 			case lists:prefix(H, Value) of
 				true ->
-					acct_query4(Attributes, [{Attribute, {like, T1}} | T2]);
+					acct_query5(Attributes, [{Attribute, {like, T1}} | T2]);
 				false ->
 					false
 			end;
 		_ ->
 			false
 	end;
-acct_query4(Attributes, [{_, {like, []}} | T]) ->
-	acct_query4(Attributes, T);
-acct_query4(Attributes, [_ | T]) ->
-	acct_query4(Attributes, T);
-acct_query4(_Attributes, []) ->
+acct_query5(Attributes, [{_, {like, []}} | T]) ->
+	acct_query5(Attributes, T);
+acct_query5(Attributes, [_ | T]) ->
+	acct_query5(Attributes, T);
+acct_query5(_Attributes, []) ->
 	true.
 %% @hidden
-acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
-	F = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
+acct_query6(Events, Matches) when is_list(Matches) ->
+	Fdiameter = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
 			({#'3gpp_ro_RAA'{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
@@ -3352,77 +3360,54 @@ acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, Matches) of
-		[] ->
-			acct_query5(T, Matches, [H | Acc]);
-		MatchSpec ->
-			case erlang:match_spec_test(element(8, H), MatchSpec, table) of
-				{ok, Event, [], []} when is_tuple(Event) ->
-					acct_query5(T, Matches, [H | Acc]);
-				{ok, false , [], []}->
-					acct_query5(T, Matches, Acc);
-				{error, Reason} ->
-					{error, Reason}
-			end
-	end;
-acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == nrf ->
-	F = fun({#{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			(_) ->
-				false
-	end,
-	case lists:filtermap(F, Matches) of
-		MatchSpec when length(MatchSpec) < 2 ->
-			acct_query5(T, Matches, [H | Acc]);
-		[_ | MatchSpec] ->
-			case erlang:match_spec_test(element(8, H), MatchSpec, table) of
-				{ok, #{}, [], []} ->
-					acct_query5(T, Matches, [H | Acc]);
-				{ok, false , [], []}->
-					acct_query5(T, Matches, Acc);
-				{error, Reason} ->
-					{error, Reason}
-			end
-	end;
-acct_query5([H | T] = Events, Matches, Acc) when element(3, H) == radius ->
-	acct_query5(T, Matches, [H | Acc]);
-acct_query5([], Matches, Acc) ->
-	acct_query6(lists:reverse(Acc), Matches, []).
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	acct_query7(Events, Matches, DiameterMatchSpec, []).
 %% @hidden
-acct_query6([H | T] = Events, Matches, Acc) ->
-	F = fun({#rated{} = MatchHead, MatchConds}) ->
+acct_query7([H | T] = _Events, Matches, [] = DiameterMatchSpec, Acc)
+		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(8, H), DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query7(T, Matches, DiameterMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query7([H | T], Matches, DiameterMatchSpec, Acc) ->
+	acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
+acct_query7([], Matches, _, Acc) ->
+	acct_query8(lists:reverse(Acc), Matches).
+%% @hidden
+acct_query8(Events, Matches) ->
+	Frated = fun({#rated{} = MatchHead, MatchConds}) ->
 				{true, {MatchHead, MatchConds, ['$_']}};
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, Matches) of
-		[] ->
-			Events;
-		MatchSpec ->
-			case element(9, H) of
-				[#rated{} = Rated | _] ->
-					case erlang:match_spec_test(Rated, MatchSpec, table) of
-						{ok, #rated{}, [], []} ->
-							acct_query6(T, Matches, [H | Acc]);
-						{ok, false , [], []}->
-							acct_query6(T, Matches, Acc);
-						{error, Reason} ->
-							{error, Reason}
-					end;
-				[[#rated{} = Rated | _]] ->
-					case erlang:match_spec_test(Rated, MatchSpec, table) of
-						{ok, #rated{}, [], []} ->
-							acct_query6(T, Matches, [H | Acc]);
-						{ok, false , [], []}->
-							acct_query6(T, Matches, Acc);
-						{error, Reason} ->
-							{error, Reason}
-					end;
-				undefined ->
-					acct_query6(T, Matches, Acc)
-			end
+	RatedMatchSpec = lists:filtermap(Frated, Matches),
+	acct_query9(Events, Matches, RatedMatchSpec, []).
+%% @hidden
+acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
+		when length(RatedMatchSpec) > 0 ->
+	F = fun(#rated{} = Rated) ->
+				case erlang:match_spec_test(Rated, RatedMatchSpec, table) of
+					{ok, #rated{}, [], []} ->
+						true;
+					{ok, false , [], []}->
+						false;
+					{error, _Reason} ->
+						false
+				end
+	end,
+	case lists:any(F, element(9, H)) of
+		true ->
+			acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
+		false ->
+			acct_query9(T, Matches, RatedMatchSpec, Acc)
 	end;
-acct_query6([], _Matches, Acc) ->
+acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
+	acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
+acct_query9([], _, _, Acc) ->
 	lists:reverse(Acc).
 
 -spec ipdr_query(Continuation, MatchSpec) -> Result
