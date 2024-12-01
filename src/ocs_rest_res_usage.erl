@@ -2951,7 +2951,7 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex,
 							[{"usageCharacteristic", contains, Contains}]}]}]} ->
-						characteristic(Contains, '_', '_', '_', '_', 0)
+						characteristic(Contains, '_', '_', '_', '_', 1)
 				end;
 			false ->
 				{'_', '_', '_', '_'}
@@ -2979,7 +2979,7 @@ query_start1(_Type, {_, "AAAAccountingUsage"}, undefined, Query,
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex,
 							[{"usageCharacteristic", contains, Contains}]}]}]} ->
-						characteristic(Contains, '_', '_', '_', '_', 0)
+						characteristic(Contains, '_', '_', '_', '_', 1)
 				end;
 			false ->
 				{'_', '_', '_', '_'}
@@ -3366,7 +3366,7 @@ ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
 		Types :: [ocs_log:acct_type()] | '_',
 		MatchRequest :: [tuple()] | '_',
 		MatchResponse :: [tuple()] | '_',
-		VarNum :: non_neg_integer(),
+		VarNum :: pos_integer(),
 		Result :: {Protocols, Types, MatchRequest, MatchResponse}.
 %% @doc Construct a log event filter.
 %%
@@ -3377,6 +3377,7 @@ ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
 %%
 %% 	`Result' is used in {@link //ocs/ocs_log:acct_query/6. ocs_log:acct_query/6}.
 %%
+%% @throws {error, 400 | 500}
 %% @private
 characteristic(Filter, '_' = _Protocols, Types,
 		MatchRequest, MatchResponse, VarNum) ->
@@ -3391,35 +3392,27 @@ characteristic([{complex, L1} | T] = _Filter,
 				{value, {_, Op, Value}, []} when Name == "protocol",
 						((Op == exact) or (Op == notexact)
 								or (Op == like) or (Op == notlike)) ->
-					case characteristic_protocol(Op, Value) of
-						Protocols1 when is_list(Protocols1) ->
-							characteristic(T, Protocols1, Types,
-									MatchRequest, MatchResponse, VarNum);
-						error ->
-							throw({error, 400})
-					end;
+					Protocols1 = characteristic_protocol(Op, Value),
+					characteristic(T, Protocols1, Types,
+							MatchRequest, MatchResponse, VarNum);
 				{value, {_, Op, Value}, []} when Name == "type",
 						((Op == exact) or (Op == notexact)
 								or (Op == like) or (Op == notlike)) ->
-					case characteristic_type(Op, Value) of
-						Types1 when is_list(Types1) ->
-							characteristic(T, Protocols, Types1,
-									MatchRequest, MatchResponse, VarNum);
-						error ->
-							throw({error, 400})
-					end;
+					Types1 = characteristic_type(Op, Value),
+					characteristic(T, Protocols, Types1,
+							MatchRequest, MatchResponse, VarNum);
 				{value, {_, Op, Value}, []}
 						when Op == exact; Op == notexact;
 								Op == like; Op == notlike;
 								Op == lt; Op == lte;
 								Op == gt; Op == gte ->
-						{MatchRequest1, MatchResponse1, VarNum1}
+						{Protocols1, MatchRequest1, MatchResponse1, VarNum1}
 								= characteristic1(Name, Op, Value,
-										Protocols, MatchRequest,
+										Protocols, Protocols, MatchRequest,
 										MatchResponse, VarNum),
-						characteristic(T, Protocols, Types,
+						characteristic(T, Protocols1, Types,
 								MatchRequest1, MatchResponse1, VarNum1);
-				_ ->
+				_Reason ->
 					throw({error, 400})
 			end;
 		false ->
@@ -3429,49 +3422,48 @@ characteristic([], Protocol, Types,
 		MatchRequest, MatchResponse, _N) ->
 	{Protocol, rev(Types), rev(MatchRequest), rev(MatchResponse)}.
 %% @hidden
-characteristic1(Name, Operator, Value, [Protocol | T],
+characteristic1(Name, Operator, Value, [Protocol | T], Protocols,
 		MatchRequest, MatchResponse, VarNum) ->
-	case characteristic2(Name, Operator, Value,
-			Protocol, MatchRequest, MatchResponse, VarNum) of
-		{MatchRequest1, MatchResponse1, VarNum1} ->
-			characteristic1(Name, Operator, Value,
-					T, MatchRequest1, MatchResponse1, VarNum1);
-		error ->
-			throw({error, 400})
-	end;
-characteristic1(_Name, _Operator, _Value, [],
+	{Protocols1, MatchRequest1, MatchResponse1, VarNum1}
+			= characteristic2(Name, Operator, Value, Protocol, Protocols,
+					MatchRequest, MatchResponse, VarNum),
+	characteristic1(Name, Operator, Value, T, Protocols1,
+			MatchRequest1, MatchResponse1, VarNum1);
+characteristic1(_Name, _Operator, _Value, [], Protocols,
 		MatchRequest, MatchResponse, VarNum) ->
-	{MatchRequest, MatchResponse, VarNum}.
+	{Protocols, MatchRequest, MatchResponse, VarNum}.
 
--spec characteristic2(Name, Operator, Value, Protocol,
+-spec characteristic2(Name, Operator, Value, Protocol, Protocols,
 		MatchRequest, MatchResponse, VarNum) -> Result
 	when
 		Name :: string(),
 		Operator :: exact | notexact | like | notlike | lt | lte | gt | gte,
 		Value :: integer() | string() | boolean(),
 		Protocol :: ocs_log:protocol(),
+		Protocols :: [Protocol],
 		MatchRequest :: [tuple()] | '_',
 		MatchResponse :: [tuple()] | '_',
 		VarNum :: non_neg_integer(),
-		Result :: {MatchRequest, MatchResponse, VarNum} | error.
+		Result :: {Protocols, MatchRequest, MatchResponse, VarNum}.
 %% @doc Construct a Match for a Characteristic.
+%% @throws {error, 400}
 %% @hidden
 characteristic2("username" = _Name, exact = _Operator, UserName,
-		radius, Request1, Response, VarNum) when is_list(UserName) ->
-	Request2 = add_char(Request1, {?UserName, {exact, UserName}}),
-	{Request2, Response, VarNum};
+		radius, Protocols, Request, Response, VarNum) when is_list(UserName) ->
+	Request1 = add_char(Request, {?UserName, {exact, UserName}}),
+	{Protocols, Request1, Response, VarNum};
 characteristic2("username", like, Like,
-		radius, Request1, Response, VarNum) when is_list(Like) ->
-	Request2 = add_char(Request1, {?UserName, {like, like(Like)}}),
-	{Request2, Response, VarNum};
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
+	Request1 = add_char(Request, {?UserName, {like, like(Like)}}),
+	{Protocols, Request1, Response, VarNum};
 characteristic2("username", exact, UserName,
-		diameter, Request, Response, VarNum) when is_list(UserName) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(UserName) ->
 	UserName1 = list_to_binary(UserName),
 	CCR = #'3gpp_ro_CCR'{'User-Name' = [UserName1], _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("username", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Prefix = list_to_binary(hd(like(Like))),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
 	Byte = binary:last(Prefix) + 1,
@@ -3480,126 +3472,172 @@ characteristic2("username", like, Like,
 	CCR = #'3gpp_ro_CCR'{'User-Name' = [VarMatch], _ = '_'},
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
+characteristic2("imsi", _Op, _Value, radius, Protocols, Request, Response, VarNum) ->
+	Protocols1 = lists:delete(radius, Protocols),
+	{Protocols1, Request, Response, VarNum};
 characteristic2("imsi", exact, IMSI,
-		diameter, Request, Response, VarNum) when is_list(IMSI) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(IMSI) ->
 	IMSI1 = list_to_binary(IMSI),
-	Sub1 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
-			'Subscription-Id-Data' = IMSI1},
-	CCR1 = #'3gpp_ro_CCR'{'Subscription-Id' = [Sub1],  _ = '_'},
-	Request1 = merge({CCR1, []}, Request),
-	VarMatch1 = build_var_match(VarNum),
-	VarMatch2 = build_var_match(VarNum + 1),
-	VarMatch3 = build_var_match(VarNum + 2),
-	VarMatch4 = build_var_match(VarNum + 3),
-	Sub2 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch1,
-			'Subscription-Id-Data' = VarMatch2},
-	Sub3 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch3,
-			'Subscription-Id-Data' = VarMatch4},
-	CCR2 = ccr_subs(#'3gpp_ro_CCR'{_ = '_'}, Sub2, Sub3),
-	MatchCond = [{'or', {'and', {'=:=', VarMatch1,
-			?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', VarMatch2, IMSI1}},
-			{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
-			{'==', VarMatch4, IMSI1}}}],
-	Request2 = Request1 ++ [{CCR2, MatchCond}],
-	{Request2, Response, VarNum + 4};
+	VarMatch = build_var_match(VarNum),
+	TypeField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+	DataField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Data',
+	TypeValue = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+	CCR = #'3gpp_ro_CCR'{'Subscription-Id' = VarMatch,  _ = '_'},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {element, TypeField, {hd, VarMatch}}, TypeValue},
+					{'=:=', {element, DataField, {hd, VarMatch}}, IMSI1}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {element, TypeField, {hd, {tl, VarMatch}}}, TypeValue},
+					{'=:=', {element, DataField, {hd, {tl, VarMatch}}}, IMSI1}}}],
+	Request1 = merge({CCR, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("imsi", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Prefix = list_to_binary(hd(like(Like))),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
 	Byte = binary:last(Prefix) + 1,
 	Prefix1 = <<Pre/binary, Byte>>,
-	VarMatch1 = build_var_match(VarNum),
-	VarMatch2 = build_var_match(VarNum + 1),
-	VarMatch3 = build_var_match(VarNum + 2),
-	VarMatch4 = build_var_match(VarNum + 3),
-	VarMatch5 = build_var_match(VarNum + 4),
-	Sub1 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
-			'Subscription-Id-Data' = VarMatch1},
-	MatchCond1 = [{'=<', Prefix, VarMatch1}, {'>', Prefix1, VarMatch1}],
-	CCR1 = #'3gpp_ro_CCR'{'Subscription-Id' = [Sub1],  _ = '_'},
-	Request1 = merge({CCR1, MatchCond1}, Request),
-	Sub2 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch2,
-			'Subscription-Id-Data' = VarMatch3},
-	Sub3 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch4,
-			'Subscription-Id-Data' = VarMatch5},
-	CCR2 = ccr_subs(#'3gpp_ro_CCR'{_ = '_'}, Sub2, Sub3),
-	MatchCond2 = [{'or', {'and', {'=:=', VarMatch2,
-			?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'=<', Prefix, VarMatch3},
-			{'>', Prefix1, VarMatch3}},
-			{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
-			{'=<', Prefix, VarMatch5}, {'>', Prefix1, VarMatch5}}}],
-	Request2 = Request1 ++ [{CCR2, MatchCond2}],
-	{Request2, Response, VarNum + 5};
+	VarMatch = build_var_match(VarNum),
+	TypeField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+	DataField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Data',
+	TypeValue = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+	CCR = #'3gpp_ro_CCR'{'Subscription-Id' = VarMatch,  _ = '_'},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {element, TypeField, {hd, VarMatch}}, TypeValue},
+					{'=<', Prefix, {element, DataField, {hd, VarMatch}}},
+					{'>', Prefix1, {element, DataField, {hd, VarMatch}}}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {element, TypeField, {hd, {tl, VarMatch}}}, TypeValue},
+					{'=<', Prefix, {element, DataField, {hd, {tl, VarMatch}}}},
+					{'>', Prefix1, {element, DataField, {hd, {tl, VarMatch}}}}}}],
+	Request1 = merge({CCR, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2("msisdn", _Op, _Value, radius, Protocols, Request, Response, VarNum) ->
+	Protocols1 = lists:delete(radius, Protocols),
+	{Protocols1, Request, Response, VarNum};
 characteristic2("msisdn", exact, MSISDN,
-		diameter, Request, Response, VarNum) when is_list(MSISDN) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(MSISDN) ->
 	MSISDN1 = list_to_binary(MSISDN),
-	Sub1 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = MSISDN1},
-	CCR1 = #'3gpp_ro_CCR'{'Subscription-Id' = [Sub1],  _ = '_'},
-	Request1 = merge({CCR1, []}, Request),
-	VarMatch1 = build_var_match(VarNum),
-	VarMatch2 = build_var_match(VarNum + 1),
-	VarMatch3 = build_var_match(VarNum + 2),
-	VarMatch4 = build_var_match(VarNum + 3),
-	Sub2 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch1,
-			'Subscription-Id-Data' = VarMatch2},
-	Sub3 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch3,
-			'Subscription-Id-Data' = VarMatch4},
-	CCR2 = ccr_subs(#'3gpp_ro_CCR'{_ = '_'}, Sub2, Sub3),
-	MatchCond = {'or', {'and', {'=:=', VarMatch1,
-			?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', VarMatch2, MSISDN1}},
-			{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
-			{'==', VarMatch4, MSISDN1}}},
-	Request2 = Request1 ++ [{CCR2, MatchCond}],
-	{Request2, Response, VarNum + 4};
+	VarMatch = build_var_match(VarNum),
+	TypeField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+	DataField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Data',
+	TypeValue = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+	CCR = #'3gpp_ro_CCR'{'Subscription-Id' = VarMatch,  _ = '_'},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {element, TypeField, {hd, VarMatch}}, TypeValue},
+					{'=:=', {element, DataField, {hd, VarMatch}}, MSISDN1}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {element, TypeField, {hd, {tl, VarMatch}}}, TypeValue},
+					{'=:=', {element, DataField, {hd, {tl, VarMatch}}}, MSISDN1}}}],
+	Request1 = merge({CCR, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("msisdn", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Prefix = list_to_binary(hd(like(Like))),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
 	Byte = binary:last(Prefix) + 1,
 	Prefix1 = <<Pre/binary, Byte>>,
-	VarMatch1 = build_var_match(VarNum),
-	VarMatch2 = build_var_match(VarNum + 1),
-	VarMatch3 = build_var_match(VarNum + 2),
-	VarMatch4 = build_var_match(VarNum + 3),
-	VarMatch5 = build_var_match(VarNum + 4),
-	Sub1 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = VarMatch1},
-	MatchCond1 = [{'=<', Prefix, VarMatch1}, {'>', Prefix1, VarMatch1}],
-	CCR1 = #'3gpp_ro_CCR'{'Subscription-Id' = [Sub1],  _ = '_'},
-	Request1 = merge({CCR1, MatchCond1}, Request),
-	Sub2 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch2,
-			'Subscription-Id-Data' = VarMatch3},
-	Sub3 = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = VarMatch4,
-			'Subscription-Id-Data' = VarMatch5},
-	CCR2 = ccr_subs(#'3gpp_ro_CCR'{_ = '_'}, Sub2, Sub3),
-	MatchCond2 = [{'or', {'and', {'=:=', VarMatch2,
-			?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'=<', Prefix, VarMatch3},
-			{'>', Prefix1, VarMatch3}},
-			{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
-			{'=<', Prefix, VarMatch5}, {'>', Prefix1, VarMatch5}}}],
-	Request2 = Request1 ++ [{CCR2, MatchCond2}],
-	{Request2, Response, VarNum + 5};
+	VarMatch = build_var_match(VarNum),
+	TypeField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+	DataField = #'3gpp_ro_Subscription-Id'.'Subscription-Id-Data',
+	TypeValue = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+	CCR = #'3gpp_ro_CCR'{'Subscription-Id' = VarMatch,  _ = '_'},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {element, TypeField, {hd, VarMatch}}, TypeValue},
+					{'=<', Prefix, {element, DataField, {hd, VarMatch}}},
+					{'>', Prefix1, {element, DataField, {hd, VarMatch}}}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {element, TypeField, {hd, {tl, VarMatch}}}, TypeValue},
+					{'=<', Prefix, {element, DataField, {hd, {tl, VarMatch}}}},
+					{'>', Prefix1, {element, DataField, {hd, {tl, VarMatch}}}}}}],
+	Request1 = merge({CCR, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2("imsi", exact, IMSI,
+		nrf, Protocols, Request, Response, VarNum) when is_list(IMSI) ->
+	IMSI1 = "imsi-" ++ IMSI,
+	VarMatch = build_var_match(VarNum),
+	Nrf = #{"subscriptionId" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {hd, VarMatch}, IMSI1}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {hd, {tl, VarMatch}}, IMSI1}}}],
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2("imsi", like, Like,
+		nrf, Protocols, Request, Response, VarNum) when is_list(Like) ->
+	Prefix = "imsi-" ++ hd(like(Like)),
+	Pre = lists:droplast(Prefix),
+	Char = lists:last(Prefix) + 1,
+	Prefix1 = Pre ++ [Char],
+	VarMatch = build_var_match(VarNum),
+	Nrf = #{"subscriptionId" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=<', Prefix, {hd, VarMatch}},
+					{'>', Prefix1, {hd, VarMatch}}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=<', Prefix, {hd, {tl, VarMatch}}},
+					{'>', Prefix1, {hd, {tl, VarMatch}}}}}],
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2("msisdn", exact, MSISDN,
+		nrf, Protocols, Request, Response, VarNum) when is_list(MSISDN) ->
+	MSISDN1 = "msisdn-" ++ MSISDN,
+	VarMatch = build_var_match(VarNum),
+	Nrf = #{"subscriptionId" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=:=', {hd, VarMatch}, MSISDN1}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=:=', {hd, {tl, VarMatch}}, MSISDN1}}}],
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2("msisdn", like, Like,
+		nrf, Protocols, Request, Response, VarNum) when is_list(Like) ->
+	Prefix = "msisdn-" ++ hd(like(Like)),
+	Pre = lists:droplast(Prefix),
+	Char = lists:last(Prefix) + 1,
+	Prefix1 = Pre ++ [Char],
+	VarMatch = build_var_match(VarNum),
+	Nrf = #{"subscriptionId" => VarMatch},
+	MatchCond = [{'or',
+			{'andalso',
+					{'>', {length, VarMatch}, 0},
+					{'=<', Prefix, {hd, VarMatch}},
+					{'>', Prefix1, {hd, VarMatch}}},
+			{'andalso',
+					{'>', {length, VarMatch}, 1},
+					{'=<', Prefix, {hd, {tl, VarMatch}}},
+					{'>', Prefix1, {hd, {tl, VarMatch}}}}}],
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("nasIpAddress", exact, NasIp,
-		radius, Request, Response, VarNum) when is_list(NasIp) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(NasIp) ->
 	{ok, NasIp1} = inet:parse_address(NasIp),
 	Request1 = add_char(Request, {?NasIpAddress, {exact, NasIp1}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasIpAddress", exact, NasIp,
-		diameter, Request, Response, VarNum) when is_list(NasIp) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(NasIp) ->
 	{ok, Address} = inet:parse_address(NasIp),
 	VarMatch1 = build_var_match(VarNum),
 	VarMatch2 = build_var_match(VarNum + 1),
@@ -3610,119 +3648,119 @@ characteristic2("nasIpAddress", exact, NasIp,
 	MatchCond = [{'or', {'==', [Address], [VarMatch1]},
 			{'==', [Address], [VarMatch2]}}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 2};
+	{Protocols, Request1, Response, VarNum + 2};
 characteristic2("nasPort", Op, NasPort,
-		radius, Request, Response, VarNum) when 
+		radius, Protocols, Request, Response, VarNum) when 
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(NasPort) ->
 	Request1 = add_char(Request, {?NasPort, {Op, NasPort}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("serviceType", Op, ServiceType,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(ServiceType) ->
 	Request1 = add_char(Request, {?ServiceType, {Op, ServiceType}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("serviceContextId", exact, Context,
-		diameter, Request, Response, VarNum) when is_list(Context) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Context) ->
 	Context1 = list_to_binary(Context),
 	CCR = #'3gpp_ro_CCR'{'Service-Context-Id' = Context1, _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedIpAddress", exact, FramedIp,
-		radius, Request, Response, VarNum) when is_list(FramedIp) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(FramedIp) ->
 	{ok, FramedIp1} = inet:parse_address(FramedIp),
 	Request1 = add_char(Request, {?FramedIpAddress, {exact, FramedIp1}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedPool", exact, FramedPool,
-		radius, Request, Response, VarNum) when is_list(FramedPool) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(FramedPool) ->
 	Request1 = add_char(Request, {?FramedPool, {exact, FramedPool}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedPool", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?FramedPool, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedIpNetmask", exact, FramedIpNet,
-		radius, Request, Response, VarNum) when is_list(FramedIpNet) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(FramedIpNet) ->
 	{ok, FramedIpNet1} = inet:parse_address(FramedIpNet),
 	Request1 = add_char(Request, {?FramedIpNetmask, {exact, FramedIpNet1}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("filterId", exact, FilterId,
-		radius, Request, Response, VarNum) when is_list(FilterId) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(FilterId) ->
 	Request1 = add_char(Request, {?FilterId, {exact, FilterId}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("filterId", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?FilterId, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedMtu", Op, FramedMtu,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(FramedMtu) ->
 	Request1 = add_char(Request, {?FramedMtu, {Op, FramedMtu}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRoute", exact, FramedRoute,
-		radius, Request, Response, VarNum) when is_list(FramedRoute) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(FramedRoute) ->
 	Request1 = add_char(Request, {?FramedRoute, {exact, FramedRoute}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRoute", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?FramedRoute, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRouting", exact, "none",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?FramedRouting, {exact, 0}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRouting", exact, "send-routing-packets",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?FramedRouting, {exact, 1}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRouting", exact, "listen-for-routing-packets",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?FramedRouting, {exact, 2}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("framedRouting", exact, "send-and-listen",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?FramedRouting, {exact, 3}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("class", exact, Class,
-		radius, Request, Response, VarNum) when is_list(Class) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Class) ->
 	Request1 = add_char(Request, {?Class, {exact, Class}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("class", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?Class, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("sessionTimeout", Op, SessionTimout,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(SessionTimout) ->
 	Request1 = add_char(Request, {?SessionTimeout, {Op, SessionTimout}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("idleTimeout", Op, IdleTimeout,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(IdleTimeout) ->
 	Request1 = add_char(Request, {?IdleTimeout, {Op, IdleTimeout}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("terminationAction", exact, "default",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?TerminationAction, {exact, 0}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("terminationAction", exact, "aaa-request",
-		radius, Request, Response, VarNum) ->
+		radius, Protocols, Request, Response, VarNum) ->
 	Request1 = add_char(Request, {?TerminationAction, {exact, 1}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("calledStationId", exact, CalledStation,
-		radius, Request, Response, VarNum) when is_list(CalledStation) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(CalledStation) ->
 	Request1 = add_char(Request, {?CalledStationId, {exact, CalledStation}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("calledStationId", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?CalledStationId, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("calledStationId", exact, CalledStation,
-		diameter, Request, Response, VarNum) when is_list(CalledStation) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(CalledStation) ->
 	CalledStation1 = list_to_binary(CalledStation),
 	IMS = #'3gpp_ro_IMS-Information'{
 			'Called-Party-Address' = [CalledStation1], _ = '_'},
@@ -3730,9 +3768,9 @@ characteristic2("calledStationId", exact, CalledStation,
 			'IMS-Information' = [IMS], _ = '_'},
 	CCR = #'3gpp_ro_CCR'{'Service-Information' = [SI], _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("calledStationId", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Prefix = list_to_binary(hd(like(Like))),
 	VarMatch = build_var_match(VarNum),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
@@ -3745,9 +3783,9 @@ characteristic2("calledStationId", like, Like,
 	CCR = #'3gpp_ro_CCR'{'Service-Information' = [SI], _ = '_'},
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("callingStationId", exact, CallingStation,
-		diameter, Request, Response, VarNum) when is_list(CallingStation) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(CallingStation) ->
 	CallingStation1 = list_to_binary(CallingStation),
 	IMS = #'3gpp_ro_IMS-Information'{
 			'Calling-Party-Address' = [CallingStation1], _ = '_'},
@@ -3755,9 +3793,9 @@ characteristic2("callingStationId", exact, CallingStation,
 			'IMS-Information' = [IMS], _ = '_'},
 	CCR = #'3gpp_ro_CCR'{'Service-Information' = [SI], _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("callingStationId", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Prefix = list_to_binary(hd(like(Like))),
 	VarMatch = build_var_match(VarNum),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
@@ -3770,34 +3808,34 @@ characteristic2("callingStationId", like, Like,
 	CCR = #'3gpp_ro_CCR'{'Service-Information' = [SI], _ = '_'},
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("nasIdentifier", exact, NasId,
-		radius, Request, Response, VarNum) when is_list(NasId) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(NasId) ->
 	Request1 = add_char(Request, {?NasIdentifier, {exact, NasId}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasIdentifier", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?NasIdentifier, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasIdentifier", exact, NasId,
-		diameter, Request, Response, VarNum) when is_list(NasId) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(NasId) ->
 	NasId1 = list_to_binary(NasId),
-	CCR = #'3gpp_ro_CCR'{'Origin-Host' = [NasId1], _ = '_'},
+	CCR = #'3gpp_ro_CCR'{'Origin-Host' = NasId1, _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasIdentifier", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	VarMatch = build_var_match(VarNum),
 	Prefix = list_to_binary(hd(like(Like))),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
 	Byte = binary:last(Prefix) + 1,
 	Prefix1 = <<Pre/binary, Byte>>,
-	CCR = #'3gpp_ro_CCR'{'Origin-Host' = [VarMatch], _ = '_'},
+	CCR = #'3gpp_ro_CCR'{'Origin-Host' = VarMatch, _ = '_'},
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("nasIdentifier", exact, NasId,
-		nrf, Request, Response, VarNum) when is_list(NasId) ->
+		nrf, Protocols, Request, Response, VarNum) when is_list(NasId) ->
 	VarMatch = build_var_match(VarNum),
 	Nrf = #{"nfConsumerIdentification" => VarMatch},
 	MatchCond = [{'or',
@@ -3807,10 +3845,10 @@ characteristic2("nasIdentifier", exact, NasId,
 			{'andalso',
 					{is_map_key, "nodeFunctionality", VarMatch},
 					{'==', NasId, {map_get, "nodeFunctionality", VarMatch}}}}],
-	Request1 = merge({Nrf, []}, Request),
-	{Request1, Response, VarNum + 1};
+	Request1 = merge({Nrf, MatchCond}, Request),
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("nasIdentifier", like, Like,
-		nrf, Request, Response, VarNum) when is_list(Like) ->
+		nrf, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	VarMatch = build_var_match(VarNum),
 	Prefix = hd(like(Like)),
 	Pre = lists:droplast(Prefix),
@@ -3827,88 +3865,88 @@ characteristic2("nasIdentifier", like, Like,
 					{'=<', Prefix, {map_get, "nodeFunctionality", VarMatch}},
 					{'>', Prefix1, {map_get, "nodeFunctionality", VarMatch}}}}],
 	Request1 = merge({Nrf, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("nasPortId", exact, NasPortId,
-		radius, Request, Response, VarNum) when is_list(NasPortId) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(NasPortId) ->
 	Request1 = add_char(Request, {?NasPortId, {exact, NasPortId}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasPortId", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?NasPortId, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("nasPortType", Op, NasPortType,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(NasPortType) ->
 	Request1 = add_char(Request, {?NasPortType, {Op, NasPortType}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("portLimit", Op, PortLimit,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(PortLimit) ->
 	Request1 = add_char(Request, {?PortLimit, {Op, PortLimit}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctDelayTime", Op, AcctDelayTime,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctDelayTime) ->
 	Request1 = add_char(Request, {?PortLimit, {Op, AcctDelayTime}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionId", exact, AcctSessionId,
-		radius, Request, Response, VarNum) when is_list(AcctSessionId) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(AcctSessionId) ->
 	Request1 = add_char(Request, {?AcctSessionId, {exact, AcctSessionId}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionId", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?AcctSessionId, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionId", exact, AcctSessionId,
-		diameter, Request, Response, VarNum) when is_list(AcctSessionId) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(AcctSessionId) ->
 	AcctSessionId1 = list_to_binary(AcctSessionId),
 	CCR = #'3gpp_ro_CCR'{'Session-Id' = AcctSessionId1, _ = '_'},
 	Request1 = merge({CCR, []}, Request),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionId", like, Like,
-		diameter, Request, Response, VarNum) when is_list(Like) ->
+		diameter, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	VarMatch = build_var_match(VarNum),
 	Prefix = list_to_binary(hd(like(Like))),
 	Pre = binary:part(Prefix, 0, byte_size(Prefix) - 1),
 	Byte = binary:last(Prefix) + 1,
 	Prefix1 = <<Pre/binary, Byte>>,
-	CCR = #'3gpp_ro_CCR'{'Session-Id' = [VarMatch], _ = '_'},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = VarMatch, _ = '_'},
 	MatchCond = [{'=<', Prefix, VarMatch}, {'>', Prefix1, VarMatch}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("acctMultiSessionId", exact, AcctMultiSessionId,
-		radius, Request, Response, VarNum) when is_list(AcctMultiSessionId) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(AcctMultiSessionId) ->
 	Request1 = add_char(Request, {?AcctMultiSessionId, {exact, AcctMultiSessionId}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctMultiSessionId", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?AcctMultiSessionId, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctLinkCount", Op, AcctLinkCount,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctLinkCount) ->
 	Request1 = add_char(Request, {?AcctLinkCount, {Op, AcctLinkCount}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctAuthentic", exact, AcctAuth,
-		radius, Request, Response, VarNum) when is_list(AcctAuth) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(AcctAuth) ->
 	Request1 = add_char(Request, {?AcctAuthentic, {exact, AcctAuth}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctAuthentic", like, Like,
-		radius, Request, Response, VarNum) when is_list(Like) ->
+		radius, Protocols, Request, Response, VarNum) when is_list(Like) ->
 	Request1 = add_char(Request, {?AcctAuthentic, {like, like(Like)}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionTime", Op, AcctSessionTime,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctSessionTime) ->
 	Request1 = add_char(Request, {?AcctSessionTime, {Op, AcctSessionTime}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessiontime", Op, AcctSessionTime,
-		diameter, Request, Response, VarNum) when
+		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == notexact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctSessionTime) ->
 	VarMatch = build_var_match(VarNum),
@@ -3919,27 +3957,27 @@ characteristic2("acctSessiontime", Op, AcctSessionTime,
 			= [MSCC], _ = '_'},
 	MatchCond = [{operator(Op), VarMatch, AcctSessionTime}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("acctInputGigawords", Op, InputGiga,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(InputGiga) ->
 	Request1 = add_char(Request, {?AcctInputGigawords, {Op, InputGiga}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctOutputGigawords", Op, OutputGiga,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(OutputGiga) ->
 	Request1 = add_char(Request, {?AcctOutputGigawords, {Op, OutputGiga}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("inputOctets", Op, InputOctets,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(InputOctets) ->
 	Request1 = add_char(Request, {?AcctInputPackets, {Op, InputOctets}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("inputOctets", Op, InputOctets,
-		diameter, Request, Response, VarNum) when
+		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(InputOctets) ->
 	VarMatch = build_var_match(VarNum),
@@ -3950,15 +3988,15 @@ characteristic2("inputOctets", Op, InputOctets,
 			= [MSCC], _ = '_'},
 	MatchCond = [{operator(Op), VarMatch, InputOctets}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("outputOctets", Op, OutputOctets,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(OutputOctets) ->
 	Request1 = add_char(Request, {?AcctOutputPackets, {Op, OutputOctets}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("outputOctets", Op, OutputOctets,
-		diameter, Request, Response, VarNum) when
+		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(OutputOctets) ->
 	VarMatch = build_var_match(VarNum),
@@ -3969,9 +4007,9 @@ characteristic2("outputOctets", Op, OutputOctets,
 			= [MSCC], _ = '_'},
 	MatchCond = [{operator(Op), VarMatch, OutputOctets}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("totalOctets", Op, TotalOctets,
-		diameter, Request, Response, VarNum) when
+		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(TotalOctets) ->
 	VarMatch = build_var_match(VarNum),
@@ -3982,33 +4020,33 @@ characteristic2("totalOctets", Op, TotalOctets,
 			= [MSCC], _ = '_'},
 	MatchCond = [{operator(Op), VarMatch, TotalOctets}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
+	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("ascendDataRate", Op, AscendDataRate,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AscendDataRate) ->
 	Request1 = add_char(Request, {?AscendDataRate, {Op, AscendDataRate}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("ascendXmitRate", Op, AscendXmitRate,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AscendXmitRate) ->
 	Request1 = add_char(Request, {?AscendXmitRate, {Op, AscendXmitRate}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctInterimInterval", Op, AcctInterimInterval,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctInterimInterval) ->
 	Request1 = add_char(Request, {?AcctInterimInterval, {Op, AcctInterimInterval}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctTerminateCause", Op, AcctTerminateCause,
-		radius, Request, Response, VarNum) when
+		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctTerminateCause) ->
 	Request1 = add_char(Request, {?AcctTerminateCause, {Op, AcctTerminateCause}}),
-	{Request1, Response, VarNum};
+	{Protocols, Request1, Response, VarNum};
 characteristic2("acctTerminateCause", Op, AcctTerminateCause,
-		diameter, Request, Response, VarNum) when
+		diameter, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(AcctTerminateCause) ->
 	VarMatch = build_var_match(VarNum),
@@ -4017,10 +4055,10 @@ characteristic2("acctTerminateCause", Op, AcctTerminateCause,
 	CCR = #'3gpp_ro_CCR'{'Service-Information' = [SI], _ = '_'},
 	MatchCond = [{operator(Op), VarMatch, AcctTerminateCause}],
 	Request1 = merge({CCR, MatchCond}, Request),
-	{Request1, Response, VarNum + 1};
-	characteristic2(_Name, _Operator, _Value,
-			_Protocol, _MatchRequest, _MatchResponse, _VarNum) ->
-		error.
+	{Protocols, Request1, Response, VarNum + 1};
+characteristic2(_Name, _Operator, _Value,
+		_Protocol, _Protocols, _MatchRequest, _MatchResponse, _VarNum) ->
+	throw({error, 400}).
 
 %% @hidden
 characteristic_protocol(like, [Like]) ->
@@ -4041,7 +4079,7 @@ characteristic_protocol(like, [Like]) ->
 		_ when Like == "Nrf_Rating" ->
 			[nrf];
 		_ ->
-			error
+			throw({error, 400})
 	end;
 characteristic_protocol(notlike, [Like]) ->
 	Protocols = [radius, diameter, nrf],
@@ -4062,7 +4100,7 @@ characteristic_protocol(notlike, [Like]) ->
 		_ when Like == "Nrf_Rating" ->
 			Protocols -- [nrf];
 		_ ->
-			error
+			throw({error, 400})
 	end;
 characteristic_protocol(exact, "RADIUS") ->
 	[radius];
@@ -4077,7 +4115,7 @@ characteristic_protocol(notexact, "DIAMETER") ->
 characteristic_protocol(notexact, "Nrf_Rating") ->
 	[radius, diameter];
 characteristic_protocol(_Op, _Value) ->
-	error.
+	throw({error, 400}).
 
 %% @hidden
 characteristic_type(like, [Like]) ->
@@ -4105,7 +4143,7 @@ characteristic_type(like, [Like]) ->
 		_ when Like == "off" ->
 			[off];
 		_ ->
-			error
+			throw({error, 400})
 	end;
 characteristic_type(notlike, [Like]) ->
 	Types = [start, interim, stop, event, on, off],
@@ -4133,7 +4171,7 @@ characteristic_type(notlike, [Like]) ->
 		_ when Like == "off" ->
 			[start, interim, stop, event, on];
 		_ ->
-			error
+			throw({error, 400})
 	end;
 characteristic_type(exact, "start") ->
 	[start];
@@ -4160,7 +4198,7 @@ characteristic_type(notexact, "on") ->
 characteristic_type(notexact, "off") ->
 	[start, interim, stop, event, on];
 characteristic_type(_Op, _Value) ->
-	error.
+	throw({error, 400}).
 
 build_var_match(N) ->
 	VarN = integer_to_list(N),
@@ -4188,7 +4226,7 @@ add_char(Attributes, AttributeMatch) when is_list(Attributes) ->
 
 -spec merge(Match, Matches) -> Matches
 	when
-		Matches :: [Match],
+		Matches :: [Match] | '_',
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
@@ -4202,28 +4240,35 @@ add_char(Attributes, AttributeMatch) when is_list(Attributes) ->
 		NrfMatchHead :: map(),
 		MatchConditions :: [tuple()].
 %% @doc Merge a `Match' with existing `Matches'.
+%% @throws {error, 400}
 %% @private
-merge(Match, Matches) when is_tuple(Match) ->
+merge(Match, '_') when is_tuple(Match) ->
+	[Match];
+merge(Match, Matches) ->
 	merge(Matches, Match, []).
 %% @hidden
-merge([{MatchSpec1, MatchCond1} | T], {MatchSpec2, MatchCond2}, Acc)
-		when element(1, MatchSpec1) == element(1, MatchSpec2) ->
-	try merge_record(MatchSpec1, MatchSpec2) of
-		MatchSpec3 ->
-			MatchCond3 = MatchCond1 ++ MatchCond2,
-			lists:concat([lists:reverse(Acc), {MatchSpec3, MatchCond3}, T])
-	catch
-		_:_ ->
-			lists:concat([lists:reverse(Acc), T, {MatchSpec1, MatchCond1}])
-	end;
+merge([{MatchHead2, _} | _] = Matches, {MatchHead1, _} = Match, Acc)
+		when element(1, MatchHead1) == element(1, MatchHead2) ->
+	merge1(Matches, Match, Acc, merge_record(MatchHead1, MatchHead2));
+merge([{MatchHead2, _} | _] = Matches, {MatchHead1, _} = Match, Acc)
+		when is_map(MatchHead1), is_map(MatchHead2) ->
+	merge1(Matches, Match, Acc, merge_map(MatchHead1, MatchHead2));
 merge([H | T], Match, Acc) ->
 	merge(T, Match, [H | Acc]);
 merge([], Match, Acc) ->
 	lists:reverse([Match | Acc]).
+%% @hidden
+merge1([{_, MatchCond2} | T], {_, MatchCond1}, Acc, MatchHead3) ->
+	MatchCond3 = MatchCond2 ++ MatchCond1,
+	lists:reverse(Acc) ++ [{MatchHead3, MatchCond3}] ++ T.
 
 %% @hidden
-merge_record(MatchSpec1, MatchSpec2) ->
-	merge_record1(tuple_to_list(MatchSpec1), tuple_to_list(MatchSpec2), []).
+merge_record(MatchHead1, MatchHead2) ->
+	MatchList1 = tl(tuple_to_list(MatchHead1)),
+	MatchList2 = tl(tuple_to_list(MatchHead2)),
+	MatchList3 = merge_record1(MatchList1, MatchList2, []),
+	Name = element(1, MatchHead1),
+	list_to_tuple([Name | MatchList3]).
 %% @hidden
 merge_record1([H | T1], [H | T2], Acc) ->
 	merge_record1(T1, T2, [H | Acc]);
@@ -4236,9 +4281,18 @@ merge_record1([H1 | T1], [H2 | T2], Acc)
 	merge_record1(T1, T2, [merge_record(H1, H2) | Acc]);
 merge_record1([[H1] | T1], [[H2] | T2], Acc)
 		when is_tuple(H1), is_tuple(H2) ->
-	merge_record1(T1, T2, [[merge_record(H1, H2)] | Acc]);
+	merge_record1(T1, T2, [merge_record(H1, H2) | Acc]);
 merge_record1([], [], Acc) ->
-	list_to_tuple(lists:reverse(Acc)).
+	lists:reverse(Acc);
+merge_record1(_T1, _T2, _Acc) ->
+	throw({error, 400}).
+
+%% @hidden
+merge_map(MatchHead1, MatchHead2) ->
+	F = fun(_Key, _Value1, _Value2) ->
+				throw({error, 400})
+	end,
+	maps:merge_with(F, MatchHead1, MatchHead2).
 
 -spec operator(Operator) -> GuardFunction
 	when
@@ -4271,9 +4325,4 @@ rev('_') ->
 	'_';
 rev(Attributes) when is_list(Attributes) ->
 	lists:reverse(Attributes).
-
--dialyzer({no_improper_lists, ccr_subs/3}).
-%% @hidden
-ccr_subs(CCR, Sub1, Sub2) ->
-	CCR#'3gpp_ro_CCR'{'Subscription-Id' = [Sub1, Sub2 | '_']}.
 
