@@ -2660,11 +2660,20 @@ char_attr_authentic(Attributes, Acc)
 
 %% @hidden
 char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Duration]}]}]} = CCR, Acc)
-		when is_integer(Duration) ->
-	NewAcc = [{struct, [{"name", "acctSessionTime"},
-			{"value", Duration}]} | Acc],
+		= MSCC} = CCR, Acc) ->
+	Fold = fun(#'3gpp_ro_Multiple-Services-Credit-Control'{
+					'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+					'CC-Time' = [Seconds]}]}, Acc1) ->
+				Seconds + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, MSCC) of
+		0 ->
+			Acc;
+		TotalTime ->
+			[{struct, [{"name", "acctSessionTime"}, {"value", TotalTime}]} | Acc]
+	end,
 	char_attr_input_octets(CCR, NewAcc);
 char_attr_session_time(Attributes, Acc)
 		when is_list(Attributes) ->
@@ -2694,11 +2703,20 @@ char_attr_session_time(Request, Acc) ->
 
 %% @hidden
 char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [InputOctets]} | _]}]}
-		= CCR, Acc) when is_integer(InputOctets) ->
-	NewAcc = [{struct, [{"name", "inputOctets"},
-			{"value", InputOctets}]} | Acc],
+		= MSCC} = CCR, Acc) ->
+	Fold = fun(#'3gpp_ro_Multiple-Services-Credit-Control'{
+					'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+					'CC-Input-Octets' = [Octets]}]}, Acc1) ->
+				Octets + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, MSCC) of
+		0 ->
+			Acc;
+		InputOctets ->
+			[{struct, [{"name", "inputOctets"}, {"value", InputOctets}]} | Acc]
+	end,
 	char_attr_output_octets(CCR, NewAcc);
 char_attr_input_octets(Attributes, Acc)
 		when is_list(Attributes) ->
@@ -2728,11 +2746,20 @@ char_attr_input_octets(Request, Acc) ->
 
 %% @hidden
 char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [OutputOctets]} | _]}]}
-		= CCR, Acc) when is_integer(OutputOctets) ->
-	NewAcc = [{struct, [{"name", "outputOctets"},
-			{"value", OutputOctets}]} | Acc],
+		= MSCC} = CCR, Acc) ->
+	Fold = fun(#'3gpp_ro_Multiple-Services-Credit-Control'{
+					'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+					'CC-Output-Octets' = [Octets]}]}, Acc1) ->
+				Octets + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, MSCC) of
+		0 ->
+			Acc;
+		OutputOctets ->
+			[{struct, [{"name", "outputOctets"}, {"value", OutputOctets}]} | Acc]
+	end,
 	char_attr_total_octets(CCR, NewAcc);
 char_attr_output_octets(Attributes, Acc)
 		when is_list(Attributes) ->
@@ -2762,11 +2789,20 @@ char_attr_output_octets(Request, Acc) ->
 
 %% @hidden
 char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} | _]}]}
-		= CCR, Acc) when is_integer(TotalOctets) ->
-	NewAcc = [{struct, [{"name", "totalOctets"},
-			{"value", TotalOctets}]} | Acc],
+		= MSCC} = CCR, Acc) ->
+	Fold = fun(#'3gpp_ro_Multiple-Services-Credit-Control'{
+					'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
+					'CC-Total-Octets' = [Octets]}]}, Acc1) ->
+				Octets + Acc1;
+			(_, Acc1) ->
+				Acc1
+	end,
+	NewAcc = case lists:foldl(Fold, 0, MSCC) of
+		0 ->
+			Acc;
+		TotalOctets ->
+			[{struct, [{"name", "totalOctets"}, {"value", TotalOctets}]} | Acc]
+	end,
 	char_attr_cause(CCR, NewAcc);
 char_attr_total_octets(#{"serviceRating" := ServiceRating} = NrfRequest, Acc)
 		when length(ServiceRating) > 0 ->
@@ -3945,19 +3981,6 @@ characteristic2("acctSessionTime", Op, AcctSessionTime,
 		is_integer(AcctSessionTime) ->
 	Request1 = add_char(Request, {?AcctSessionTime, {Op, AcctSessionTime}}),
 	{Protocols, Request1, Response, VarNum};
-characteristic2("acctSessionTime", Op, AcctSessionTime,
-		diameter, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == notexact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
-		is_integer(AcctSessionTime) ->
-	VarMatch = build_var_match(VarNum),
-	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [VarMatch], _ = '_'},
-	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [USU], _ = '_'},
-	CCR = #'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-			= [MSCC], _ = '_'},
-	MatchCond = [{operator(Op), VarMatch, AcctSessionTime}],
-	Request1 = merge({CCR, MatchCond}, Request),
-	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("acctInputGigawords", Op, InputGiga,
 		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
@@ -3976,51 +3999,12 @@ characteristic2("inputOctets", Op, InputOctets,
 		is_integer(InputOctets) ->
 	Request1 = add_char(Request, {?AcctInputPackets, {Op, InputOctets}}),
 	{Protocols, Request1, Response, VarNum};
-characteristic2("inputOctets", Op, InputOctets,
-		diameter, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
-		is_integer(InputOctets) ->
-	VarMatch = build_var_match(VarNum),
-	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [VarMatch], _ = '_'},
-	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [USU], _ = '_'},
-	CCR = #'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-			= [MSCC], _ = '_'},
-	MatchCond = [{operator(Op), VarMatch, InputOctets}],
-	Request1 = merge({CCR, MatchCond}, Request),
-	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("outputOctets", Op, OutputOctets,
 		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
 		is_integer(OutputOctets) ->
 	Request1 = add_char(Request, {?AcctOutputPackets, {Op, OutputOctets}}),
 	{Protocols, Request1, Response, VarNum};
-characteristic2("outputOctets", Op, OutputOctets,
-		diameter, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
-		is_integer(OutputOctets) ->
-	VarMatch = build_var_match(VarNum),
-	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [VarMatch], _ = '_'},
-	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [USU], _ = '_'},
-	CCR = #'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-			= [MSCC], _ = '_'},
-	MatchCond = [{operator(Op), VarMatch, OutputOctets}],
-	Request1 = merge({CCR, MatchCond}, Request),
-	{Protocols, Request1, Response, VarNum + 1};
-characteristic2("totalOctets", Op, TotalOctets,
-		diameter, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
-		is_integer(TotalOctets) ->
-	VarMatch = build_var_match(VarNum),
-	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [VarMatch], _ = '_'},
-	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [USU], _ = '_'},
-	CCR = #'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-			= [MSCC], _ = '_'},
-	MatchCond = [{operator(Op), VarMatch, TotalOctets}],
-	Request1 = merge({CCR, MatchCond}, Request),
-	{Protocols, Request1, Response, VarNum + 1};
 characteristic2("ascendDataRate", Op, AscendDataRate,
 		radius, Protocols, Request, Response, VarNum) when
 		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),

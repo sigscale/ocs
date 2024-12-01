@@ -140,16 +140,7 @@ class accountingList extends PolymerElement {
 					</template>
 					<vaadin-grid-column width="15ex" flex-grow="1">
 						<template class="header">
-							<vaadin-grid-filter
-									aria-label="duration"
-									path="acctSessionTime"
-									value="{{filteracctSessionTime}}">
-								<input
-										slot="filter"
-										placeholder="Duration"
-										value="{{filteracctSessionTime::input}}"
-										focus-target>
-							</vaadin-grid-filter>
+							Duration
 						</template>
 						<template>[[item.acctSessionTime]]</template>
 					</vaadin-grid-column>
@@ -160,62 +151,26 @@ class accountingList extends PolymerElement {
 					</template>
 					<vaadin-grid-column width="10ex" flex-grow="1">
 						<template class="header">
-							<vaadin-grid-filter
-									aria-label="in"
-									path="inputOctets"
-									value="{{filterin}}">
-								<input
-										slot="filter"
-										placeholder="In"
-										value="{{filterin::input}}"
-										focus-target>
-							</vaadin-grid-filter>
+							In
 						</template>
 						<template>[[item.inputOctets]]</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="10ex" flex-grow="1">
 						<template class="header">
-							<vaadin-grid-filter
-									aria-label="out"
-									path="outputOctets"
-									value="{{filterout}}">
-								<input
-										slot="filter"
-										placeholder="Out"
-										value="{{filterout::input}}"
-										focus-target>
-							</vaadin-grid-filter>
+							Out
 						</template>
 						<template>[[item.outputOctets]]</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="10ex" flex-grow="1">
 						<template class="header">
-							<vaadin-grid-filter
-									aria-label="total"
-									path="totalOctets"
-									value="{{filtertotal}}">
-								<input
-										slot="filter"
-										placeholder="Total"
-										value="{{filtertotal::input}}"
-										focus-target>
-							</vaadin-grid-filter>
+							Total
 						</template>
 						<template>[[item.totalOctets]]</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
 				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="price"
-								path="prices"
-								value="{{filterPrices}}">
-							<input
-									slot="filter"
-									placeholder="Price"
-									value="{{filterPrices::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+						Price
 					</template>
 					<template>[[item.prices]]</template>
 				</vaadin-grid-column>
@@ -310,22 +265,6 @@ class accountingList extends PolymerElement {
 				type: Boolean,
 				observer: '_filterChanged'
 			},
-			filteracctSessionTime: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			filterout: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			filterin: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			filtertotal: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
 			filterPrices: {
 				type: Boolean,
 				observer: '_filterChanged'
@@ -366,10 +305,6 @@ class accountingList extends PolymerElement {
 		delete this.$.getAccounting.headers['If-Range'];
 		this.filterTimeStamp = null;
 		this.filterclientIdentityAcc = null;
-		this.filteracctSessionTime = null;
-		this.filterout = null;
-		this.filterin = null;
-		this.filtertotal = null;
 		this.filterUserName = null;
 		this.filterPrices = null;
 		this.filterType = null;
@@ -388,13 +323,7 @@ class accountingList extends PolymerElement {
 		var accountingList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-accounting-list');
 		var ajax = accountingList.shadowRoot.getElementById('getAccounting');
 		delete ajax.params['date'];
-		delete ajax.params['nasIdentifier'];
-		delete ajax.params['acctSessionTime'];
-		delete ajax.params['outputOctets'];
-		delete ajax.params['inputOctets'];
-		delete ajax.params['totalOctets'];
-		delete ajax.params['msisdn'];
-		delete ajax.params['imsi'];
+		delete ajax.params['status'];
 		delete ajax.params['filter'];
 		ajax.params['type'] = "AAAAccountingUsage";
 		function checkHead(param) {
