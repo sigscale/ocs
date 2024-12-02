@@ -1,3 +1,33 @@
+2024-12-02  Vance Shipley <vances@sigscale.org>
+
+	* remove acct usage query filters on totals
+	* correct usage characteristic names in acct log web component
+	* refactor rest usage query for correctness, add nrf
+	* refactor query acct log for correctness and efficiency
+	* handle nrf nas identification in acct query usage
+	* query acct usage test cases check result is not empty
+	* refactor acct usage rest api query
+	* acct log query with multiple protocol types
+	* handle total items in content range of response
+	* correct getting the entire tmf634 resource specification collection
+	* test cases for diameter and nrf acct usage rest api
+	* correct client identifiers in log test suite
+	* acct log codec for nrf events
+	* display client identifier rather than address
+	* test library helpers for random types
+	* correct api description in edoc for rest date-time
+	* correct renamed product inventory codec
+	* fill test suite acct log with mix of radius, diameter and nrf events
+	* correct renamed product inventory codec
+	* include total in content-range header when known (no query filter)
+	* correct date filter, remove unused filters, in abmf log web component
+	* scroll view to start before clearing cache in grid view web components
+	* correct return value of add balance in fill subs escript
+	* suppress unused varaiable warnings
+	* delete event in abmf log
+	* correct units in abmf log topup event
+	* remove unused fields from type spec for abmf event
+
 2024-11-17  Vance Shipley <vances@sigscale.org>
 
 	* correct guards in shell acct query

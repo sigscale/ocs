@@ -1,3 +1,14 @@
+December, 2 2024
+----------------
+	- Corrections and improvements to ABMF log view web component
+	- Corrections and improvements to accounting log view web component
+	- Corrections and improvements to TMF635 Usage Management API
+	- Content-Range header in REST APIs includes total items whenever available
+	- Correct GET of entire TMF634 Resource Specification collection
+	- Scroll to start on refresh in web component grid views
+	- Include delete event in ABMF log
+	- Correct units in ABMF log topup event
+
 November 17, 2024
 -----------------
 	- Query acct log support for Nrf
