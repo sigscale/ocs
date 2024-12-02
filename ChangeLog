@@ -1,5 +1,6 @@
 2024-12-02  Vance Shipley <vances@sigscale.org>
 
+	* application upgrade file instructions for in service upgrade
 	* remove acct usage query filters on totals
 	* correct usage characteristic names in acct log web component
 	* refactor rest usage query for correctness, add nrf
