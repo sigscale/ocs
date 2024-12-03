@@ -180,11 +180,11 @@ parse_query(Resource, ModData, Path, [])
 parse_query(Resource, ModData, Path, "?" ++ Query)
 		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
-		ocs_rest:parse_query(Query));
+		uri_string:dissect_query(Query));
 parse_query(Resource, ModData, Path, Query)
 		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
-		ocs_rest:parse_query(Query));
+		uri_string:dissect_query(Query));
 parse_query(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
