@@ -23,7 +23,7 @@
 
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
--export([lhs/1, fields/2, range/1, date_range/1]).
+-export([lhs/1, fields/2, range/1, query_date/1, date_range/1]).
 -export([millionths_in/1, millionths_out/1]).
 -export([format_problem/2]).
 
@@ -651,6 +651,58 @@ format_problem3(Problem) ->
 	Head = "\t<head>\n\t\t<title>Error</title>\n\t</head>\n",
 	HTML = ["<!DOCTYPE html>\n<html lang=\"en\">\n", Head, Body, "</html>"],
 	{"text/html", HTML}.
+
+-spec query_date(QueryList) -> Result
+	when
+		QueryList :: [{Key, Value}],
+		Key :: unicode:chardata(),
+		Value :: unicode:chardata() | true,
+		Result :: {Start, End},
+		Start :: pos_integer() | undefined,
+		End :: pos_integer() | undefined.
+%% @doc Parse a dissected URI query for a date range.
+%%
+%% 	Parse `date' key(s), possibly with operators,
+%% 	to derive a date range.
+%%
+%% @throws {error, 400}
+%%
+query_date(QueryList) when is_list(QueryList) ->
+	F = fun({"date", _}) ->
+				true;
+			({"date.lt", _}) ->
+				true;
+			({"date.lte", _}) ->
+				true;
+			({"date.gt", _}) ->
+				true;
+			({"date.gte", _}) ->
+				true;
+			({"date.exact", _}) ->
+				true;
+			(_) ->
+				false
+	end,
+	query_date(lists:filter(F, QueryList), undefined, undefined).
+%% @hidden
+query_date([{"date.gte", DateTime} | T], undefined, End) ->
+	query_date(T, iso8601(DateTime), End);
+query_date([{"date.gt", DateTime} | T], undefined, End) ->
+	query_date(T, iso8601(DateTime) + 1, End);
+query_date([{"date.lte", DateTime} | T], Start, undefined) ->
+	query_date(T, Start, iso8601(DateTime));
+query_date([{"date.lt", DateTime} | T], Start, undefined) ->
+	query_date(T, Start, iso8601(DateTime) - 1);
+query_date([{"date.exact", DateTime}], undefined, undefined) ->
+	TS = ocs_log:iso8601(DateTime),
+	{TS, TS};
+query_date([{"date", DateTime}], undefined, undefined) ->
+	date_range(DateTime);
+query_date([], Start, End)
+		when Start /= undefined; End /= undefined ->
+	{Start, End};
+query_date(_QueryList, _Start, _End) ->
+	throw({error, 400}).
 
 -spec date_range(ISODateTime) -> Result
 	when

@@ -81,7 +81,8 @@ all() ->
 			pointer, patch, patch_array, lhs,
 			parse_query1, parse_query2, parse_query3, parse_query4, parse_query5,
 			parse_query6, parse_query7, parse_query8, parse_query9, parse_query10,
-			decimal_in_string, decimal_in_integer, decimal_in_float, decimal_out].
+			decimal_in_string, decimal_in_integer, decimal_in_float, decimal_out,
+			query_date_prefix, query_date_start, query_date_end, query_date_range].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -538,6 +539,69 @@ decimal_out(_Config) ->
 	Value1 = -20,
 	"0.00002" = ocs_rest:millionths_out(Value),
 	"-0.00002" = ocs_rest:millionths_out(Value1).
+
+query_date_prefix() ->
+	[{userdata, [{doc, "Date query to start/end timestamp range: prefix"}]}].
+
+query_date_prefix(_Config) ->
+	Now = erlang:system_time(millisecond),
+	Start = Now - (86400 * rand:uniform(45)) - rand:uniform(86400),
+	Date = lists:sublist(ocs_rest:iso8601(Start), rand:uniform(5) + 11),
+	Params1 = [{"a", "1"}, {"b", "2"}, {"c", "3"}],
+	Params2 = [{"d", "4"}, {"e", "5"}, {"f", "6"}],
+	Fill1 = lists:sublist(Params1, rand:uniform(4) - 1),
+	Fill2 = lists:sublist(Params2, rand:uniform(4) - 1),
+	QueryList = lists:flatten([Fill1, [{"date", Date}], Fill2]),
+	{TS1, TS2} = ocs_rest:query_date(QueryList),
+	{TS1, TS2} = ocs_rest:date_range(Date).
+
+query_date_start() ->
+	[{userdata, [{doc, "Date query to start/end timestamp range: start"}]}].
+
+query_date_start(_Config) ->
+	Now = erlang:system_time(millisecond),
+	Start = Now - (86400 * rand:uniform(45)) - rand:uniform(86400),
+	StartDate = lists:sublist(ocs_rest:iso8601(Start), rand:uniform(5) + 11),
+	Params1 = [{"a", "1"}, {"b", "2"}, {"c", "3"}],
+	Params2 = [{"d", "4"}, {"e", "5"}, {"f", "6"}],
+	Fill1 = lists:sublist(Params1, rand:uniform(4) - 1),
+	Fill2 = lists:sublist(Params2, rand:uniform(4) - 1),
+	QueryList = lists:flatten([Fill1, [{"date.gte", StartDate}], Fill2]),
+	{TS, undefined} = ocs_rest:query_date(QueryList),
+	TS = ocs_rest:iso8601(StartDate).
+
+query_date_end() ->
+	[{userdata, [{doc, "Date query to start/end timestamp range: end"}]}].
+
+query_date_end(_Config) ->
+	Now = erlang:system_time(millisecond),
+	End = Now - (86400 * rand:uniform(45)) - rand:uniform(86400),
+	EndDate = lists:sublist(ocs_rest:iso8601(End), rand:uniform(5) + 11),
+	Params1 = [{"a", "1"}, {"b", "2"}, {"c", "3"}],
+	Params2 = [{"d", "4"}, {"e", "5"}, {"f", "6"}],
+	Fill1 = lists:sublist(Params1, rand:uniform(4) - 1),
+	Fill2 = lists:sublist(Params2, rand:uniform(4) - 1),
+	QueryList = lists:flatten([Fill1, [{"date.lte", EndDate}], Fill2]),
+	{undefined, TS} = ocs_rest:query_date(QueryList),
+	TS = ocs_rest:iso8601(EndDate).
+
+query_date_range() ->
+	[{userdata, [{doc, "Date query to start/end timestamp range: range"}]}].
+
+query_date_range(_Config) ->
+	Now = erlang:system_time(millisecond),
+	Start = Now - (86400 * rand:uniform(45)) - rand:uniform(86400),
+	StartDate = lists:sublist(ocs_rest:iso8601(Start), rand:uniform(5) + 11),
+	EndDate = lists:sublist(ocs_rest:iso8601(Now), rand:uniform(5) + 11),
+	Params1 = [{"a", "1"}, {"b", "2"}, {"c", "3"}],
+	Params2 = [{"d", "4"}, {"e", "5"}, {"f", "6"}],
+	Fill1 = lists:sublist(Params1, rand:uniform(4) - 1),
+	Fill2 = lists:sublist(Params2, rand:uniform(4) - 1),
+	QueryList = lists:flatten([Fill1, [{"date.gte", StartDate},
+			{"date.lte", EndDate}], Fill2]),
+	{TS1, TS2} = ocs_rest:query_date(QueryList),
+	TS1 = ocs_rest:iso8601(StartDate),
+	TS2 = ocs_rest:iso8601(EndDate).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
