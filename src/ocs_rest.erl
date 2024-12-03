@@ -97,6 +97,8 @@ iso8601_time([H1 | T], []) ->
 iso8601_time([M1 | T], H) when is_integer(H) ->
 	Mi = list_to_integer(M1),
 	iso8601_time(T, {H, Mi});
+iso8601_time([], H) when is_integer(H) ->
+	{H, 0, 0, 0};
 iso8601_time([S1 | T], {H, Mi}) ->
 	S = list_to_integer(S1),
 	iso8601_time(T, {H, Mi, S});
