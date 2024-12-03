@@ -1663,34 +1663,34 @@ used_unit(UsedServiceUnits) ->
 	used_unit(UsedServiceUnits, []).
 %% @hidden
 used_unit([#'3gpp_ro_Used-Service-Unit'
-		{'CC-Time' = [CCTime]}] = RSU, Acc)
+		{'CC-Time' = [CCTime]}] = USU, Acc)
 		when CCTime > 0 ->
-	used_unit1(RSU, [{"time", CCTime} | Acc]);
-used_unit(RSU, Acc) ->
-	used_unit1(RSU, Acc).
+	used_unit1(USU, [{"time", CCTime} | Acc]);
+used_unit(USU, Acc) ->
+	used_unit1(USU, Acc).
 used_unit1([#'3gpp_ro_Used-Service-Unit'
-		{'CC-Output-Octets' = [CCOutputOctets]}] = RSU, Acc)
+		{'CC-Output-Octets' = [CCOutputOctets]}] = USU, Acc)
 				when CCOutputOctets > 0 ->
-	used_unit2(RSU, [{"downlinkVolume", CCOutputOctets} | Acc]);
-used_unit1(RSU, Acc) ->
-	used_unit2(RSU, Acc).
+	used_unit2(USU, [{"downlinkVolume", CCOutputOctets} | Acc]);
+used_unit1(USU, Acc) ->
+	used_unit2(USU, Acc).
 used_unit2([#'3gpp_ro_Used-Service-Unit'
-		{'CC-Input-Octets' = [CCInputOctets]}] = RSU, Acc)
+		{'CC-Input-Octets' = [CCInputOctets]}] = USU, Acc)
 				when CCInputOctets > 0 ->
-	used_unit3(RSU, [{"uplinkVolume", CCInputOctets} | Acc]);
-used_unit2(RSU, Acc) ->
-	used_unit3(RSU, Acc).
+	used_unit3(USU, [{"uplinkVolume", CCInputOctets} | Acc]);
+used_unit2(USU, Acc) ->
+	used_unit3(USU, Acc).
 used_unit3([#'3gpp_ro_Used-Service-Unit'
-		{'CC-Total-Octets' = [CCTotalOctets]}] = RSU, Acc)
+		{'CC-Total-Octets' = [CCTotalOctets]}] = USU, Acc)
 				when CCTotalOctets > 0 ->
-	used_unit4(RSU, [{"totalVolume", CCTotalOctets} | Acc]);
-used_unit3(RSU, Acc) ->
-	used_unit4(RSU, Acc).
+	used_unit4(USU, [{"totalVolume", CCTotalOctets} | Acc]);
+used_unit3(USU, Acc) ->
+	used_unit4(USU, Acc).
 used_unit4([#'3gpp_ro_Used-Service-Unit'
 		{'CC-Service-Specific-Units' = [CCSpecUnits]}], Acc)
 				when CCSpecUnits > 0 ->
 	[{"serviceSpecificUnit", CCSpecUnits} | Acc];
-used_unit4(_RSU, Acc) ->
+used_unit4(_USU, Acc) ->
 	Acc.
 
 -spec reserved_unit(RequestedServiceUnits) -> Result
