@@ -3687,13 +3687,17 @@ characteristic2("nasIpAddress", exact, NasIp,
 	{Protocols, Request1, Response, VarNum + 2};
 characteristic2("nasPort", Op, NasPort,
 		radius, Protocols, Request, Response, VarNum) when 
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(NasPort) ->
 	Request1 = add_char(Request, {?NasPort, {Op, NasPort}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("serviceType", Op, ServiceType,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(ServiceType) ->
 	Request1 = add_char(Request, {?ServiceType, {Op, ServiceType}}),
 	{Protocols, Request1, Response, VarNum};
@@ -3731,7 +3735,9 @@ characteristic2("filterId", like, Like,
 	{Protocols, Request1, Response, VarNum};
 characteristic2("framedMtu", Op, FramedMtu,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(FramedMtu) ->
 	Request1 = add_char(Request, {?FramedMtu, {Op, FramedMtu}}),
 	{Protocols, Request1, Response, VarNum};
@@ -3769,13 +3775,17 @@ characteristic2("class", like, Like,
 	{Protocols, Request1, Response, VarNum};
 characteristic2("sessionTimeout", Op, SessionTimout,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(SessionTimout) ->
 	Request1 = add_char(Request, {?SessionTimeout, {Op, SessionTimout}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("idleTimeout", Op, IdleTimeout,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(IdleTimeout) ->
 	Request1 = add_char(Request, {?IdleTimeout, {Op, IdleTimeout}}),
 	{Protocols, Request1, Response, VarNum};
@@ -3912,19 +3922,25 @@ characteristic2("nasPortId", like, Like,
 	{Protocols, Request1, Response, VarNum};
 characteristic2("nasPortType", Op, NasPortType,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(NasPortType) ->
 	Request1 = add_char(Request, {?NasPortType, {Op, NasPortType}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("portLimit", Op, PortLimit,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(PortLimit) ->
 	Request1 = add_char(Request, {?PortLimit, {Op, PortLimit}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctDelayTime", Op, AcctDelayTime,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctDelayTime) ->
 	Request1 = add_char(Request, {?PortLimit, {Op, AcctDelayTime}}),
 	{Protocols, Request1, Response, VarNum};
@@ -3963,7 +3979,9 @@ characteristic2("acctMultiSessionId", like, Like,
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctLinkCount", Op, AcctLinkCount,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctLinkCount) ->
 	Request1 = add_char(Request, {?AcctLinkCount, {Op, AcctLinkCount}}),
 	{Protocols, Request1, Response, VarNum};
@@ -3977,61 +3995,81 @@ characteristic2("acctAuthentic", like, Like,
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctSessionTime", Op, AcctSessionTime,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctSessionTime) ->
 	Request1 = add_char(Request, {?AcctSessionTime, {Op, AcctSessionTime}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctInputGigawords", Op, InputGiga,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(InputGiga) ->
 	Request1 = add_char(Request, {?AcctInputGigawords, {Op, InputGiga}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctOutputGigawords", Op, OutputGiga,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(OutputGiga) ->
 	Request1 = add_char(Request, {?AcctOutputGigawords, {Op, OutputGiga}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("inputOctets", Op, InputOctets,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(InputOctets) ->
 	Request1 = add_char(Request, {?AcctInputPackets, {Op, InputOctets}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("outputOctets", Op, OutputOctets,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(OutputOctets) ->
 	Request1 = add_char(Request, {?AcctOutputPackets, {Op, OutputOctets}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("ascendDataRate", Op, AscendDataRate,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AscendDataRate) ->
 	Request1 = add_char(Request, {?AscendDataRate, {Op, AscendDataRate}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("ascendXmitRate", Op, AscendXmitRate,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AscendXmitRate) ->
 	Request1 = add_char(Request, {?AscendXmitRate, {Op, AscendXmitRate}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctInterimInterval", Op, AcctInterimInterval,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctInterimInterval) ->
 	Request1 = add_char(Request, {?AcctInterimInterval, {Op, AcctInterimInterval}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctTerminateCause", Op, AcctTerminateCause,
 		radius, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctTerminateCause) ->
 	Request1 = add_char(Request, {?AcctTerminateCause, {Op, AcctTerminateCause}}),
 	{Protocols, Request1, Response, VarNum};
 characteristic2("acctTerminateCause", Op, AcctTerminateCause,
 		diameter, Protocols, Request, Response, VarNum) when
-		((Op == exact) or (Op == lt) or (Op == lte) or (Op == gt) or (Op == gte)),
+		((Op == exact) or ((Op == notexact))
+		or (Op == lt) or (Op == lte)
+		or (Op == gt) or (Op == gte)),
 		is_integer(AcctTerminateCause) ->
 	VarMatch = build_var_match(VarNum),
 	IMS = #'3gpp_ro_IMS-Information'{'Cause-Code' = [VarMatch], _ = '_'},
