@@ -63,16 +63,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE > 23).
-		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
-	-else.
-		-define(URI_DECODE(URI), http_uri:decode(URI)).
-	-endif.
--else.
-	-define(URI_DECODE(URI), http_uri:decode(URI)).
--endif.
-
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -96,8 +86,7 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, request_uri = Uri,
-		entity_body = Body, data = Data} = ModData) ->
+do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	case Method of
 		"POST" ->
 			case proplists:get_value(status, Data) of
@@ -107,8 +96,7 @@ do(#mod{method = Method, request_uri = Uri,
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							Path = ?URI_DECODE(Uri),
-							do_post(Resource, ModData, Body, string:tokens(Path, "/"));
+							parse_query(Resource, ModData, uri_string:parse(Uri));
 						_Response ->
 							{proceed,  Data}
 					end
@@ -118,90 +106,140 @@ do(#mod{method = Method, request_uri = Uri,
 	end.
 
 %% @hidden
-do_post(Resource, ModData, Body, ["ocs", "v1", "client"]) ->
+parse_query(Resource, #mod{entity_body = Body} = ModData,
+		#{path := Path, query := Query}) ->
+	do_post(Resource, ModData, Body,
+			string:lexemes(Path, [$/]),
+			uri_string:dissect_query(Query));
+parse_query(Resource, #mod{entity_body = Body} = ModData,
+		#{path := Path}) ->
+	do_post(Resource, ModData, Body,
+			string:lexemes(Path, [$/]),
+			[]);
+parse_query(_Resource,
+		#mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
+					"rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody}
+			= ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 404, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 404, Size}} | Data]}.
+
+%% @hidden
+do_post(Resource, ModData, Body,
+		["ocs", "v1", "client"], _Query) ->
 	do_response(ModData, Resource:post_client(Body));
-do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
+do_post(Resource, ModData, Body,
+		["ocs", "v1", "subscriber"], _Query) ->
 	do_response(ModData, Resource:post_subscriber(Body));
-do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
+do_post(Resource, ModData, Body,
+		["partyManagement", "v1", "individual"], _Query) ->
 	do_response(ModData, Resource:post_user(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["partyManagement", "v1", "hub"]) ->
+		["partyManagement", "v1", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
-do_post(Resource, ModData, Body, ["partyRoleManagement", "v4", "partyRole"]) ->
+do_post(Resource, ModData, Body,
+		["partyRoleManagement", "v4", "partyRole"], _Query) ->
 	do_response(ModData, Resource:post_role(Body));
-do_post(Resource, ModData, Body, ["partyRoleManagement", "v4", "hub"]) ->
+do_post(Resource, ModData, Body,
+		["partyRoleManagement", "v4", "hub"], _Query) ->
 	do_response(ModData, Resource:post_hub(Body));
-do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "balanceTopup"]) ->
+do_post(Resource, ModData, Body,
+		["balanceManagement", "v1", "product", Id, "balanceTopup"],
+		_Query) ->
 	do_response(ModData, Resource:top_up(Id, Body));
-do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
+do_post(Resource, ModData, Body,
+		["balanceManagement", "v1", "service", Id, "balanceTopup"],
+		_Query) ->
 	do_response(ModData, Resource:top_up_service(Id, Body));
-do_post(Resource, ModData, Body, ["balanceManagement", "v1", "balanceAdjustment"]) ->
+do_post(Resource, ModData, Body,
+		["balanceManagement", "v1", "balanceAdjustment"], _Query) ->
 	do_response(ModData, Resource:balance_adjustment(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["balanceManagement", "v1", "hub"]) ->
+		["balanceManagement", "v1", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
-do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
+do_post(Resource, ModData, Body,
+		["catalogManagement", "v2", "productOffering"], _Query) ->
 	do_response(ModData, Resource:add_offer(Body));
-do_post(Resource, ModData, Body, ["productCatalogManagement", "v2", "productOffering"]) ->
+do_post(Resource, ModData, Body,
+		["productCatalogManagement", "v2", "productOffering"],
+		_Query) ->
 	do_response(ModData, Resource:add_offer(Body));
-do_post(Resource, ModData, Body, ["productCatalogManagement", "v2", "syncOffer"]) ->
+do_post(Resource, ModData, Body,
+		["productCatalogManagement", "v2", "syncOffer"], _Query) ->
 	do_response(ModData, Resource:sync_offer(Body));
-do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
+do_post(Resource, ModData, Body,
+		["productInventoryManagement", "v2", "product"], _Query) ->
 	do_response(ModData, Resource:add_inventory(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["productInventoryManagement", "v2", "hub"]) ->
+		["productInventoryManagement", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		% @todo: deprecate legacy basename error
-		["productInventory", "v2", "hub"]) ->
+		["productInventory", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
-do_post(Resource, ModData, Body, ["serviceInventoryManagement", "v2", "service"]) ->
+do_post(Resource, ModData, Body,
+		["serviceInventoryManagement", "v2", "service"], _Query) ->
 	do_response(ModData, Resource:add_inventory(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["serviceInventoryManagement", "v2", "hub"]) ->
+		["serviceInventoryManagement", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		% @todo: deprecate legacy basename error
-		["serviceInventory", "v2", "hub"]) ->
+		["serviceInventory", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
-do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
+do_post(Resource, ModData, Body,
+		["catalogManagement", "v2", "pla"], _Query) ->
 	do_response(ModData, Resource:add_pla(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["productCatalogManagement", "v2", "hub"]) ->
+		["productCatalogManagement", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub_catalog(Body, Authorization));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		% @todo: deprecate legacy basename error
-		["productCatalog", "v2", "hub"]) ->
+		["productCatalog", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub_catalog(Body, Authorization));
-do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "resource"]) ->
+do_post(Resource, ModData, Body,
+		["resourceInventoryManagement", "v1", "resource"], _Query) ->
 	do_response(ModData, Resource:add_resource(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["resourceInventoryManagement", "v1", "hub"]) ->
+		["resourceInventoryManagement", "v1", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		% @todo: deprecate legacy basename error
-		["resourceInventory", "v1", "hub"]) ->
+		["resourceInventory", "v1", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
-		["usageManagement", "v1", "hub"]) ->
+		["usageManagement", "v1", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
-do_post(Resource, ModData, Body, ["nrf-rating", "v1", "ratingdata"]) ->
+do_post(Resource, ModData, Body,
+		["nrf-rating", "v1", "ratingdata"], _Query) ->
 	do_response(ModData, Resource:initial_nrf(ModData, Body));
-do_post(Resource, ModData, Body, ["nrf-rating", "v1", "ratingdata", RatingDataRef, "update"]) ->
-	do_response(ModData, Resource:update_nrf(ModData, RatingDataRef, Body));
-do_post(Resource, ModData, Body, ["nrf-rating", "v1", "ratingdata", RatingDataRef, "release"]) ->
-	do_response(ModData, Resource:release_nrf(ModData, RatingDataRef, Body)).
+do_post(Resource, ModData, Body,
+		["nrf-rating", "v1", "ratingdata", RatingDataRef, "update"],
+		_Query) ->
+	do_response(ModData,
+		Resource:update_nrf(ModData, RatingDataRef, Body));
+do_post(Resource, ModData, Body,
+		["nrf-rating", "v1", "ratingdata", RatingDataRef, "release"],
+		_Query) ->
+	do_response(ModData,
+			Resource:release_nrf(ModData, RatingDataRef, Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData,

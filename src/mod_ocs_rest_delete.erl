@@ -62,16 +62,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE > 23).
-		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
-	-else.
-		-define(URI_DECODE(URI), http_uri:decode(URI)).
-	-endif.
--else.
-	-define(URI_DECODE(URI), http_uri:decode(URI)).
--endif.
-
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -105,8 +95,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							Path = ?URI_DECODE(Uri),
-							do_delete(Resource, ModData, string:tokens(Path, "/"));
+							parse_query(Resource, ModData, uri_string:parse(Uri));
 						_Response ->
 							{proceed,  Data}
 					end
@@ -116,57 +105,103 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-do_delete(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
+parse_query(Resource, ModData, #{path := Path, query := Query}) ->
+	do_delete(Resource, ModData, string:lexemes(Path, [$/]),
+			uri_string:dissect_query(Query));
+parse_query(Resource, ModData, #{path := Path}) ->
+	do_delete(Resource, ModData, string:lexemes(Path, [$/]), []);
+parse_query(_, #mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, _) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
+					"rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody}
+			= ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 404, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 404, Size}} | Data]}.
+
+%% @hidden
+do_delete(Resource, ModData,
+		["ocs", "v1", "client", Identity], _Query) ->
 	do_response(ModData, Resource:delete_client(Identity));
-do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
+do_delete(Resource, ModData,
+		["ocs", "v1", "subscriber", Identity], _Query) ->
 	do_response(ModData, Resource:delete_service(Identity));
-do_delete(Resource, ModData, ["catalogManagement", "v2", "productOffering", Identity]) ->
+do_delete(Resource, ModData,
+		["catalogManagement", "v2", "productOffering", Identity], _Query) ->
 	do_response(ModData, Resource:delete_offer(Identity));
-do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
+do_delete(Resource, ModData,
+		["catalogManagement", "v2", "pla", Identity], _Query) ->
 	do_response(ModData, Resource:delete_pla(Identity));
-do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
+do_delete(Resource, ModData,
+		["partyManagement", "v1", "individual", Identity], _Query) ->
 	do_response(ModData, Resource:delete_user(Identity));
-do_delete(Resource, ModData, ["partyManagement", "v1", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["partyManagement", "v1", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["partyRoleManagement", "v4", "partyRole", Identity]) ->
+do_delete(Resource, ModData,
+		["partyRoleManagement", "v4", "partyRole", Identity], _Query) ->
 	do_response(ModData, Resource:delete_role(Identity));
-do_delete(Resource, ModData, ["partyRoleManagement", "v4", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["partyRoleManagement", "v4", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
+do_delete(Resource, ModData,
+		["productInventoryManagement", "v2", "product", Identity], _Query) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
-do_delete(Resource, ModData, ["productInventoryManagement", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["productInventoryManagement", "v2", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["productInventory", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["productInventory", "v2", "hub", Identity], _Query) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Identity]) ->
+do_delete(Resource, ModData,
+		["serviceInventoryManagement", "v2", "service", Identity], _Query) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
-do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["serviceInventoryManagement", "v2", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["serviceInventory", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["serviceInventory", "v2", "hub", Identity], _Query) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "resource", Identity]) ->
+do_delete(Resource, ModData,
+		["resourceInventoryManagement", "v1", "resource", Identity], _Query) ->
 	do_response(ModData, Resource:delete_resource(Identity));
-do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["resourceInventoryManagement", "v1", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["resourceInventory", "v1", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["resourceInventory", "v1", "hub", Identity], _Query) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["balanceManagement", "v1", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["balanceManagement", "v1", "bucket", Identity]) ->
+do_delete(Resource, ModData,
+		["balanceManagement", "v1", "bucket", Identity], _Query) ->
 	do_response(ModData, Resource:delete_bucket(Identity));
-do_delete(Resource, ModData, ["productCatalogManagement", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["productCatalogManagement", "v2", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
+do_delete(Resource, ModData,
+		["productCatalog", "v2", "hub", Identity], _Query) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Identity]) ->
+do_delete(Resource, ModData,
+		["productCatalogManagement", "v2", "productOffering", Identity],
+		_Query) ->
 	do_response(ModData, Resource:delete_offer(Identity));
-do_delete(Resource, ModData, ["usageManagement", "v1", "hub", Identity]) ->
+do_delete(Resource, ModData ,["usageManagement", "v1", "hub", Identity],
+		_Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _Path) ->
+do_delete(_,
+		#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		_Path, _Query) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",

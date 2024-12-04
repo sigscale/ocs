@@ -115,16 +115,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE > 23).
-		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
-	-else.
-		-define(URI_DECODE(URI), http_uri:decode(URI)).
-	-endif.
--else.
-	-define(URI_DECODE(URI), http_uri:decode(URI)).
--endif.
-
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -148,8 +138,7 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, parsed_header = _Headers,
-		request_uri = Uri, data = Data} = ModData) ->
+do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	case Method of
 		"HEAD" ->
 			case proplists:get_value(status, Data) of
@@ -158,35 +147,69 @@ do(#mod{method = Method, parsed_header = _Headers,
 				undefined ->
 					case proplists:get_value(response, Data) of
 						undefined ->
-							{_, Resource} = lists:keyfind(resource, 1, Data),
-							Path = ?URI_DECODE(Uri),
-							do_head(Resource, ModData, string:tokens(Path, "/"));
+							case lists:keyfind(resource, 1, Data) of
+								false ->
+									{proceed, Data};
+								{_, Resource} ->
+									parse_query(Resource, ModData,
+											uri_string:parse(Uri))
+							end;
 						_Response ->
 							{proceed,  Data}
 					end
 			end;
-		_ ->
+		_Other ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-do_head(Resource, ModData, ["balanceManagement", "v1", "bucket"]) ->
+parse_query(Resource, ModData, #{path := Path, query := Query}) ->
+	do_head(Resource, ModData, string:lexemes(Path, [$/]),
+			uri_string:dissect_query(Query));
+parse_query(Resource, ModData, #{path := Path}) ->
+	do_head(Resource, ModData, string:lexemes(Path, [$/]), []);
+parse_query(_, #mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, _UriMap) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
+					"rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody}
+			= ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 404, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 404, Size}} | Data]}.
+
+%% @hidden
+do_head(Resource, ModData,
+		["balanceManagement", "v1", "bucket"], _Query) ->
 	do_response(ModData, Resource:head_bucket());
-do_head(Resource, ModData, ["ocs", "v1", "client"]) ->
+do_head(Resource, ModData,
+		["ocs", "v1", "client"], _Query) ->
 	do_response(ModData, Resource:head_client());
-do_head(Resource, ModData, ["serviceInventoryManagement", "v2", "service"]) ->
+do_head(Resource, ModData,
+		["serviceInventoryManagement", "v2", "service"], _Query) ->
 	do_response(ModData, Resource:head_inventory());
-do_head(Resource, ModData, ["resourceInventoryManagement", "v1", "resource"]) ->
+do_head(Resource, ModData,
+		["resourceInventoryManagement", "v1", "resource"], _Query) ->
 	do_response(ModData, Resource:head_resource());
-do_head(Resource, ModData, ["catalogManagement", "v2", "productOffering"]) ->
+do_head(Resource, ModData,
+		["catalogManagement", "v2", "productOffering"], _Query) ->
 	do_response(ModData, Resource:head_offer());
-do_head(Resource, ModData, ["productCatalogManagement", "v2", "productOffering"]) ->
+do_head(Resource, ModData,
+		["productCatalogManagement", "v2", "productOffering"], _Query) ->
 	do_response(ModData, Resource:head_offer());
-do_head(Resource, ModData, ["productInventoryManagement", "v2", "product"]) ->
+do_head(Resource, ModData,
+		["productInventoryManagement", "v2", "product"], _Query) ->
 	do_response(ModData, Resource:head_product());
-do_head(Resource, ModData, ["partyManagement", "v1", "individual"]) ->
+do_head(Resource, ModData,
+		["partyManagement", "v1", "individual"], _Query) ->
 	do_response(ModData, Resource:head_user());
-do_head(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
+do_head(_Resource,
+		#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		_Path, _Query) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",
@@ -287,7 +310,7 @@ do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, StatusCode, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+do_response(#mod{data = Data} = ModData,
 		{error, StatusCode, Headers, ResponseBody}) when is_list(ResponseBody),
 		StatusCode >= 400, StatusCode =< 599 ->
 	Size = integer_to_list(iolist_size(ResponseBody)),

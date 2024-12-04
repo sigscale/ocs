@@ -115,16 +115,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE > 23).
-		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
-	-else.
-		-define(URI_DECODE(URI), http_uri:decode(URI)).
-	-endif.
--else.
-	-define(URI_DECODE(URI), http_uri:decode(URI)).
--endif.
-
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -148,8 +138,7 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, parsed_header = _Headers,
-		request_uri = Uri, data = Data} = ModData) ->
+do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	case Method of
 		"GET" ->
 			case proplists:get_value(status, Data) of
@@ -162,35 +151,32 @@ do(#mod{method = Method, parsed_header = _Headers,
 								false ->
 									{proceed, Data};
 								{_, Resource} ->
-									{Path, Query} = httpd_util:split_path(Uri),
-									parse_query(Resource, ModData, Path, ?URI_DECODE(Query))
+									parse_query(Resource, ModData,
+											uri_string:parse(Uri))
 							end;
 						_Response ->
 							{proceed,  Data}
 					end
 			end;
-		_ ->
+		_Other ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-parse_query(Resource, ModData, Path, [])
-		when is_list(Path) ->
-	do_get(Resource, ModData, string:tokens(Path, "/"), []);
-parse_query(Resource, ModData, Path, "?" ++ Query)
-		when is_list(Path), is_list(Query) ->
-	do_get(Resource, ModData, string:tokens(Path, "/"),
-		uri_string:dissect_query(Query));
-parse_query(Resource, ModData, Path, Query)
-		when is_list(Path), is_list(Query) ->
-	do_get(Resource, ModData, string:tokens(Path, "/"),
-		uri_string:dissect_query(Query));
-parse_query(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _, _) ->
-	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+parse_query(Resource, ModData, #{path := Path, query := Query}) ->
+	do_get(Resource, ModData, string:lexemes(Path, [$/]),
+			uri_string:dissect_query(Query));
+parse_query(Resource, ModData, #{path := Path}) ->
+	do_get(Resource, ModData, string:lexemes(Path, [$/]), []);
+parse_query(_, #mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, _UriMap) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
+					"rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",
 			code => "", status => 404},
-	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	{ContentType, ResponseBody}
+			= ocs_rest:format_problem(Problem, RequestHeaders),
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 404, ResponseHeaders, ResponseBody),
@@ -524,7 +510,7 @@ do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, StatusCode, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+do_response(#mod{data = Data} = ModData,
 		{error, StatusCode, Headers, ResponseBody}) when is_list(ResponseBody),
 		StatusCode >= 400, StatusCode =< 599 ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
