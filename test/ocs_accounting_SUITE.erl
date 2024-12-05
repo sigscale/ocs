@@ -170,7 +170,7 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
-		TestCase == diameter_scur_price_descrimination_by_rg;
+		TestCase == diameter_scur_price_discrimination_by_rg;
 		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
@@ -207,7 +207,7 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
-		TestCase == diameter_scur_price_descrimination_by_rg;
+		TestCase == diameter_scur_price_discrimination_by_rg;
 		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address),
@@ -243,7 +243,7 @@ all() ->
 			diameter_voice_out, diameter_voice_in,
 			diameter_voice_out_tariff, diameter_voice_in_tariff,
 			diameter_scur_no_credit, scur_start_redirect_server,
-			diameter_scur_price_descrimination_by_rg, diameter_scur_roaming_voice_ims,
+			diameter_scur_price_discrimination_by_rg, diameter_scur_roaming_voice_ims,
 			client_authorized, client_not_authorized].
 
 %%---------------------------------------------------------------------
@@ -1219,10 +1219,10 @@ scur_start_redirect_server(_Config) ->
 			{'Redirect-Address-Type' = ?'3GPP_RO_REDIRECT-ADDRESS-TYPE_URL',
 			'Redirect-Server-Address' = CCARedirectServer}]}] = Fui.
 
-diameter_scur_price_descrimination_by_rg() ->
-	[{userdata, [{doc, "DIAMETER SCUR Price Descrimination By Rating Group"}]}].
+diameter_scur_price_discrimination_by_rg() ->
+	[{userdata, [{doc, "DIAMETER SCUR Price Discrimination By Rating Group"}]}].
 
-diameter_scur_price_descrimination_by_rg(_Config) ->
+diameter_scur_price_discrimination_by_rg(_Config) ->
 	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
 	UnitSize = MinReserve + rand:uniform(MinReserve),
 	UnitPrice = rand:uniform(1000000),
