@@ -1036,7 +1036,10 @@ unique() ->
 %% @doc Get server IP address and Port.
 server(#mod{socket = Socket, socket_type = ip_comm}) ->
 	server1(inet:sockname(Socket));
-server(#mod{socket = Socket, socket_type = ssl}) ->
+server(#mod{socket = Socket, socket_type = {ip_comm, _Config}}) ->
+	server1(inet:sockname(Socket));
+server(#mod{socket = Socket, socket_type = {SSL, _Config}})
+		when SSL == essl; SSL == ssl ->
 	server1(ssl:sockname(Socket)).
 %% @hidden
 server1({ok, {Address, Port}}) ->
