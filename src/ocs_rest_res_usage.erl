@@ -622,8 +622,7 @@ ipdr_wlan_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_auth({Milliseconds, N, P, Node,
-		{ServerIP, ServerPort}, {ClientIP, ClientPort}, EventType,
+usage_aaa_auth({Milliseconds, N, P, Node, Server, Client, EventType,
 		RequestAttributes, ResponseAttributes}, Filters) ->
 	UsageSpec = {struct, [{"id", "AAAAccessUsageSpec"},
 			{"href", ?usageSpecPath ++ "AAAAccessUsageSpec"},
@@ -640,15 +639,43 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 		diameter ->
 			"DIAMETER"
 	end,
-	ServerAddress = inet:ntoa(ServerIP),
-	ClientAddress = inet:ntoa(ClientIP),
-	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
-			{struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
-			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
-			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-			{struct, [{"name", "clientAddress"}, {"value", ClientAddress}]},
-			{struct, [{"name", "clientPort"}, {"value", ClientPort}]},
-			{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}],
+	ServerChars = case Server of
+		{Address1, ServerPort} when is_integer(ServerPort) ->
+			case inet:ntoa(Address1) of
+				ServerAddress when is_list(ServerAddress) ->
+					[{struct,
+							[{"name", "serverAddress"},
+							{"value", ServerAddress}]},
+					{struct,
+							[{"name", "serverPort"},
+							{"value", ServerPort}]}];
+				{error, _} ->
+					[]
+			end;
+		_ ->
+			[]
+	end,
+	ClientChars = case Client of
+		{Address2, ClientPort} when is_integer(ClientPort) ->
+			case inet:ntoa(Address2) of
+				ClientAddress when is_list(ClientAddress) ->
+					[{struct,
+							[{"name", "clientAddress"},
+							{"value", ClientAddress}]},
+					{struct,
+							[{"name", "clientPort"},
+							{"value", ClientPort}]}];
+				{error, _} ->
+					[]
+			end;
+		_ ->
+			[]
+	end,
+	ProtocolChar = {struct, [{"name", "protocol"}, {"value", Protocol}]},
+	NodeChar = {struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
+	TypeChar = {struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]},
+	EventChars = [ProtocolChar, NodeChar]
+			++ ServerChars ++ ClientChars ++ [TypeChar],
 	RequestChars = usage_characteristics(RequestAttributes),
 	ResponseChars = usage_characteristics(ResponseAttributes),
 	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
@@ -725,11 +752,12 @@ usage_ipdr([], _Filters, Acc) ->
 %% @hidden
 usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	Milliseconds = element(1, Event),
-	{ServerIP, ServerPort} = element(5, Event),
+	Node = element(4, Event),
+	Server = element(5, Event),
 	UsageSpec = {struct, [{"id", "AAAAccountingUsageSpec"},
 			{"href", ?usageSpecPath ++ "AAAccountingUsageSpec"},
 			{"name", "AAAAccountingUsageSpec"}]},
-	Type = "AAAAccountingUsage",
+	EventType = "AAAAccountingUsage",
 	Status = "received",
 	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
 			++ integer_to_list(element(2, Event)),
@@ -743,14 +771,26 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 		nrf ->
 			"Nrf_Rating"
 	end,
-	ServerAddress = inet:ntoa(ServerIP),
-	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
-			{struct, [{"name", "node"},
-					{"value", atom_to_list(element(4, Event))}]},
-			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
-			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-			{struct, [{"name", "type"},
-					{"value", atom_to_list(element(6, Event))}]}],
+	ServerChars = case Server of
+		{Address1, ServerPort} when is_integer(ServerPort) ->
+			case inet:ntoa(Address1) of
+				ServerAddress when is_list(ServerAddress) ->
+					[{struct,
+							[{"name", "serverAddress"},
+							{"value", ServerAddress}]},
+					{struct,
+							[{"name", "serverPort"},
+							{"value", ServerPort}]}];
+				{error, _} ->
+					[]
+			end;
+		_ ->
+			[]
+	end,
+	ProtocolChar = {struct, [{"name", "protocol"}, {"value", Protocol}]},
+	NodeChar = {struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
+	TypeChar = {struct, [{"name", "type"}, {"value", element(6, Event)}]},
+	EventChars = [ProtocolChar, NodeChar] ++ ServerChars ++ [TypeChar],
 	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
 	Frated = fun(#rated{tax_excluded_amount = TaxExcluded})
@@ -772,8 +812,9 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 		false ->
 			[]
 	end,
-	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
-			{"status", Status}, {"usageSpecification", UsageSpec},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date},
+			{"type", EventType}, {"status", Status},
+			{"usageSpecification", UsageSpec},
 			{"usageCharacteristic", {array, UsageChars}}] ++ RatedUsage},
 	case Filters of
 		[] ->

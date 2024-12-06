@@ -87,7 +87,8 @@
 -type timestamp() :: pos_integer().
 -type unique() :: pos_integer().
 -type protocol() :: radius | diameter | nrf.
--type server() :: {Address :: inet:ip_address(), Port :: non_neg_integer()}.
+-type server() :: {Address :: inet:ip_address(),
+		Port :: non_neg_integer()} | undefined.
 -export_type([timestamp/0, unique/0, protocol/0, server/0]).
 
 %% export the ocs_acct field types
