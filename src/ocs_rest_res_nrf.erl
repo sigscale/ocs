@@ -1030,12 +1030,19 @@ unique() ->
 -spec server(ModData) -> Result
 	when
 		ModData :: #mod{},
-		Result :: {Server, Port},
-		Server :: inet:ip_address() | inet:hostname(),
+		Result :: {Address, Port} | undefined,
+		Address :: inet:ip_address(),
 		Port :: inet:port_number().
 %% @doc Get server IP address and Port.
-server(#mod{init_data = #init_data{sockname = {Port, Host}}}) ->
-	{Host, Port}.
+server(#mod{socket = Socket, socket_type = ip_comm}) ->
+	server1(inet:sockname(Socket));
+server(#mod{socket = Socket, socket_type = ssl}) ->
+	server1(ssl:sockname(Socket)).
+%% @hidden
+server1({ok, {Address, Port}}) ->
+	{Address, Port};
+server1({error, _Reason}) ->
+	undefined.
 
 -spec authorize_rating(ModData) -> Result
 	when
