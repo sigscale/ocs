@@ -1,3 +1,11 @@
+December, 6 2024
+----------------
+	- Correct rating of multiple rating groups in session
+	- Correct server value for Nrf events in acct log
+	- Ignore missing or malformed server in acct log
+	- Prefer CC-*-Octets over CC-Time in CCR MSCC RSU/USU
+		- Accomodates Open5GS
+
 December, 2 2024
 ----------------
 	- Completely in-service application upgrade

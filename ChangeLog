@@ -1,5 +1,19 @@
 2024-12-02  Vance Shipley <vances@sigscale.org>
 
+	* correct socket_type value matching in nrf handler
+	* correct getting httpd server address/port for nrf log
+	* handle missing or malformed server address/port in acct log
+	* handle rating groups as seperate sub-sessions
+	* query acct log test cases filter on events generated in case
+	* modernize uri parsing in inets httpd callbacks
+	* add rest utility function for parsing date query
+	* handle truncated iso8601 ending with hour, colon
+	* deprecate ocs_rest:parse_query/1, use uri_string:dissect_query/1
+	* handle notexact binary operator in acct usage rest api
+	* prefer data over time in ccr mscc rsu/usu (open5gs)
+
+2024-12-02  Vance Shipley <vances@sigscale.org>
+
 	* application upgrade file instructions for in service upgrade
 	* remove acct usage query filters on totals
 	* correct usage characteristic names in acct log web component
