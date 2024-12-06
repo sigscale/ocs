@@ -176,7 +176,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 										RateResult = rate1(Protocol, Service, ServiceId, Product,
 												NewBuckets, Timestamp, Address, Direction, Offer,
 												Flag, DebitAmounts, ReserveAmounts, ServiceType,
-												get_session_id(SessionAttributes), ChargingKey,
+												SessionAttributes, ChargingKey,
 												ServiceNetwork),
 										{RateResult, RedirectServerAddress};
 									_ ->
@@ -479,8 +479,8 @@ charge(Protocol, Flag, SubscriberIDs, ServiceId, ChargingKey,
 										ChargeResult = charge1(Protocol, Flag, Service,
 												ServiceId, Product, Buckets, Prices,
 												DebitAmounts, ReserveAmounts,
-												get_session_id(SessionAttributes),
-												ChargingKey, Address, ServiceNetwork,
+												SessionAttributes, ChargingKey,
+												Address, ServiceNetwork,
 												#rated{product = OfferName}),
 										{ChargeResult,	RedirectServerAddress};
 									[] ->
@@ -1668,7 +1668,7 @@ charge4(final = _Flag,
 			= update_buckets(Product#product.balance, OldBuckets, NewBuckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
 	Rated1 = rated(Debits, Rated),
-	NewSessionList = remove_session(SessionId, SessionList),
+	NewSessionList = remove_session(get_session_id(SessionId), SessionList),
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
 	{ok, Service2, Rated1, DeletedBuckets,
@@ -1762,8 +1762,6 @@ charge4(event = _Flag,
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
-	Service2 = Service1#service{session_attributes = []},
-	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)}.
 
@@ -2042,9 +2040,8 @@ authorize4(_Protocol, ServiceType,
 		attributes = Attr} = Service, Buckets, #price{units = Units,
 		size = UnitSize, amount = UnitPrice},
 		SessionAttributes, Reserve, ReserveUnits) ->
-	SessionId = get_session_id(SessionAttributes),
 	case update_session(Units, 0, Reserve,
-			undefined, undefined, SessionId, Buckets) of
+			undefined, undefined, SessionAttributes, Buckets) of
 		{0, Reserve, _Buckets2} when ReserveUnits == seconds ->
 			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, NewAttr);
@@ -2055,7 +2052,7 @@ authorize4(_Protocol, ServiceType,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case update_session(cents, 0, PriceReserve,
-					undefined, undefined, SessionId, Buckets2) of
+					undefined, undefined, SessionAttributes, Buckets2) of
 				{0, PriceReserve, _Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
@@ -2844,28 +2841,44 @@ convert1(ProductId, Type, TotalSize, ServiceId, ChargingKey,
 remove_session(SessionId, SessionList) ->
 	lists:keydelete(SessionId, 2, SessionList).
 
--spec add_session(SessionId, SessionList) -> SessionList
+-spec add_session(SessionAttributes, SessionList) -> SessionList
 	when
-		SessionId :: [tuple()],
-		SessionList :: [{pos_integer(), [tuple()]}].
+		SessionAttributes :: [tuple()],
+		SessionList :: [{pos_integer(), SessionAttributes}].
 %% @doc Add session identification attributes set to active sessions list.
-%%
-%% 	If new `SessionId' is a superset of an existing `SessionId' replace it.
 %% @private
-add_session(SessionId, [] = _SessionList) ->
-	[{erlang:system_time(millisecond), SessionId}];
-add_session(SessionId, SessionList) ->
-	add_session(SessionList, SessionId, []).
+add_session(SessionAttributes, SessionList) ->
+	add_session(SessionList, SessionAttributes, []).
 %% @hidden
-add_session([{TS, CurrentId} = H | T], NewId, Acc) ->
-	case CurrentId -- NewId of
-		[] ->
-			lists:reverse(Acc) ++ [{TS, NewId} | T];
-		_ ->
-			add_session(T, NewId, [H | Acc])
+add_session([{_TS, [{'Session-Id', Id}]} = H | T],
+		SessionAttributes, Acc) ->
+	case lists:keyfind('Session-Id', 1, SessionAttributes) of
+		{_, Id} ->
+			lists:reverse(Acc) ++ [H | T];
+		false ->
+			add_session(T, SessionAttributes, [H | Acc])
 	end;
-add_session([], _, Acc) ->
-	lists:reverse(Acc).
+add_session([{_TS, [{nrf_ref, Id}]} = H | T],
+		SessionAttributes, Acc) ->
+	case lists:keyfind(nrf_ref, 1, SessionAttributes) of
+		{_, Id} ->
+			lists:reverse(Acc) ++ [H | T];
+		false ->
+			add_session(T, SessionAttributes, [H | Acc])
+	end;
+add_session([{_TS, Current} = H | T], SessionAttributes, Acc) ->
+	SessionID = session_attributes(SessionAttributes),
+	case Current -- SessionID of
+		[] ->
+			TS = erlang:system_time(millisecond),
+			lists:reverse(Acc) ++ [{TS, SessionID} | T];
+		_ ->
+			add_session(T, SessionAttributes, [H | Acc])
+	end;
+add_session([], SessionAttributes, Acc) ->
+	TS = erlang:system_time(millisecond),
+	SessionID = get_session_id(SessionAttributes),
+	[{TS, SessionID} | lists:reverse(Acc)].
 
 -spec get_session_id(SessionAttributes) -> SessionId
 	when
@@ -2886,14 +2899,8 @@ get_session_id1(_SessionAttributes, SessionId) ->
 %% @hidden
 get_session_id2(SessionAttributes, false) ->
 	session_attributes(SessionAttributes);
-get_session_id2(SessionAttributes, NrfRef) ->
-	get_session_id3(NrfRef,
-			lists:keyfind(upfid, 1, SessionAttributes)).
-%% @hidden
-get_session_id3(NrfRef, false) ->
-	[NrfRef];
-get_session_id3(NrfRef, UpfId) ->
-	[NrfRef, UpfId].
+get_session_id2(_SessionAttributes, NrfRef) ->
+	[NrfRef].
 
 -spec split_by_price(Buckets) -> Result
 	when

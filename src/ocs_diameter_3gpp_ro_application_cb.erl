@@ -299,8 +299,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
+		SessionAttributes = [{'Session-Id', SessionId}],
 		case ocs_rating:authorize(diameter, ServiceType, SubscriberIDs, undefined,
-				Timestamp, undefined, undefined, [{'Session-Id', SessionId}]) of
+				Timestamp, undefined, undefined, SessionAttributes) of
 			{authorized, _Subscriber, _Attributes, _SessionList} ->
 				Reply = diameter_answer(SessionId, [],
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -354,9 +355,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
-				Timestamp, Address, Direction, initial, SessionId,
-				Amounts) of
+		SessionAttributes = [{'Session-Id', SessionId}],
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
+				Address, Direction, initial, SessionAttributes, Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
 				Reply = diameter_answer(SessionId, MSCC2,
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -406,9 +407,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
-				Timestamp, Address, Direction, interim, SessionId,
-				Amounts) of
+		SessionAttributes = [{'Session-Id', SessionId}],
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
+				Address, Direction, interim, SessionAttributes, Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
 				Reply = diameter_answer(SessionId, MSCC2,
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -466,9 +467,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			Amounts ->
-				case rate(ServiceType, ServiceNetwork, SubscriberIDs,
-						Timestamp, Address, Direction, final, SessionId,
-						Amounts) of
+				SessionAttributes = [{'Session-Id', SessionId}],
+				case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
+							Address, Direction, final, SessionAttributes, Amounts) of
 					{MSCC2, ResultCode} when is_list(MSCC2) ->
 						Reply = diameter_answer(SessionId, MSCC2,
 								ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -524,9 +525,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
+		SessionAttributes = [{'Session-Id', SessionId}],
 		case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
 				ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction,
-				event, [], [], [{'Session-Id', SessionId}]) of
+				event, [], [], SessionAttributes) of
 			{ok, _, {octets, Amount}, Rated} ->
 				ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
@@ -613,9 +615,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		case rate(ServiceType, ServiceNetwork, SubscriberIDs,
-				Timestamp, Address, Direction, event, SessionId,
-				Amounts) of
+		SessionAttributes = [{'Session-Id', SessionId}],
+		case rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
+				Address, Direction, event, SessionAttributes, Amounts) of
 			{MSCC2, ResultCode} when is_list(MSCC2) ->
 				Reply = diameter_answer(SessionId, MSCC2,
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -878,7 +880,7 @@ get_rg(_) ->
 	[].
 
 -spec rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
-		Address, Direction, Flag, SessionId, Amounts) -> Result
+		Address, Direction, Flag, SessionAttributes, Amounts) -> Result
 	when
 		ServiceType :: binary(),
 		ServiceNetwork :: binary(),
@@ -887,7 +889,7 @@ get_rg(_) ->
 		Address :: binary() | undefined,
 		Direction :: answer | originate | undefined,
 		Flag :: initial | interim | final | event,
-		SessionId :: binary(),
+		SessionAttributes :: [tuple()],
 		Amounts :: [{ServiceIdentifier, RatingGroup,
 				UsedAmounts, ReserveAmounts}],
 		ServiceIdentifier :: [pos_integer()],
@@ -903,13 +905,13 @@ get_rg(_) ->
 %% @doc Rate all the MSCCs.
 %% @hidden
 rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
-		Address, Direction, Flag, SessionId, Amounts) ->
+		Address, Direction, Flag, SessionAttributes, Amounts) ->
 	rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
-			Address, Direction, Flag, SessionId,
+			Address, Direction, Flag, SessionAttributes,
 			Amounts, [], undefined, undefined).
 %% @hidden
 rate(ServiceType, ServiceNetwork, SubscriberIDs,
-		Timestamp, Address, Direction, Flag, SessionId,
+		Timestamp, Address, Direction, Flag, SessionAttributes,
 		[{SI, RG, Debits, Reserves} | T], Acc, ResultCode1, Rated1) ->
 	ServiceId = case SI of
 		[] ->
@@ -917,15 +919,15 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 		[N1] ->
 			N1
 	end,
-	ChargingKey = case RG of
+	{SessionAttributes1, ChargingKey} = case RG of
 		[] ->
-			undefined;
+			{SessionAttributes, undefined};
 		[N2] ->
-			N2
+			{SessionAttributes ++ [{rg, N2}], N2}
 	end,
 	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
 			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, Flag,
-			Debits, Reserves, [{'Session-Id', SessionId}]) of
+			Debits, Reserves, SessionAttributes1) of
 		{ok, _, {seconds, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
@@ -935,7 +937,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {octets, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -946,7 +948,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {messages, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -957,12 +959,12 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated1);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, Acc, ResultCode2, Rated1);
 		{ok, _, {octets, Amount}, Rated2} when Amount > 0,
 				is_list(Rated2), Rated1 == undefined ->
@@ -974,7 +976,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {octets, Amount}, Rated2} when Amount > 0,
 				is_list(Rated2), is_list(Rated1) ->
@@ -986,7 +988,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated1 ++ Rated2);
 		{ok, _, {seconds, Amount}, Rated2} when Amount > 0,
 				is_list(Rated2), Rated1 == undefined ->
@@ -998,7 +1000,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {messages, Amount}, Rated2} when Amount > 0,
 				is_list(Rated2), Rated1 == undefined ->
@@ -1010,7 +1012,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated2);
 		{ok, _, {messages, Amount}, Rated2} when Amount > 0,
 				is_list(Rated2), is_list(Rated1) ->
@@ -1022,17 +1024,17 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 					'Rating-Group' = RG,
 					'Result-Code' = [ResultCode2]},
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode2, Rated1 ++ Rated2);
 		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, Acc, ResultCode2, Rated2);
 		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, Acc, ResultCode2, Rated1 ++ Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
@@ -1056,7 +1058,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode3, Rated1);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), Rated1 == undefined ->
@@ -1081,7 +1083,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode3, Rated2);
 		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
@@ -1106,7 +1108,7 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, SubscriberIDs,
-					Timestamp, Address, Direction, Flag, SessionId,
+					Timestamp, Address, Direction, Flag, SessionAttributes,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
 		{disabled, _SessionList} ->
 			{Acc, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
@@ -1116,11 +1118,11 @@ rate(ServiceType, ServiceNetwork, SubscriberIDs,
 			{error, Reason}
 	end;
 rate(ServiceType, ServiceNetwork, SubscriberIDs,
-		Timestamp, Address, Direction, final, SessionId,
+		Timestamp, Address, Direction, final, SessionAttributes,
 		[], [], undefined, undefined) ->
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
-			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction, final,
-			[], [], [{'Session-Id', SessionId}]) of
+			ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction,
+			final, [], [], SessionAttributes) of
 		{ok, _, Rated} ->
 			{[], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', Rated};
 		{out_of_credit, _, _SessionList} ->

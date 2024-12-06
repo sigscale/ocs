@@ -171,6 +171,7 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
 		TestCase == diameter_scur_price_discrimination_by_rg;
+		TestCase == diameter_scur_multiple_rg;
 		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
@@ -208,6 +209,7 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
 		TestCase == diameter_scur_price_discrimination_by_rg;
+		TestCase == diameter_scur_multiple_rg;
 		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address),
@@ -243,7 +245,9 @@ all() ->
 			diameter_voice_out, diameter_voice_in,
 			diameter_voice_out_tariff, diameter_voice_in_tariff,
 			diameter_scur_no_credit, scur_start_redirect_server,
-			diameter_scur_price_discrimination_by_rg, diameter_scur_roaming_voice_ims,
+			diameter_scur_price_discrimination_by_rg,
+			diameter_scur_multiple_rg,
+			diameter_scur_roaming_voice_ims,
 			client_authorized, client_not_authorized].
 
 %%---------------------------------------------------------------------
@@ -1223,80 +1227,103 @@ diameter_scur_price_discrimination_by_rg() ->
 	[{userdata, [{doc, "DIAMETER SCUR Price Discrimination By Rating Group"}]}].
 
 diameter_scur_price_discrimination_by_rg(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Username = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_scur_start(SId, Username, RequestNum, rand:uniform(Balance)),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits,
+	NewRequestNum = RequestNum + 1,
+	Answer1 = diameter_scur_stop(SId, Username, NewRequestNum, TotalOctets),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer1.
+
+diameter_scur_multiple_rg() ->
+	[{userdata, [{doc, "DIAMETER SCUR with multiple Rating Groups"}]}].
+
+diameter_scur_multiple_rg(_Config) ->
 	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
 	UnitSize = MinReserve + rand:uniform(MinReserve),
 	UnitPrice = rand:uniform(1000000),
-	ServiceID = ocs:generate_identity(),
-	MSISDN = list_to_binary(ServiceID),
-	P1 = #price{name = ocs:generate_identity(), type = usage,
-					units = octets, size = UnitSize, amount = UnitPrice,
-					char_value_use = [#char_value_use{name = "chargingKey",
-							specification = "3", values = [#char_value{
-							value = 200}]}]},
-	P2 = #price{name = ocs:generate_identity(), type = usage,
-					units = octets, size = UnitSize, amount = 0,
-					char_value_use = [#char_value_use{name = "chargingKey",
-							specification = "3", values = [#char_value{
-							value = 100}]}]},
-	OfferId = add_offer([P1, P2], 4),
+	POP = price(usage, octets, UnitSize, UnitPrice),
+	IMSI = ocs_test_lib:rand_dn(),
+	OfferId = add_offer([POP], 4),
 	ProdRef = add_product(OfferId),
-	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	Balance = UnitPrice + rand:uniform(UnitPrice),
-	B1 = bucket(cents, Balance),
+	{ok, #service{}} = ocs:add_service(IMSI, undefined, ProdRef, []),
+	Balance = (UnitSize * 10) + rand:uniform(UnitSize),
+	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	SubscriptionId = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = MSISDN},
-	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
-			[#'3gpp_ro_PS-Information'{
-					'3GPP-PDP-Type' = [3],
-					'Serving-Node-Type' = [2],
-					'SGSN-Address' = [{10,1,2,3}],
-					'GGSN-Address' = [{10,4,5,6}],
-					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
-					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
-					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
-	RequestNum1 = 0,
-	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Total-Octets' = []},
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RG1 = rand:uniform(100),
+	RG2 = rand:uniform(100),
+	RSU = #'3gpp_ro_Requested-Service-Unit'{},
 	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Requested-Service-Unit' = [RequestedUnits],
-			'Rating-Group' = [100]},
+			'Requested-Service-Unit' = [RSU],
+			'Rating-Group' = [RG1]},
+	MSCC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU],
+			'Rating-Group' = [RG2]},
 	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "32251@3gpp.org",
-			'User-Name' = [MSISDN],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
-			'CC-Request-Number' = RequestNum1,
-			'Event-Timestamp' = [calendar:universal_time()],
+			'CC-Request-Number' = 0,
 			'Subscription-Id' = [SubscriptionId],
-			'Multiple-Services-Credit-Control' = [MSCC1],
-			'Service-Information' = [ServiceInformation]},
-	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
-	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
-	RequestNum2 = RequestNum1 + 1,
-	USUTotalOctets = rand:uniform(UnitSize - 1),
-	UsedUnits2 = #'3gpp_ro_Used-Service-Unit' {
-			'CC-Total-Octets' = [USUTotalOctets]},
-	MSCC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Requested-Service-Unit' = [RequestedUnits],
-			'Used-Service-Unit' = [UsedUnits2],
-			'Rating-Group' = [100]},
-	CCR2 = #'3gpp_ro_CCR'{'Session-Id' = SId,
-			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "32251@3gpp.org",
-			'User-Name' = [MSISDN],
+			'Multiple-Services-Credit-Control' = [MSCC1, MSCC2]},
+	{ok, CCA1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = CCA1,
+	Octets1 = rand:uniform(UnitSize - 1),
+	Octets2 = rand:uniform(UnitSize - 1),
+	USU1 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Octets1]},
+	USU2 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Octets2]},
+	MSCC3 = MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU1]},
+	MSCC4 = MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU2]},
+	CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = 1,
+			'Multiple-Services-Credit-Control' = [MSCC3, MSCC4]},
+	{ok, CCA2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = CCA2,
+	Octets3 = rand:uniform(UnitSize - 1),
+	Octets4 = rand:uniform(UnitSize - 1),
+	USU3 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Octets3]},
+	USU4 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Octets4]},
+	MSCC5 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU3]},
+	MSCC6 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU4]},
+	CCR3 = CCR2#'3gpp_ro_CCR'{'Session-Id' = SId,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum2,
-			'Event-Timestamp' = [calendar:universal_time()],
-			'Subscription-Id' = [SubscriptionId],
-			'Multiple-Services-Credit-Control' = [MSCC2],
-			'Service-Information' = [ServiceInformation]},
-	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
-	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer2,
-	[#bucket{remain_amount = Balance}] = ocs:get_buckets(ProdRef).
+			'CC-Request-Number' = 2,
+			'Multiple-Services-Credit-Control' = [MSCC5, MSCC6]},
+	{ok, CCA3} = diameter:call(?MODULE, cc_app_test, CCR3, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = CCA3,
+	[#bucket{remain_amount = RemainAmount}] = ocs:get_buckets(ProdRef),
+	UsedOctets = Octets1 + Octets2 + Octets3 + Octets4,
+	RemainAmount = Balance - UsedOctets.
 
 diameter_scur_roaming_voice_ims() ->
 	[{userdata, [{doc, "DIAMETER SCUR "}]}].

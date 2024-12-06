@@ -540,16 +540,15 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 			[]
 	end,
 	ServiceType = service_type(SCI),
-	SessionAttributes = case maps:find("uPFID", H) of
-		{ok, UpfId} ->
-			case application:get_env(ocs, quota_per_upf) of
-				{ok, true} ->
-					[{nrf_ref, RatingDataRef}, {upfid, UpfId}];
-				{ok, false} ->
-					[{nrf_ref, RatingDataRef}]
-			end;
-		_ ->
-			[{nrf_ref, RatingDataRef}]
+	SessionAttributes = case {ChargingKey, maps:find("uPFID", H)} of
+		{undefined, error} ->
+			[{nrf_ref, RatingDataRef}];
+		{undefined, {ok, UpfId}} ->
+			[{nrf_ref, RatingDataRef}, {upfid, UpfId}];
+		{RG1, error} ->
+			[{nrf_ref, RatingDataRef}, {rg, RG1}];
+		{RG1, {ok, UpfId}} ->
+			[{nrf_ref, RatingDataRef}, {upfid, UpfId}, {rg, RG1}]
 	end,
 	Args = {ServiceType, ChargingKey, ServiceId, ServiceNetwork,
 			Address, Direction, SessionAttributes, Debit, Reserve},
