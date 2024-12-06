@@ -2805,7 +2805,6 @@ query_acct_usage_nas_id(Config) ->
 	QueryList = [{"date.gte", StartDateTime}, {"date.lte", EndDateTime},
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
-erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Query}),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
 	Request = {RequestUri, [Accept, auth_header()]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),

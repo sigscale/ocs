@@ -320,7 +320,6 @@ send_identity_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 			AnonymousName, Secret, MAC, Auth, RadId).
 
 receive_identity(Socket, Address, Port, Secret, Auth, RadId) ->
-erlang:display({?MODULE, ?LINE, application:get_env(ocs, radius)}),
 	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
 	EapMsg = get_eap(Radius),
