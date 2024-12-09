@@ -103,19 +103,22 @@ class userUpdate extends PolymerElement {
 					id="updateUserAjax"
 					method="PATCH"
 					content-type="application/json-patch+json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					loading="{{loading}}"
 					on-response="_updateUserResponse"
 					on-error="_updateUserError">
 			</iron-ajax>
 			<iron-ajax
 					id="deleteUserAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					loading="{{loading}}"
 					on-response="_deleteUserResponse"
 					on-error="_updateUserError">
 			</iron-ajax>
 			<iron-ajax
-				id="getUserAjaxUp"
-				method="GET">
+					id="getUserAjaxUp"
+					headers='{"Accept": "application/json, application/problem+json"}'
+					method="GET">
 			</iron-ajax>
 		`;
 	}

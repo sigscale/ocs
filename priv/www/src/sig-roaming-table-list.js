@@ -70,12 +70,14 @@ class tariffRoamingList extends PolymerElement {
 			<iron-ajax
 					id="deleteRoamingTable"
 					method="DELETE"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteRoamingResponse"
 					on-error="_deleteRoamingError">
 			</iron-ajax>
 			<iron-ajax
 					id="getRoamingTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=7"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getRoamingResponse"
 					on-error="_getRoamingError">
 			</iron-ajax>

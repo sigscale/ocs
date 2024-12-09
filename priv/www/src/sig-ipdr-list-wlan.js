@@ -245,11 +245,12 @@ class ipdrListWlan extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax id="getLogsAjaxWlan"
 					method = "GET"
-					headers='{"Accept": "application/json"}'
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="getLogsResponseWlan"
 					on-error="getLogsErrorWlan">
 			</iron-ajax>
 			<iron-ajax id="getIpdr"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

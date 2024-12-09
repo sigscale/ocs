@@ -315,21 +315,25 @@ class policyList extends PolymerElement {
 			<iron-ajax
 					id="getPolicyTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getPolicyTablesResponse"
 					rejectWithRequest>
 			</iron-ajax>
 			<iron-ajax
 					id="deletePolicyTable"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteTableResponse"
 					method="DELETE">
 			</iron-ajax>
 			<iron-ajax
 					id="deletePolicyRow"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					method="DELETE">
 			</iron-ajax>
 			<iron-ajax
 					id="policyUpdate"
 					method="PATCH"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					loading="{{loading}}">
 			</iron-ajax>
 		`;

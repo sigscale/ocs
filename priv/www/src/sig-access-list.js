@@ -112,6 +112,7 @@ class accessList extends PolymerElement {
 			</vaadin-grid>
 			<iron-ajax id="getAccess"
 					url="/usageManagement/v1/usage"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

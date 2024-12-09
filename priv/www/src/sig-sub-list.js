@@ -87,10 +87,12 @@ class subList extends PolymerElement {
 			<iron-ajax
 					id="getSubscriberAjax"
 					url="/serviceInventoryManagement/v2/service"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 			<iron-ajax
 					id="getProductInventoryAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getProductResponse"
 					on-error="_getProductError">
 			</iron-ajax>

@@ -435,6 +435,7 @@ class subAdd extends PolymerElement {
 					url="/serviceInventoryManagement/v2/service"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addServiceResponse"
 					on-error="_addServiceError">
@@ -444,6 +445,7 @@ class subAdd extends PolymerElement {
 					url="/productInventoryManagement/v2/product"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged1"
 					on-response="_addProductResponse"
 					on-error="_addProductError">
@@ -452,6 +454,7 @@ class subAdd extends PolymerElement {
 					id="addBucketAjax"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged2"
 					on-response="_addBucketResponse"
 					on-error="_addBucketError">
@@ -460,6 +463,7 @@ class subAdd extends PolymerElement {
 					id="updateSubscriberProductsAjax1"
 					url="/catalogManagement/v2/productOffering"
 					method = "GET"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateSubscriberProductsResponse1"
 					on-error="_updateSubscriberProductsError1">
 			</iron-ajax>

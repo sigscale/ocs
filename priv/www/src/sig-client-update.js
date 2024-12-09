@@ -170,16 +170,19 @@ class clientUpdate extends PolymerElement {
 				</iron-pages>
 			</paper-dialog>
 			<iron-ajax id="updateClientAuthAjax"
-				on-response="_updateClientAuthResponse"
-				on-error="_updateClientAuthError">
+					headers='{"Accept": "application/json, application/problem+json"}'
+					on-response="_updateClientAuthResponse"
+					on-error="_updateClientAuthError">
 			</iron-ajax>
 			<iron-ajax id="updateClientPropertiesAjax"
-				on-response="_updateClientPropertiesResponse"
-				on-error="_updateClientPropertiesError">
+					headers='{"Accept": "application/json, application/problem+json"}'
+					on-response="_updateClientPropertiesResponse"
+					on-error="_updateClientPropertiesError">
 			</iron-ajax>
 			<iron-ajax id="deleteClientAjax"
-				on-response="_deleteClientResponse"
-				on-error="_deleteClientError">
+					headers='{"Accept": "application/json, application/problem+json"}'
+					on-response="_deleteClientResponse"
+					on-error="_deleteClientError">
 			</iron-ajax>
 		`;
 	}

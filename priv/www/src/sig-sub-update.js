@@ -299,37 +299,44 @@ class subUpdate extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax
 					id="updateSubscriberAuthenticationAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateSubscriberAuthenticationResponse"
 					on-error="_updateSubscriberAuthenticationError">
 			</iron-ajax>
 			<iron-ajax
 					id="updateSubscriberAuthorizationAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateSubscriberAuthorizationResponse"
 					on-error="_updateSubscriberAuthorizationError">
 			</iron-ajax>
 			<iron-ajax
 					id="updateSubscriberProductAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateSubscriberProductResponse"
 					on-error="_updateSubscriberProductError">
 			</iron-ajax>
 			<iron-ajax
 					id="deleteSubscriberAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteSubscriberResponse"
 					on-error="_deleteSubscriberError">
 			</iron-ajax>
 			<iron-ajax
 					id="getServiceRespAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					method = "GET">
 			</iron-ajax>
 			<iron-ajax
 					id="addBucketAjax"
 					method = "post"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					content-type="application/json">
 			</iron-ajax>
 			<iron-ajax
 					id="updateSubscriberProductsAjax"
 					url="/catalogManagement/v2/productOffering"
 					method = "GET"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateSubscriberProductsResponse"
 					on-error="_updateSubscriberProductsError">
 			</iron-ajax>

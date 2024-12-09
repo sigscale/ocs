@@ -132,6 +132,7 @@ class httpList extends PolymerElement {
 			</vaadin-grid>
 			<iron-ajax id="getHttp"
 					url="/ocs/v1/log/http"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

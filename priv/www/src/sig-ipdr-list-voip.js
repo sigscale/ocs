@@ -162,11 +162,12 @@ class ipdrListVoip extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax id="getIpdrVoip"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 			<iron-ajax id="getLogsAjaxVoip"
 					method = "GET"
-					headers='{"Accept": "application/json"}'
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="getLogsResponseVoip"
 					on-error="getLogsErrorVoip">
 			</iron-ajax>

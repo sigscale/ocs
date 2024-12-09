@@ -70,6 +70,7 @@ class roamingList extends PolymerElement {
 			<iron-ajax
 					id="getRoamingRows"
 					url="/resourceInventoryManagement/v1/resource"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;

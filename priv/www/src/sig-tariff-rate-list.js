@@ -70,6 +70,7 @@ class rateList extends PolymerElement {
 			<iron-ajax
 					id="getPrefixRows"
 					url="/resourceInventoryManagement/v1/resource"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;

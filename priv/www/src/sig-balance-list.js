@@ -129,8 +129,9 @@ class balanceList extends PolymerElement {
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<iron-ajax id="getBalanceAjax"
-				url="/ocs/v1/log/balance"
-				rejectWithRequest>
+					url="/ocs/v1/log/balance"
+					headers='{"Accept": "application/json, application/problem+json"}'
+					rejectWithRequest>
 			</iron-ajax>
 		`;
 	}

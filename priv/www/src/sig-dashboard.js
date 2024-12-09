@@ -185,7 +185,7 @@ class dashBoard extends PolymerElement {
 			</paper-card>
 			<iron-ajax
 					id="getHealthDashAjax"
-					headers='{"Accept": "application/health+json"}'
+					headers='{"Accept": "application/health+json, application/problem+json"}'
 					url="/health"
 					rejectWithRequest>
 			</iron-ajax>

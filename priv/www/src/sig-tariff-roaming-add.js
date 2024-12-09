@@ -87,6 +87,7 @@ class roamingAdd extends PolymerElement {
 			<iron-ajax
 					id="addRoamingRow"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addRoamingRowResponse"
 					on-error="_addRoamingRowError">

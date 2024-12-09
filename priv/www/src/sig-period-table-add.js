@@ -93,6 +93,7 @@ class tablePeriodAdd extends PolymerElement {
 					url="resourceInventoryManagement/v1/resource"
 					method = "POST"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					loading="{{loading}}"
 					on-response="_addTableResponse"
 					on-error="_addTableError">

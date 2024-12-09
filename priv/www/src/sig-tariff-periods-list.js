@@ -110,6 +110,7 @@ class periodList extends PolymerElement {
 			<iron-ajax
 					id="getPeriodRows"
 					url="/resourceInventoryManagement/v1/resource"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					params="{{_getParams(activeTableName)}}">
 			</iron-ajax>
 		`;

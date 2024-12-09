@@ -237,6 +237,7 @@ class accountingList extends PolymerElement {
 			</vaadin-grid>
 			<iron-ajax id="getAccounting"
 					url="/usageManagement/v1/usage"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

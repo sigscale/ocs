@@ -128,6 +128,7 @@ class clientList extends PolymerElement {
 			<iron-ajax
 					id="getClientAjax"
 					url="/ocs/v1/client"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

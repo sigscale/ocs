@@ -107,6 +107,7 @@ class userAdd extends PolymerElement {
 				url="/partyManagement/v1/individual"
 				method = "post"
 				content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 				loading="{{loading}}"
 				on-response="_addUserResponse">
 			</iron-ajax>

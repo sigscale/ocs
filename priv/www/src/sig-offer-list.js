@@ -84,11 +84,13 @@ class offerList extends PolymerElement {
 			<iron-ajax
 					id="getProductOffersAjax"
 					url="/catalogManagement/v2/productOffering"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 			<iron-ajax
 					id="getPrefixTableAjax"
 					url="/resourceInventoryManagement/v1/resource"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getPrefixTableResponse"
 					on-error="_getPrefixTableError">
 			</iron-ajax>

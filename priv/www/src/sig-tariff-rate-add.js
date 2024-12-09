@@ -86,6 +86,7 @@ class rateAdd extends PolymerElement {
 			<iron-ajax
 					id="addTableRow"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addRateRowResponse"
 					on-error="_addRateRowError">

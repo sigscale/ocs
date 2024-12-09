@@ -170,6 +170,7 @@ class bucketList extends PolymerElement {
 			<iron-ajax
 					id="getBucketBalance"
 					url="/balanceManagement/v1/bucket/"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					rejectWithRequest>
 			</iron-ajax>
 		`;

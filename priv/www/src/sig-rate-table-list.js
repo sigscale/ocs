@@ -70,12 +70,14 @@ class tariffRateList extends PolymerElement {
 			<iron-ajax
 					id="deletePrefixTable"
 					method="DELETE"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteTableResponse"
 					on-error="_deleteTableError">
 			</iron-ajax>
 			<iron-ajax
 					id="getRateTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getTablesResponse"
 					on-error="_getTablesError">
 			</iron-ajax>

@@ -70,12 +70,14 @@ class tariffPeriodList extends PolymerElement {
 			<iron-ajax
 					id="deletePeriodTable"
 					method="DELETE"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deletePeriodResponse"
 					on-error="_deletePeriodError">
 			</iron-ajax>
 			<iron-ajax
 					id="getPeriodTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=5"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getPeriodResponse"
 					on-error="_getPeriodError">
 			</iron-ajax>

@@ -151,13 +151,15 @@ class periodUpdate extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax id="updatePeriodRowAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updatePeriodRowResponse"
 					on-error="_updatePeriodRowError"
 					on-loading-changed="_onLoadingChanged">
 			</iron-ajax>
 			<iron-ajax id="deletePeriodRowAjax"
-				on-response="_deletePeriodRowResponse"
-				on-error="_deletePeriodRowError">
+					headers='{"Accept": "application/json, application/problem+json"}'
+					on-response="_deletePeriodRowResponse"
+					on-error="_deletePeriodRowError">
 			</iron-ajax>
 		`;
 	}

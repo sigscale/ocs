@@ -88,9 +88,10 @@ class userList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-				id="getUserAjax"
-				url="/partyManagement/v1/individual"
-				rejectWithRequest>
+					id="getUserAjax"
+					url="/partyManagement/v1/individual"
+					headers='{"Accept": "application/json, application/problem+json"}'
+					rejectWithRequest>
 			</iron-ajax>
 		`;
 	}

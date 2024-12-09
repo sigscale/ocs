@@ -122,6 +122,7 @@ class periodAdd extends PolymerElement {
 			<iron-ajax
 					id="addPeriodTableRow"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addPeriodRowResponse"
 					on-error="_addPeriodRowError">

@@ -152,6 +152,7 @@ class policyAdd extends PolymerElement {
 			<iron-ajax
 					id="policyAdd"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					loading="{{loading}}"
 					on-response="_response"
 					on-error="_error">

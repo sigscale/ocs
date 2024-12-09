@@ -820,15 +820,18 @@ class offerAdd extends PolymerElement {
 					url="/catalogManagement/v2/productOffering"
 					method="POST"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addOfferResponse"
 					on-error="_addOfferError">
 			</iron-ajax>
 			<iron-ajax id="getPrefixTablesAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getTariffTablesResponse"
 					on-error="_getTariffTablesError">
 			</iron-ajax>
 			<iron-ajax id="getPolicyTablesAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_getPolicyTablesResponse"
 					on-error="_getPolicyTablesError">
 			</iron-ajax>

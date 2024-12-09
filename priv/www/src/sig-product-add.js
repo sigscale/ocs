@@ -156,6 +156,7 @@ class productAddClass extends PolymerElement {
 					id="deleteProductAjax"
 					url="/productInventoryManagement/v2/product/"
 					method="delete"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteProductResponse"
 					on-error="_deleteProductError">
 			</iron-ajax>
@@ -164,6 +165,7 @@ class productAddClass extends PolymerElement {
 					url="/productInventoryManagement/v2/product"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_addProductResponse"
 					on-error="_addProductError">
 			</iron-ajax>

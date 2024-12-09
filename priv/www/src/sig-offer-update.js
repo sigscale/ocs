@@ -769,28 +769,33 @@ class offerUpdate extends PolymerElement {
 					id="updateProductOfferAjax"
 					method="PATCH"
 					content-type="application/json-patch+json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_updateProductOfferResponse"
 					on-error="_updateProductOfferError">
 			</iron-ajax>
 			<iron-ajax
 					id="updateOfferPriceAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateOfferPriceResponse"
 					on-error="_updateOfferPriceError">
 			</iron-ajax>
 			<iron-ajax
 					id="deleteOfferAjax"
 					method="DELETE"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteOfferResponse"
 					on-error="_deleteOfferError">
 			</iron-ajax>
 			<iron-ajax
 					id="updateOfferAlterationAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateOfferAlterationResponse"
 					on-error="_updateOfferAlterationError">
 			</iron-ajax>
 			<iron-ajax
 					id="getOffersAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					url="/catalogManagement/v2/productOffering"
 					on-response="_getProductUpdateResponse"
 					on-error="_getProductsError">

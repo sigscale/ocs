@@ -165,6 +165,7 @@ class clientAdd extends PolymerElement {
 					url="/ocs/v1/client"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_addClientResponse"
 					on-error="_addClientError">
 			</iron-ajax>

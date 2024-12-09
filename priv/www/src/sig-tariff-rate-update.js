@@ -102,11 +102,13 @@ class rateUpdate extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax id="updateRateRowAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateRateRowResponse"
 					on-error="_updateRateRowError"
 					on-loading-changed="_onLoadingChanged">
 			</iron-ajax>
 			<iron-ajax id="deleteRateRowAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 				on-response="_deleteRateRowResponse"
 				on-error="_deleteRateRowError">
 			</iron-ajax>

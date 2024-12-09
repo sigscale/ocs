@@ -188,8 +188,9 @@ class offerAdd extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax
 					id="deleteBucketAjax"
-					url="/balanceManagement/v1/bucket/"
 					method="delete"
+					url="/balanceManagement/v1/bucket/"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_deleteBucketResponse"
 					on-error="_deleteBucketError">
 			</iron-ajax>
@@ -197,6 +198,7 @@ class offerAdd extends PolymerElement {
 					id="addBucketAjax"
 					method = "post"
 					content-type="application/json"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addBucketResponse"
 					on-error="_addBucketError">

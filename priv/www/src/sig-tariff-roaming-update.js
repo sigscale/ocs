@@ -103,13 +103,15 @@ class roamingUpdate extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax id="updateRoamingRowAjax"
+					headers='{"Accept": "application/json, application/problem+json"}'
 					on-response="_updateRoamingRowResponse"
 					on-error="_updateRoamingRowError"
 					on-loading-changed="_onLoadingChanged">
 			</iron-ajax>
 			<iron-ajax id="deleteRoamingRowAjax"
-				on-response="_deleteRoamingRowResponse"
-				on-error="_deleteRoamingRowError">
+					headers='{"Accept": "application/json, application/problem+json"}'
+					on-response="_deleteRoamingRowResponse"
+					on-error="_deleteRoamingRowError">
 			</iron-ajax>
 		`;
 	}

@@ -120,9 +120,10 @@ class productList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-				id="getProductInventory"
-				url="/productInventoryManagement/v2/product/"
-				rejectWithRequest>
+					id="getProductInventory"
+					url="/productInventoryManagement/v2/product/"
+					headers='{"Accept": "application/json, application/problem+json"}'
+					rejectWithRequest>
 			</iron-ajax>
 		`;
 	}
