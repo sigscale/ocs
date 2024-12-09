@@ -198,7 +198,7 @@ head_bucket() ->
 		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred getting Balance Bucket"},
+					detail => "Exception occurred getting Balance Buckets"},
 			{error, 500, Problem}
 	end.
 
