@@ -1012,7 +1012,7 @@ get_buckets() ->
 	when
 		ProdRef :: string(),
 		Result :: [#bucket{}] | {error, Reason},
-		Reason :: term().
+		Reason :: product_not_found.
 %% @doc Get all buckets for given product reference.
 get_buckets(ProdRef) when is_list(ProdRef) ->
 	F = fun() ->
