@@ -64,7 +64,10 @@ head_user() ->
 		{ok, Headers, []}
 	catch
 		_:_Reason ->
-			{error, 500}
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Party Individual"},
+			{error, 500, Problem}
 	end.
 
 -spec get_users(Query, Headers) -> Result
@@ -162,7 +165,7 @@ get_user(Id, Query) ->
 	end.
 %% @hidden
 get_user(Id, [] = _Query, _Filters) ->
-	case ocs:get_user(Id) of
+	try ocs:get_user(Id) of
 		{ok, #httpd_user{user_data = UserData} = User} ->
 			{struct, UserObjectWithPwd} = user(User),
 			{_, {array, Chars}} = lists:keyfind("characteristic", 1, UserObjectWithPwd),
@@ -186,10 +189,22 @@ get_user(Id, [] = _Query, _Filters) ->
 			Body = mochijson:encode(UserObject),
 			{ok, Headers, Body};
 		{error, _Reason} ->
-			{error, 404}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Party Individual found"},
+			{error, 404, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Party Individual"},
+			{error, 500, Problem}
 	end;
 get_user(_, _, _) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec post_user(RequestBody) -> Result
 	when
@@ -204,9 +219,7 @@ get_user(_, _, _) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	try
-		user(mochijson:decode(RequestBody))
-	of
+	try user(mochijson:decode(RequestBody)) of
 		#httpd_user{username = {Username, _, _, _},
 				password = Password, user_data = UserData} = User ->
 			case ocs:add_user(Username, Password, UserData) of
@@ -216,14 +229,23 @@ post_user(RequestBody) ->
 					Headers = [{content_type, "application/json"},
 							{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 					{ok, Headers, Body};
-				{error, _Reason} ->
-					{error, 400}
+				{error, user_exists} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "The Party Individual already exists"},
+					{error, 400, Problem}
 			end;
-		#httpd_user{} ->
-			{error, 400}
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
-		_:_Reason1 ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec patch_user(ID, Etag, ContentType, ReqBody) -> Result
@@ -267,20 +289,35 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 													{location, Location}, {etag, ocs_rest:etag(Etag4)}],
 											{ok, Headers, []};
 										{error, _} ->
-											{error, 500}
+											Problem = #{type => "about:blank",
+													title => "Internal Server Error",
+													detail => "Exception occurred updating Party Individual"},
+											{error, 400, Problem}
 									end;
 								_ ->
-									{error, 400}
+									Problem = #{type => "about:blank",
+											title => "Bad Request",
+											detail => "Exception occurred parsing patch operations"},
+									{error, 400, Problem}
 							end;
 						_ ->
-							{error, 412}
+							Problem = #{type => "about:blank",
+									title => "Precondition Failed",
+									detail => "Etag does not match current value"},
+							{error, 412, Problem}
 					end;
 				{error, _Reason} ->
-					{error, 400}
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Party Individual found"},
+					{error, 404, Problem}
 			end
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request"},
+			{error, 400, Problem}
 	end.
 
 -spec delete_user(Id) -> Result
@@ -296,11 +333,20 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 %% @doc	Respond to `DELETE /partyManagement/v1/individual/{id}' request and
 %% 	delete an existing `user'.
 delete_user(Id) ->
-	case ocs:delete_user(Id) of
+	try ocs:delete_user(Id) of
 		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Party Individual found"},
+			{error, 404, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Party Individual"},
+			{error, 500, Problem}
 	end.
 
 -spec get_params() -> Result
@@ -319,7 +365,7 @@ get_params() ->
 			exit(not_found)
 	end.
 %% @hidden
-get_params([{httpd, _, HttpdInfo} | _T]) when is_list(HttpdInfo) ->
+get_params([{httpd, _, HttpdInfo} | _]) when is_list(HttpdInfo) ->
 	{_, Port} = lists:keyfind(port, 1, HttpdInfo),
 	{_, Address} = lists:keyfind(bind_address, 1, HttpdInfo),
 	{ok, Inets} = application:get_env(inets, services),
@@ -327,7 +373,7 @@ get_params([{httpd, _, HttpdInfo} | _T]) when is_list(HttpdInfo) ->
 	F = fun({directory, {Directory, Auth}})
 			when is_list(Auth), length(Auth) > 0 ->
 				case lists:keyfind(require_group, 1, Auth) of
-					{require_group, [Group | _T]} ->
+					{require_group, [Group | _]} ->
 						{true, {Port, Address, Directory, Group}};
 					false ->
 						false
@@ -450,12 +496,12 @@ query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},

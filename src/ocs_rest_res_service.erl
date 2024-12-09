@@ -61,36 +61,42 @@ content_types_provided() ->
 %% @doc Respond to `POST /serviceInventoryManagement/v2/service'.
 %% 	Add a new Service Inventory.
 add_inventory(RequestBody) ->
-	try
+	try inventory(mochijson:decode(RequestBody)) of
 		#service{name = Identity, password = Password,
-			attributes = Attributes, product = ProductRef,
-			state = State, enabled = Enabled, multisession = MultiSession,
-			characteristics = Chars} =
-			inventory(mochijson:decode(RequestBody)),
-		case ocs:add_service(Identity, Password, State, ProductRef,
-				Chars, Attributes, Enabled, MultiSession) of
-			{ok, Service1} ->
-				Service1;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		Service ->
-			Body = mochijson:encode(inventory(Service)),
-			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
-			Etag = ocs_rest:etag(Service#service.last_modified),
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
+				attributes = Attributes, product = ProductRef,
+				state = State, enabled = Enabled, multisession = MultiSession,
+				characteristics = Chars} ->
+			case ocs:add_service(Identity, Password, State, ProductRef,
+					Chars, Attributes, Enabled, MultiSession) of
+				{ok, Service} ->
+					Body = mochijson:encode(inventory(Service)),
+					Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
+					Etag = ocs_rest:etag(Service#service.last_modified),
+					Headers = [{content_type, "application/json"},
+							{location, Href}, {etag, Etag}],
+					{ok, Headers, Body};
+				{error, product_not_found} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "The Product inventory item does not exist"},
+					{error, 400, Problem};
+				{error, service_exists} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "The Service inventory item already exists"},
+					{error, 400, Problem};
+				{error, _Reason} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred adding the Service inventory item"},
+					{error, 500, Problem}
+			end
 	catch
-		throw:product_not_found ->
-			{error, 400};
-		throw:service_exists ->
-			{error, 400};
-		throw:_ ->
-			{error, 500};
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec get_inventory(Id) -> Result
@@ -106,27 +112,26 @@ add_inventory(RequestBody) ->
 %% @doc Respond to `GET /serviceInventoryManagement/v2/service/{id}'.
 %% 	Retrieve a service inventories.
 get_inventory(Id) ->
-	try
-		case ocs:find_service(Id) of
-			{ok, Service1} ->
-				Service1;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		Service ->
-			Body = mochijson:encode(inventory(Service)),
-			Etag = ocs_rest:etag(Service#service.last_modified),
-			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag},
-					{content_type, "application/json"}],
-			{ok, Headers, Body}
+	try ocs:find_service(Id) of
+			{ok, Service} ->
+				Body = mochijson:encode(inventory(Service)),
+				Etag = ocs_rest:etag(Service#service.last_modified),
+				Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
+				Headers = [{content_type, "application/json"},
+						{location, Href}, {etag, Etag},
+						{content_type, "application/json"}],
+				{ok, Headers, Body};
+			{error, not_found} ->
+				Problem = #{type => "about:blank",
+						title => "Not Found",
+						detail => "No such Service inventory item"},
+				{error, 404, Problem}
 	catch
-		throw:not_found ->
-			{error, 404};
 		_:_ ->
-			{error, 500}
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting the Service inventory item"},
+			{error, 500, Problem}
 	end.
 
 -spec head_inventory() -> Result
@@ -149,8 +154,11 @@ head_inventory() ->
       Headers = [{content_range, ContentRange}],
       {ok, Headers, []}
    catch
-      _:_Reason ->
-         {error, 500}
+      _:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting the Service inventory item"},
+			{error, 500, Problem}
    end.
 
 -spec get_inventories(Query, RequestHeaders) -> Result
@@ -189,8 +197,11 @@ get_inventories(Query, RequestHeaders) ->
 			Codec = fun inventory/1,
 			query_filter({ocs, query_service, Args}, Codec, Query2, RequestHeaders)
 	catch
-		_ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec delete_inventory(Id) -> Result
@@ -206,11 +217,20 @@ get_inventories(Query, RequestHeaders) ->
 %% @doc Respond to `DELETE /serviceInventoryManagement/v2/service/{id}'
 %% 	request to remove a `Service Inventory'.
 delete_inventory(Id) ->
-	case catch ocs:delete_service(Id) of
+	try ocs:delete_service(Id) of
 		ok ->
-			{ok, [], []};
-		{'EXIT', _} ->
-			{error, 500}
+			{ok, [], []}
+	catch
+		_:not_found  ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Service inventory item"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting the Service inventory item"},
+			{error, 500, Problem}
 	end.
 
 -spec patch_inventory(ServiceId, Etag, RequestBody) -> Result
@@ -284,7 +304,7 @@ patch_inventory(ServiceId, Etag, RequestBody) ->
 											{Service2, LM}
 									end;
 								_ ->
-									throw(bad_request)
+									throw(bad_patch)
 							end;
 						[Service1] when
 								Service1#service.last_modified == Etag2;
@@ -312,18 +332,33 @@ patch_inventory(ServiceId, Etag, RequestBody) ->
 							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Service),
 					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
+				{aborted, {throw, bad_patch}} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Exception occurred parsing patch operations"},
+					{error, 400, Problem};
 				{aborted, {throw, not_found}} ->
-					{error, 404};
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Service inventory item"},
+					{error, 404, Problem};
 				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
+					Problem = #{type => "about:blank",
+							title => "Precondition Failed",
+							detail => "Etag does not match current value"},
+					{error, 412, Problem};
 				{aborted, _Reason} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred updating the Service inventory item"},
+					{error, 500, Problem}
 			end
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request"},
+			{error, 400, Problem}
 	end.
 
 -spec get_service_specs(Query) -> Result
@@ -346,7 +381,10 @@ get_service_specs([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_service_specs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_service_spec(Id, Query) -> Result
 	when
@@ -365,15 +403,21 @@ get_service_specs(_Query) ->
 %% 	Retrieve a service specification.
 get_service_spec(ID, [] = _Query) ->
 	case service_spec(ID) of
-		{error, StatusCode} ->
-			{error, StatusCode};
+		{error, 404} ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Service inventory item"},
+			{error, 404, Problem};
 		ServiceSpec ->
 			Headers = [{content_type, "application/json"}],
 			Body = mochijson:encode(ServiceSpec),
 			{ok, Headers, Body}
 	end;
 get_service_spec(_ID, _Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -900,12 +944,12 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -925,12 +969,12 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},

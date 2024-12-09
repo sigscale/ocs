@@ -59,25 +59,34 @@ content_types_provided() ->
 %% @doc Handle `POST' request on `Role' collection.
 %% 	Respond to `POST /partyRoleManagement/v4/partyRole' request.
 post_role(RequestBody) ->
-	try
-		Role = role(mochijson:decode(RequestBody)),
-		{Name, _, _, _} = Role#httpd_user.username,
-		UserData = [{locale, "en"}],
-		case ocs:add_user(Name, [], UserData) of
-			{ok, LastModified} ->
-				Body = mochijson:encode(role(Role)),
-				Location = "/partyRoleManagement/v4/partyRole/" ++ Name,
-				Headers = [{content_type, "application/json"},
-						{location, Location}, {etag, ocs_rest:etag(LastModified)}],
-				{ok, Headers, Body};
-			{error, _Reason} ->
-				{error, 400}
-		end
+	try role(mochijson:decode(RequestBody)) of
+		#httpd_user{} = Role ->
+			{Name, _, _, _} = Role#httpd_user.username,
+			UserData = [{locale, "en"}],
+			case ocs:add_user(Name, [], UserData) of
+				{ok, LastModified} ->
+					Body = mochijson:encode(role(Role)),
+					Location = "/partyRoleManagement/v4/partyRole/" ++ Name,
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(LastModified)}],
+					{ok, Headers, Body};
+				{error, user_exists} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "The Party Role already exists"},
+					{error, 400, Problem}
+			end;
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
-		_:500 ->
-			{error, 500};
-		_:_Reason1 ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec delete_role(Name) -> Result
@@ -93,11 +102,20 @@ post_role(RequestBody) ->
 %% @doc Handle `DELETE' request on a `Role' resource.
 %% 	Respond to `DELETE /partyRoleManagement/v4/partyRole/{Name}' request.
 delete_role(Name) when is_list(Name) ->
-	case ocs:delete_user(Name) of
+	try ocs:delete_user(Name) of
 		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Party Role found"},
+			{error, 404, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Party Role"},
+			{error, 500, Problem}
 	end.
 
 -spec get_roles(Query, Headers) -> Result
@@ -213,10 +231,16 @@ get_role(Name, [] = _Query, _Filters) ->
 			Body = mochijson:encode(role(Role)),
 			{ok, Headers, Body};
 		{error, _Reason} ->
-			{error, 404}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Party Role found"},
+			{error, 404, Problem}
 	end;
 get_role(_, _, _) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -341,12 +365,12 @@ query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},

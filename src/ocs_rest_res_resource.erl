@@ -110,7 +110,10 @@ get_resource_spec("8") ->
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
 get_resource_spec(_) ->
-	{error, 404}.
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Resource Specification found"},
+	{error, 404, Problem}.
 
 -spec get_resource_specs(Query) -> Result
 	when
@@ -140,7 +143,10 @@ get_resource_specs([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_specs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_resource_category(ID) -> Result
 	when
@@ -165,7 +171,10 @@ get_resource_category("2") ->
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
 get_resource_category(_) ->
-	{error, 404}.
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Resource Category found"},
+	{error, 404, Problem}.
 
 -spec get_resource_categories(Query) -> Result
 	when
@@ -187,7 +196,10 @@ get_resource_categories([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_categories(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_resource_candidate(ID) -> Result
 	when
@@ -207,7 +219,10 @@ get_resource_candidate("1") ->
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
 get_resource_candidate(_) ->
-	{error, 404}.
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Resource Candidate found"},
+	{error, 404, Problem}.
 
 -spec get_resource_candidates(Query) -> Result
 	when
@@ -229,7 +244,10 @@ get_resource_candidates([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_candidates(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_resource_catalog(ID) -> Result
 	when
@@ -249,7 +267,10 @@ get_resource_catalog("1") ->
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
 get_resource_catalog(_) ->
-	{error, 404}.
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Resource Catalog found"},
+	{error, 404, Problem}.
 
 -spec get_resource_catalogs(Query) -> Result
 	when
@@ -271,7 +292,10 @@ get_resource_catalogs([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_catalogs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_resource(Id) -> Result
 	when
@@ -294,13 +318,17 @@ get_resource(Id) ->
 				Body = mochijson:encode(resource(Resource)),
 				{ok, Headers, Body};
 			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
+				Problem = #{type => "about:blank",
+						title => "Not Found",
+						detail => "No such Resource inventory item found"},
+				{error, 404, Problem}
 		end
 	catch
-		_:_Reason1 ->
-			{error, 500}
+		_:_ ->
+			Problem1 = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Resource inventory item"},
+			{error, 500, Problem1}
 	end.
 
 -spec head_resource() -> Result
@@ -323,8 +351,11 @@ head_resource() ->
 		Headers = [{content_range, ContentRange}],
 		{ok, Headers, []}
 	catch
-		_:_Reason ->
-			{error, 500}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Resource inventory item"},
+			{error, 500, Problem}
 	end.
 
 -spec get_resource(Query, RequestHeaders) -> Result
@@ -368,8 +399,11 @@ get_resource(Query, RequestHeaders) ->
 			Codec = fun resource/1,
 			query_filter({ocs, query_resource, QueryArgs}, Codec, Query2, RequestHeaders)
 	catch
-		_ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 %% @hidden
@@ -465,12 +499,12 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -490,12 +524,12 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -541,28 +575,31 @@ add_resource(RequestBody) ->
 			ReplyBody = mochijson:encode(resource(Resource)),
 			{ok, ReplyHeaders, ReplyBody};
 		{error, table_not_found} ->
-			Problem = #{type => "/doc/ocs.html#add_resource-1",
-					title => "Table not found",
+			Problem = #{type => "about:blank",
+					title => "Internal System Error",
 					detail => "The underying mnesia table must first be created"},
-			{error, 400, Problem};
+			{error, 500, Problem};
 		{error, table_exists} ->
-			Problem = #{type => "/doc/ocs.html#add_resource-1",
-					title => "Table already exists",
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
 					detail => "The table resource already exists in the inventory"},
 			{error, 400, Problem};
 		{error, missing_char} ->
-			Problem = #{type => "/doc/ocs.html#add_resource-1",
-					title => "Missing resource characteristic(s)",
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
 					detail => "A mandatory resource characteristic was missing"},
 			{error, 400, Problem};
 		{error, _Reason} ->
-			Problem = #{type => "/doc/ocs.html#add_resource-1",
-					title => "Server error",
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
 					detail => "An error occurred adding the resource"},
 			{error, 500, Problem}
 	catch
 		_:_Reason ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec get_pla_specs(Query) -> Result
@@ -586,7 +623,10 @@ get_pla_specs([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_pla_specs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec delete_resource(Id) -> Result
    when
@@ -601,13 +641,20 @@ get_pla_specs(_Query) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
-	case ocs:delete_resource(Id) of
+	try ocs:delete_resource(Id) of
 		ok ->
 			{ok, [], []};
 		{error, not_found} ->
-			{error, 404};
-		{error, Reason} ->
-			{error, 500}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Resource inventory item found"},
+			{error, 404, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Resource inventory item"},
+			{error, 500, Problem}
 	end.
 
 -spec patch_resource(Id, Etag, RequestBody) -> Result
@@ -662,38 +709,47 @@ patch_resource(Id, Etag, RequestBody) ->
 					ReplyBody = mochijson:encode(resource(Resource3)),
 					{ok, ReplyHeaders, ReplyBody};
 				{atomic, {error, not_found}} ->
-					Problem = #{type => "/doc/ocs.html#update_resource-1",
-							title => "Resource not found",
-							detail => "The id was not found in the resource table"},
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Resource inventory item"},
 					{error, 404, Problem};
 				{atomic, {error, not_allowed}} ->
-					Problem = #{type => "/doc/ocs.html#update_resource-1",
-							title => "Resource update not allowed",
-							detail => "An attribute or characteristic which may not be modified"},
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "An attribute or characteristic may not be modified"},
 					{error, 400, Problem};
 				{atomic, {error, missing_char}} ->
-					Problem = #{type => "/doc/ocs.html#update_resource-1",
-							title => "Missing resource characteristic(s)",
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
 							detail => "A mandatory resource characteristic was missing"},
 					{error, 400, Problem};
 				{atomic, {error, stale}} ->
-					Problem = #{type => "/doc/ocs.html#update_resource-1",
-							title => "Resource modified after read",
-							detail => "ETag value did not match last modified time"},
+					Problem = #{type => "about:blank",
+							title => "Precondition Failed",
+							detail => "ETag value did not match current value"},
 					{error, 412, Problem};
 				{atomic, {error, _Reason}} ->
-					Problem = #{type => "/doc/ocs.html#update_resource-1",
-							title => "Server error",
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
 							detail => "An error occurred patching the resource"},
 					{error, 500, Problem};
 				{aborted, bad_request} ->
-					{error, 400};
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Exception occurred parsing patch operations"},
+					{error, 400, Problem};
 				{aborted, _Reason} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred updating Resource inventory item"},
+					{error, 500, Problem}
 			end
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request"},
+			{error, 400, Problem}
 	end.
 
 %%----------------------------------------------------------------------

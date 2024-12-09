@@ -3241,12 +3241,12 @@ query_page1(PageServer, Etag, auth, [] = _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -3282,7 +3282,7 @@ query_page1(PageServer, Etag, acct, [] = _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
@@ -3324,12 +3324,12 @@ query_page1(PageServer, Etag, http, [] = _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -3357,12 +3357,12 @@ query_page1(PageServer, Etag, auth, _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -3390,12 +3390,12 @@ query_page1(PageServer, Etag, acct, _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -3423,12 +3423,12 @@ query_page1(PageServer, Etag, http, _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -3456,12 +3456,12 @@ query_page1(PageServer, Etag, ipdr, _Query, Filters, Start, End) ->
 					{error, StatusCode, Problem}
 			end
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},

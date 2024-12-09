@@ -73,28 +73,33 @@ content_types_provided() ->
 %% @doc Respond to `POST /productCatalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
 add_offer(RequestBody) ->
-	try
-		case ocs:add_offer(offer(mochijson:decode(RequestBody))) of
-			{ok, ProductOffering} ->
-				ProductOffering;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		Offer ->
-			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#offer.last_modified),
-			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
+	try offer(mochijson:decode(RequestBody)) of
+		#offer{} = Offer ->	
+			case ocs:add_offer(Offer) of
+				{ok, Offer1} ->
+					Body = mochijson:encode(offer(Offer1)),
+					Etag = ocs_rest:etag(Offer1#offer.last_modified),
+					Href = ?offeringPath ++ Offer1#offer.name,
+					Headers = [{content_type, "application/json"},
+							{location, Href}, {etag, Etag}],
+					{ok, Headers, Body};
+				{error, validation_failed} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Product Offering failed validation"},
+					{error, 400, Problem}
+			end;
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
-		throw:validation_failed ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
 		_:_ ->
-			{error, 400}
+			Problem1 = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem1}
 	end.
 
 -spec add_inventory(RequestBody) -> Result
@@ -110,35 +115,50 @@ add_offer(RequestBody) ->
 %% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
 add_inventory(RequestBody) ->
-	try
+	try product(mochijson:decode(RequestBody)) of
 		#product{start_date = SD, end_date = TD,
 				characteristics = Chars, product = OfferId,
-				service = ServiceRefs} = product(mochijson:decode(RequestBody)),
-		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
-			{ok, Product} ->
-				Product;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		Subscription ->
-			Body = mochijson:encode(product(Subscription)),
-			Etag = ocs_rest:etag(Subscription#product.last_modified),
-			Href = ?inventoryPath ++ Subscription#product.id,
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
+				service = ServiceRefs} ->
+			case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
+				{ok, Product} ->
+					Body = mochijson:encode(product(Product)),
+					Etag = ocs_rest:etag(Product#product.last_modified),
+					Href = ?inventoryPath ++ Product#product.id,
+					Headers = [{content_type, "application/json"},
+							{location, Href}, {etag, Etag}],
+					{ok, Headers, Body};
+				{error, service_not_found} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "A referenced Service is not found"},
+					{error, 400, Problem};
+				{error, service_has_product} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "A referenced Service has Product already"},
+					{error, 400, Problem};
+				{error, offer_not_found} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "The Product Offering is not found"},
+					{error, 400, Problem};
+				{error, _Reason} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred adding Product inventory item"},
+					{error, 500, Problem}
+			end;
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
-		throw:service_not_found ->
-			{error, 400};
-		throw:service_has_product ->
-			{error, 400};
-		throw:offer_not_found ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
-		_:_Reason1 ->
-			{error, 400}
+		_:_ ->
+			Problem1 = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem1}
 	end.
 
 -spec get_offer(ID) -> Result
@@ -156,27 +176,26 @@ add_inventory(RequestBody) ->
 get_offer(ID) ->
 	try
 		case ocs:find_offer(ID) of
-			{ok, ProductOffering} ->
-				ProductOffering;
+			{ok, Offer} ->
+				Body = mochijson:encode(offer(Offer)),
+				Etag = ocs_rest:etag(Offer#offer.last_modified),
+				Href = ?offeringPath ++ Offer#offer.name,
+				Headers = [{content_type, "application/json"},
+						{location, Href}, {etag, Etag},
+						{content_type, "application/json"}],
+				{ok, Headers, Body};
 			{error, not_found} ->
-				{throw, 404};
-			{error, _Reason1} ->
-				{throw, 500}
+				Problem = #{type => "about:blank",
+						title => "Not Found",
+						detail => "No such Product Offering found"},
+				{error, 404, Problem}
 		end
-	of
-		Offer ->
-			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#offer.last_modified),
-			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag},
-					{content_type, "application/json"}],
-			{ok, Headers, Body}
 	catch
-		throw:_Reason2 ->
-			{error, 500};
 		_:_ ->
-			{error, 400}
+			Problem1 = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Product Offering item"},
+			{error, 500, Problem1}
 	end.
 
 -spec get_inventory(ID) -> Result
@@ -194,25 +213,26 @@ get_offer(ID) ->
 get_inventory(ID) ->
 	try
 		case ocs:find_product(ID) of
-			{ok, Product1} ->
-				Product1;
+			{ok, Product} ->
+				Body = mochijson:encode(product(Product)),
+				Etag = ocs_rest:etag(Product#product.last_modified),
+				Href = ?inventoryPath ++ Product#product.id,
+				Headers = [{content_type, "application/json"},
+						{location, Href}, {etag, Etag},
+						{content_type, "application/json"}],
+				{ok, Headers, Body};
 			{error, not_found} ->
-				{throw, 404}
+				Problem = #{type => "about:blank",
+						title => "Not Found",
+						detail => "No such Product inventory item found"},
+				{error, 404, Problem}
 		end
-	of
-		Product ->
-			Body = mochijson:encode(product(Product)),
-			Etag = ocs_rest:etag(Product#product.last_modified),
-			Href = ?inventoryPath ++ Product#product.id,
-			Headers = [{content_type, "application/json"},
-					{location, Href}, {etag, Etag},
-					{content_type, "application/json"}],
-			{ok, Headers, Body}
 	catch
-		exit:_Reason2 ->
-			{error, 500};
 		_:_ ->
-			{error, 400}
+			Problem1 = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Product inventory item"},
+			{error, 500, Problem1}
 	end.
 
 -spec head_offer() -> Result
@@ -235,8 +255,11 @@ head_offer() ->
 		Headers = [{content_range, ContentRange}],
 		{ok, Headers, []}
 	catch
-		_:_Reason ->
-			{error, 500}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Product Offerings"},
+			{error, 500, Problem}
 	end.
 
 -spec get_offers(Query, RequestHeaders) -> Result
@@ -284,9 +307,12 @@ get_offers(Query, RequestHeaders) ->
 			Codec = fun offer/1,
 			query_filter({ocs, query_offer, Args}, Codec, Query2, RequestHeaders)
 	catch
-		_ ->
-			{error, 400}
-		end.
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
+	end.
 
 -spec head_product() -> Result
 	when
@@ -308,8 +334,11 @@ head_product() ->
 		Headers = [{content_range, ContentRange}],
 		{ok, Headers, []}
 	catch
-		_:_Reason ->
-			{error, 500}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Product Inventory"},
+			{error, 500, Problem}
 	end.
 				
 -spec get_inventories(Query, RequestHeaders) -> Result
@@ -350,8 +379,11 @@ get_inventories(Query, RequestHeaders) ->
 			Codec = fun product/1,
 			query_filter({ocs, query_product, Args}, Codec, Query2, RequestHeaders)
 	catch
-		_ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec get_catalog(Id, Query) -> Result
@@ -374,9 +406,15 @@ get_catalog("1", [] =  _Query) ->
 	Body = mochijson:encode(product_catalog()),
 	{ok, Headers, Body};
 get_catalog(_Id,  [] = _Query) ->
-	{error, 404};
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Product Catalog found"},
+	{error, 404, Problem};
 get_catalog(_Id, _Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_catalogs(Query) -> Result
 	when
@@ -398,7 +436,10 @@ get_catalogs([] =  _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_catalogs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_category(Id, Query) -> Result
 	when
@@ -420,9 +461,15 @@ get_category("1", [] =  _Query) ->
 	Body = mochijson:encode(prepaid_category()),
 	{ok, Headers, Body};
 get_category(_Id,  [] = _Query) ->
-	{error, 404};
+	Problem = #{type => "about:blank",
+			title => "Not Found",
+			detail => "No such Product Category found"},
+	{error, 404, Problem};
 get_category(_Id, _Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_categories(Query) -> Result
 	when
@@ -444,7 +491,10 @@ get_categories([] =  _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_categories(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_product_spec(Id, Query) -> Result
 	when
@@ -463,15 +513,21 @@ get_categories(_Query) ->
 %% 	Retrieve a product specification.
 get_product_spec(ID, [] = _Query) ->
 	case product_spec(ID) of
-		{error, StatusCode} ->
-			{error, StatusCode};
+		{error, 404} ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product Specification item found"},
+			{error, 404, Problem};
 		ProductSpec ->
 			Headers = [{content_type, "application/json"}],
 			Body = mochijson:encode(ProductSpec),
 			{ok, Headers, Body}
 	end;
 get_product_spec(_Id, _Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec get_product_specs(Query) -> Result
 	when
@@ -497,7 +553,10 @@ get_product_specs([] = _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_product_specs(_Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec patch_offer(ProdId, Etag, RequestBody) -> Result
 	when
@@ -549,10 +608,10 @@ patch_offer(ProdId, Etag, RequestBody) ->
 											end,
 											F1(Price);
 										_ ->
-											throw(bad_request)
+											throw(bad_offer)
 									end;
 								_ ->
-									throw(bad_request)
+									throw(bad_patch)
 							end;
 						[#offer{}] ->
 							throw(precondition_failed);
@@ -567,18 +626,38 @@ patch_offer(ProdId, Etag, RequestBody) ->
 							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
+				{aborted, {throw, bad_offer}} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Exception occurred parsing Product Offering"},
+					{error, 400, Problem};
+				{aborted, {throw, bad_patch}} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Exception occurred parsing patch operations"},
+					{error, 400, Problem};
 				{aborted, {throw, not_found}} ->
-					{error, 404};
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Product Offering found"},
+					{error, 404, Problem};
 				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
+					Problem = #{type => "about:blank",
+							title => "Precondition Failed",
+							detail => "Etag does not match current value"},
+					{error, 412, Problem};
 				{aborted, _Reason} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred patching Product Offering"},
+					{error, 500, Problem}
 			end
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request"},
+			{error, 400, Problem}
 	end.
 
 -spec get_pla_spec(Id, Query) -> Result
@@ -598,15 +677,21 @@ patch_offer(ProdId, Etag, RequestBody) ->
 %% 	Retrieve a pricing logic algorithm specification.
 get_pla_spec(ID, [] = _Query) ->
 	case pla_spec(ID) of
-		{error, StatusCode} ->
-			{error, StatusCode};
+		{error, 404} ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such PLA Specification found"},
+			{error, 404, Problem};
 		PLASpec ->
 			Headers = [{content_type, "application/json"}],
 			Body = mochijson:encode(PLASpec),
 			{ok, Headers, Body}
 	end;
 get_pla_spec(_Id, _Query) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 
 -spec patch_inventory(ProdId, Etag, RequestBody) -> Result
 	when
@@ -664,7 +749,7 @@ patch_inventory(ProdId, Etag, RequestBody) ->
 											{Product2, LM}
 									end;
 								_ ->
-									throw(bad_request)
+									throw(bad_patch)
 							end;
 						[#product{}] ->
 							throw(precondition_failed);
@@ -679,18 +764,33 @@ patch_inventory(ProdId, Etag, RequestBody) ->
 							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
+				{aborted, {throw, bad_patch}} ->
+					Problem = #{type => "about:blank",
+							title => "Bad Request",
+							detail => "Exception occurred parsing patch operations"},
+					{error, 400, Problem};
 				{aborted, {throw, not_found}} ->
-					{error, 404};
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Product inventory item found"},
+					{error, 404, Problem};
 				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
+					Problem = #{type => "about:blank",
+							title => "Precondition Failed",
+							detail => "Etag does not match current value"},
+					{error, 412, Problem};
 				{aborted, _Reason} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred patching Product Offering"},
+					{error, 500, Problem}
 			end
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+				detail => "Exception occurred parsing request"},
+			{error, 400, Problem}
 	end.
 
 -spec delete_offer(Id) -> Result
@@ -706,15 +806,26 @@ patch_inventory(ProdId, Etag, RequestBody) ->
 %% @doc Respond to `DELETE /productCatalogManagement/v2/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
-	case catch ocs:delete_offer(Id) of
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id}),
+	try ocs:delete_offer(Id) of
 		ok ->
-			{ok, [], []};
-		{'EXIT', unable_to_delete} ->
-			{error, 403};
-		{'EXIT', not_found} ->
-			{error, 404};
-		{'EXIT', _Other} ->
-			{error, 500}
+			{ok, [], []}
+	catch
+		_:unable_to_delete ->
+			Problem = #{type => "about:blank",
+					title => "Forbidden",
+					detail => "Product Offering is in use by Product inventory item(s)"},
+			{error, 403, Problem};
+		_:not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product Offering found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Product Offering"},
+			{error, 500, Problem}
 	end.
 
 -spec delete_inventory(Id) -> Result
@@ -730,13 +841,25 @@ delete_offer(Id) ->
 %% @doc Respond to `DELETE /productInventoryManagement/v2/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_inventory(Id) ->
-	case catch ocs:delete_product(Id) of
+	try ocs:delete_product(Id) of
 		ok ->
-			{ok, [], []};
-		{'EXIT', service_exists} ->
-			{error, 403};
-		{'EXIT', _} ->
-			{error, 500}
+			{ok, [], []}
+	catch
+		_:service_exists ->
+			Problem = #{type => "about:blank",
+					title => "Forbidden",
+					detail => "Product inventory item is in use by Service inventory item(s)"},
+			{error, 403, Problem};
+		_:not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product inventory item found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Product inventory item"},
+			{error, 500, Problem}
 	end.
 
 -spec sync_offer(RequestBody) -> Result
@@ -752,11 +875,25 @@ delete_inventory(Id) ->
 %% @doc Respond to `POST /productCatalogManagement/v2/syncOffer'.
 %% 	Sync a Product Offering.
 sync_offer(RequestBody) ->
-	{struct, EventStructList} = mochijson:decode(RequestBody),
-	{_, OfferEvent} = lists:keyfind("event", 1, EventStructList),
-	sync_offer(lists:keyfind("eventType", 1, EventStructList), offer(OfferEvent)).
+	try mochijson:decode(RequestBody) of
+		{struct, EventStructList} ->
+			{_, OfferEvent} = lists:keyfind("event", 1, EventStructList),
+			sync_offer(lists:keyfind("eventType", 1, EventStructList), offer(OfferEvent));
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
+	end.
+%% @hidden
 sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
-	case ocs:add_offer(Offer1) of
+	try ocs:add_offer(Offer1) of
 		{ok, #offer{} = Offer2} ->
 			Body = mochijson:encode(offer(Offer2)),
 			Etag = ocs_rest:etag(Offer2#offer.last_modified),
@@ -764,20 +901,44 @@ sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
 			Headers = [{content_type, "application/json"},
 					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body};
-		{error, Reason} ->
-			{error, Reason}
+		{error, validation_failed} ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Product Offering failed validation"},
+			{error, 400, Problem}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred adding Product Offering"},
+			{error, 500, Problem}
 	end;
 sync_offer({_, "ProductOfferingRemoveNotification"}, #offer{name = Name}) ->
-	case catch ocs:delete_offer(Name) of
+	try ocs:delete_offer(Name) of
 		ok ->
-			{ok, [], []};
-		{'EXIT', unable_to_delete} ->
-			{error, 403};
-		{'EXIT', _} ->
-			{error, 500}
+			{ok, [], []}
+	catch
+		_:unable_to_delete ->
+			Problem = #{type => "about:blank",
+					title => "Forbidden",
+					detail => "Product Offering is in use by Product inventory item(s)"},
+			{error, 403, Problem};
+		_:not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product Offering found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Product Offering"},
+			{error, 500, Problem}
 	end;
 sync_offer(false, _) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing request body"},
+	{error, 400, Problem}.
 
 -spec product_status(Status) -> Status
 	when
@@ -2378,12 +2539,12 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		_:timeout ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -2403,7 +2564,7 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		_:timeout ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},

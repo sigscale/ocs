@@ -61,8 +61,11 @@ head_client() ->
       Headers = [{content_range, ContentRange}],
       {ok, Headers, []}
    catch
-      _:_Reason ->
-         {error, 500}
+      _:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Client"},
+			{error, 500, Problem}
    end.
 
 -spec get_clients(Query, Headers) -> Result
@@ -108,7 +111,10 @@ get_clients(Query, Headers) ->
 			query_filter({ocs, query_clients, Args}, Codec, Query2, Headers)
 	catch
 		_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec get_client(Id, Query) -> Result
@@ -139,10 +145,16 @@ get_client(Id, [] = _Query, Filters) ->
 		{ok, Address} ->
 			get_client1(Address, Filters);
 		{error, einval} ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing IP address"},
+			{error, 400, Problem}
 	end;
 get_client(_Id, _Query, _Filters) ->
-	{error, 400}.
+	Problem = #{type => "about:blank",
+			title => "Bad Request",
+			detail => "Exception occurred parsing query"},
+	{error, 400, Problem}.
 %% @hidden
 get_client1(Address, Filters) ->
 	case ocs:find_client(Address) of
@@ -159,7 +171,10 @@ get_client1(Address, Filters) ->
 				{etag, ocs_rest:etag(LM)}],
 			{ok, Headers, Body};
 		{error, not_found} ->
-			{error, 404}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such IP address in Client table"},
+			{error, 404, Problem}
 	end.
 
 -spec post_client(RequestBody) -> Result
@@ -175,23 +190,32 @@ get_client1(Address, Filters) ->
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
 post_client(RequestBody) ->
-	try
-		Client = client(mochijson:decode(RequestBody)),
+	try client(mochijson:decode(RequestBody)) of
 		#client{address = Address, port = Port, protocol = Protocol,
 				secret = Secret, password_required = PasswordReq,
-				trusted = Trusted} = Client,
-		{ok, #client{last_modified = Etag} = Client1} =
-				ocs:add_client(Address, Port, Protocol, Secret, PasswordReq, Trusted),
-		Id = inet:ntoa(Address),
-		Location = "/ocs/v1/client/" ++ Id,
-		JsonObj  = client(Client1),
-		Body = mochijson:encode(JsonObj),
-		Headers = [{content_type, "application/json"},
-				{location, Location}, {etag, ocs_rest:etag(Etag)}],
-		{ok, Headers, Body}
+				trusted = Trusted} = Client ->
+			{ok, #client{last_modified = Etag} = Client1} =
+					ocs:add_client(Address, Port, Protocol,
+					Secret, PasswordReq, Trusted),
+				Id = inet:ntoa(Address),
+				Location = "/ocs/v1/client/" ++ Id,
+				JsonObj  = client(Client1),
+				Body = mochijson:encode(JsonObj),
+				Headers = [{content_type, "application/json"},
+						{location, Location},
+						{etag, ocs_rest:etag(Etag)}],
+				{ok, Headers, Body};
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
-		_Error ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec patch_client(Id, Etag, ContentType, ReqBody) -> Result
@@ -221,7 +245,10 @@ patch_client(Id, Etag, CType, ReqBody) ->
 			{ok, IpAddress} ->
 				IpAddress;
 			{error, einval} ->
-				{error, 400}
+				Problem = #{type => "about:blank",
+						title => "Bad Request",
+						detail => "Exception occurred parsing IP address"},
+				{error, 400, Problem}
 		end,
 		{Address0, Etag1, mochijson:decode(ReqBody)}
 	of
@@ -229,7 +256,10 @@ patch_client(Id, Etag, CType, ReqBody) ->
 			patch_client1(Address, Etag2, CType, Operations)
 	catch
 		_:_ ->
-			{error, 400}
+			Problem1 = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request"},
+			{error, 400, Problem1}
 	end.
 patch_client1(Id, Etag, CType, Operations) ->
 	case ocs:find_client(Id) of
@@ -237,13 +267,20 @@ patch_client1(Id, Etag, CType, Operations) ->
 				when CurrentEtag == Etag; Etag == undefined ->
 			patch_client2(Id, Etag, CType, Client, Operations);
 		{ok, #client{}} ->
-			{error, 412};
+			Problem = #{type => "about:blank",
+					title => "Precondition Failed",
+					detail => "Etag does not match current value for Client"},
+			{error, 412, Problem};
 		{error, _Reason} ->
-			{error, 404}
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such IP address in Client table"},
+			{error, 404, Problem}
 	end.
 %% @hidden
-patch_client2(Id, Etag, "application/json", #client{port = Port,
-		protocol = Protocol, secret = Secret}, {struct, Object}) ->
+patch_client2(Id, Etag, "application/json",
+		#client{port = Port, protocol = Protocol, secret = Secret},
+		{struct, Object}) ->
 	try
 		case Object of
 			[{"secret", NewPassword}] ->
@@ -257,10 +294,14 @@ patch_client2(Id, Etag, "application/json", #client{port = Port,
 				patch_client4(Id, NewPort, diameter, Secret, Etag)
 		end
 	catch
-		throw : _ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing patch operations"},
+			{error, 400, Problem}
 	end;
-patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations) ->
+patch_client2(Address, _Etag, "application/json-patch+json",
+		Client, Operations) ->
 	try
 		Json = ocs_rest:patch(Operations, client(Client)),
 		Client1 = client(Json),
@@ -287,43 +328,70 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 			{aborted, {throw, not_found}} ->
 				{error, 404};
 			{aborted, _Reason} ->
-				{error, 500}
+				Problem = #{type => "about:blank",
+						title => "Internal Server Error",
+						detail => "Exception occurred updating Client table"},
+				{error, 500, Problem}
 		end
 	catch
+		not_found ->
+			Problem1 = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such IP address in Client table"},
+			{error, 404, Problem1};
 		_:_ ->
-			{error, 400}
+			Problem1 = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing patch operations"},
+			{error, 400, Problem1}
 	end.
 %% @hidden
 patch_client3(Id, Port, Protocol, NewPassword, Etag) ->
-	IDstr = inet:ntoa(Id),
-	ok = ocs:update_client(Id, NewPassword),
-	RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
-			{"port", Port}, {"protocol", Protocol}, {"secret", NewPassword}],
-	JsonObj = {struct, RespObj},
-	RespBody = mochijson:encode(JsonObj),
-	Headers = case Etag of
-		undefined ->
-			[{content_type, "application/json"}];
-		_ ->
-			[{content_type, "application/json"}, {etag, ocs_rest:etag(Etag)}]
-	end,
-	{ok, Headers, RespBody}.
+	try
+		IDstr = inet:ntoa(Id),
+		ok = ocs:update_client(Id, NewPassword),
+		RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
+				{"port", Port}, {"protocol", Protocol}, {"secret", NewPassword}],
+		JsonObj = {struct, RespObj},
+		RespBody = mochijson:encode(JsonObj),
+		Headers = case Etag of
+			undefined ->
+				[{content_type, "application/json"}];
+			_ ->
+				[{content_type, "application/json"}, {etag, ocs_rest:etag(Etag)}]
+		end,
+		{ok, Headers, RespBody}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred updating Client table"},
+			{error, 400, Problem}
+	end.
 %% @hidden
 patch_client4(Id, Port, Protocol, Secret, Etag) ->
-	IDstr = inet:ntoa(Id),
-	Protocolstr = string:to_upper(atom_to_list(Protocol)),
-	ok = ocs:update_client(Id, Port, Protocol),
-	RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
-			{"port", Port}, {"protocol", Protocolstr}, {"secret", Secret}],
-	JsonObj = {struct, RespObj},
-	RespBody = mochijson:encode(JsonObj),
-	Headers = case Etag of
-		undefined ->
-			[{content_type, "application/json"}];
-		_ ->
-			[{content_type, "application/json"},{etag, ocs_rest:etag(Etag)}]
-	end,
-	{ok, Headers, RespBody}.
+	try
+		IDstr = inet:ntoa(Id),
+		Protocolstr = string:to_upper(atom_to_list(Protocol)),
+		ok = ocs:update_client(Id, Port, Protocol),
+		RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
+				{"port", Port}, {"protocol", Protocolstr}, {"secret", Secret}],
+		JsonObj = {struct, RespObj},
+		RespBody = mochijson:encode(JsonObj),
+		Headers = case Etag of
+			undefined ->
+				[{content_type, "application/json"}];
+			_ ->
+				[{content_type, "application/json"},{etag, ocs_rest:etag(Etag)}]
+		end,
+		{ok, Headers, RespBody}
+	catch
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred updating Client table"},
+			{error, 400, Problem}
+	end.
 
 -spec delete_client(Id) -> Result
 	when
@@ -338,12 +406,23 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is successful return true.
 delete_client(Id) ->
-	case inet:parse_address(Id) of
-		{ok, Address} ->
-			ocs:delete_client(Address),
-			{ok, [], []};
-		{error, einval} ->
-			{error, 400}
+	try
+		case inet:parse_address(Id) of
+			{ok, Address} ->
+				ocs:delete_client(Address),
+				{ok, [], []};
+			{error, einval} ->
+				Problem = #{type => "about:blank",
+						title => "Bad Request",
+						detail => "Exception occurred parsing IP address"},
+				{error, 400, Problem}
+		end
+	catch
+		_:_ ->
+			Problem1 = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred deleting Client"},
+			{error, 400, Problem1}
 	end.
 
 %%----------------------------------------------------------------------
@@ -452,7 +531,7 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
@@ -477,7 +556,7 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},

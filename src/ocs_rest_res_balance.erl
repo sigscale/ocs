@@ -123,7 +123,7 @@ delete_bucket(Id) ->
 		ok ->
 			{ok, [], []}
 	catch
-		_:{not_found, _} ->
+		_:not_found ->
 			Problem = #{type => "about:blank",
 					title => "Not Found",
 					detail => "No such Balance Bucket found"},
@@ -1134,12 +1134,12 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
@@ -1159,12 +1159,12 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	catch
-		_:{timeout, _} ->
+		exit:{timeout, _} ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Timeout calling the pagination server"},
 			{error, 500, Problem};
-		_:_Reason ->
+		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
 					detail => "Exception caught while calling the pagination server"},
