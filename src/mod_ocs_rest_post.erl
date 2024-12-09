@@ -247,18 +247,20 @@ do_response(#mod{data = Data} = ModData,
 	ResponseHeaders = [{content_length, "0"} | Headers],
 	send(ModData, 204, ResponseHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 204, "0"}} | Data]};
-do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
+do_response(#mod{data = Data} = ModData,
+		{ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size} | Headers],
 	send(ModData, 201, ResponseHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 201, Size}} | Data]};
-do_response(#mod{data = Data} = ModData, {200, Headers, ResponseBody}) ->
+do_response(#mod{data = Data} = ModData,
+		{200, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size} | Headers],
 	send(ModData, 200, ResponseHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 201, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-			data = Data} = ModData, {error, 400}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 400}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
 			title => "Bad Request",
 			detail => "The server cannot or will not process the request"
@@ -269,8 +271,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 400, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 400, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-		data = Data} = ModData, {error, 403}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 403}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
 			title => "Forbidden",
 			detail => "the server understood the request but refuses to authorize it.",
@@ -280,8 +282,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 403, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 403, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-		data = Data} = ModData, {error, 404}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 404}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",
@@ -291,8 +293,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 404, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 404, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-		data = Data} = ModData, {error, 412}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 412}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7232#section-4.2",
 			title => "Precondition Failed",
 			detail => "One or more conditions given in the request header"
@@ -303,8 +305,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 412, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 412, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-		data = Data} = ModData, {error, 416}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 416}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7233#section-4.4",
 			title => "Range Not Satisfiable",
 			detail => "None of the ranges in the request's Range header"
@@ -315,8 +317,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
 	send(ModData, 416, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 416, Size}} | Data]};
-do_response(#mod{parsed_header = RequestHeaders,
-		data = Data} = ModData, {error, 500}) ->
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, 500}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
 			title => "Internal Server Error",
 			detail => "The server encountered an unexpected condition that"
@@ -328,8 +330,8 @@ do_response(#mod{parsed_header = RequestHeaders,
 	send(ModData, 500, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, 500, Size}} | Data]};
 do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
-		{error, StatusCode, Problem}) when is_map(Problem),
-		StatusCode >= 400, StatusCode =< 599 ->
+		{error, StatusCode, Problem})
+		when is_map(Problem), StatusCode >= 400, StatusCode =< 599 ->
 	Problem1 = case maps:is_key(code, Problem) of
 		true ->
 			Problem#{status => StatusCode};
