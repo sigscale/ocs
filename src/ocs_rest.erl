@@ -36,13 +36,13 @@
 %%  The ocs_rest public API
 %%----------------------------------------------------------------------
 
--spec date(DateTimeFormat) -> Result
+-spec date(DateTime) -> Result
 	when
-		DateTimeFormat	:: pos_integer() | calendar:datetime1970(),
-		Result			:: calendar:datetime() | non_neg_integer().
-%% @doc Convert between unix epoch milliseconds and calendar date-time.
-date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Seconds = ?EPOCH + (MilliSeconds div 1000),
+		DateTime :: timestamp() | calendar:datetime1970(),
+		Result :: calendar:datetime() | timestamp().
+%% @doc Convert between Unix epoch timestamp and OTP date and time.
+date(DateTime) when is_integer(DateTime) ->
+	Seconds = ?EPOCH + (DateTime div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds);
 date(DateTime) when is_tuple(DateTime) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
