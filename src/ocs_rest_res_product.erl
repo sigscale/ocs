@@ -2350,7 +2350,8 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 
 %% @hidden
 query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
@@ -2376,9 +2377,21 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
@@ -2389,6 +2402,17 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end.
 %% @hidden
 query_page1(Json, [], []) ->

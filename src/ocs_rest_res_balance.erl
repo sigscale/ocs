@@ -99,8 +99,11 @@ get_balance_log(Query, Headers) ->
          Codec = fun abmf/1,
          query_filter({ocs_log, abmf_query, Args}, Codec, Query2, Headers)
 	catch
-		_ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec delete_bucket(Id) -> Result
@@ -116,13 +119,20 @@ get_balance_log(Query, Headers) ->
 %% @doc Respond to `DELETE /balanceManagement/v1/bucket/{id}'
 %% 	request to remove a `Balance Bucket'.
 delete_bucket(Id) ->
-	case catch ocs:delete_bucket(Id) of
+	try ocs:delete_bucket(Id) of
 		ok ->
-			{ok, [], []};
-		{'EXIT', service_exists} ->
-			{error, 403};
-		{'EXIT', _} ->
-			{error, 500}
+			{ok, [], []}
+	catch
+		_:{not_found, _} ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Balance Bucket found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred deleting Balance Bucket"},
+			{error, 500, Problem}
 	end.
 
 -spec get_bucket(BucketId) -> Result
@@ -143,7 +153,7 @@ get_bucket(BucketId) ->
 			{ok, Bucket1} ->
 				Bucket1;
 			{error, Reason} ->
-				exit(Reason)
+				throw(Reason)
 		end
 	of
 		Bucket ->
@@ -153,10 +163,16 @@ get_bucket(BucketId) ->
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		_:not_found ->
-			{error, 404};
+		not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Balance Bucket found"},
+			{error, 404, Problem};
 		_:_ ->
-			{error, 500}
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Balance Bucket"},
+			{error, 500, Problem}
 	end.
 
 -spec head_bucket() -> Result
@@ -179,8 +195,11 @@ head_bucket() ->
 		Headers = [{content_range, ContentRange}],
 		{ok, Headers, []}
 	catch
-		_:_Reason ->
-			{error, 500}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting Balance Bucket"},
+			{error, 500, Problem}
 	end.
 
 -spec get_buckets(Query, Headers) -> Result
@@ -219,8 +238,11 @@ get_buckets(Query, Headers) ->
 			Codec = fun bucket/1,
 			query_filter({ocs, query_bucket, Args}, Codec, Query2, Headers)
 	catch
-		 _ ->
-			{error, 400}
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec get_balance_service(Identity) -> Result
@@ -243,11 +265,11 @@ get_balance_service(Identity) ->
 				case ocs:get_buckets(ProductRef) of
 					Buckets1 when is_list(Buckets1) ->
 						{ProductRef, Buckets1};
-					{error, Reason} ->
-						throw(Reason)
+					{error, product_not_found} ->
+						throw(product_not_found)
 				end;
-			{error, _} ->
-				{error, 404}
+			{error, not_found} ->
+				throw(service_not_found)
 		end
 	of
 		{ProductRef1, Buckets2} ->
@@ -259,10 +281,21 @@ get_balance_service(Identity) ->
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		_:product_not_found ->
-			{error, 404};
-		_Error ->
-			{error, 400}
+		service_not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Service inventory item found"},
+			{error, 404, Problem};
+		product_not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No associated Product inventory item found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting accumulated balance for Service"},
+			{error, 500, Problem}
 	end.
 
 -spec get_balance(ProdRef) -> Result
@@ -296,10 +329,16 @@ get_balance(ProdRef) ->
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		_:product_not_found ->
-			{error, 404};
-		_Error ->
-			{error, 400}
+		product_not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product inventory item found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception occurred getting accumulated balance for Product"},
+			{error, 500, Problem}
 	end.
 
 -spec get_balance(ProdRef, Query) -> Result
@@ -350,10 +389,16 @@ get_balance(ProdRef, Query) ->
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		_:product_not_found ->
-			{error, 404};
-		_Error ->
-			{error, 400}
+		product_not_found ->
+			Problem = #{type => "about:blank",
+					title => "Not Found",
+					detail => "No such Product inventory item found"},
+			{error, 404, Problem};
+		_:_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing query"},
+			{error, 400, Problem}
 	end.
 
 -spec top_up_service(Identity, RequestBody) -> Result
@@ -383,16 +428,28 @@ top_up_service(Identity, RequestBody) ->
 									{location, Location}],
 							{ok, Headers, Body};
 						{error, _} ->
-							{error, 500}
+							Problem = #{type => "about:blank",
+									title => "Internal Server Error",
+									detail => "Exception occurred adding Balance Bucket"},
+							{error, 500, Problem}
 					end;
-				{error, _} ->
-					{error, 500}
+				{error, not_found} ->
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Service inventory item found"},
+					{error, 404, Problem}
 			end;
 		_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec top_up(Identity, RequestBody) -> Result
@@ -421,7 +478,10 @@ top_up(Identity, RequestBody) ->
 							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred adding Balance Bucket"},
+					{error, 500, Problem}
 			end;
 		#bucket{product = [Identity], units = Units, remain_amount = RM} = B
 				when Units /= undefined, RM > 0 ->
@@ -433,13 +493,22 @@ top_up(Identity, RequestBody) ->
 							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
-					{error, 500}
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred adding Balance Bucket"},
+					{error, 500, Problem}
 			end;
 		_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 -spec balance_adjustment(RequestBody) -> Result
@@ -454,19 +523,33 @@ top_up(Identity, RequestBody) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'.
 balance_adjustment(RequestBody) ->
-	try
-		Adjustment = adjustment(mochijson:decode(RequestBody)),
-		case ocs:adjustment(Adjustment) of
-			ok ->
-				{ok, [], []};
-			{error, not_found} ->
-				{error, 400};
-			{error, _Reason} ->
-				{error, 500}
-		end
+	try adjustment(mochijson:decode(RequestBody)) of
+		#adjustment{} = Adjustment ->
+			case ocs:adjustment(Adjustment) of
+				ok ->
+					{ok, [], []};
+				{error, not_found} ->
+					Problem = #{type => "about:blank",
+							title => "Not Found",
+							detail => "No such Product/Service inventory item found"},
+					{error, 404, Problem};
+				{error, _Reason} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception occurred applying Balance Adjustment"},
+					{error, 500, Problem}
+			end;
+		_ ->
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	catch
 		_:_ ->
-			{error, 400}
+			Problem = #{type => "about:blank",
+					title => "Bad Request",
+					detail => "Exception occurred parsing request body"},
+			{error, 400, Problem}
 	end.
 
 %%----------------------------------------------------------------------
@@ -1022,7 +1105,8 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 
 %% @hidden
 query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
@@ -1049,9 +1133,21 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange1}],
 			{ok, Headers, Body}
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
@@ -1062,6 +1158,17 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end.
 %% @hidden
 query_page1(Json, [], []) ->

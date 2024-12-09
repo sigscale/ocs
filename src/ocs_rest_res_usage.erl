@@ -3212,7 +3212,8 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	end.
 %% @hidden
 query_page1(PageServer, Etag, auth, [] = _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3233,12 +3234,27 @@ query_page1(PageServer, Etag, auth, [] = _Query, Filters, Start, End) ->
 							{content_range, ContentRange1}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, acct, [] = _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3259,12 +3275,27 @@ query_page1(PageServer, Etag, acct, [] = _Query, Filters, Start, End) ->
 							{content_range, ContentRange1}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, http, [] = _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3286,12 +3317,27 @@ query_page1(PageServer, Etag, http, [] = _Query, Filters, Start, End) ->
 							{content_range, ContentRange1}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, auth, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3304,12 +3350,27 @@ query_page1(PageServer, Etag, auth, _Query, Filters, Start, End) ->
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, acct, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3322,12 +3383,27 @@ query_page1(PageServer, Etag, acct, _Query, Filters, Start, End) ->
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, http, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3340,12 +3416,27 @@ query_page1(PageServer, Etag, http, _Query, Filters, Start, End) ->
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end;
 query_page1(PageServer, Etag, ipdr, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+	{ok, Timeout} = application:get_env(ocs, rest_request_timeout),
+	try gen_server:call(PageServer, {Start, End}, Timeout) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3358,9 +3449,23 @@ query_page1(PageServer, Etag, ipdr, _Query, Filters, Start, End) ->
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch
-				throw:{error, Status} ->
-					{error, Status}
+				throw:{error, StatusCode} ->
+					Problem = #{type => "about:blank",
+							title => "Internal Server Error",
+							detail => "Exception thrown while formatting content"},
+					{error, StatusCode, Problem}
 			end
+	catch
+		_:{timeout, _} ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Timeout calling the pagination server"},
+			{error, 500, Problem};
+		_:_Reason ->
+			Problem = #{type => "about:blank",
+					title => "Internal Server Error",
+					detail => "Exception caught while calling the pagination server"},
+			{error, 500, Problem}
 	end.
 
 %% @hidden
