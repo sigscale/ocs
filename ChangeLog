@@ -1,3 +1,12 @@
+2024-12-09  Vance Shipley <vances@sigscale.org>
+
+	* refactor rest api handlers for better rfc9547 problem details
+	* tighten up typespec in api function
+	* handle overloaded pagination server with configurable timeout
+	* web components accept rfc9457 problem details
+	* refactor type specs for rest handlers
+	* make date codec bidirectional
+
 2024-12-02  Vance Shipley <vances@sigscale.org>
 
 	* correct socket_type value matching in nrf handler

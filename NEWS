@@ -1,3 +1,9 @@
+December, 9 2024
+----------------
+	- Configurable timeout for REST handlers calling pagination server
+	- Better RFC9457 problem details reporting in REST APIs 
+	- Web components accept rfc9457 problem details
+
 December, 6 2024
 ----------------
 	- Correct rating of multiple rating groups in session
