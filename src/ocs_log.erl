@@ -925,7 +925,7 @@ last3(_Log, _MaxItems, [], NumItems, Acc) ->
 	when
 		MilliSeconds :: timestamp(),
 		Result :: calendar:datetime().
-%% @doc Convert timestamp to date and time.
+%% @doc Convert Unix epoch timestamp to OTP date and time.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
