@@ -48,9 +48,14 @@ content_types_provided() ->
 
 -spec post_role(RequestBody) -> Result
 	when
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Handle `POST' request on `Role' collection.
 %% 	Respond to `POST /partyRoleManagement/v4/partyRole' request.
 post_role(RequestBody) ->
@@ -78,8 +83,13 @@ post_role(RequestBody) ->
 -spec delete_role(Name) -> Result
 	when
 		Name :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Handle `DELETE' request on a `Role' resource.
 %% 	Respond to `DELETE /partyRoleManagement/v4/partyRole/{Name}' request.
 delete_role(Name) when is_list(Name) ->
@@ -92,10 +102,17 @@ delete_role(Name) when is_list(Name) ->
 
 -spec get_roles(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Handle `GET' request on `Role' collection.
 %% 	Respond to `GET /partyRoleManagement/v4/partyRole/' request.
 get_roles(Query, Headers) ->
@@ -164,9 +181,16 @@ get_roles1(Query, Filters, Headers) ->
 -spec get_role(Name, Query) -> Result
 	when
 		Name :: string(),
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Handle `GET' request on a `Role' resource.
 %% 	Respond to `GET /partyRoleManagement/v4/partyRole/{Name}' request.
 get_role(Name, Query) ->

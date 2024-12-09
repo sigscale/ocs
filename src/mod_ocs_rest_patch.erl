@@ -40,11 +40,11 @@
 %%% 					| {error, StatusCode}
 %%% 					| {error, StatusCode, Problem}</tt></li>
 %%% 			<li><tt>ResponseBody = io_list()</tt></li>
-%%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>StatusCode = 400..599</tt></li>
 %%% 			<li><tt>Problem = #{type := uri(), title := string(),
 %%% 					code := string(), cause => string(), detail => string(),
 %%% 					invalidParams => [#{param := string(), reason => string()}],
-%%% 					status => 200..599}</tt></li>
+%%% 					status => 400..599}</tt></li>
 %%% 		</ul>
 %%% 	</div>
 %%% 	Resource handlers for HTTP PATCH operations on REST Resources.

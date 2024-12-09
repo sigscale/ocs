@@ -54,7 +54,7 @@
 %%% 			<li><tt>Problem = #{type := uri(), title := string(),
 %%% 					code := string(), cause => string(), detail => string(),
 %%% 					invalidParams => [#{param := string(), reason => string()}],
-%%% 					status => 200..599}</tt></li>
+%%% 					status => 400..599}</tt></li>
 %%% 		</ul>
 %%% 	</div>
 %%% 	Resource handlers for HTTP GET operations on REST Collections.

@@ -50,8 +50,13 @@ content_types_provided() ->
 -spec delete_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Delete by id.
 %% @doc Respond to `POST /productInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
@@ -67,10 +72,15 @@ delete_hub(Id) ->
 
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
-		ReqBody :: list(),
+		ReqBody :: string(),
 		Authorization :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Hub event to disk.
 %% @doc Respond to `POST /productInventoryManagement/v2/hub/'
 post_hub(ReqBody, Authorization) ->
@@ -106,8 +116,13 @@ post_hub(ReqBody, Authorization) ->
 
 -spec get_product_hubs() -> Result
 	when
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /productInventoryManagement/v2/hub/'
 get_product_hubs() ->
@@ -133,8 +148,13 @@ get_product_hubs([], Acc) ->
 -spec get_product_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /productInventoryManagement/v2/hub/{id}'
 %% 	requests.
@@ -155,10 +175,15 @@ get_product_hub(Id) ->
 
 -spec post_hub_catalog(ReqBody, Authorization) -> Result
 	when
-		ReqBody :: list(),
+		ReqBody :: string(),
 		Authorization :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Hub event to disk.
 %% @doc Respond to `POST /productCatalogManagement/v2/hub'
 post_hub_catalog(ReqBody, Authorization) ->
@@ -194,8 +219,13 @@ post_hub_catalog(ReqBody, Authorization) ->
 
 -spec get_catalog_hubs() -> Result
 	when
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /productCatalogManagement/v2/hub/'
 get_catalog_hubs() ->
@@ -216,8 +246,13 @@ get_catalog_hubs([], Acc) ->
 -spec get_catalog_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /productCatalogManagement/v2/hub/{id}'
 get_catalog_hub(Id) ->

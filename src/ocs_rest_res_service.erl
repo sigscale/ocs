@@ -48,21 +48,25 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/problem+json"].
 
--spec add_inventory(ReqData) -> Result when
-	ReqData	:: [tuple()],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 500.
+-spec add_inventory(RequestBody) ->
+	Result when
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /serviceInventoryManagement/v2/service'.
 %% 	Add a new Service Inventory.
-add_inventory(ReqData) ->
+add_inventory(RequestBody) ->
 	try
 		#service{name = Identity, password = Password,
 			attributes = Attributes, product = ProductRef,
 			state = State, enabled = Enabled, multisession = MultiSession,
 			characteristics = Chars} =
-			inventory(mochijson:decode(ReqData)),
+			inventory(mochijson:decode(RequestBody)),
 		case ocs:add_service(Identity, Password, State, ProductRef,
 				Chars, Attributes, Enabled, MultiSession) of
 			{ok, Service1} ->
@@ -89,12 +93,16 @@ add_inventory(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_inventory(Id) -> Result when
-	Id :: string(),
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_inventory(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /serviceInventoryManagement/v2/service/{id}'.
 %% 	Retrieve a service inventories.
 get_inventory(Id) ->
@@ -123,8 +131,13 @@ get_inventory(Id) ->
 
 -spec head_inventory() -> Result
    when
-      Result :: {ok, [], Body :: iolist()}
-            | {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %%    `HEAD /serviceInventoryManagement/v2/service'
 %%    requests.
@@ -140,15 +153,22 @@ head_inventory() ->
          {error, 500}
    end.
 
--spec get_inventories(Query, Headers) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 412 | 500 .
+-spec get_inventories(Query, RequestHeaders) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /serviceInventoryManagement/v2/service'.
 %% 	Retrieve all Service Inventories.
-get_inventories(Query, Headers) ->
+get_inventories(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -167,7 +187,7 @@ get_inventories(Query, Headers) ->
 	of
 		{Query2, Args} ->
 			Codec = fun inventory/1,
-			query_filter({ocs, query_service, Args}, Codec, Query2, Headers)
+			query_filter({ocs, query_service, Args}, Codec, Query2, RequestHeaders)
 	catch
 		_ ->
 			{error, 400}
@@ -176,8 +196,13 @@ get_inventories(Query, Headers) ->
 -spec delete_inventory(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /serviceInventoryManagement/v2/service/{id}'
 %% 	request to remove a `Service Inventory'.
 delete_inventory(Id) ->
@@ -188,19 +213,22 @@ delete_inventory(Id) ->
 			{error, 500}
 	end.
 
--spec patch_inventory(ServiceId, Etag, ReqData) -> Result
+-spec patch_inventory(ServiceId, Etag, RequestBody) -> Result
 	when
 		ServiceId :: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500 .
+		Etag :: undefined | string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `PATCH /serviceInventoryManagement/v2/service/{id}'.
 %% 	Update a Service Inventory using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_inventory(ServiceId, Etag, ReqData) ->
+patch_inventory(ServiceId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -208,7 +236,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Etag1, mochijson:decode(ReqData)}
+		{Etag1, mochijson:decode(RequestBody)}
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
@@ -298,12 +326,18 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec get_service_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_service_specs(Query) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /serviceCatalogManagement/v2/serviceSpecification/'.
 %% 	Retrieve all service specifications.
 get_service_specs([] = _Query) ->
@@ -314,13 +348,19 @@ get_service_specs([] = _Query) ->
 get_service_specs(_Query) ->
 	{error, 400}.
 
--spec get_service_spec(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_service_spec(Id, Query) -> Result
+	when
+		Id :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /serviceCatalogManagement/v2/serviceSpecification/{id}'.
 %% 	Retrieve a service specification.
 get_service_spec(ID, [] = _Query) ->

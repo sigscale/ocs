@@ -45,12 +45,18 @@ content_types_provided() ->
 
 -spec get_health(Query, RequestHeaders) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		RequestHeaders :: [tuple()],
 		Result :: {ok, ResponseHeaders, ResponseBody}
-				| {error, 503, ResponseHeaders, ResponseBody},
+				| {error, 503, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
-		ResponseBody :: iolist().
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /health'
 %% requests.
 get_health([] = _Query, _RequestHeaders) ->
@@ -93,12 +99,18 @@ get_health([] = _Query, _RequestHeaders) ->
 
 -spec get_applications(Query, RequestHeaders) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		RequestHeaders :: [tuple()],
 		Result :: {ok, ResponseHeaders, ResponseBody}
-				| {error, 503, ResponseHeaders, ResponseBody},
+				| {error, 503, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
-		ResponseBody :: iolist().
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /health/application'
 %% requests.
 get_applications([] = _Query, _RequestHeaders) ->
@@ -140,9 +152,13 @@ get_applications([] = _Query, _RequestHeaders) ->
 		Id :: string(),
 		RequestHeaders :: [tuple()],
 		Result :: {ok, ResponseHeaders, ResponseBody}
-				| {error, 503, ResponseHeaders, ResponseBody},
+				| {error, 503, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
-		ResponseBody :: iolist().
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /health/application/{Id}'
 %% requests.
 get_application(Id, _RequestHeaders) ->

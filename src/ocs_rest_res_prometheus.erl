@@ -44,10 +44,17 @@ content_types_provided() ->
 
 -spec get_metrics(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /metrics'
 %% requests.
 get_metrics([] = _Query, _Headers) ->

@@ -36,6 +36,7 @@
 %%% 			<li><tt>Id = string()</tt></li>
 %%% 			<li><tt>RequestBody = string()</tt></li>
 %%% 			<li><tt>Result = {ok, Headers, ResponseBody}
+%%% 					| {200, Headers, ResponseBody}
 %%% 					| {error, StatusCode}
 %%% 					| {error, StatusCode, Problem}</tt></li>
 %%% 			<li><tt>ResponseBody = io_list()</tt></li>
@@ -43,7 +44,7 @@
 %%% 			<li><tt>Problem = #{type := uri(), title := string(),
 %%% 					code := string(), cause => string(), detail => string(),
 %%% 					invalidParams => [#{param := string(), reason => string()}],
-%%% 					status => 200..599}</tt></li>
+%%% 					status => 400..599}</tt></li>
 %%% 		</ul>
 %%% 	</div>
 %%% 	Resource handlers for HTTP POST operations on REST Collections.
@@ -258,7 +259,7 @@ do_response(#mod{data = Data} = ModData,
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size} | Headers],
 	send(ModData, 200, ResponseHeaders, ResponseBody),
-	{proceed,[{response,{already_sent, 201, Size}} | Data]};
+	{proceed,[{response,{already_sent, 200, Size}} | Data]};
 do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 		{error, 400}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",

@@ -48,8 +48,13 @@ content_types_provided() ->
 -spec delete_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Delete by id.
 %% @doc Respond to `POST /serviceInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
@@ -65,10 +70,15 @@ delete_hub(Id) ->
 
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
-		ReqBody :: list(),
+		ReqBody :: string(),
 		Authorization :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Hub event to disk.
 %% @doc Respond to `POST /serviceInventoryManagement/v2/hub'
 post_hub(ReqBody, Authorization) ->
@@ -104,8 +114,13 @@ post_hub(ReqBody, Authorization) ->
 
 -spec get_hubs() -> Result
 	when
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /serviceInventoryManagement/v2/hub/'
 get_hubs() ->
@@ -131,8 +146,13 @@ get_hubs([], Acc) ->
 -spec get_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /serviceInventoryManagement/v2/hub/{id}'
 get_hub(Id) ->

@@ -57,10 +57,17 @@ content_types_provided() ->
 
 -spec get_usages(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @equiv get_usages(voip, Query, Headers)
 %% @hidden
 get_usages(Query, Headers) ->
@@ -69,10 +76,17 @@ get_usages(Query, Headers) ->
 -spec get_usages(Type, Query, Headers) -> Result
 	when
 		Type :: wlan | voip,
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @equiv get_usages(Type, undefined, Query, Headers)
 %% @hidden
 get_usages(Type, Query, Headers) ->
@@ -82,10 +96,17 @@ get_usages(Type, Query, Headers) ->
 	when
 		Type :: wlan | voip,
 		Id :: string() | undefined,
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
@@ -158,10 +179,17 @@ get_usages1(Type, Id, Query, Filters, Headers) ->
 -spec get_usage(Id, Query, Headers) -> Result
 	when
 		Id :: string(),
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
@@ -218,8 +246,16 @@ get_usage("acct-" ++ _ = Id, [] = _Query, _Headers) ->
 
 -spec get_usagespec(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification'
 %% 	requests.
@@ -270,9 +306,16 @@ get_usagespec(Query) ->
 -spec get_usagespec(Id, Query) -> Result
 	when
 		Id :: string(),
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification/{id}'
 %% 	requests.
@@ -317,9 +360,16 @@ get_usagespec(_Id, _Query) ->
 -spec get_ipdr(Type, Query) -> Result
 	when
 		Type :: wlan | voip,
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET /ocs/v1/log/ipdr/{Type}'
 %% 	requests.

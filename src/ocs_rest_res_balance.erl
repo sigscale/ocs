@@ -53,10 +53,17 @@ content_types_provided() ->
 
 -spec get_balance_log(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Headers  :: [tuple()],
-		Result :: {ok, Headers :: [tuple()],
-			Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Headers :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /ocs/v1/log/balance'
 %% requests.
 get_balance_log(Query, Headers) ->
@@ -99,8 +106,13 @@ get_balance_log(Query, Headers) ->
 -spec delete_bucket(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /balanceManagement/v1/bucket/{id}'
 %% 	request to remove a `Balance Bucket'.
 delete_bucket(Id) ->
@@ -116,9 +128,15 @@ delete_bucket(Id) ->
 -spec get_bucket(BucketId) -> Result
 	when
 		BucketId :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagement/v1/bucket/{id}',
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/{id}'
+%%    requests.
 get_bucket(BucketId) ->
 	try
 		case ocs:find_bucket(BucketId) of
@@ -143,8 +161,13 @@ get_bucket(BucketId) ->
 
 -spec head_bucket() -> Result
 	when
-		Result :: {ok, [], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %%    `HEAD /balanceManagement/v1/bucket'
 %%    requests.
@@ -162,11 +185,19 @@ head_bucket() ->
 
 -spec get_buckets(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers	:: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagement/v1/bucket/',
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/'
+%%    requests.
 get_buckets(Query, Headers) ->
 	try
 		case lists:keytake("filter", 1, Query) of
@@ -194,11 +225,17 @@ get_buckets(Query, Headers) ->
 
 -spec get_balance_service(Identity) -> Result
 	when
-		Identity :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Identity :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
-%% `GET /balanceManagement/v1/service/{id}/accumulatedBalance' request
+%% `GET /balanceManagement/v1/service/{id}/accumulatedBalance'
+%%    requests.
 get_balance_service(Identity) ->
 	try
 		case ocs:find_service(Identity) of
@@ -230,11 +267,17 @@ get_balance_service(Identity) ->
 
 -spec get_balance(ProdRef) -> Result
 	when
-		ProdRef :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		ProdRef :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance' request
+%%    requests.
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
@@ -261,10 +304,17 @@ get_balance(ProdRef) ->
 
 -spec get_balance(ProdRef, Query) -> Result
 	when
-		ProdRef :: list(),
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		ProdRef :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance'
 %% with query request
@@ -308,11 +358,16 @@ get_balance(ProdRef, Query) ->
 
 -spec top_up_service(Identity, RequestBody) -> Result
 	when
-		Identity :: list(),
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /balanceManagement/v1/service/{id}/balanceTopup'
+		Identity :: string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Respond to `POST /balanceManagement/v1/service/{id}/balanceTopup'.
 top_up_service(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
@@ -342,11 +397,16 @@ top_up_service(Identity, RequestBody) ->
 
 -spec top_up(Identity, RequestBody) -> Result
 	when
-		Identity :: list(),
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /balanceManagement/v1/product/{id}/balanceTopup'
+		Identity :: string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Respond to `POST /balanceManagement/v1/product/{id}/balanceTopup'.
 top_up(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
@@ -384,10 +444,15 @@ top_up(Identity, RequestBody) ->
 
 -spec balance_adjustment(RequestBody) -> Result
 	when
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'.
 balance_adjustment(RequestBody) ->
 	try
 		Adjustment = adjustment(mochijson:decode(RequestBody)),

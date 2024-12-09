@@ -57,12 +57,13 @@ content_types_provided() ->
 	when
 		NrfRequest :: iolist(),
 		ModData :: #mod{},
-		NrfResponse :: {ok, Headers, Body} | {error, Status} |
-				{error, Status, Problem},
-		Headers :: [tuple()],
-		Body :: iolist(),
-		Status :: 201 | 400 | 404 | 500,
-		Problem :: map().
+		NrfResponse :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
 %%
 %%		Rate an intial Nrf Request.
@@ -147,14 +148,15 @@ initial_nrf1(ModData, NrfRequest) ->
 -spec update_nrf(ModData, RatingDataRef, NrfRequest) -> NrfResponse
 	when
 		ModData ::#mod{},
-		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
-		NrfResponse :: {Status, Headers, Body} | {error, Status} |
-				{error, Status, Problem},
-		Headers :: [tuple()],
-		Body :: iolist(),
-		Status :: 200 | 400 | 404 | 500,
-		Problem :: map().
+		NrfRequest :: iolist(),
+		NrfResponse :: {200, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(ModData, RatingDataRef, NrfRequest) ->
@@ -243,12 +245,13 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		ModData ::#mod{},
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
-		NrfResponse :: {Status, Headers, Body} | {error, Status} |
-				{error, Status, Problem},
-		Headers :: [tuple()],
-		Body :: iolist(),
-		Status :: 200 | 400 | 404 | 500,
-		Problem :: map().
+		NrfResponse :: {200, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/release'.
 %%
 %%		Rate a final Nrf Request.

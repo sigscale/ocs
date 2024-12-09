@@ -47,9 +47,14 @@ content_types_provided() ->
 
 -spec post_hub(ReqBody) -> Result
 	when
-		ReqBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		ReqBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Create hub listener for role.
 %% @doc Respond to `POST /partyRoleManagement/v4/hub'
 post_hub(ReqBody) ->
@@ -80,8 +85,13 @@ post_hub1({error, _Reason}, _HubRecord) ->
 -spec delete_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% Delete by id.
 %% @doc Respond to `POST /partyRoleManagement/v4/hub/{id}'
 delete_hub(Id) ->
@@ -97,8 +107,13 @@ delete_hub(Id) ->
 
 -spec get_hubs() -> Result
 	when
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /partyRoleManagement/v4/hub/'
 get_hubs() ->
@@ -124,8 +139,13 @@ get_hubs([], Acc) ->
 -spec get_hub(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /partyRoleManagement/v4/hub/{id}'
 get_hub(Id) ->

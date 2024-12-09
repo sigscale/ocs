@@ -43,8 +43,13 @@ content_types_provided() ->
 
 -spec head_client() -> Result
    when
-      Result :: {ok, [], Body :: iolist()}
-            | {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %%    `HEAD /ocs/v1/client'
 %%    requests.
@@ -62,10 +67,17 @@ head_client() ->
 
 -spec get_clients(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result ::{ok, Headers :: [tuple()],
-				Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /ocs/v1/client'
 %% requests.
 get_clients(Query, Headers) ->
@@ -102,9 +114,16 @@ get_clients(Query, Headers) ->
 -spec get_client(Id, Query) -> Result
 	when
 		Id :: string(),
-		Query :: [{Key :: string(), Value :: string()}],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
 get_client(Id, Query) ->
@@ -145,9 +164,14 @@ get_client1(Address, Filters) ->
 
 -spec post_client(RequestBody) -> Result
 	when
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
 post_client(RequestBody) ->
@@ -175,9 +199,14 @@ post_client(RequestBody) ->
 		Id :: string(),
 		Etag :: undefined | string(),
 		ContentType :: string(),
-		ReqBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()} .
+		ReqBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
 patch_client(Id, Etag, CType, ReqBody) ->
@@ -299,8 +328,13 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 -spec delete_client(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is successful return true.
 delete_client(Id) ->

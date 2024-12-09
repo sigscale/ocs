@@ -45,8 +45,13 @@ content_types_provided() ->
 
 -spec head_user() -> Result
 	when
-		Result :: {ok, [], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`HEAD /partyManagement/v1/individual'
 %% 	requests.
@@ -64,10 +69,17 @@ head_user() ->
 
 -spec get_users(Query, Headers) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_users(Query, Headers) ->
@@ -181,9 +193,14 @@ get_user(_, _, _) ->
 
 -spec post_user(RequestBody) -> Result
 	when
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
@@ -214,9 +231,14 @@ post_user(RequestBody) ->
 		ID :: string(),
 		Etag :: undefined | string(),
 		ContentType :: string(),
-		ReqBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		ReqBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc	Respond to `PATCH /partyManagement/v1/individual/{id}' request and
 %% update an existing `user''s characteristics.
 patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
@@ -264,8 +286,13 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 -spec delete_user(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc	Respond to `DELETE /partyManagement/v1/individual/{id}' request and
 %% 	delete an existing `user'.
 delete_user(Id) ->

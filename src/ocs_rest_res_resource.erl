@@ -60,10 +60,13 @@ content_types_provided() ->
 -spec get_resource_spec(ID) -> Result
 	when
 		ID :: string(),
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 404.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification/{id}'.
 %%		Retrieve a resource specification.
 get_resource_spec("1") ->
@@ -111,11 +114,16 @@ get_resource_spec(_) ->
 
 -spec get_resource_specs(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
 %% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
@@ -137,10 +145,13 @@ get_resource_specs(_Query) ->
 -spec get_resource_category(ID) -> Result
 	when
 		ID :: string(),
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 404.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory/{id}'.
 %% 	Retrieve a Resource category by Id.
 get_resource_category("1") ->
@@ -158,11 +169,16 @@ get_resource_category(_) ->
 
 -spec get_resource_categories(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory'.
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
@@ -176,10 +192,13 @@ get_resource_categories(_Query) ->
 -spec get_resource_candidate(ID) -> Result
 	when
 		ID :: string(),
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 404.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCandidate/{id}'.
 %%		Get Resource Candidate by ID.
 get_resource_candidate("1") ->
@@ -192,11 +211,16 @@ get_resource_candidate(_) ->
 
 -spec get_resource_candidates(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /catalogManagement/v2/resourceCandidate'.
 %% 	Retrieve all Resource candidate.
 get_resource_candidates([] = _Query) ->
@@ -210,10 +234,13 @@ get_resource_candidates(_Query) ->
 -spec get_resource_catalog(ID) -> Result
 	when
 		ID :: string(),
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 404.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog/{id}'.
 %%		Get Resource Catalog by ID.
 get_resource_catalog("1") ->
@@ -226,11 +253,16 @@ get_resource_catalog(_) ->
 
 -spec get_resource_catalogs(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog'.
 %% 	Retrieve all Resource catalogs.
 get_resource_catalogs([] = _Query) ->
@@ -244,10 +276,13 @@ get_resource_catalogs(_Query) ->
 -spec get_resource(Id) -> Result
 	when
 		Id :: string(),
-		Result   :: {ok, Headers, Body} | {error, Status},
-		Headers  :: [tuple()],
-		Body     :: iolist(),
-		Status   :: 404 | 500.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
 %%    Retrieve resource from inventory management.
 get_resource(Id) ->
@@ -270,10 +305,13 @@ get_resource(Id) ->
 
 -spec head_resource() -> Result
 	when
-		Result   :: {ok, Headers, Body} | {error, Status},
-		Headers  :: [tuple()],
-		Body     :: iolist(),
-		Status   :: 500.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
@@ -291,16 +329,21 @@ head_resource() ->
 
 -spec get_resource(Query, RequestHeaders) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
 		RequestHeaders :: [tuple()],
-		Result   :: {ok, ReplyHeaders, Body} | {error, Status},
-		ReplyHeaders  :: [tuple()],
-		Body     :: iolist(),
-		Status   :: 400.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
-get_resource(Query, Headers) ->
+get_resource(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -323,7 +366,7 @@ get_resource(Query, Headers) ->
 	of
 		{Query2, QueryArgs} ->
 			Codec = fun resource/1,
-			query_filter({ocs, query_resource, QueryArgs}, Codec, Query2, Headers)
+			query_filter({ocs, query_resource, QueryArgs}, Codec, Query2, RequestHeaders)
 	catch
 		_ ->
 			{error, 400}
@@ -454,10 +497,13 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 -spec add_resource(RequestBody) -> Result
 	when
 		RequestBody :: string(),
-		Result   :: {ok, Headers, Body} | {error, Status},
-		Headers  :: [tuple()],
-		Body     :: iolist(),
-		Status   :: 400 | 500.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to
 %% 	`POST /resourceInventoryManagement/v1/resource'.
 %%    Add a new resource in inventory.
@@ -497,11 +543,16 @@ add_resource(RequestBody) ->
 
 -spec get_pla_specs(Query) -> Result
 	when
-		Query :: [{Key :: string(), Value :: string()}],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400.
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
 %% 	Retrieve all Pricing Logic Algorithm (PLA) specifications.
 get_pla_specs([] = _Query) ->
@@ -516,10 +567,13 @@ get_pla_specs(_Query) ->
 -spec delete_resource(Id) -> Result
    when
       Id :: string(),
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
@@ -532,18 +586,21 @@ delete_resource(Id) ->
 			{error, 500}
 	end.
 
--spec patch_resource(Id, Etag, ReqData) -> Result
+-spec patch_resource(Id, Etag, RequestBody) -> Result
 	when
 		Id	:: string(),
-		Etag	:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500.
+		Etag :: undefined | string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{id}'.
 %% 	Update a table row using JSON patch method.
-patch_resource(Id, Etag, ReqData) ->
+patch_resource(Id, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -551,7 +608,7 @@ patch_resource(Id, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Id, Etag1, mochijson:decode(ReqData)}
+		{Id, Etag1, mochijson:decode(RequestBody)}
 	of
 		{Id, Etag2, {array, _} = Operations} ->
 			F = fun() ->

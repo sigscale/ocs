@@ -60,17 +60,21 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/problem+json"].
 
--spec add_offer(ReqData) -> Result when
-	ReqData	:: [tuple()],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 500 .
+-spec add_offer(RequestBody) -> Result
+	when
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /productCatalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
-add_offer(ReqData) ->
+add_offer(RequestBody) ->
 	try
-		case ocs:add_offer(offer(mochijson:decode(ReqData))) of
+		case ocs:add_offer(offer(mochijson:decode(RequestBody))) of
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, Reason} ->
@@ -93,19 +97,23 @@ add_offer(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_inventory(ReqData) -> Result when
-	ReqData	:: [tuple()],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 500 .
+-spec add_inventory(RequestBody) -> Result
+	when
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
-add_inventory(ReqData) ->
+add_inventory(RequestBody) ->
 	try
 		#product{start_date = SD, end_date = TD,
 				characteristics = Chars, product = OfferId,
-				service = ServiceRefs} = product(mochijson:decode(ReqData)),
+				service = ServiceRefs} = product(mochijson:decode(RequestBody)),
 		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
 			{ok, Product} ->
 				Product;
@@ -133,12 +141,16 @@ add_inventory(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_offer(ID) -> Result when
-	ID			:: string(),
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_offer(ID) -> Result
+	when
+		ID			:: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
 get_offer(ID) ->
@@ -167,12 +179,16 @@ get_offer(ID) ->
 			{error, 400}
 	end.
 
--spec get_inventory(ID) -> Result when
-	ID			:: string(),
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_inventory(ID) -> Result
+	when
+		ID			:: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productInventoryManagement/v2/product/{id}'.
 %% 	Retrieve a Product Inventory.
 get_inventory(ID) ->
@@ -201,8 +217,13 @@ get_inventory(ID) ->
 
 -spec head_offer() -> Result
 	when
-		Result :: {ok, [], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`HEAD /catalogManagement/v2/productOffering'
 %% 	requests.
@@ -218,16 +239,23 @@ head_offer() ->
 			{error, 500}
 	end.
 
--spec get_offers(Query, Headers) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 412 | 500 .
+-spec get_offers(Query, RequestHeaders) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
-get_offers(Query, Headers) ->
+get_offers(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -254,7 +282,7 @@ get_offers(Query, Headers) ->
 	of
 		{Query2, Args} ->
 			Codec = fun offer/1,
-			query_filter({ocs, query_offer, Args}, Codec, Query2, Headers)
+			query_filter({ocs, query_offer, Args}, Codec, Query2, RequestHeaders)
 	catch
 		_ ->
 			{error, 400}
@@ -262,8 +290,13 @@ get_offers(Query, Headers) ->
 
 -spec head_product() -> Result
 	when
-		Result :: {ok, [], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
 %% 	`HEAD /productInventoryManagement/v2/product'
 %% 	requests.
@@ -279,15 +312,22 @@ head_product() ->
 			{error, 500}
 	end.
 				
--spec get_inventories(Query, Headers) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 412 | 500 .
+-spec get_inventories(Query, RequestHeaders) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productInventoryManagement/v2/'.
 %% 	Retrieve all Product Inventories.
-get_inventories(Query, Headers) ->
+get_inventories(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -308,19 +348,25 @@ get_inventories(Query, Headers) ->
 	of
 		{Query2, Args} ->
 			Codec = fun product/1,
-			query_filter({ocs, query_product, Args}, Codec, Query2, Headers)
+			query_filter({ocs, query_product, Args}, Codec, Query2, RequestHeaders)
 	catch
 		_ ->
 			{error, 400}
 	end.
 
--spec get_catalog(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_catalog(Id, Query) -> Result
+	when
+		Id :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /catalogManagement/v2/catalog/{id}'.
 %% 	Retrieve a catalog .
 get_catalog("1", [] =  _Query) ->
@@ -332,12 +378,18 @@ get_catalog(_Id,  [] = _Query) ->
 get_catalog(_Id, _Query) ->
 	{error, 400}.
 
--spec get_catalogs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_catalogs(Query) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2'.
 %% 	Retrieve all catalogs .
 get_catalogs([] =  _Query) ->
@@ -348,13 +400,19 @@ get_catalogs([] =  _Query) ->
 get_catalogs(_Query) ->
 	{error, 400}.
 
--spec get_category(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_category(Id, Query) -> Result
+	when
+		Id :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/category/{id}'.
 %% 	Retrieve a category.
 get_category("1", [] =  _Query) ->
@@ -366,12 +424,18 @@ get_category(_Id,  [] = _Query) ->
 get_category(_Id, _Query) ->
 	{error, 400}.
 
--spec get_categories(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_categories(Query) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
@@ -382,13 +446,19 @@ get_categories([] =  _Query) ->
 get_categories(_Query) ->
 	{error, 400}.
 
--spec get_product_spec(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_product_spec(Id, Query) -> Result
+	when
+		Id :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
 get_product_spec(ID, [] = _Query) ->
@@ -403,12 +473,18 @@ get_product_spec(ID, [] = _Query) ->
 get_product_spec(_Id, _Query) ->
 	{error, 400}.
 
--spec get_product_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+-spec get_product_specs(Query) -> Result
+	when
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productCatalogManagement/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
@@ -423,19 +499,22 @@ get_product_specs([] = _Query) ->
 get_product_specs(_Query) ->
 	{error, 400}.
 
--spec patch_offer(ProdId, Etag, ReqData) -> Result
+-spec patch_offer(ProdId, Etag, RequestBody) -> Result
 	when
-		ProdId	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500 .
+		ProdId :: string(),
+		Etag :: undefined | string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `PATCH /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_offer(ProdId, Etag, ReqData) ->
+patch_offer(ProdId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -443,7 +522,7 @@ patch_offer(ProdId, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Etag1, mochijson:decode(ReqData)}
+		{Etag1, mochijson:decode(RequestBody)}
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
@@ -502,13 +581,19 @@ patch_offer(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec get_pla_spec(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
+-spec get_pla_spec(Id, Query) -> Result
+	when
+		Id :: string(),
+		Query :: [{Key, Value}],
+		Key :: string(),
+		Value :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /catalogManegment/v2/plaSpecification/{id}'.
 %% 	Retrieve a pricing logic algorithm specification.
 get_pla_spec(ID, [] = _Query) ->
@@ -523,19 +608,22 @@ get_pla_spec(ID, [] = _Query) ->
 get_pla_spec(_Id, _Query) ->
 	{error, 400}.
 
--spec patch_inventory(ProdId, Etag, ReqData) -> Result
+-spec patch_inventory(ProdId, Etag, RequestBody) -> Result
 	when
 		ProdId :: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500 .
+		Etag :: undefined | string(),
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `PATCH /productInventoryManagement/v2/product/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_inventory(ProdId, Etag, ReqData) ->
+patch_inventory(ProdId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -543,7 +631,7 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Etag1, mochijson:decode(ReqData)}
+		{Etag1, mochijson:decode(RequestBody)}
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
@@ -608,8 +696,13 @@ patch_inventory(ProdId, Etag, ReqData) ->
 -spec delete_offer(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /productCatalogManagement/v2/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
@@ -627,8 +720,13 @@ delete_offer(Id) ->
 -spec delete_inventory(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /productInventoryManagement/v2/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_inventory(Id) ->
@@ -641,16 +739,20 @@ delete_inventory(Id) ->
 			{error, 500}
 	end.
 
--spec sync_offer(ReqData) -> Result when
-	ReqData	:: [tuple()],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 500 .
+-spec sync_offer(RequestBody) -> Result
+	when
+		RequestBody :: string(),
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist(),
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /productCatalogManagement/v2/syncOffer'.
 %% 	Sync a Product Offering.
-sync_offer(ReqData) ->
-	{struct, EventStructList} = mochijson:decode(ReqData),
+sync_offer(RequestBody) ->
+	{struct, EventStructList} = mochijson:decode(RequestBody),
 	{_, OfferEvent} = lists:keyfind("event", 1, EventStructList),
 	sync_offer(lists:keyfind("eventType", 1, EventStructList), offer(OfferEvent)).
 sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
