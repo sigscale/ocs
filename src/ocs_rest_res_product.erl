@@ -806,7 +806,6 @@ patch_inventory(ProdId, Etag, RequestBody) ->
 %% @doc Respond to `DELETE /productCatalogManagement/v2/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
-erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id}),
 	try ocs:delete_offer(Id) of
 		ok ->
 			{ok, [], []}
