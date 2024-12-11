@@ -278,6 +278,7 @@ styleElement.innerHTML = `<template>
 			flex-direction: row;
 			align-items: flex-start;
 			gap: 8px;
+			margin: 8px;
 		}
 		paper-card {
 			--paper-card: {
