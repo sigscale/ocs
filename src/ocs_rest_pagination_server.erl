@@ -26,8 +26,8 @@
 -export_type([continuation/0]).
 
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-			terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_continue/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -opaque continuation() :: start | eof | disk_log:continuation().
 -record(state,
@@ -40,7 +40,8 @@
 		args :: list(),
 		cont = start :: continuation(),
 		buffer = [] :: [tuple()],
-		offset = 0 :: integer()}).
+		offset = 0 :: non_neg_integer(),
+		length = 0 :: non_neg_integer()}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -111,13 +112,14 @@ init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list
 		Tag :: any(),
 		State :: state(),
 		Result :: {reply, Reply, NewState}
-			| {reply, Reply, NewState, timeout() | hibernate}
+			| {reply, Reply, NewState, timeout() | hibernate | {continue, Continue}}
 			| {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
+			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
 			| {stop, Reason, Reply, NewState}
 			| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
@@ -125,17 +127,39 @@ init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call(Range, From, State) ->
-	range_request(Range, From, State).
+handle_call({undefined, _EndRange} = _Request, From, State) ->
+	handle_call({1, _EndRange}, From, State);
+handle_call({StartRange, undefined} = _Request, From,
+		#state{max_page_size = MaxPageSize} = State) ->
+	handle_call({StartRange, MaxPageSize}, From, State);
+handle_call({StartRange, EndRange} = _Request, From,
+		#state{max_page_size = MaxPageSize} = State)
+		when is_integer(StartRange), is_integer(EndRange),
+				(EndRange - StartRange) > MaxPageSize ->
+	handle_call({StartRange, StartRange + MaxPageSize - 1}, From, State);
+handle_call(Request, From, State) ->
+	handle_call1(Request, From, range_request(Request, State)).
+%% @hidden
+handle_call1(_Request, _From,
+		{ok, Reply, #state{timeout = Timeout} = State}) ->
+	{reply, Reply, State, Timeout};
+handle_call1(_Request, _From,
+		{stop, Reply, State}) ->
+	{stop, shutdown, Reply, State};
+handle_call1({StartRange, EndRange} = _Request, From,
+		{eob, State}) ->
+	Continue = {StartRange, EndRange, From},
+	{noreply, State, {continue, Continue}}.
 
 -spec handle_cast(Request, State) -> Result
 	when
 		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
+			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
 			| {stop, Reason, NewState},
 		NewState :: state(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
@@ -143,17 +167,68 @@ handle_call(Range, From, State) ->
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(stop, State) ->
+handle_cast(stop = _Request, State) ->
 	{stop, normal, State}.
+
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State::state(),
+		Result :: {noreply, NewState}
+			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
+			| {stop, Reason, NewState},
+		NewState :: state(),
+		Continue :: term(),
+		Reason :: term().
+%% @doc Handle a callback continuation.
+%% @see //stdlib/gen_server:handle_info/2
+%% @private
+%%
+handle_continue(Info,
+		#state{module = Module, function = Function,
+				cont = Cont, args = Args} = State) ->
+	handle_continue1(Info, State, apply(Module, Function, [Cont | Args])).
+%% @hidden
+handle_continue1(_Info, State, {error, _Reason}) ->
+	{stop, shutdown, {error, 500}, State};
+handle_continue1({StartRange, _EndRange, _From} = Info,
+		#state{offset = Offset, length = Length} = State,
+		{Cont, Items}) when Cont /= eof,
+		(Offset + Length + length(Items)) < StartRange ->
+	NewState = State#state{cont = Cont,
+			offset = Offset + Length + length(Items),
+			buffer = [], length = 0},
+	{noreply, NewState, {continue, Info}};
+handle_continue1({StartRange, EndRange, From} = _Info,
+		#state{buffer = Buffer, length = Length} = State,
+		{Cont, Items}) ->
+	NewState = State#state{cont = Cont,
+			buffer = Buffer ++ Items, length = Length + length(Items)},
+	handle_continue2(StartRange, EndRange, From,
+			range_request({StartRange, EndRange}, NewState)).
+%% @hidden
+handle_continue2(_StartRange, _EndRange, From,
+		{ok, Reply, #state{timeout = Timeout} = State}) ->
+	gen_server:reply(From, Reply),
+	{noreply, State, Timeout};
+handle_continue2(_StartRange, _EndRange, From,
+		{stop, Reply, State}) ->
+	gen_server:reply(From, Reply),
+	{stop, shutdown, State};
+handle_continue2(StartRange, EndRange, From,
+		{eob, State}) ->
+	Continue = {StartRange, EndRange, From},
+	{noreply, State, {continue, Continue}}.
 
 -spec handle_info(Info, State) -> Result
 	when
 		Info :: timeout | term(),
 		State::state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
+			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
 			| {stop, Reason, NewState},
 		NewState :: state(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
@@ -192,84 +267,70 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec range_request(Range, From, State) -> Result
+-spec range_request(Range, State) -> Result
 	when
 		Range :: {Start, End},
-		Start :: pos_integer() | undefined,
-		End :: pos_integer() | undefined,
-		From :: {pid(), Tag},
-		Tag :: any(),
+		Start :: pos_integer(),
+		End :: pos_integer(),
 		State :: state(),
-		Result :: {reply, Reply, State, timeout()}
-			| {stop, Reason, Reply, State},
-		Reason :: term(),
+		Result :: {ok, Reply, NewState}
+				| {stop, Reply, NewState}
+				| {eob, NewState},
 		Reply :: {Items, ContentRange} | {error, Status},
 		Items :: [tuple()],
 		ContentRange :: string(),
-		Status :: 400 | 404 | 416 | 500.
+		Status :: 400 | 404 | 416 | 500,
+		NewState :: state().
 %% @doc Handle a range request.
 %% 	Manages a buffer of items read with the callback.
 %%
-%% 	Returns `{Items, ContentRange}' on success where `Items' is
+%% 	Reply `{Items, ContentRange}' on success where `Items' is
 %% 	a list of collection members and `ContentRange' is to be
 %% 	used in a `Content-Range' header. The total items will be
 %% 	included if known at the time (e.g. "items 1-100/*" or
 %% 	"items 50-100/100").
 %%
-%% 	Returns `{error, Status}' if the request fails. `Status'
+%% 	Reply `{error, Status}' if the request fails. `Status'
 %% 	is an HTTP status code to be returned to the client.
 %%
 %% @private
-range_request({undefined, undefined}, _From,
-		#state{cont = eof, buffer = []} = State) ->
-	ContentRange = content_range(0, 0, 0),
-	{stop, shutdown, {[], ContentRange}, State};
-range_request({undefined, undefined}, From,
-		#state{cont = Cont, max_page_size = MaxPageSize} = State)
-		when Cont /= start ->
-	range_request({1, MaxPageSize}, From, State);
-range_request({StartRange, EndRange}, From,
-		#state{max_page_size = MaxPageSize} = State)
-		when StartRange /= undefined, EndRange /= undefined,
-		(EndRange - StartRange) > MaxPageSize ->
-	range_request({StartRange, StartRange + MaxPageSize}, From, State);
-range_request({StartRange, _EndRange}, _From, #state{offset = Offset,
-		timeout = Timeout} = State)
-		when StartRange /= undefined, StartRange < Offset ->
-	{reply, {error, 416}, State, Timeout};
-range_request({StartRange, _EndRange}, _From,
-		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
-		when StartRange /= undefined,
-		StartRange > Offset + length(Buffer) ->
-	{stop, shutdown, {error, 416}, State};
-range_request({StartRange, EndRange}, _From,
-		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
-		when StartRange /= undefined, EndRange /= undefined,
-		StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
-	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
-	End = StartRange + length(Rest) - 1,
+range_request({StartRange, _EndRange},
+		#state{offset = Offset} = State)
+		when is_integer(StartRange), StartRange =< Offset ->
+	{ok, {error, 416}, State};
+range_request({StartRange, _EndRange},
+		#state{cont = eof, offset = Offset, length = Length} = State)
+		when is_integer(StartRange), StartRange > (Offset + Length + 1) ->
+	{stop, {error, 416}, State};
+range_request({StartRange, EndRange},
+		#state{cont = eof, offset = Offset,
+				buffer = Buffer, length = Length} = State)
+		when is_integer(StartRange), is_integer(EndRange),
+				StartRange > Offset, Length =< (EndRange - Offset) ->
+	StartPos = StartRange - Offset,
+	PageSize = Length - StartPos + 1,
+	Page = lists:sublist(Buffer, StartPos, PageSize),
+	End = StartRange + PageSize - 1,
+	NewState = State#state{offset = End, buffer = [], length = 0},
 	ContentRange = content_range(StartRange, End, End),
-	{stop, shutdown, {Rest, ContentRange}, State};
-range_request({StartRange, EndRange}, _From,
-		#state{offset = Offset, buffer = Buffer, timeout = Timeout} = State)
-		when StartRange /= undefined, EndRange /= undefined,
-		StartRange > Offset, length(Buffer) >= EndRange - Offset ->
+	{stop, {Page, ContentRange}, NewState};
+range_request({StartRange, EndRange},
+		#state{offset = Offset, buffer = Buffer,
+				length = Length} = State)
+		when is_integer(StartRange), is_integer(EndRange),
+				StartRange > Offset, Length >= (EndRange - Offset) ->
+	StartPos = StartRange - Offset,
+	RestSize = Length - StartPos + 1,
 	PageSize = EndRange - StartRange + 1,
-	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
-	{RespItems, NewBuffer} = lists:split(PageSize, Rest),
-	NewState = State#state{offset = EndRange, buffer = NewBuffer},
+	Rest = lists:sublist(Buffer, StartPos, RestSize),
+	{Page, NewBuffer} = lists:split(PageSize, Rest),
+	NewState = State#state{offset = EndRange,
+			buffer = NewBuffer, length = RestSize - PageSize},
 	ContentRange = content_range(StartRange, EndRange, undefined),
-	{reply, {RespItems, ContentRange}, NewState, Timeout};
-range_request({StartRange, EndRange}, From,
-		#state{cont = Cont1, module = Module, function = Function,
-		args = Args, buffer = Buffer} = State) ->
-	case apply(Module, Function, [Cont1 | Args]) of
-		{error, _Reason} ->
-			{stop, shutdown, {error, 500}, State};
-		{Cont2, Items} ->
-			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
-			range_request({StartRange, EndRange}, From, NewState)
-	end.
+	{ok, {Page, ContentRange}, NewState};
+range_request({StartRange, EndRange}, State)
+		when is_integer(StartRange), is_integer(EndRange) ->
+	{eob, State}.
 
 %% @hidden
 content_range(Start, End, Total) ->
