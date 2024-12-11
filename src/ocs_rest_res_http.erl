@@ -61,14 +61,16 @@ content_types_provided() ->
 get_http() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	Log = ocs_log:httpd_logname(transfer),
-	read_http_log(Log, MaxItems).
+	LogInfo = disk_log:info(Log),
+	{_, Size} = lists:keyfind(no_items, 1, LogInfo),
+	read_http_log(Log, Size, MaxItems).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_http_log(Log, MaxItems) ->
+read_http_log(Log, Size, MaxItems) ->
 	case ocs_log:last(Log, MaxItems) of
 		{error, _} ->
 			{error, 500};
@@ -76,7 +78,7 @@ read_http_log(Log, MaxItems) ->
 			JsonObjs = json(Events),
 			JsonArray = {array, JsonObjs},
 			Body = mochijson:encode(JsonArray),
-			ContentRange = "items 1-" ++ integer_to_list(NumItems) ++ "/*",
+			ContentRange = lists:concat(["items 1-", NumItems, "/", Size]),
 			Headers = [{"content_type", "application/json"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
