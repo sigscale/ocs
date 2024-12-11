@@ -29,76 +29,79 @@ class periodList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column width="15ex">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="prefix"
-								path="prefix"
-								value="{{_filterPrefix}}">
-							<input
-									slot="filter"
-									placeholder="Prefix"
-									value="{{_filterPrefix::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.prefix]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="15ex">
-					<template class="header">
-							Description
-					</template>
-					<template>[[item.description]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column-group>
-               <template class="header">
-                  <div class="grouptitle">Initial Period</div>
-               </template>
+				<vaadin-grid-column>
 					<vaadin-grid-column width="15ex">
 						<template class="header">
-								Seconds
+							<vaadin-grid-filter
+									aria-label="prefix"
+									path="prefix"
+									value="{{_filterPrefix}}">
+								<input
+										slot="filter"
+										placeholder="Prefix"
+										value="{{_filterPrefix::input}}"
+										focus-target>
+							</vaadin-grid-filter>
 						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.periodInitial]]
-							</div>
-						</template>
+						<template>[[item.prefix]]</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="15ex">
 						<template class="header">
-								Rate
+								Description
 						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.rateInitial]]
-							</div>
-						</template>
+						<template>[[item.description]]</template>
 					</vaadin-grid-column>
-				</vaadin-grid-column-group>
-				<vaadin-grid-column-group>
-               <template class="header">
-                  <div class="grouptitle">Additional Period</div>
-               </template>
-					<vaadin-grid-column width="15ex">
-						<template class="header">
-								Seconds
-						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.periodAdditional]]
-							</div>
-						</template>
+					<vaadin-grid-column-group>
+	               <template class="header">
+	                  <div class="grouptitle">Initial Period</div>
+	               </template>
+						<vaadin-grid-column width="15ex">
+							<template class="header">
+									Seconds
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.periodInitial]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="15ex">
+							<template class="header">
+									Rate
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.rateInitial]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<vaadin-grid-column-group>
+	               <template class="header">
+	                  <div class="grouptitle">Additional Period</div>
+	               </template>
+						<vaadin-grid-column width="15ex">
+							<template class="header">
+									Seconds
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.periodAdditional]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="15ex">
+							<template class="header">
+									Rate
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.rateAdditional]]
+								</div>
+							</template>
+						</vaadin-grid-column>
 					</vaadin-grid-column>
-					<vaadin-grid-column width="15ex">
-						<template class="header">
-								Rate
-						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.rateAdditional]]
-							</div>
-						</template>
-					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
@@ -140,6 +143,10 @@ class periodList extends PolymerElement {
 			activeItem: {
 				type: Object,
 				notify: true
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -191,6 +198,7 @@ class periodList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					periodList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

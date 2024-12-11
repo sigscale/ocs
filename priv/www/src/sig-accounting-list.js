@@ -104,136 +104,139 @@ class accountingList extends PolymerElement {
 						</div>
 					</iron-pages>
 				</template>
-				<vaadin-grid-column width="24ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="time stamp"
-								path="date"
-								value="{{filterTimeStamp}}">
-							<input
-									slot="filter"
-									placeholder="Time Stamp"
-									value="{{filterTimeStamp::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.date]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="8ex" flex-grow="8">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="client identity"
-								path="nasIdentifier"
-								value="{{filterclientIdentityAcc}}">
-							<input
-									slot="filter"
-									placeholder="Client Identity"
-									value="{{filterclientIdentityAcc::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.nasIdentifier]]</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column-group>
-					<template class="header">
-						<div class="grouptitle">Seconds</div>
-					</template>
-					<vaadin-grid-column width="15ex" flex-grow="1">
+					<vaadin-grid-column width="24ex" flex-grow="2">
 						<template class="header">
-							Duration
+							<vaadin-grid-filter
+									aria-label="time stamp"
+									path="date"
+									value="{{filterTimeStamp}}">
+								<input
+										slot="filter"
+										placeholder="Time Stamp"
+										value="{{filterTimeStamp::input}}"
+										focus-target>
+							</vaadin-grid-filter>
 						</template>
-						<template>[[item.acctSessionTime]]</template>
+						<template>[[item.date]]</template>
 					</vaadin-grid-column>
+					<vaadin-grid-column width="8ex" flex-grow="8">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="client identity"
+									path="nasIdentifier"
+									value="{{filterclientIdentityAcc}}">
+								<input
+										slot="filter"
+										placeholder="Client Identity"
+										value="{{filterclientIdentityAcc::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.nasIdentifier]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column-group>
+						<template class="header">
+							<div class="grouptitle">Seconds</div>
+						</template>
+						<vaadin-grid-column width="15ex" flex-grow="1">
+							<template class="header">
+								Duration
+							</template>
+							<template>[[item.acctSessionTime]]</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<vaadin-grid-column-group>
+						<template class="header">
+							<div class="grouptitle">Bytes</div>
+						</template>
+						<vaadin-grid-column width="10ex" flex-grow="1">
+							<template class="header">
+								In
+							</template>
+							<template>[[item.inputOctets]]</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="10ex" flex-grow="1">
+							<template class="header">
+								Out
+							</template>
+							<template>[[item.outputOctets]]</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="10ex" flex-grow="1">
+							<template class="header">
+								Total
+							</template>
+							<template>[[item.totalOctets]]</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<vaadin-grid-column width="12ex" flex-grow="1">
+						<template class="header">
+							Price
+						</template>
+						<template>[[item.prices]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="6">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="user name"
+									path="username"
+									value="{{filterUserName}}">
+								<input
+										slot="filter"
+										placeholder="User Name"
+										value="{{filterUserName::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.username]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="8ex" flex-grow="2">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="type"
+									path="type"
+									value="{{filterType}}">
+								<input
+										slot="filter"
+										placeholder="Type"
+										value="{{filterType::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.type]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="17ex" flex-grow="1">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="msisdn"
+									path="msisdn"
+									value="{{filterMsisdn}}">
+								<input
+										slot="filter"
+										placeholder="MSISDN"
+										value="{{filterMsisdn::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.msisdn]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="17ex" flex-grow="1">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="imsi"
+									path="imsi"
+									value="{{filterImsi}}">
+								<input
+										slot="filter"
+										placeholder="IMSI"
+										value="{{filterImsi::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.imsi]]</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
-				<vaadin-grid-column-group>
-					<template class="header">
-						<div class="grouptitle">Bytes</div>
-					</template>
-					<vaadin-grid-column width="10ex" flex-grow="1">
-						<template class="header">
-							In
-						</template>
-						<template>[[item.inputOctets]]</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="10ex" flex-grow="1">
-						<template class="header">
-							Out
-						</template>
-						<template>[[item.outputOctets]]</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="10ex" flex-grow="1">
-						<template class="header">
-							Total
-						</template>
-						<template>[[item.totalOctets]]</template>
-					</vaadin-grid-column>
-				</vaadin-grid-column-group>
-				<vaadin-grid-column width="12ex" flex-grow="1">
-					<template class="header">
-						Price
-					</template>
-					<template>[[item.prices]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="6">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="user name"
-								path="username"
-								value="{{filterUserName}}">
-							<input
-									slot="filter"
-									placeholder="User Name"
-									value="{{filterUserName::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.username]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="8ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="type"
-								path="type"
-								value="{{filterType}}">
-							<input
-									slot="filter"
-									placeholder="Type"
-									value="{{filterType::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.type]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="17ex" flex-grow="1">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="msisdn"
-								path="msisdn"
-								value="{{filterMsisdn}}">
-							<input
-									slot="filter"
-									placeholder="MSISDN"
-									value="{{filterMsisdn::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.msisdn]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="17ex" flex-grow="1">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="imsi"
-								path="imsi"
-								value="{{filterImsi}}">
-							<input
-									slot="filter"
-									placeholder="IMSI"
-									value="{{filterImsi::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.imsi]]</template>
-				</vaadin-grid-column>
 			</vaadin-grid>
 			<iron-ajax id="getAccounting"
 					url="/usageManagement/v1/usage"
@@ -277,6 +280,10 @@ class accountingList extends PolymerElement {
 			filterType: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -365,6 +372,7 @@ class accountingList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					accountingList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

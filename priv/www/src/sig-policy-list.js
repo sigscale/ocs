@@ -201,59 +201,62 @@ class policyList extends PolymerElement {
 						</paper-button>
 					</div>
 				</template>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						Name
-					</template>
-					<template>[[item.name]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="20ex" flex-grow="2">
-					<template class="header">
-						QoS
-					</template>
-					<template>[[item.qos]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="14ex" flex-grow="1">
-					<template class="header">
-						Charging Key
-					</template>
-					<template>[[item.chargingKey]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="1">
-					<template class="header">
-						Service Id
-					</template>
-					<template>[[item.serviceId]]</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column-group>
-					<template class="header">
-						<div class="grouptitle">Service Flow</div>
-					</template>
-					<vaadin-grid-column width="25ex" flex-grow="3">
+					<vaadin-grid-column width="12ex" flex-grow="2">
 						<template class="header">
-							Flow Up
+							Name
 						</template>
-						<template>[[item.flowUp]]</template>
+						<template>[[item.name]]</template>
 					</vaadin-grid-column>
-					<vaadin-grid-column width="25ex" flex-grow="3">
+					<vaadin-grid-column width="20ex" flex-grow="2">
 						<template class="header">
-							Flow Down
+							QoS
 						</template>
-						<template>[[item.flowDown]]</template>
+						<template>[[item.qos]]</template>
 					</vaadin-grid-column>
+					<vaadin-grid-column width="14ex" flex-grow="1">
+						<template class="header">
+							Charging Key
+						</template>
+						<template>[[item.chargingKey]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="1">
+						<template class="header">
+							Service Id
+						</template>
+						<template>[[item.serviceId]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column-group>
+						<template class="header">
+							<div class="grouptitle">Service Flow</div>
+						</template>
+						<vaadin-grid-column width="25ex" flex-grow="3">
+							<template class="header">
+								Flow Up
+							</template>
+							<template>[[item.flowUp]]</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="25ex" flex-grow="3">
+							<template class="header">
+								Flow Down
+							</template>
+							<template>[[item.flowDown]]</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<vaadin-grid-column width="12ex" flex-grow="1">
+						<template class="header">
+							Precedence
+						</template>
+						<template>[[item.precedence]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="1">
+						<template class="header">
+							Predefined
+						</template>
+						<template>[[item.predefined]]</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
-				<vaadin-grid-column width="12ex" flex-grow="1">
-					<template class="header">
-						Precedence
-					</template>
-					<template>[[item.precedence]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="1">
-					<template class="header">
-						Predefined
-					</template>
-					<template>[[item.predefined]]</template>
-				</vaadin-grid-column>
 			</vaadin-grid>
 			<paper-dialog
 					class="dialog"
@@ -376,6 +379,10 @@ class policyList extends PolymerElement {
 				type: Object,
 				notify: true,
 				observer: '_activeItemChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -521,6 +528,7 @@ class policyList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					policyList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

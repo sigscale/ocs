@@ -73,92 +73,95 @@ class bucketList extends PolymerElement {
 						</paper-button>
 					</div>
 				</template>
-				<vaadin-grid-column width="15ex" flex-grow="5">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Bucket Id"
-								path="id"
-								value="[[_filterBucketId]]">
-							<input
-									slot="filter"
-									placeholder="Bucket Id"
-									value="{{_filterBucketId::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						[[item.id]]
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="15ex" flex-grow="5">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Product Id"
-								path="product.id"
-								value="[[_filterProductId]]">
-							<input
-									slot="filter"
-									placeholder="Product Id"
-									value="{{_filterProductId::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						[[item.product]]
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						Price
-					</template>
-					<template>
-						[[item.price]]
-					</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column-group>
-					<template class="header">
-						<div class="grouptitle">Balance</div>
-					</template>
-					<vaadin-grid-column width="12ex" flex-grow="2">
+					<vaadin-grid-column width="15ex" flex-grow="5">
 						<template class="header">
-								Cents
+							<vaadin-grid-filter
+									aria-label="Bucket Id"
+									path="id"
+									value="[[_filterBucketId]]">
+								<input
+										slot="filter"
+										placeholder="Bucket Id"
+										value="{{_filterBucketId::input}}"
+										focus-target>
+							</vaadin-grid-filter>
 						</template>
 						<template>
-							<div class="cell numeric">
-								[[item.cents]]
-							</div>
+							[[item.id]]
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="15ex" flex-grow="5">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Product Id"
+									path="product.id"
+									value="[[_filterProductId]]">
+								<input
+										slot="filter"
+										placeholder="Product Id"
+										value="{{_filterProductId::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>
+							[[item.product]]
 						</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="12ex" flex-grow="2">
 						<template class="header">
-								Bytes
+							Price
 						</template>
 						<template>
-							<div class="cell numeric">
-								[[item.remainedAmount]]
-							</div>
+							[[item.price]]
 						</template>
 					</vaadin-grid-column>
-					<vaadin-grid-column width="12ex" flex-grow="2">
+					<vaadin-grid-column-group>
 						<template class="header">
-								Seconds
+							<div class="grouptitle">Balance</div>
 						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.seconds]]
-							</div>
-						</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="12ex" flex-grow="2">
-						<template class="header">
-								Messages
-						</template>
-						<template>
-							<div class="cell numeric">
-								[[item.messages]]
-							</div>
-						</template>
-					</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+									Cents
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.cents]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+									Bytes
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.remainedAmount]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+									Seconds
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.seconds]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+									Messages
+							</template>
+							<template>
+								<div class="cell numeric">
+									[[item.messages]]
+								</div>
+							</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
@@ -196,6 +199,10 @@ class bucketList extends PolymerElement {
 			},
 			_filterProductId: {
 				type: Boolean
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -269,6 +276,7 @@ class bucketList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					bucketList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

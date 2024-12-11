@@ -28,87 +28,90 @@ class accessList extends PolymerElement {
 					id="accessGrid"
 					loading="{{loading}}"
 					theme="no-border">
-				<vaadin-grid-column width="24ex">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="time stamp"
-								path="date"
-								value="{{filterAccessTimeStamp}}">
-							<input
-									slot="filter"
-									placeholder="Time Stamp"
-									value="{{filterAccessTimeStamp::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.date]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="10ex" flex-grow="1">
-					<template class="header">
-						ClientAddress
-					</template>
-					<template>[[item.clientAddress]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="1ex" flex-grow="3">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="clientIdentity"
-								path="nasIdentifier"
-								value="{{filterclientIdentity}}">
-							<input
-									slot="filter"
-									placeholder="Client Identity"
-									value="{{filterclientIdentity::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.nasIdentifier]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="20ex">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="calledStation"
-								path="calledStationId"
-								value="{{filtercalledStation}}">
-							<input
-									slot="filter"
-									placeholder="Called Station"
-									value="{{filtercalledStation::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.calledStationId]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="10ex" flex-grow="4">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="userName"
-								path="User Name"
-								value="{{filterUserName}}">
-							<input
-									slot="filter"
-									placeholder="User Name"
-									value="{{filterUserName::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.username]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="8ex" flex-grow="0">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="type"
-								path="type"
-								value="{{filterType}}">
-							<input
-									slot="filter"
-									placeholder="Type"
-									value="{{filterType::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.type]]</template>
-				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+					<vaadin-grid-column width="24ex">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="time stamp"
+									path="date"
+									value="{{filterAccessTimeStamp}}">
+								<input
+										slot="filter"
+										placeholder="Time Stamp"
+										value="{{filterAccessTimeStamp::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.date]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="10ex" flex-grow="1">
+						<template class="header">
+							ClientAddress
+						</template>
+						<template>[[item.clientAddress]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="1ex" flex-grow="3">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="clientIdentity"
+									path="nasIdentifier"
+									value="{{filterclientIdentity}}">
+								<input
+										slot="filter"
+										placeholder="Client Identity"
+										value="{{filterclientIdentity::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.nasIdentifier]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="20ex">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="calledStation"
+									path="calledStationId"
+									value="{{filtercalledStation}}">
+								<input
+										slot="filter"
+										placeholder="Called Station"
+										value="{{filtercalledStation::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.calledStationId]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="10ex" flex-grow="4">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="userName"
+									path="User Name"
+									value="{{filterUserName}}">
+								<input
+										slot="filter"
+										placeholder="User Name"
+										value="{{filterUserName::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.username]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="8ex" flex-grow="0">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="type"
+									path="type"
+									value="{{filterType}}">
+								<input
+										slot="filter"
+										placeholder="Type"
+										value="{{filterType::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.type]]</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
+				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<iron-ajax id="getAccess"
 					url="/usageManagement/v1/usage"
@@ -147,6 +150,10 @@ class accessList extends PolymerElement {
 			filterType: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -212,6 +219,7 @@ class accessList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					accessList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

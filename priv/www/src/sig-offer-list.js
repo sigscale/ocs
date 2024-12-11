@@ -29,51 +29,54 @@ class offerList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="name"
-								path="id"
-								value="{{_filterName}}">
-							<input
-									slot="filter"
-									placeholder="Name"
-									value="{{_filterName::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.id]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Description
-					</template>
-					<template>[[item.description]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Start Date
-					</template>
-					<template>[[item.startDate]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							End Date
-					</template>
-					<template>[[item.endDate]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Status
-					</template>
-					<template>[[item.lifecycleStatus]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Price
-					</template>
-					<template>[[item.price]]</template>
-				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="name"
+									path="id"
+									value="{{_filterName}}">
+								<input
+										slot="filter"
+										placeholder="Name"
+										value="{{_filterName::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.id]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Description
+						</template>
+						<template>[[item.description]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Start Date
+						</template>
+						<template>[[item.startDate]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								End Date
+						</template>
+						<template>[[item.endDate]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Status
+						</template>
+						<template>[[item.lifecycleStatus]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Price
+						</template>
+						<template>[[item.price]]</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
+				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -130,6 +133,10 @@ class offerList extends PolymerElement {
 			_filterName: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -192,6 +199,7 @@ class offerList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					offerList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

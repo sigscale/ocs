@@ -29,57 +29,60 @@ class userList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="User Name"
-								path="id"
-								value="{{_filterId}}">
-							<input
-									slot="filter"
-									placeholder="Username"
-									value="{{_filterId::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						[[item.id]]
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Language"
-								path="language"
-								value="{{_filterLanguage}}">
-							<input
-									slot="filter"
-									placeholder="Language"
-									value="{{_filterLanguage::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						[[item.language]]
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Rating"
-								path="rating"
-								value="{{_filterRating}}">
-							<input
-									slot="filter"
-									placeholder="Rating"
-									value="{{_filterRating::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						[[item.rating]]
-					</template>
-				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="User Name"
+									path="id"
+									value="{{_filterId}}">
+								<input
+										slot="filter"
+										placeholder="Username"
+										value="{{_filterId::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>
+							[[item.id]]
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Language"
+									path="language"
+									value="{{_filterLanguage}}">
+								<input
+										slot="filter"
+										placeholder="Language"
+										value="{{_filterLanguage::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>
+							[[item.language]]
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Rating"
+									path="rating"
+									value="{{_filterRating}}">
+								<input
+										slot="filter"
+										placeholder="Rating"
+										value="{{_filterRating::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>
+							[[item.rating]]
+						</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
+				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -109,6 +112,10 @@ class userList extends PolymerElement {
 			etag: {
 				type: String,
 				value: null
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -162,6 +169,7 @@ class userList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					userList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

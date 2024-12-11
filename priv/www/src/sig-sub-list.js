@@ -29,54 +29,57 @@ class subList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-							aria-label="Identity"
-							path="id"
-							value="{{_filterIdentity}}">
-							<input
-									slot="filter"
-									placeholder="Identity"
-									value="{{_filterIdentity::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.id]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Password
-					</template>
-					<template>[[item.password]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Product"
-								path="product"
-								value="[[_filterBalance]]">
-							<input
-									slot="filter"
-									placeholder="Product"
-									value="{{_filterBalance::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.product]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Enabled
-					</template>
-					<template>[[item.enabled]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-							Multisession
-					</template>
-					<template>[[item.multisession]]</template>
-				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+								aria-label="Identity"
+								path="id"
+								value="{{_filterIdentity}}">
+								<input
+										slot="filter"
+										placeholder="Identity"
+										value="{{_filterIdentity::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.id]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Password
+						</template>
+						<template>[[item.password]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Product"
+									path="product"
+									value="[[_filterBalance]]">
+								<input
+										slot="filter"
+										placeholder="Product"
+										value="{{_filterBalance::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.product]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Enabled
+						</template>
+						<template>[[item.enabled]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column>
+						<template class="header">
+								Multisession
+						</template>
+						<template>[[item.multisession]]</template>
+					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
+				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -120,6 +123,10 @@ class subList extends PolymerElement {
 			_filterBalance: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -175,6 +182,7 @@ class subList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					serviceList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

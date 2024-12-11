@@ -30,88 +30,91 @@ class productList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column width="15ex" flex-grow="5">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Product Id"
-								path="id"
-								value="{{_filterProId}}">
-							<input
-									slot="filter"
-									placeholder="Product Id"
-									value="{{_filterProId::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.id]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="15ex" flex-grow="5">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Services"
-								path="service"
-								value="{{_filterIdentity}}">
-							<input
-									slot="filter"
-									placeholder="Services"
-									value="{{_filterIdentity::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.service]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column-group>
-					<template class="header">
-						<div class="grouptitle">Balance</div>
-					</template>
-					<vaadin-grid-column width="12ex" flex-grow="2">
-						<template class="header">
-							Cents
-						</template>
-						<template>
-							<div class="cell numeric">[[item.cents]]</div>
-						</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="12ex" flex-grow="2">
-						<template class="header">
-							Bytes
-						</template>
-						<template>
-							<div class="cell numeric">[[item.bytes]]</div>
-						</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="12ex" flex-grow="2">
-						<template class="header">
-							Seconds
-						</template>
-						<template>
-							<div class="cell numeric">[[item.seconds]]</div>
-						</template>
-					</vaadin-grid-column>
-					<vaadin-grid-column width="12ex" flex-grow="2">
-						<template class="header">
-							Messages
-						</template>
-						<template>
-							<div class="cell numeric">[[item.messages]]</div>
-						</template>
-					</vaadin-grid-column>
 				</vaadin-grid-column-group>
-				<vaadin-grid-column width="15ex" flex-grow="5">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Offering"
-								path="product"
-								value="{{_filterOffer}}">
-							<input
-									slot="filter"
-									placeholder="Offering"
-									value="{{_filterOffer::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.product]]</template>
-				</vaadin-grid-column>
+					<vaadin-grid-column width="15ex" flex-grow="5">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Product Id"
+									path="id"
+									value="{{_filterProId}}">
+								<input
+										slot="filter"
+										placeholder="Product Id"
+										value="{{_filterProId::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.id]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="15ex" flex-grow="5">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Services"
+									path="service"
+									value="{{_filterIdentity}}">
+								<input
+										slot="filter"
+										placeholder="Services"
+										value="{{_filterIdentity::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.service]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column-group>
+						<template class="header">
+							<div class="grouptitle">Balance</div>
+						</template>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+								Cents
+							</template>
+							<template>
+								<div class="cell numeric">[[item.cents]]</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+								Bytes
+							</template>
+							<template>
+								<div class="cell numeric">[[item.bytes]]</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+								Seconds
+							</template>
+							<template>
+								<div class="cell numeric">[[item.seconds]]</div>
+							</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column width="12ex" flex-grow="2">
+							<template class="header">
+								Messages
+							</template>
+							<template>
+								<div class="cell numeric">[[item.messages]]</div>
+							</template>
+						</vaadin-grid-column>
+						<template class="footer">Total: {{totalItems}}</template>
+					</vaadin-grid-column-group>
+					<vaadin-grid-column width="15ex" flex-grow="5">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="Offering"
+									path="product"
+									value="{{_filterOffer}}">
+								<input
+										slot="filter"
+										placeholder="Offering"
+										value="{{_filterOffer::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.product]]</template>
+					</vaadin-grid-column>
+				<vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -153,6 +156,10 @@ class productList extends PolymerElement {
 			_filterOffer: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			},
 		}
 	}
@@ -209,6 +216,7 @@ class productList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					productList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}

@@ -27,105 +27,108 @@ class balanceList extends PolymerElement {
 					id="balanceGrid"
 					loading="{{loading}}"
 					theme="no-border">
-				<vaadin-grid-column
-						width="24ex">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="date"
-								path="date"
-								value="{{filterTime}}">
-							<input
-									slot="filter"
-									placeholder="Time Stamp"
-									value="{{filterTime::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.date]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column
-						id="check"
-						width="10ex"
-						flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="Type"
-								path="type"
-								value="{{filterType}}">
-							<input
-									slot="filter"
-									placeholder="Type"
-									value="{{filterType::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.type]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column
-						id="check1"
-						width="14ex">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="product"
-								path="product"
-								value="{{filterProduct}}">
-							<input
-									slot="filter"
-									placeholder="Product"
-									value="{{filterProduct::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.product]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column
-						id="check2"
-						width="12ex"
-						flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="bucket"
-								path="bucket"
-								value="{{filterBucket}}">
-							<input
-									slot="filter"
-									placeholder="Bucket"
-									value="{{filterBucket::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.bucket]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column
-						id="check3"
-						width="13ex"
-						flex-grow="2">
-					<template class="header">
-						Amount
-					</template>
-					<template>[[item.amount]]</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column-group>
-					<template class="header">
-							<div class="grouptitle">Remain Amount</div>
-					</template>
 					<vaadin-grid-column
-							id="check6"
-							width="12ex">
+							width="24ex">
 						<template class="header">
-							Before
+							<vaadin-grid-filter
+									aria-label="date"
+									path="date"
+									value="{{filterTime}}">
+								<input
+										slot="filter"
+										placeholder="Time Stamp"
+										value="{{filterTime::input}}"
+										focus-target>
+							</vaadin-grid-filter>
 						</template>
-						<template>[[item.amountBefore]]</template>
+						<template>[[item.date]]</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column
-							id="check5"
+							id="check"
 							width="10ex"
 							flex-grow="2">
 						<template class="header">
-							After
+							<vaadin-grid-filter
+									aria-label="Type"
+									path="type"
+									value="{{filterType}}">
+								<input
+										slot="filter"
+										placeholder="Type"
+										value="{{filterType::input}}"
+										focus-target>
+							</vaadin-grid-filter>
 						</template>
-						<template>[[item.amountAfter]]</template>
+						<template>[[item.type]]</template>
 					</vaadin-grid-column>
+					<vaadin-grid-column
+							id="check1"
+							width="14ex">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="product"
+									path="product"
+									value="{{filterProduct}}">
+								<input
+										slot="filter"
+										placeholder="Product"
+										value="{{filterProduct::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.product]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column
+							id="check2"
+							width="12ex"
+							flex-grow="2">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="bucket"
+									path="bucket"
+									value="{{filterBucket}}">
+								<input
+										slot="filter"
+										placeholder="Bucket"
+										value="{{filterBucket::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.bucket]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column
+							id="check3"
+							width="13ex"
+							flex-grow="2">
+						<template class="header">
+							Amount
+						</template>
+						<template>[[item.amount]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column-group>
+						<template class="header">
+								<div class="grouptitle">Remain Amount</div>
+						</template>
+						<vaadin-grid-column
+								id="check6"
+								width="12ex">
+							<template class="header">
+								Before
+							</template>
+							<template>[[item.amountBefore]]</template>
+						</vaadin-grid-column>
+						<vaadin-grid-column
+								id="check5"
+								width="10ex"
+								flex-grow="2">
+							<template class="header">
+								After
+							</template>
+							<template>[[item.amountAfter]]</template>
+						</vaadin-grid-column>
+					</vaadin-grid-column-group>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<iron-ajax id="getBalanceAjax"
@@ -173,6 +176,10 @@ class balanceList extends PolymerElement {
 			filterBefore: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			totalItems: {
+				type: String,
+				notify: false
 			}
 		}
 	}
@@ -221,6 +228,7 @@ class balanceList extends PolymerElement {
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
 					grid.size = Number(range1[1]);
+					balanceList.totalItems = range1[1]
 				} else {
 					grid.size = Number(range2[1]) + (grid.pageSize * 2);
 				}

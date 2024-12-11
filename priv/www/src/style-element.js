@@ -231,6 +231,9 @@ styleElement.innerHTML = `<template>
 			font-size: 0.7rem;
 			padding: unset;
 		}
+		[part~='footer-cell'] {
+			text-align: right;
+		}
 		paper-fab {
 			background: var(--paper-lime-a700);
 			color: black;
