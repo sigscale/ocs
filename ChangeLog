@@ -1,3 +1,14 @@
+2024-12-11  Vance Shipley <vances@sigscale.org>
+
+	* optimize pagination server read ahead and responsiveness to system messages
+	* correct location of total in product view footer
+	* include total items in content-range for http log api
+	* add footer with total items in all grid views
+	* ignore and warn failed grid view ajax calls
+	* margin around dashboard cards
+	* correct grid view height to completely fit under toolbar
+	* percent decode uri map to handle special chars in path
+
 2024-12-09  Vance Shipley <vances@sigscale.org>
 
 	* refactor rest api handlers for better rfc9547 problem details
