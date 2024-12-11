@@ -599,20 +599,12 @@ class policyList extends PolymerElement {
 					}
 				}
 				callback(vaadinItems);
-			} else {
-				grid.size = 0;
-				callback([]);
 			}
 		}
 		var handleAjaxError = function(error) {
-			policyList.etag = null;
 			var toast = policyList.shadowRoot.getElementById('PolicyToast');
 			toast.text = error;
 			toast.open();
-			if(!grid.size) {
-				grid.size = 0;
-			}
-			callback([]);
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {

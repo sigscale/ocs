@@ -235,19 +235,12 @@ class clientList extends PolymerElement {
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
-			} else {
-				callback([]);
 			}
 		};
 		var handleAjaxError = function(error) {
-			clientList.etag = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Error";
 			toast.open();
-			if(!grid.size) {
-				grid.size = 0;
-			}
-			callback([]);
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
