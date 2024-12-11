@@ -97,7 +97,6 @@ class productList extends PolymerElement {
 								<div class="cell numeric">[[item.messages]]</div>
 							</template>
 						</vaadin-grid-column>
-						<template class="footer">Total: {{totalItems}}</template>
 					</vaadin-grid-column-group>
 					<vaadin-grid-column width="15ex" flex-grow="5">
 						<template class="header">
@@ -114,6 +113,7 @@ class productList extends PolymerElement {
 						</template>
 						<template>[[item.product]]</template>
 					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
 				<vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
