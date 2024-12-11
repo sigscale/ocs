@@ -187,7 +187,7 @@ styleElement.innerHTML = `<template>
 			--paper-progress-container-color: transparent;
 		}
 		vaadin-grid {
-			height: 100vh;
+			height: calc(100vh - 68px);
 			font-size: inherit;
 		}
 		vaadin-grid input {
