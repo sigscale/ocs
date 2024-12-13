@@ -1,3 +1,10 @@
+2024-12-13  Vance Shipley <vances@sigscale.org>
+
+	* refactor getting old ocs version, handle multiple installed releases
+	* nifs: remove support for openssl < 1.1, otp < 22
+	* nif upgrade function must be implemented for release upgrade
+	* specify which functions are to be replaced by nifs
+
 2024-12-11  Vance Shipley <vances@sigscale.org>
 
 	* optimize pagination server read ahead and responsiveness to system messages

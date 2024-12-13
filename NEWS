@@ -1,3 +1,8 @@
+December, 13 2024
+----------------
+	- Fix finding current release, of many, for in-service upgrade
+	- Fix NIF handling during in-service upgrade
+
 December, 11 2024
 ----------------
 	- Optimize REST API for paginated logs
