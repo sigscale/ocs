@@ -22,14 +22,6 @@
 #include <stdint.h>
 #include "erl_nif.h"
 
-#if ((ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8) \
-		|| ERL_NIF_MAJOR_VERSION < 2)
-ERL_NIF_TERM
-enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
-	return enif_make_badarg(env);
-}
-#endif /* NIF < v2.8 */
-
 #define ROTL(B, W) (((W) << (B)) | ((W) >> (32 - (B))))
 #define Fch(B, C, D) (((B) & (C)) | ((~(B)) & (D)))
 #define Fparity(B, C, D) ((B) ^ (C) ^ (D))

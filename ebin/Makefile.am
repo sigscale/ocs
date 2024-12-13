@@ -213,12 +213,6 @@ ocs_eap_ttls_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_fsm.erl \
 			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
-ocs_eap_pwd.beam:$(top_srcdir)/src/ocs_eap_pwd.erl \
-		$(top_srcdir)/include/ocs_eap_codec.hrl
-	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac_init,2},{crypto,hmac_update,2},{crypto,hmac_final,1}]}" \
-			+"{nowarn_deprecated_function, [{crypto,hmac_init,2},{crypto,hmac_update,2},{crypto,hmac_final,1}]}" \
-			-I $(top_srcdir)/include -I $(top_builddir)/include $<
-
 ocs_eap_pwd_fsm.beam:$(top_srcdir)/src/ocs_eap_pwd_fsm.erl \
 		$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \

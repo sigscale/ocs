@@ -32,38 +32,6 @@
 
 static uint8_t zerokey[SHA256_DIGEST_LENGTH] = { 0x00 };
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static HMAC_CTX *
-HMAC_CTX_new(void)
-{
-	HMAC_CTX *context;
-
-	if ((context = calloc(sizeof(*context), 1)))
-		HMAC_CTX_init(context);
-	return context;
-}
-
-void
-HMAC_CTX_reset(HMAC_CTX *context)
-{
-	HMAC_CTX_cleanup(context);
-}
-
-void
-HMAC_CTX_free(HMAC_CTX *context)
-{
-	HMAC_CTX_cleanup(context);
-}
-#endif /* OpenSSL < v1.1.0 */
-
-#if ((ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8) \
-		|| ERL_NIF_MAJOR_VERSION < 2)
-ERL_NIF_TERM
-enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
-	return enif_make_badarg(env);
-}
-#endif /* NIF < v2.8 */
-
 /* Key Derivation Function (KDF)
  * RFC5931 section 2.5
  */

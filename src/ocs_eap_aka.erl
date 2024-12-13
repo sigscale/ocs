@@ -35,25 +35,6 @@
 
 -include("ocs_eap_codec.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 22).
-		-define(BLOCK_ENCRYPT(Key, Data),
-				crypto:crypto_one_time(aes_128_ecb, Key, Data, true)).
-		-define(BLOCK_DECRYPT(Key, Data),
-				crypto:crypto_one_time(aes_128_ecb, Key, Data, false)).
-	-else.
-		-define(BLOCK_ENCRYPT(Key, Data),
-				crypto:block_encrypt(aes_ecb, Key, Data)).
-		-define(BLOCK_DECRYPT(Key, Data),
-				crypto:block_decrypt(aes_ecb, Key, Data)).
-	-endif.
--else.
-		-define(BLOCK_ENCRYPT(Key, Data),
-				crypto:block_encrypt(aes_ecb, Key, Data)).
-		-define(BLOCK_DECRYPT(Key, Data),
-				crypto:block_decrypt(aes_ecb, Key, Data)).
--endif.
-
 %% 3GPP TS 23.003 19.3.2 Root NAI
 -define(PERM_AKA,  $0).
 -define(PERM_AKAp, $6).
@@ -119,7 +100,6 @@ compressed_imsi(IMSI) when is_binary(IMSI) ->
 	L3 = L2 ++ L1,
 	<< <<D:4>> || D <- L3 >>.
 
--dialyzer([{nowarn_function, [encrypt_imsi/3]}, no_missing_calls]). % temporary
 -spec encrypt_imsi(Tag, CompressedIMSI, Key) -> Pseudonym
 	when
 		Tag :: 50 | 55, % ?TEMP_AKA | ?TEMP_AKAp, (compile error with 18)
