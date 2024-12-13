@@ -29,6 +29,8 @@
 -export([prf/1, compressed_imsi/1, encrypt_imsi/3, decrypt_imsi/2,
 		encrypt_key/4]).
 
+-nifs([g/1]).
+
 -on_load(init/0).
 
 -include("ocs_eap_codec.hrl").
@@ -61,6 +63,10 @@
 %% 3GPP TS 23.003 19.3.5 Pseudonym
 -define(TEMP_AKA,  $2).
 -define(TEMP_AKAp, $7).
+
+%%
+%% public functions
+%%
 
 -spec prf(MK) -> Result
 	when 

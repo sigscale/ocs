@@ -29,6 +29,9 @@
 
 -export([h/1, kdf/3]).
 -export([compute_pwe/4, compute_scalar/2, compute_ks/4]).
+
+-nifs([h/1, kdf/3, compute_pwe/4, compute_scalar/2, compute_ks/4]).
+
 -on_load(init/0).
 
 -include("ocs_eap_codec.hrl").
@@ -60,6 +63,10 @@
 -else.
 	-define(HMAC_FINAL(Context), crypto:hmac_final(Context)).
 -endif.
+
+%%
+%% public functions
+%%
 
 -spec h(Data) -> Result
 	when 
