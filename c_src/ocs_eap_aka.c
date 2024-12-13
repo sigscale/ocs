@@ -130,5 +130,19 @@ nif_funcs[] = {
    {"g", 1, g_nif}
 };
 
-ERL_NIF_INIT(ocs_eap_aka, nif_funcs, NULL, NULL, NULL, NULL)
+static int
+load(ErlNifEnv* caller_env, void** priv_data, ERL_NIF_TERM load_info) {
+	return 0;
+}
+
+static int
+upgrade(ErlNifEnv* caller_env, void** priv_data, void** old_priv_data, ERL_NIF_TERM load_info) {
+	return 0;
+}
+
+static void
+unload(ErlNifEnv* caller_env, void* priv_data) {
+}
+
+ERL_NIF_INIT(ocs_eap_aka, nif_funcs, load, NULL, upgrade, unload)
 
