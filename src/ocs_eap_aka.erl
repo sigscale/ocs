@@ -117,7 +117,7 @@ encrypt_imsi(Tag, CompressedIMSI, {N, Kpseu} = _Key)
 		size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
 	Pad = crypto:strong_rand_bytes(8),
 	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
-	EncryptedIMSI = ?BLOCK_ENCRYPT(Kpseu, PaddedIMSI),
+	EncryptedIMSI = crypto:crypto_one_time(aes_128_ecb, Kpseu, PaddedIMSI, true),
 	TaggedIMSI = <<Tag:6, N:4, EncryptedIMSI/binary, 0:6>>,
 	binary:part(base64:encode(TaggedIMSI), 0, 23).
 
@@ -138,7 +138,7 @@ decrypt_imsi(Pseudonym, Keys)
 	TaggedIMSI = base64:decode(<<Pseudonym/binary, $A>>),
 	<<_:6, N:4, EncryptedIMSI:16/binary, _:6>> = TaggedIMSI,
 	{_, Kpseu} = lists:keyfind(N, 1, Keys),
-	PaddedIMSI = ?BLOCK_DECRYPT(Kpseu, EncryptedIMSI),
+	PaddedIMSI = crypto:crypto_one_time(aes_128_ecb, Kpseu, EncryptedIMSI, false),
 	binary:part(PaddedIMSI, 0, 8).
 
 -spec encrypt_key(Secret, RequestAuthenticator, Salt, Key) -> Ciphertext
