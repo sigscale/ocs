@@ -6,7 +6,7 @@ PKG_NAME=ocs
 cd ${HOME}
 if [ -f "releases/RELEASES" ];
 then
-	OLD_VER=$(grep "{$PKG_NAME," releases/RELEASES | sed -e 's/[[:blank:]]*{'$PKG_NAME',[[:blank:]]*"//' -e 's/\([0-9.]*\).*/\1/')
+	OLD_VER=$(erl -noinput -eval '{ok, [R]} = file:consult("releases/RELEASES"), {release, _, Vsn, _, _, permanent} = lists:keyfindnent, 6, R), io:fwrite("~s", [Vsn]), init:stop()' | sed -e 's/'$PKG_NAME'-//')
 fi
 PKG_NEW=$(find releases -name ${PKG_NAME}-*.tar.gz 2> /dev/null | sort --version-sort | tail -1 | sed -e 's/releases\///' -e 's/\.tar\.gz//')
 if [ -z "$PKG_NEW" ];
