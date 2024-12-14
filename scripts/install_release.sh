@@ -8,7 +8,7 @@ if [ -f "releases/RELEASES" ];
 then
 	OLD_VER=$(erl -noinput -eval '{ok, [R]} = file:consult("releases/RELEASES"), {release, _, Vsn, _, _, permanent} = lists:keyfind(permanent, 6, R), io:fwrite("~s", [Vsn]), init:stop()' | sed -e 's/'$PKG_NAME'-//')
 fi
-PKG_NEW=$(find releases -name ${PKG_NAME}-*.tar.gz 2> /dev/null | sort --version-sort | tail -1 | sed -e 's/releases\///' -e 's/\.tar\.gz//')
+PKG_NEW=$(basename -as .tar.gz releases/${PKG_NAME}-*.tar.gz | sort --version-sort | tail -1)
 if [ -z "$PKG_NEW" ];
 then
 	echo "Release package not found."
