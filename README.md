@@ -46,7 +46,7 @@ functions in the reference architecture.
 |Interface | Description                          |
 |----------|--------------------------------------|
 |GUI       | Polymer Web Components               |
-|REST      | TM Forum Open APIs                   |
+|REST      | TM Forum Open APIs, Nrf_Rating SBI   |
 |CLI       | Erlang API                           |
 |RADIUS    | AAA NAS Clients                      |
 |DIAMETER  | 3GPP Ro/Gy/Wo,Gx,SWm/STa,SWx,S6a,S6b |
@@ -78,6 +78,16 @@ integration using an HTTP RESTful interface. Specifically the
 [Open APIs](https://www.tmforum.org/open-apis/) are supported including:
 Product Catalog, Product Inventory, Prepay Balance, Service Inventory,
 Resource Inventory and Usage Management.
+
+Real-time rating and charging is supported by the
+[Nrf_Rating](https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.2)
+REST API, both as a producer and consumer.  The SigScale
+[CHF](https://github.com/sigscale/chf) and SigScale
+[CSE](https://github.com/sigscale/cse) applications are both consumers,
+implementing this 5GC SBI (service based interface) aligned API on the
+Re interface between OCF/CHF and RF/ABMF. SigScale OCS also implements
+this API as a consumer, acting as OCF/CHF on the Re interface to remote
+Rating Functions (RF) when included in a Product Offering Price.
 
 #### [Erlang](http://www.erlang.org)
 All aspects of provisioning, operations and maintenance may be performed
