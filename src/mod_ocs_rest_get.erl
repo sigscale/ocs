@@ -151,7 +151,8 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 								false ->
 									{proceed, Data};
 								{_, Resource} ->
-									parse_query(Resource, ModData, Uri)
+									parse_query(Resource, ModData,
+											uri_string:parse(Uri))
 							end;
 						_Response ->
 							{proceed,  Data}
@@ -162,16 +163,12 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-parse_query(Resource, ModData, Uri) ->
-	parse_query1(Resource, ModData,
-			uri_string:percent_decode(uri_string:parse(Uri))).
-%% @hidden
-parse_query1(Resource, ModData, #{path := Path, query := Query}) ->
+parse_query(Resource, ModData, #{path := Path, query := Query}) ->
 	do_get(Resource, ModData, string:lexemes(Path, [$/]),
 			uri_string:dissect_query(Query));
-parse_query1(Resource, ModData, #{path := Path}) ->
+parse_query(Resource, ModData, #{path := Path}) ->
 	do_get(Resource, ModData, string:lexemes(Path, [$/]), []);
-parse_query1(_, #mod{parsed_header = RequestHeaders,
+parse_query(_, #mod{parsed_header = RequestHeaders,
 		data = Data} = ModData, _UriMap) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
 					"rfc7231#section-6.5.4",
