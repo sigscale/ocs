@@ -1,3 +1,7 @@
+December, 16 2024
+----------------
+	- Fix REST query parsing regression
+
 December, 13 2024
 ----------------
 	- Fix finding current release, of many, for in-service upgrade
