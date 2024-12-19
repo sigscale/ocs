@@ -62,6 +62,7 @@ class rateList extends PolymerElement {
 							</div>
 						</template>
 					</vaadin-grid-column>
+					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
 			<div class="add-button">
