@@ -1,3 +1,10 @@
+2024-12-20  Vance Shipley <vances@sigscale.org>
+
+	* remove redundant property declaration
+	* total in footer of rate table views
+	* import vaadin-grid-group in modules where it is used
+	* rename web component module for consistency
+
 2024-12-16  Vance Shipley <vances@sigscale.org>
 
 	* Revert "percent decode uri map to handle special chars in path"
