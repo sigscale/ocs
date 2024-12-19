@@ -643,9 +643,6 @@ class SigApp extends PolymerElement {
 			roamingLoading: {
 				type: Boolean
 			},
-			periodLoading: {
-				type: Boolean
-			},
 			balanceLoading: {
 				type: Boolean
 			},
