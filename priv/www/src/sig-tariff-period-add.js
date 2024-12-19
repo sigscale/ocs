@@ -161,7 +161,7 @@ class periodAdd extends PolymerElement {
 	}
 
 	_periodTableRow(event) {
-		var periodList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-periods-list')
+		var periodList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-tariff-period-list')
 		var ajax = this.$.addPeriodTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource";

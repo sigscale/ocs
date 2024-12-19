@@ -17,6 +17,7 @@ import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js'
 
@@ -29,7 +30,7 @@ class periodList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
-				<vaadin-grid-column>
+				<vaadin-grid-column-group>
 					<vaadin-grid-column width="15ex">
 						<template class="header">
 							<vaadin-grid-filter
@@ -100,7 +101,7 @@ class periodList extends PolymerElement {
 								</div>
 							</template>
 						</vaadin-grid-column>
-					</vaadin-grid-column>
+					</vaadin-grid-column-group>
 					<template class="footer">Total: {{totalItems}}</template>
 				</vaadin-grid-column-group>
 			</vaadin-grid>
@@ -272,4 +273,4 @@ class periodList extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-tariff-periods-list', periodList);
+window.customElements.define('sig-tariff-period-list', periodList);

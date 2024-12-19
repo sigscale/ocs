@@ -151,13 +151,13 @@ class SigApp extends PolymerElement {
 								loading="{{rateLoading}}"
 								name="rateView">
 						</sig-tariff-rate-list>
-						<sig-tariff-periods-list
+						<sig-tariff-period-list
 								id="periodList"
 								active-item="{{activePeriodItem}}"
 								active-table-name="{{periodTable}}"
 								loading="{{periodLoading}}"
 								name="periodView">
-						</sig-tariff-periods-list>
+						</sig-tariff-period-list>
 						<sig-tariff-roaming-list
 								id="roamingList"
 								active-item="{{activeRoamingItem}}"
@@ -831,7 +831,7 @@ class SigApp extends PolymerElement {
 				break;
 			case 'periodView':
 				import('./sig-period-table-add.js');
-				import('./sig-tariff-periods-list.js');
+				import('./sig-tariff-period-list.js');
 				import('./sig-tariff-period-add.js');
 				import('./sig-tariff-period-update.js');
 				break;
