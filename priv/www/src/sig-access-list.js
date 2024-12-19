@@ -17,6 +17,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import './style-element.js'
 
 
