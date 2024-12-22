@@ -3,7 +3,6 @@
 ## [Video](<https://www.youtube.com/watch?v=YnQWBLxPoO8>)
 
 ## Installation
-Get started with SigScale's Online Charging System (OCS) running in a Docker container image:
 	$ docker pull sigscale/ocs
 	$ docker run -ti --entrypoint bash -h host1 -v db:/home/otp/db sigscale/ocs
 	otp@host1:~$ bin/initialize
