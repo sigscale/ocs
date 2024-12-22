@@ -1,5 +1,7 @@
 # Don't knock yourself out! Production ready debian packages are available.
 
+## [Video](https://youtu.be/oL6zyGoxV70)
+
 ## Install SigScale package repository configuration:
 
 ### Ubuntu 24.04 LTS (noble)
@@ -23,5 +25,6 @@
 	sudo systemctl start ocs
 	sudo systemctl status ocs
 
+## Support
 Contact <support@sigscale.com> for further assistance.
 

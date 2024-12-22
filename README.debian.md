@@ -1,5 +1,7 @@
 # Don't knock yourself out! Production ready debian packages are available.
 
+## [Video](https://youtu.be/CQg9-azYjeo)
+
 ## Install SigScale package repository configuration:
 
 ### Debian 12 (bookworm)
@@ -13,5 +15,6 @@
 	sudo systemctl start ocs
 	sudo systemctl status ocs
 
+## Support
 Contact <support@sigscale.com> for further assistance.
 
