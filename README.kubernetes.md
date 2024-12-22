@@ -8,7 +8,7 @@
 The chart is available on ArtifactHub:
 [artifacthub.io/packages/helm/sigscale-ocs](https://artifacthub.io/packages/helm/sigscale-ocs/sigscale-ocs)
 
-The source project is ocs-helm:
+The source project is on GitHub:
 [github.com/sigscale/ocs-helm](https://github.com/sigscale/ocs-helm)
 
 Contact <support@sigscale.com> for further assistance.
