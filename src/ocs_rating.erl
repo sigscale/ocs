@@ -2855,7 +2855,7 @@ add_session([{_TS, [{'Session-Id', Id}]} = H | T],
 	case lists:keyfind('Session-Id', 1, SessionAttributes) of
 		{_, Id} ->
 			lists:reverse(Acc) ++ [H | T];
-		false ->
+		_ ->
 			add_session(T, SessionAttributes, [H | Acc])
 	end;
 add_session([{_TS, [{nrf_ref, Id}]} = H | T],
@@ -2863,7 +2863,7 @@ add_session([{_TS, [{nrf_ref, Id}]} = H | T],
 	case lists:keyfind(nrf_ref, 1, SessionAttributes) of
 		{_, Id} ->
 			lists:reverse(Acc) ++ [H | T];
-		false ->
+		_ ->
 			add_session(T, SessionAttributes, [H | Acc])
 	end;
 add_session([{_TS, Current} = H | T], SessionAttributes, Acc) ->
