@@ -37,9 +37,6 @@ class periodAdd extends PolymerElement {
 				</paper-progress>
 					<div>
 						<paper-input
-								allowed-pattern="[+0-9]"
-								pattern="^[+]?[0-9]+"
-								auto-validate
 								label="Prefix"
 								value="{{periodRowPrefix}}">
 						</paper-input>
@@ -58,7 +55,7 @@ class periodAdd extends PolymerElement {
 					</div>
 					<div>
 						<paper-input
-								allowed-pattern="[0-9.]"
+								allowed-pattern="[0-9]"
 								pattern="^[0-9]+$"
 								auto-validate
 								label="Initial Period Duration"

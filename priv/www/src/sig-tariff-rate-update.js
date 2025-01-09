@@ -40,9 +40,6 @@ class rateUpdate extends PolymerElement {
 					<paper-input
 							id="updatePrefix"
 							name="Prefix"
-							allowed-pattern="[+0-9]"
-							pattern="^[+]?[0-9]+"
-							auto-validate
 							label="Prefix"
 							value="{{rateRowPrefix}}"
 							disabled>
