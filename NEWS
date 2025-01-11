@@ -1,3 +1,10 @@
+January 11, 2025
+----------------
+	- Utility to refund and remove stale reservations
+	- Pagination server responsiveness improvements
+	- Remove rate table dialog restrictions to allow SIP addresses
+	- Fix session insertion bug introduced in previous release
+
 December, 20 2024
 -----------------
 	- Fix initial/additional period tariff table view

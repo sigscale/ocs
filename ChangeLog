@@ -1,5 +1,18 @@
 2024-12-20  Vance Shipley <vances@sigscale.org>
 
+	* api function to refund and remove stale reservations
+	* pagination server rejects requests with 409 while busy
+	* refactor rest pagination server to be responsive to system messages
+	* allow any characters in tariff table prefix to allow for ims addresses
+	* correct adding new session to session list from service
+	* minor rewording in readme
+	* correct formatting of docker readme
+	* reformat package install readmes
+	* correct links to readmes
+	* refactor filenames and links to enable pretty printing readmes in markdown
+
+2024-12-20  Vance Shipley <vances@sigscale.org>
+
 	* remove redundant property declaration
 	* total in footer of rate table views
 	* import vaadin-grid-group in modules where it is used
