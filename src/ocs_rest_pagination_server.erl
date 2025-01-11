@@ -26,8 +26,8 @@
 -export_type([continuation/0]).
 
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_continue/2,
-		handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+		terminate/2, code_change/3]).
 
 -opaque continuation() :: start | eof | disk_log:continuation().
 -record(state,
@@ -41,7 +41,9 @@
 		cont = start :: continuation(),
 		buffer = [] :: [tuple()],
 		offset = 0 :: non_neg_integer(),
-		length = 0 :: non_neg_integer()}).
+		length = 0 :: non_neg_integer(),
+		request :: {StartRange :: non_neg_integer(),
+				EndRange :: non_neg_integer(), From :: gen_server:from()}}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -108,8 +110,7 @@ init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list
 -spec handle_call(Request, From, State) -> Result
 	when
 		Request :: term(),
-		From :: {pid(), Tag},
-		Tag :: any(),
+		From :: gen_server:from(),
 		State :: state(),
 		Result :: {reply, Reply, NewState}
 			| {reply, Reply, NewState, timeout() | hibernate | {continue, Continue}}
@@ -142,14 +143,15 @@ handle_call(Request, From, State) ->
 %% @hidden
 handle_call1(_Request, _From,
 		{ok, Reply, #state{timeout = Timeout} = State}) ->
-	{reply, Reply, State, Timeout};
+	NewState = State#state{request = undefined},
+	{reply, Reply, NewState, Timeout};
 handle_call1(_Request, _From,
 		{stop, Reply, State}) ->
 	{stop, shutdown, Reply, State};
 handle_call1({StartRange, EndRange} = _Request, From,
 		{eob, State}) ->
-	Continue = {StartRange, EndRange, From},
-	{noreply, State, {continue, Continue}}.
+	NewState = State#state{request = {StartRange, EndRange, From}},
+	{noreply, NewState, 0}.
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -170,56 +172,6 @@ handle_call1({StartRange, EndRange} = _Request, From,
 handle_cast(stop = _Request, State) ->
 	{stop, normal, State}.
 
--spec handle_continue(Info, State) -> Result
-	when
-		Info :: term(),
-		State::state(),
-		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
-			| {stop, Reason, NewState},
-		NewState :: state(),
-		Continue :: term(),
-		Reason :: term().
-%% @doc Handle a callback continuation.
-%% @see //stdlib/gen_server:handle_info/2
-%% @private
-%%
-handle_continue(Info,
-		#state{module = Module, function = Function,
-				cont = Cont, args = Args} = State) ->
-	handle_continue1(Info, State, apply(Module, Function, [Cont | Args])).
-%% @hidden
-handle_continue1(_Info, State, {error, _Reason}) ->
-	{stop, shutdown, {error, 500}, State};
-handle_continue1({StartRange, _EndRange, _From} = Info,
-		#state{offset = Offset, length = Length} = State,
-		{Cont, Items}) when Cont /= eof,
-		(Offset + Length + length(Items)) < StartRange ->
-	NewState = State#state{cont = Cont,
-			offset = Offset + Length + length(Items),
-			buffer = [], length = 0},
-	{noreply, NewState, {continue, Info}};
-handle_continue1({StartRange, EndRange, From} = _Info,
-		#state{buffer = Buffer, length = Length} = State,
-		{Cont, Items}) ->
-	NewState = State#state{cont = Cont,
-			buffer = Buffer ++ Items, length = Length + length(Items)},
-	handle_continue2(StartRange, EndRange, From,
-			range_request({StartRange, EndRange}, NewState)).
-%% @hidden
-handle_continue2(_StartRange, _EndRange, From,
-		{ok, Reply, #state{timeout = Timeout} = State}) ->
-	gen_server:reply(From, Reply),
-	{noreply, State, Timeout};
-handle_continue2(_StartRange, _EndRange, From,
-		{stop, Reply, State}) ->
-	gen_server:reply(From, Reply),
-	{stop, shutdown, State};
-handle_continue2(StartRange, EndRange, From,
-		{eob, State}) ->
-	Continue = {StartRange, EndRange, From},
-	{noreply, State, {continue, Continue}}.
-
 -spec handle_info(Info, State) -> Result
 	when
 		Info :: timeout | term(),
@@ -234,6 +186,11 @@ handle_continue2(StartRange, EndRange, From,
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
+handle_info(timeout,
+		#state{module = Module, function = Function,
+				cont = Cont, args = Args, request = Request} = State)
+		when is_tuple(Request) ->
+	continue(apply(Module, Function, [Cont | Args]), State);
 handle_info(timeout, State) ->
 	{stop, shutdown, State}.
 
@@ -341,4 +298,31 @@ content_range(Start, End, Total) ->
 			"/*"
 	end,
 	"items " ++ integer_to_list(Start) ++ "-" ++ integer_to_list(End) ++ Rest.
+
+%% @hidden
+continue({Cont, Items},
+		#state{offset = Offset, length = Length,
+				request = {StartRange, _EndRange, _From}} = State)
+		when Cont /= eof, (Offset + Length + length(Items)) < StartRange ->
+	NewState = State#state{cont = Cont,
+			offset = Offset + Length + length(Items),
+			buffer = [], length = 0},
+	{noreply, NewState, 0};
+continue({Cont, Items},
+		#state{buffer = Buffer, length = Length,
+				request = {StartRange, EndRange, From}} = State) ->
+	NewState = State#state{cont = Cont,
+			buffer = Buffer ++ Items, length = Length + length(Items)},
+	case range_request({StartRange, EndRange}, NewState) of
+		{ok, Reply, #state{timeout = Timeout} = NextState} ->
+			gen_server:reply(From, Reply),
+			{noreply, NextState#state{request = undefined}, Timeout};
+		{stop, Reply, NextState} ->
+			gen_server:reply(From, Reply),
+			{stop, shutdown, NextState};
+		{eob, NextState} ->
+			{noreply, NextState, 0}
+	end;
+continue({error, _Reason}, State) ->
+	{stop, shutdown, {error, 500}, State}.
 
