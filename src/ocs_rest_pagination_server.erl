@@ -138,8 +138,11 @@ handle_call({StartRange, EndRange} = _Request, From,
 		when is_integer(StartRange), is_integer(EndRange),
 				(EndRange - StartRange) > MaxPageSize ->
 	handle_call({StartRange, StartRange + MaxPageSize - 1}, From, State);
-handle_call(Request, From, State) ->
-	handle_call1(Request, From, range_request(Request, State)).
+handle_call(Request, From,
+		#state{request = undefined} = State) ->
+	handle_call1(Request, From, range_request(Request, State));
+handle_call(_Request, _From, State) ->
+	{reply, {error, 409}, State, 0}.
 %% @hidden
 handle_call1(_Request, _From,
 		{ok, Reply, #state{timeout = Timeout} = State}) ->
