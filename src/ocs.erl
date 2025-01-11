@@ -39,7 +39,7 @@
 		query_offer/7]).
 -export([add_resource/1, update_resource/1, get_resources/0,
 		get_resource/1, delete_resource/1, query_resource/5]).
--export([clean_services/1, clean_buckets/1]).
+-export([clean_services/1, clean_buckets/1, clean_reservations/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
 -export([start/4, start/5, stop/3, get_acct/1, get_auth/1]).
@@ -3053,8 +3053,7 @@ clean_buckets(Before) when is_tuple(Before) ->
 	clean_buckets(ocs_rest:date(Before));
 clean_buckets(Before) when is_list(Before) ->
 	clean_buckets(ocs_rest:iso8601(Before));
-clean_buckets(Before)
-		when is_integer(Before) ->
+clean_buckets(Before) when is_integer(Before) ->
 	clean_buckets(Before, mnesia:dirty_first(bucket)).
 %% @hidden
 clean_buckets(Before, Key) when is_list(Key) ->
@@ -3085,6 +3084,66 @@ clean_buckets(Before, Key) when is_list(Key) ->
 			{error, Reason}
 	end;
 clean_buckets(_Before, '$end_of_table') ->
+	ok.
+
+-spec clean_reservations(Before) -> Result
+	when
+		Before :: ocs_rest:timestamp(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Clean reservations held in balance `bucket's.
+%%
+%% 	Traverse the `buckets' table, removing old reservations.
+%%
+%% 	The `bucket' table entries include a `reservations'
+%% 	attribute describing credit debits and reserves and
+%% 	a timestamp of the last transaction.
+%%
+%% 	This function lazily traverses the `bucket' table,
+%% 	removing reservations which haven't been updated
+%% 	since `Before' and refunds unused amounts.
+%%
+clean_reservations(Before) when is_tuple(Before) ->
+	clean_reservations(ocs_rest:date(Before));
+clean_reservations(Before) when is_list(Before) ->
+	clean_reservations(ocs_rest:iso8601(Before));
+clean_reservations(Before) when is_integer(Before) ->
+	clean_reservations(Before, mnesia:dirty_first(bucket)).
+%% @hidden
+clean_reservations(Before, Key) when is_list(Key) ->
+	Next = mnesia:dirty_next(bucket, Key),
+	Fold = fun(_Key, #{ts := TS, reserve := N}, {Acc1, Acc2})
+					when TS >= Before ->
+				{Acc1, Acc2 + N};
+			(SessionId, Session, {Acc1, Acc2}) ->
+				{Acc1#{SessionId => Session}, Acc2}
+	end,
+	Ftrans = fun() ->
+			case mnesia:read(bucket, Key, read) of
+				[#bucket{remain_amount = Remain,
+						attributes = #{reservations
+								:= Reserves} = Attributes} = Bucket] ->
+					case maps:fold(Fold, {#{}, 0}, Reserves) of
+						{Reserves, _Refund} ->
+							ok;
+						{Reserves1, Refund} ->
+							Remain1 = Remain + Refund,
+							Attributes1 = Attributes#{reservations => Reserves1},
+							Bucket1 = Bucket#bucket{remain_amount = Remain1,
+									attributes = Attributes1},
+							mnesia:write(Bucket1)
+					end;
+				[#bucket{}] ->
+					ok
+			end
+	end,
+	case mnesia:transaction(Ftrans) of
+		{atomic, ok} ->
+			clean_reservations(Before, Next);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+clean_reservations(_Before, '$end_of_table') ->
 	ok.
 
 %%----------------------------------------------------------------------
