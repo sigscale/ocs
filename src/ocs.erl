@@ -39,7 +39,8 @@
 		query_offer/7]).
 -export([add_resource/1, update_resource/1, get_resources/0,
 		get_resource/1, delete_resource/1, query_resource/5]).
--export([clean_services/1, clean_buckets/1, clean_reservations/1]).
+-export([clean_services/1, clean_buckets/1,
+		clean_reservations/1, clean_reservations/2]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
 -export([start/4, start/5, stop/3, get_acct/1, get_auth/1]).
@@ -3092,6 +3093,17 @@ clean_buckets(_Before, '$end_of_table') ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Clean reservations held in balance `bucket's.
+%% @equiv clean_reservations(Before, true)
+clean_reservations(Before) ->
+	clean_reservations(Before, true).
+
+-spec clean_reservations(Before, Refund) -> Result
+	when
+		Before :: ocs_rest:timestamp(),
+		Result :: ok | {error, Reason},
+		Refund :: boolean(),
+		Reason :: term().
+%% @doc Clean reservations held in balance `bucket's.
 %%
 %% 	Traverse the `buckets' table, removing old reservations.
 %%
@@ -3101,16 +3113,22 @@ clean_buckets(_Before, '$end_of_table') ->
 %%
 %% 	This function lazily traverses the `bucket' table,
 %% 	removing reservations which haven't been updated
-%% 	since `Before' and refunds unused amounts.
+%% 	since `Before'.
 %%
-clean_reservations(Before) when is_tuple(Before) ->
-	clean_reservations(ocs_rest:date(Before));
-clean_reservations(Before) when is_list(Before) ->
-	clean_reservations(ocs_rest:iso8601(Before));
-clean_reservations(Before) when is_integer(Before) ->
-	clean_reservations(Before, mnesia:dirty_first(bucket)).
+%% 	If `Refund' is `true' the unused portion of
+%% 	reservations to be removed will be returned to
+%% 	the remaining amount of the bucket.
+%%
+clean_reservations(Before, Refund) when is_tuple(Before) ->
+	clean_reservations(ocs_rest:date(Before), Refund);
+clean_reservations(Before, Refund) when is_list(Before) ->
+	clean_reservations(ocs_rest:iso8601(Before), Refund);
+clean_reservations(Before, Refund)
+		when is_integer(Before), is_boolean(Refund) ->
+	clean_reservations1(Before, Refund, mnesia:dirty_first(bucket)).
 %% @hidden
-clean_reservations(Before, Key) when is_list(Key) ->
+clean_reservations1(Before, Refund, Key)
+		when is_list(Key) ->
 	Next = mnesia:dirty_next(bucket, Key),
 	Fold = fun(_Key, #{ts := TS, reserve := N}, {Acc1, Acc2})
 					when TS >= Before ->
@@ -3126,11 +3144,15 @@ clean_reservations(Before, Key) when is_list(Key) ->
 					case maps:fold(Fold, {#{}, 0}, Reserves) of
 						{Reserves, _Refund} ->
 							ok;
-						{Reserves1, Refund} ->
+						{Reserves1, Refund} when Refund == true ->
 							Remain1 = Remain + Refund,
 							Attributes1 = Attributes#{reservations => Reserves1},
 							Bucket1 = Bucket#bucket{remain_amount = Remain1,
 									attributes = Attributes1},
+							mnesia:write(Bucket1);
+						{Reserves1, Refund} when Refund == false ->
+							Attributes1 = Attributes#{reservations => Reserves1},
+							Bucket1 = Bucket#bucket{attributes = Attributes1},
 							mnesia:write(Bucket1)
 					end;
 				[#bucket{}] ->
@@ -3143,7 +3165,7 @@ clean_reservations(Before, Key) when is_list(Key) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-clean_reservations(_Before, '$end_of_table') ->
+clean_reservations1(_Before, _Refund, '$end_of_table') ->
 	ok.
 
 %%----------------------------------------------------------------------
