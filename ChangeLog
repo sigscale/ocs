@@ -1,4 +1,8 @@
-2024-12-20  Vance Shipley <vances@sigscale.org>
+2024-01-16  Vance Shipley <vances@sigscale.org>
+
+	* option to not refund during clean reservations
+
+2025-01-11  Vance Shipley <vances@sigscale.org>
 
 	* api function to refund and remove stale reservations
 	* pagination server rejects requests with 409 while busy
