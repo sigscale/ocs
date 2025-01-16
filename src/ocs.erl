@@ -3130,29 +3130,31 @@ clean_reservations(Before, Refund)
 clean_reservations1(Before, Refund, Key)
 		when is_list(Key) ->
 	Next = mnesia:dirty_next(bucket, Key),
-	Fold = fun(_Key, #{ts := TS, reserve := N}, {Acc1, Acc2})
-					when TS >= Before ->
+	Fold = fun(_, #{ts := TS, reserve := N}, {Acc1, Acc2})
+					when TS < Before ->
 				{Acc1, Acc2 + N};
-			(SessionId, Session, {Acc1, Acc2}) ->
-				{Acc1#{SessionId => Session}, Acc2}
+			(SessionId, Reservation, {Acc1, Acc2}) ->
+				{Acc1#{SessionId => Reservation}, Acc2}
 	end,
 	Ftrans = fun() ->
-			case mnesia:read(bucket, Key, read) of
+			case mnesia:read(bucket, Key, write) of
 				[#bucket{remain_amount = Remain,
 						attributes = #{reservations
 								:= Reserves} = Attributes} = Bucket] ->
 					case maps:fold(Fold, {#{}, 0}, Reserves) of
-						{Reserves, _Refund} ->
+						{Reserves, _N} ->
 							ok;
-						{Reserves1, Refund} when Refund == true ->
-							Remain1 = Remain + Refund,
+						{Reserves1, N} when Refund == true ->
+							Remain1 = Remain + N,
 							Attributes1 = Attributes#{reservations => Reserves1},
 							Bucket1 = Bucket#bucket{remain_amount = Remain1,
-									attributes = Attributes1},
+									attributes = Attributes1,
+									last_modified = make_lm()},
 							mnesia:write(Bucket1);
-						{Reserves1, Refund} when Refund == false ->
+						{Reserves1, _N} when Refund == false ->
 							Attributes1 = Attributes#{reservations => Reserves1},
-							Bucket1 = Bucket#bucket{attributes = Attributes1},
+							Bucket1 = Bucket#bucket{attributes = Attributes1,
+									last_modified = make_lm()},
 							mnesia:write(Bucket1)
 					end;
 				[#bucket{}] ->
@@ -3161,7 +3163,7 @@ clean_reservations1(Before, Refund, Key)
 	end,
 	case mnesia:transaction(Ftrans) of
 		{atomic, ok} ->
-			clean_reservations(Before, Next);
+			clean_reservations1(Before, Refund, Next);
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
@@ -3227,7 +3229,7 @@ parse_bucket(Bucket, Reservations, BucketType) ->
 	when
 		Length :: pos_integer().
 %% @doc Generate a random uniform password.
-%% @private
+%% @hidden
 generate_password(Length) when Length > 0 ->
 	Charset = charset(),
 	NumChars = length(Charset),
@@ -3245,7 +3247,7 @@ generate_password(<<>>, _Charset, _NumChars, Acc) ->
 	when
 		Length :: pos_integer().
 %% @doc Generate a random uniform numeric identity.
-%% @private
+%% @hidden
 generate_identity(Length) when Length > 0 ->
 	Charset = lists:seq($0, $9),
 	NumChars = length(Charset),
@@ -3263,7 +3265,7 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	when
 		Charset :: password().
 %% @doc Returns the table of valid characters for passwords.
-%% @private
+%% @hidden
 charset() ->
 	C1 = lists:seq($2, $9),
 	C2 = lists:seq($a, $h),
@@ -3277,7 +3279,7 @@ charset() ->
 	when
 		String :: string().
 %% @doc Strip non hex digits and convert to lower case.
-%% @private
+%% @hidden
 normalize(String) ->
 	normalize(String, []).
 %% @hidden
@@ -3608,7 +3610,7 @@ credit(_Units, Amount, [], DeleteRefs, Acc) ->
 	when
 		Buckets :: [#bucket{}].
 %% @doc Sort `Buckets' oldest first.
-%% @private
+%% @hidden
 sort(Buckets) ->
 	F = fun(#bucket{end_date = T1},
 				#bucket{end_date = T2}) when T1 =< T2 ->
@@ -3618,7 +3620,7 @@ sort(Buckets) ->
 	end,
 	lists:sort(F, Buckets).
 
-%% @private
+%% @hidden
 generate_bucket_id() ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
@@ -3629,7 +3631,7 @@ generate_bucket_id() ->
 		MilliSeconds :: pos_integer(),
 		DateTime :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
-%% @private
+%% @hidden
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
@@ -3826,7 +3828,7 @@ match_protocol3(Prefix) ->
 			throw(badmatch)
 	end.
 
-%% @private
+%% @hhidden
 make_lm() ->
 	{erlang:system_time(millisecond), erlang:unique_integer([positive])}.
 
