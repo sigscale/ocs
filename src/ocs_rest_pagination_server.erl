@@ -42,7 +42,7 @@
 		buffer = [] :: [tuple()],
 		offset = 0 :: non_neg_integer(),
 		length = 0 :: non_neg_integer(),
-		request :: {StartRange :: non_neg_integer(),
+		request :: undefined | {StartRange :: non_neg_integer(),
 				EndRange :: non_neg_integer(), From :: gen_server:from()}}).
 -type state() :: #state{}.
 
