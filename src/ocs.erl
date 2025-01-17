@@ -3063,8 +3063,9 @@ clean_buckets(Before, Key) when is_list(Key) ->
 	Ftrans = fun() ->
 			case mnesia:read(bucket, Key, read) of
 				[#bucket{product = [ProdRef], end_date = Expiry,
-						last_modified = {TS,_}}] when TS < Before;
-						((Expiry /= undefined) and (Expiry =< Now)) ->
+						last_modified = LM}]
+						when (is_tuple(LM) andalso (element(1, LM) < Before));
+						((Expiry /= undefined) and (Expiry < Now)) ->
 					case mnesia:read(product, ProdRef, write) of
 						[#product{balance = Buckets1} = Product1] ->
 							Buckets2 = lists:delete(Key, Buckets1),
