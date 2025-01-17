@@ -33,10 +33,11 @@ testmods = ocs_api_SUITE \
 
 check_DATA = .dialyzer_ok .common_test_ok
 
-CT_RUN_ARGS = -spec test.spec
+DIA_ARGS =
+CT_ARGS = -spec test.spec
 
 .dialyzer_ok:	$(addsuffix .beam, $(testmods))
-	dialyzer -Wno_unknown --src -I $(top_builddir)/include $(top_srcdir)/src $(top_builddir)/src
+	dialyzer $(DIA_ARGS) -Wno_unknown --src -I $(top_builddir)/include $(top_srcdir)/src $(top_builddir)/src
 
 %.beam:$(top_srcdir)/test/%.erl $(top_srcdir)/include/ocs.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include $<
@@ -135,7 +136,7 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg \
-			$(CT_RUN_ARGS) -dir . -erl_args -config sys -sname $(LOGNAME)-ct
+			$(CT_ARGS) -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
