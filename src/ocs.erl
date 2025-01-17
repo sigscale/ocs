@@ -3137,7 +3137,7 @@ clean_reservations1(Before, Refund, Key)
 				{Acc1#{SessionId => Reservation}, Acc2}
 	end,
 	Ftrans = fun() ->
-			case mnesia:read(bucket, Key, write) of
+			case mnesia:read(bucket, Key, read) of
 				[#bucket{remain_amount = Remain,
 						attributes = #{reservations
 								:= Reserves} = Attributes} = Bucket] ->
