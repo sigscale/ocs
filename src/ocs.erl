@@ -3148,13 +3148,11 @@ clean_reservations1(Before, Refund, Key)
 							Remain1 = Remain + N,
 							Attributes1 = Attributes#{reservations => Reserves1},
 							Bucket1 = Bucket#bucket{remain_amount = Remain1,
-									attributes = Attributes1,
-									last_modified = make_lm()},
+									attributes = Attributes1},
 							mnesia:write(Bucket1);
 						{Reserves1, _N} when Refund == false ->
 							Attributes1 = Attributes#{reservations => Reserves1},
-							Bucket1 = Bucket#bucket{attributes = Attributes1,
-									last_modified = make_lm()},
+							Bucket1 = Bucket#bucket{attributes = Attributes1},
 							mnesia:write(Bucket1)
 					end;
 				[#bucket{}] ->
