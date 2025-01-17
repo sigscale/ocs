@@ -55,8 +55,8 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_offer(),
-	[{product_id, ProdID} | Config].
+	{ok, OfferId} = ocs_test_lib:add_offer(),
+	[{offer_id, OfferId} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -104,7 +104,8 @@ all() ->
 			start_radius_auth, start_diameter_acct, start_diameter_auth, 
 			stop_radius_auth, stop_radius_acct, stop_diameter_acct,
 			stop_diameter_auth, get_radius_acct, get_radius_auth,
-			get_diameter_acct, get_diameter_auth].
+			get_diameter_acct, get_diameter_auth, clean_services,
+			clean_buckets, clean_reservations].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -224,7 +225,7 @@ delete_service() ->
 	[{userdata, [{doc, "Delete service from the database"}]}].
 
 delete_service(Config) ->
-	OfferId = ?config(product_id, Config),
+	OfferId = ?config(offer_id, Config),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
@@ -1300,6 +1301,104 @@ get_diameter_auth(_Config) ->
 	{ok, Pid} = ocs:start(diameter, auth, {127, 0, 0, 1}, Port, Options),
 	true = lists:member(Pid, ocs:get_auth(diameter)).
 
+clean_services() ->
+	[{userdata, [{doc, "Clean sessions in service."}]}].
+
+clean_services(Config) ->
+	OfferId = ?config(offer_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	ServiceId = list_to_binary(ocs_test_lib:rand_dn()),
+	{ok, _} = ocs:add_service(ServiceId, undefined, ProdRef),
+	Week = 864000000,
+	Now = erlang:system_time(millisecond),
+	Before = Now - Week,
+	Old1 = {Before - rand:uniform(Week), session_id()},
+	Old2 = {Before - rand:uniform(Week), session_id()},
+	New1 = {Before + rand:uniform(Week), session_id()},
+	New2 = {Before + rand:uniform(Week), session_id()},
+	SA = [New1, Old1, New2, Old2],
+	Ftrans = fun() ->
+			[S] = mnesia:read(service, ServiceId, write),
+			mnesia:write(S#service{session_attributes = SA})
+	end,
+	{atomic, ok} = mnesia:transaction(Ftrans),
+	ok = ocs:clean_services(Before),
+	{ok, Service1} = ocs:find_service(ServiceId),
+	New = lists:sort([New1, New2]),
+	New = lists:sort(Service1#service.session_attributes).
+
+clean_buckets() ->
+	[{userdata, [{doc, "Clean stale and expired buckets."}]}].
+
+clean_buckets(Config) ->
+	OfferId = ?config(offer_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Week = 864000000,
+	Now = erlang:system_time(millisecond),
+	Before = Now - Week,
+	Current = #bucket{units = octets,
+			start_date = Before - Week, end_date = Now + Week,
+			remain_amount = rand:uniform(1000000),
+			attributes = #{bucket_type => normal}},
+	Expired = #bucket{units = octets,
+			start_date = Before - Week, end_date = Now - 1,
+			remain_amount = rand:uniform(1000000),
+			attributes = #{bucket_type => normal}},
+	Stale = #bucket{units = octets,
+			start_date = Before - Week, end_date = Now + Week,
+			remain_amount = rand:uniform(1000000),
+			attributes = #{bucket_type => normal}},
+	{ok, _, #bucket{id = Bid1}} = ocs:add_bucket(ProdRef, Stale),
+	{ok, _, #bucket{id = Bid2}} = ocs:add_bucket(ProdRef, Expired),
+	{ok, _, #bucket{id = Bid3} = B3} = ocs:add_bucket(ProdRef, Current),
+	Ftrans = fun() ->
+			[B] = mnesia:read(bucket, Bid1, write),
+			LM = {Before - Week, erlang:unique_integer([positive])},
+			mnesia:write(B#bucket{last_modified = LM})
+	end,
+	{atomic, ok} = mnesia:transaction(Ftrans),
+	ok = ocs:clean_buckets(Before),
+	{error, not_found} = ocs:find_bucket(Bid1),
+	{error, not_found} = ocs:find_bucket(Bid2),
+	{ok, B3} = ocs:find_bucket(Bid3).
+
+clean_reservations() ->
+	[{userdata, [{doc, "Clean reservations in balance buckets."}]}].
+
+clean_reservations(Config) ->
+	OfferId = ?config(offer_id, Config),
+	ServiceId = ocs_test_lib:rand_dn(),
+	{ok, _} = ocs:add_service(ServiceId, undefined),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Week = 864000000,
+	Now = erlang:system_time(millisecond),
+	Before = Now - Week,
+	Quota = 4000000,
+	Old1 = #{session_id() => #{debit => rand:uniform(Quota),
+			reserve => Quota, ts => Before - rand:uniform(Week)}},
+	New1 = #{session_id() => #{debit => rand:uniform(Quota),
+			reserve => Quota, ts => Before + rand:uniform(Week)}},
+	Old2 = #{session_id() => #{debit => rand:uniform(Quota),
+			reserve => Quota, ts => Before - rand:uniform(Week)}},
+	New2 = #{session_id() => #{debit => rand:uniform(Quota),
+			reserve => Quota, ts => Before + rand:uniform(Week)}},
+	B1 = #bucket{units = octets, remain_amount = Quota,
+			attributes = #{bucket_type => normal,
+			reservations => maps:merge(Old1, New1)}},
+	B2 = #bucket{units = octets, remain_amount = Quota,
+			attributes = #{bucket_type => normal,
+			reservations => maps:merge(New2, Old2)}},
+	{ok, _, #bucket{id = Bid1}} = ocs:add_bucket(ProdRef, B1),
+	{ok, _, #bucket{id = Bid2}} = ocs:add_bucket(ProdRef, B2),
+	ok = ocs:clean_reservations(Before),
+	{ok, Bucket1} = ocs:find_bucket(Bid1),
+	{ok, Bucket2} = ocs:find_bucket(Bid2),
+	NewRemain = Quota * 2,
+	NewRemain = Bucket1#bucket.remain_amount,
+	NewRemain = Bucket2#bucket.remain_amount,
+	New1 = maps:get(reservations, Bucket1#bucket.attributes),
+	New2 = maps:get(reservations, Bucket2#bucket.attributes).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -1334,3 +1433,26 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
+
+session_id() ->
+	case rand:uniform(3) of
+		1 -> session_id(radius);
+		2 -> session_id(diameter);
+		3 -> session_id(nrf)
+	end.
+session_id(radius) ->
+	SessionId = list_to_binary(ocs:generate_password()),
+	AcctSessionId = {?AcctSessionId, SessionId},
+	Address = inet:ntoa({192, 168, rand:uniform(256) - 1, rand:uniform(254)}),
+	NasIp = {?NasIpAddress, Address},
+	NasId = {?NasIdentifier, ocs:generate_password()},
+	[NasIp, NasId, AcctSessionId];
+session_id(diameter) ->
+	SessionId = diameter:session_id(ocs:generate_password()),
+	[{'Session-Id', SessionId}];
+session_id(nrf) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	RatingDataRef = integer_to_list(TS) ++ integer_to_list(N),
+	[{nrf_ref, RatingDataRef}].
+
