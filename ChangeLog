@@ -1,3 +1,14 @@
+2024-01-24  Vance Shipley <vances@sigscale.org>
+
+	* service information may be combined (i.e. sms + ps) (#2)
+	* test cases for clean services, buckets, reservations
+	* correct clean expired services
+	* optimistic locking in clean reservations
+	* appease dialyzer
+	* parameterize make check with dialyzer arguments
+	* do not update last modified on administrative action
+	* refactor and correct clean_reservations/2
+
 2024-01-16  Vance Shipley <vances@sigscale.org>
 
 	* option to not refund during clean reservations

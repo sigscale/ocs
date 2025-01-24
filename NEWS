@@ -1,3 +1,7 @@
+January 24, 2025
+----------------
+	- Fix utility to refund and remove stale reservations 
+
 January 16, 2025
 ----------------
 	- Option to not refund during stale reservations removal
