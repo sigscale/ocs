@@ -42,6 +42,6 @@ init([] = _Args) ->
 	StartMod = ocs_event_log_fsm,
 	StartFunc = {StartMod, start_link, []},
 	ChildSpecs = [{StartMod, StartFunc,
-			permanent, infinity, worker, [StartMod]}],
+			permanent, 4000, worker, [StartMod]}],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 

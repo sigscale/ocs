@@ -42,6 +42,6 @@ init([] = _Args) ->
 	StartMod = ocs_rest_hub_fsm,
 	StartFunc = {StartMod, start_link, []},
 	ChildSpecs = [{StartMod, StartFunc,
-			temporary, infinity, worker, [StartMod]}],
+			temporary, 4000, worker, [StartMod]}],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 

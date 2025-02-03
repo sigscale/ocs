@@ -42,6 +42,6 @@ init([] = _Args) ->
 	StartMod = ocs_rest_pagination_server,
 	StartFunc = {StartMod, start_link, []},
 	ChildSpecs = [{StartMod, StartFunc,
-			transient, infinity, worker, [StartMod]}],
+			transient, 4000, worker, [StartMod]}],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
