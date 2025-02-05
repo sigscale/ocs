@@ -138,4 +138,10 @@ td#opl {
 td#mt img {
 	height: 2em;
 }
+.alert {
+	padding: 20px;
+	background-color: red;
+	color: white;
+	margin-bottom: 15px;
+}
 

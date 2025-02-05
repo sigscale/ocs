@@ -3042,6 +3042,15 @@ clean_services(_Before, '$end_of_table') ->
 %%
 %% 	Traverse the `buckets' table, removing old buckets.
 %%
+%% 	<div class="alert">
+%% 		WARNING: This will permanently delete subscriber balances!
+%%
+%% 		There should be no reason to use this function
+%% 		in normal operation of the OCS. Expired buckets
+%% 		are removed as they are encountered during normal
+%% 		rating operations.
+%% 	</div>
+%% 	
 %% 	The `bucket' table entries include a `last_modified'
 %% 	field with a timestamp of the last write. The `end_date'
 %% 	field may (optionally) contain an expiration date.
