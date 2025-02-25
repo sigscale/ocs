@@ -12,6 +12,10 @@ and
 [Open Issues](https://sigscale.atlassian.net/projects/OCS/issues/?filter=allopenissues "Open Issues")  
 [Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create Issue")
 
+See the
+[developers guide](https://storage.googleapis.com/ocs.sigscale.org/debian-bookworm/lib/ocs/doc/index.html)
+for detailed information.
+
 This application implements functions used by communications
 service providers (CSP) for authorization and charging of
 prepaid services. It is built to TM Forum standards with
