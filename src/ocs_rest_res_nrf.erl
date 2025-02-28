@@ -473,8 +473,8 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 		ServiceRating :: [map()],
 		Reason :: term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
-rate(RatingDataRef, #{"serviceRating" := ServiceRating,
-		"subscriptionId" := SubscriptionIds}, Flag) ->
+rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = NrfRequest, Flag) ->
+	ServiceRating = maps:get("serviceRating", NrfRequest, []),
 	rate(list_to_binary(RatingDataRef),
 			Flag, SubscriptionIds, ServiceRating, []).
 %% @hidden
