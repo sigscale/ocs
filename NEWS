@@ -1,3 +1,8 @@
+February 28, 2025
+-----------------
+	- Nrf release request handling when no consumed units
+	- Correct some worker supervision wait for termination
+
 January 24, 2025
 ----------------
 	- Fix utility to refund and remove stale reservations 

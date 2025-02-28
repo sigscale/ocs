@@ -1,3 +1,10 @@
+2024-02-28  Vance Shipley <vances@sigscale.org>
+
+	* handle nrf request with no servicerating key
+	* link to published edoc in readme
+	* warn against using clean_buckets/1
+	* do not wait infinitely for workers to terminate
+
 2024-01-24  Vance Shipley <vances@sigscale.org>
 
 	* service information may be combined (i.e. sms + ps) (#2)
