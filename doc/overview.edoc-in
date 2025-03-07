@@ -712,6 +712,8 @@ Rating configuration options:
 		<dd>Threshold for volume quota re-authorization in octets. (default: undefined)</dd>
 	<dt>nrf_valid_unit</dt>
 		<dd>Threshold for service specific units quota re-authorization in number of units. (default: undefined)</dd>
+	<dt>nrf_rg_independent</dt>
+		<dd>Enable rating group independent credit control. (default: true)</dd>
 	<dt>quota_per_upf</dt>
 		<dd>5G data connectivity charging manages a quota for each UPF. (default: true)</dd>
 </dl>
