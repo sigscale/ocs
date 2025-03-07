@@ -1,3 +1,7 @@
+2024-03-07  Vance Shipley <vances@sigscale.org>
+
+	* opionally disable rating group independent credit control
+
 2024-02-28  Vance Shipley <vances@sigscale.org>
 
 	* handle nrf request with no servicerating key
