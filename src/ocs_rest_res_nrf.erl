@@ -98,8 +98,9 @@ initial_nrf1(ModData, NrfRequest) ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						{NrfResponse, LogRequest, UpdatedMap};
 					{error, out_of_credit = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(Reason, undefined),
-						{error, 403, NrfMap, Problem};
+						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
@@ -107,13 +108,15 @@ initial_nrf1(ModData, NrfRequest) ->
 						Problem = rest_error_response(Reason, InvalidParams),
 						{error, 404, LogRequest, Problem};
 					{error, invalid_service_type = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, NrfMap, Problem};
+						{error, 400, LogRequest, Problem};
 					{error, _Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, NrfMap, Problem}
+						{error, 500, LogRequest, Problem}
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
@@ -198,18 +201,21 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 						Problem = rest_error_response(Reason, undefined),
 						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, NrfMap, Problem};
+						{error, 404, LogRequest, Problem};
 					{error, invalid_service_type = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, NrfMap, Problem};
+						{error, 400, LogRequest, Problem};
 					{error, _Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, NrfMap, Problem}
+						{error, 500, LogRequest, Problem}
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
@@ -296,18 +302,21 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 						Problem = rest_error_response(Reason, undefined),
 						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, NrfMap, Problem};
+						{error, 404, LogRequest, Problem};
 					{error, invalid_service_type = Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, NrfMap, Problem};
+						{error, 400, LogRequest, Problem};
 					{error, _Reason} ->
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, NrfMap, Problem}
+						{error, 500, LogRequest, Problem}
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
