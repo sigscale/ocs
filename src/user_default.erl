@@ -745,28 +745,26 @@ dia_count({258, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        RAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({258, 0, 'Experimental-Result', ResultCode}, Count) ->
 	io:fwrite("        RAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
-dia_count({280, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        DWA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({271, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        ACA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({282, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        DPA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({258, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        RAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({274, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        ASA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({275, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        STA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({272, 0, 'Result-Code', ResultCode}, Count) ->
-	io:fwrite("        CCA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
-dia_count({272, 0, 'Experimental-Result', ResultCode}, Count) ->
-	io:fwrite("        CCA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
-dia_count({268, 0, 'Result-Code', ResultCode}, Count) ->
-   io:fwrite("        DEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({265, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        AAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({265, 0, 'Experimental-Result', ResultCode}, Count) ->
    io:fwrite("        AAA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
+dia_count({271, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        ACA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({272, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        CCA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({272, 0, 'Experimental-Result', ResultCode}, Count) ->
+	io:fwrite("        CCA ~w ~b: ~b~n", ['Experimental-Result', ResultCode, Count]);
+dia_count({274, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        ASA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({275, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        STA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({280, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        DWA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({282, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        DPA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({268, 0, 'Result-Code', ResultCode}, Count) ->
+   io:fwrite("        DEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({301, 0, 'Result-Code', ResultCode}, Count) ->
    io:fwrite("        SAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({301, 0, 'Experimental-Result', ResultCode}, Count) ->
@@ -795,22 +793,26 @@ dia_count({257, 1, error}, Count) ->
 	io:fwrite("        CER error: ~b~n", [Count]);
 dia_count({257, 0, error}, Count) ->
 	io:fwrite("        CEA error: ~b~n", [Count]);
-dia_count({280, 1, error}, Count) ->
-	io:fwrite("        DWR error: ~b~n", [Count]);
-dia_count({280, 0, error}, Count) ->
-	io:fwrite("        DWA error: ~b~n", [Count]);
-dia_count({271, 1, error}, Count) ->
-	io:fwrite("        ACR error: ~b~n", [Count]);
-dia_count({271, 0, error}, Count) ->
-	io:fwrite("        ACA error: ~b~n", [Count]);
-dia_count({282, 1, error}, Count) ->
-	io:fwrite("        DPR error: ~b~n", [Count]);
-dia_count({282, 0, error}, Count) ->
-	io:fwrite("        DPA error: ~b~n", [Count]);
 dia_count({258, 1, error}, Count) ->
 	io:fwrite("        RAR error: ~b~n", [Count]);
 dia_count({258, 0, error}, Count) ->
 	io:fwrite("        RAA error: ~b~n", [Count]);
+dia_count({265, 0, error}, Count) ->
+	io:fwrite("        AAA error: ~b~n", [Count]);
+dia_count({265, 1, error}, Count) ->
+	io:fwrite("        AAR error: ~b~n", [Count]);
+dia_count({268, 0, error}, Count) ->
+	io:fwrite("        DEA error: ~b~n", [Count]);
+dia_count({268, 1, error}, Count) ->
+	io:fwrite("        DER error: ~b~n", [Count]);
+dia_count({271, 1, error}, Count) ->
+	io:fwrite("        ACR error: ~b~n", [Count]);
+dia_count({271, 0, error}, Count) ->
+	io:fwrite("        ACA error: ~b~n", [Count]);
+dia_count({272, 1, error}, Count) ->
+	io:fwrite("        CCR error: ~b~n", [Count]);
+dia_count({272, 0, error}, Count) ->
+	io:fwrite("        CCA error: ~b~n", [Count]);
 dia_count({274, 1, error}, Count) ->
 	io:fwrite("        ASR error: ~b~n", [Count]);
 dia_count({274, 0, error}, Count) ->
@@ -819,18 +821,14 @@ dia_count({275, 1, error}, Count) ->
 	io:fwrite("        STR error: ~b~n", [Count]);
 dia_count({275, 0, error}, Count) ->
 	io:fwrite("        STA error: ~b~n", [Count]);
-dia_count({272, 1, error}, Count) ->
-	io:fwrite("        CCR error: ~b~n", [Count]);
-dia_count({272, 0, error}, Count) ->
-	io:fwrite("        CCA error: ~b~n", [Count]);
-dia_count({268, 0, error}, Count) ->
-	io:fwrite("        DEA error: ~b~n", [Count]);
-dia_count({268, 1, error}, Count) ->
-	io:fwrite("        DER error: ~b~n", [Count]);
-dia_count({265, 0, error}, Count) ->
-	io:fwrite("        AAA error: ~b~n", [Count]);
-dia_count({265, 1, error}, Count) ->
-	io:fwrite("        AAR error: ~b~n", [Count]);
+dia_count({280, 1, error}, Count) ->
+	io:fwrite("        DWR error: ~b~n", [Count]);
+dia_count({280, 0, error}, Count) ->
+	io:fwrite("        DWA error: ~b~n", [Count]);
+dia_count({282, 1, error}, Count) ->
+	io:fwrite("        DPR error: ~b~n", [Count]);
+dia_count({282, 0, error}, Count) ->
+	io:fwrite("        DPA error: ~b~n", [Count]);
 dia_count({301, 0, error}, Count) ->
 	io:fwrite("        SAA error: ~b~n", [Count]);
 dia_count({301, 1, error}, Count) ->
