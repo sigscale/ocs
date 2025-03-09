@@ -499,7 +499,17 @@ query_acct_log(Match, Start, End) ->
 query_acct_log(eof, _, _, _, Acc) ->
 	lists:flatten(lists:reverse(Acc));
 query_acct_log(Context1, Start, End, Match, Acc) ->
-	case ocs_log:acct_query(Context1, Start, End, '_', '_', [Match]) of
+	Protocol = case Match of
+		{Attribute, _} when is_integer(Attribute) ->
+			radius;
+		{DiameterMatchHead, _} when is_tuple(DiameterMatchHead) ->
+			diameter;
+		{NrfMatchHead, _} when is_map(NrfMatchHead) ->
+			nrf;
+		_ ->
+			'_'
+	end,
+	case ocs_log:acct_query(Context1, Start, End, Protocol, '_', [Match]) of
 		{error, Reason} ->
 			exit(Reason);
 		{Context2, []} ->
