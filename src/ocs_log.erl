@@ -241,7 +241,13 @@ acct_query(Continuation, Start, End, Types, Matches) ->
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
-acct_query(Continuation, Start, End, Protocol, Types, Matches) ->
+acct_query(Continuation, Start, End, Protocol, Types, Matches)
+		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
+		(is_integer(End) orelse (tuple_size(End) == 2)),
+		(is_atom(Protocol) orelse is_list(Protocol)
+				orelse (Protocol == '_')),
+		(is_list(Types) orelse (Types == '_')),
+		(is_list(Matches) orelse (Matches == '_')) ->
 	MFA = {?MODULE, acct_query, [Protocol, Types, Matches]},
 	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
@@ -373,7 +379,14 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
 %%
-auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
+		(is_integer(End) orelse (tuple_size(End) == 2)),
+		(is_atom(Protocol) orelse is_list(Protocol)
+				orelse (Protocol == '_')),
+		(is_list(Types) orelse (Types == '_')),
+		(is_list(ReqAttrsMatch) orelse (ReqAttrsMatch== '_')),
+		(is_list(RespAttrsMatch) orelse (RespAttrsMatch== '_')) ->
 	MFA = {?MODULE, auth_query, [Protocol, Types, ReqAttrsMatch, RespAttrsMatch]},
 	query_log(Continuation, Start, End, log_name(auth_log_name), MFA).
 
@@ -775,7 +788,6 @@ ipdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
 		End :: calendar:datetime() | timestamp(),
 		Result :: [term()].
 %% @doc Get all events in a log within a date/time range.
-%%
 %% @private
 get_range(Log, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
@@ -1129,8 +1141,14 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		Events :: [abmf_event()],
 		Reason :: term().
 %% @doc Query balance activity log events with filters.
-abmf_query(Continuation, Start, End, Type, Subscriber,
-		Bucket, Units, Product) ->
+abmf_query(Continuation, Start, End, Type, Subscriber, Bucket, Units, Product)
+		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
+		(is_integer(End) orelse (tuple_size(End) == 2)),
+		(is_list(Type) orelse (Type == '_')),
+		(is_list(Subscriber) orelse (Subscriber == '_')),
+		(is_list(Bucket) orelse (Bucket == '_')),
+		(is_list(Units ) orelse (Units == '_')),
+		(is_list(Product) orelse (Product == '_')) ->
 	MFA = {?MODULE, abmf_query, [Type, Subscriber, Bucket, Units, Product]},
 	query_log(Continuation, Start, End, log_name(abmf_log_name), MFA).
 
@@ -2243,6 +2261,7 @@ get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
 	end,
 	NewChunk = lists:dropwhile(Fstart, Chunk),
 	get_range2(Log, End, {Cont, NewChunk}, Acc).
+%% @hidden
 get_range2(Log, End, {Cont, Chunk}, Acc) ->
 	Fend = fun(R) when element(1, R) =< End ->
 				true;
@@ -3211,9 +3230,10 @@ query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events}.
+%% @doc Continue query of accounting log events.
 %% @private
-%% @doc Query accounting log events with filters.
-acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches) ->
+acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches)
+		when (is_tuple(Cont) or (Cont == eof)) ->
 	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
 %% @hidden
 acct_query1(Events, Protocol, '_', Matches, _Acc) ->
@@ -3418,10 +3438,10 @@ acct_query9([], _, _, Acc) ->
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [#ipdr_wlan{}].
+%% @doc Continue query of IPDR log events.
 %% @private
-%% @doc Query accounting log events with filters.
-%%
-ipdr_query({Cont, Events}, AttrsMatch) ->
+ipdr_query({Cont, Events}, AttrsMatch)
+		when (is_tuple(Cont) or (Cont == eof)) ->
 	{Cont, ipdr_query3(Events, AttrsMatch, [])}.
 %% @hidden
 ipdr_query3(Events, '_', _Acc) ->
@@ -3475,10 +3495,10 @@ ipdr_query4(_Attributes, []) ->
 		Continuation2 :: eof | disk_log:continuation(),
 
 		Events :: [acct_event()].
+%% @doc Continue query of authentication log events.
 %% @private
-%% @doc Query authentication log events with filters.
-%%
-auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+		when (is_tuple(Cont) or (Cont == eof)) ->
 	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
 %% @hidden
 auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
@@ -3580,11 +3600,10 @@ auth_query5(_Attributes, []) ->
 		ProductValue :: string() | '_',
 		MatchType :: exact | like,
 		Result :: {Continuation2, Events}.
+%% @doc Continue query of balance activity log events.
 %% @private
-%% @doc Query balance activity log events with filters.
-%%
-abmf_query({Cont, Events}, Type, Subscriber, Bucket,
-		 Units, Product) ->
+abmf_query({Cont, Events}, Type, Subscriber, Bucket, Units, Product)
+		when (is_tuple(Cont) or (Cont == eof)) ->
 	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product, [])}.
 %% @hidden
 abmf_query1(Events, '_', Subscriber, Bucket, Units, Product, []) ->
