@@ -3202,21 +3202,22 @@ filter_prices_dir(_, [], Acc) ->
 filter_prices_key(undefined, Prices) ->
 	Prices;
 filter_prices_key(ChargingKey, Prices) when is_integer(ChargingKey) ->
-	filter_prices_key(ChargingKey, Prices, []).
+	filter_prices_key(ChargingKey, Prices, [], []).
 %% @hidden
-filter_prices_key(ChargingKey, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
+filter_prices_key(ChargingKey,
+		[#price{char_value_use = CharValueUse} = P | T], Acc1, Acc2) ->
 	case lists:keyfind("chargingKey", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = undefined}]} ->
-			filter_prices_key(ChargingKey, T, [P | Acc]);
+			filter_prices_key(ChargingKey, T, Acc1, [P | Acc2]);
 		#char_value_use{values = [#char_value{value = ChargingKey}]} ->
-			filter_prices_key(ChargingKey, T, [P | Acc]);
+			filter_prices_key(ChargingKey, T, [P | Acc1], Acc2);
 		#char_value_use{values = [#char_value{}]} ->
-			filter_prices_key(ChargingKey, T, Acc);
+			filter_prices_key(ChargingKey, T, Acc1, Acc2);
 		_ ->
-			filter_prices_key(ChargingKey, T, [P | Acc])
+			filter_prices_key(ChargingKey, T, Acc1, [P | Acc2])
 	end;
-filter_prices_key(_, [], Acc) ->
-	lists:reverse(Acc).
+filter_prices_key(_, [], Acc1, Acc2) ->
+	lists:reverse(Acc1) ++ lists:reverse(Acc2).
 
 -spec get_final(ServiceId, ChargingKey, SessionId,
 		Refund, Buckets) -> Result
