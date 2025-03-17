@@ -3080,6 +3080,9 @@ class offerUpdate extends PolymerElement {
 			if(this.priceUpdateAmount) {
 				var priceAmount = new Object();
 				priceAmount.taxIncludedAmount = this.priceUpdateAmount;
+				if(this.priceUpdateCurrency) {
+					priceAmount.currencyCode = this.priceUpdateCurrency;
+				}
 				addValue.price = priceAmount;
 			}
 			if(this.priceUpdatePeriod) {
@@ -3100,9 +3103,6 @@ class offerUpdate extends PolymerElement {
 						addValue.recurringChargePeriod = "yearly";
 						break;
 				}
-			}
-			if(this.priceUpdateCurrency) {
-				addValue.currency = this.priceUpdateCurrency;
 			}
 			if(this.priceUpdateReserveTime) {
 				addValue.radiusReserveTime = this.priceUpdateReserveTime;
