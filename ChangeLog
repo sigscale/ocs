@@ -1,3 +1,14 @@
+2024-03-18  Vance Shipley <vances@sigscale.org>
+
+	* rename some rest resource handling functions for uniformity
+	* refactor and correct http head request handling
+	* pwa: correct currency in product offering price update
+	* rating: pops exactly matching charging key first in list
+	* log api: argument type guards, better descriptions
+	* always log nrf rating data ref
+	* remove clause redundancy and reorder
+	* shell command ql/2,3,4 filters out other protocols
+
 2024-03-07  Vance Shipley <vances@sigscale.org>
 
 	* opionally disable rating group independent credit control

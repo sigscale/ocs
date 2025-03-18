@@ -1,3 +1,10 @@
+March 18, 2025
+--------------
+	- HTTP HEAD handling corrections/improvements
+	- Correct currency in Product Offering Price update dialog
+	- Stricter Rating Group selection of Product Offering Price
+	- Nrf RatingDataRef always included in logged event
+
 March 7, 2025
 -------------
 	- Optionally disable rating group independent credit control
