@@ -203,7 +203,7 @@ do_head(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_offers(Query, Headers));
 do_head(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
-	do_response(ModData, Resource:get_inventories(Query, Headers));
+	do_response(ModData, Resource:get_products(Query, Headers));
 do_head(Resource, #mod{parsed_header = Headers} = ModData,
 		["partyManagement", "v1", "individual"], Query) ->
 	do_response(ModData, Resource:get_users(Query, Headers));

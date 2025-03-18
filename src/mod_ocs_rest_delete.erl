@@ -151,7 +151,7 @@ do_delete(Resource, ModData,
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData,
 		["productInventoryManagement", "v2", "product", Identity], _Query) ->
-	do_response(ModData, Resource:delete_inventory(Identity));
+	do_response(ModData, Resource:delete_product(Identity));
 do_delete(Resource, ModData,
 		["productInventoryManagement", "v2", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));
@@ -161,7 +161,7 @@ do_delete(Resource, ModData,
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData,
 		["serviceInventoryManagement", "v2", "service", Identity], _Query) ->
-	do_response(ModData, Resource:delete_inventory(Identity));
+	do_response(ModData, Resource:delete_service(Identity));
 do_delete(Resource, ModData,
 		["serviceInventoryManagement", "v2", "hub", Identity], _Query) ->
 	do_response(ModData, Resource:delete_hub(Identity));

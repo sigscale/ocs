@@ -22,16 +22,15 @@
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_offer/1, add_inventory/1]).
--export([get_offer/1, get_offers/2,
-		patch_offer/3, get_inventory/1,
-		get_inventories/2, patch_inventory/3]).
+-export([add_offer/1, add_product/1]).
+-export([get_offer/1, get_offers/2, patch_offer/3, get_product/1,
+		get_products/2, patch_product/3]).
 -export([sync_offer/1]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([get_pla_spec/2]).
--export([delete_offer/1, delete_inventory/1]).
+-export([delete_offer/1, delete_product/1]).
 -export([product/1, offer/1]).
 
 -include("ocs.hrl").
@@ -102,7 +101,7 @@ add_offer(RequestBody) ->
 			{error, 400, Problem1}
 	end.
 
--spec add_inventory(RequestBody) -> Result
+-spec add_product(RequestBody) -> Result
 	when
 		RequestBody :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -114,7 +113,7 @@ add_offer(RequestBody) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
-add_inventory(RequestBody) ->
+add_product(RequestBody) ->
 	try product(mochijson:decode(RequestBody)) of
 		#product{start_date = SD, end_date = TD,
 				characteristics = Chars, product = OfferId,
@@ -198,7 +197,7 @@ get_offer(ID) ->
 			{error, 500, Problem1}
 	end.
 
--spec get_inventory(ID) -> Result
+-spec get_product(ID) -> Result
 	when
 		ID			:: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -210,7 +209,7 @@ get_offer(ID) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /productInventoryManagement/v2/product/{id}'.
 %% 	Retrieve a Product Inventory.
-get_inventory(ID) ->
+get_product(ID) ->
 	try
 		case ocs:find_product(ID) of
 			{ok, Product} ->
@@ -248,7 +247,7 @@ get_inventory(ID) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /productCatalogManagement/v2/productOffering'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productOffering/'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, RequestHeaders) ->
@@ -287,7 +286,7 @@ get_offers(Query, RequestHeaders) ->
 			{error, 400, Problem}
 	end.
 
--spec get_inventories(Query, RequestHeaders) -> Result
+-spec get_products(Query, RequestHeaders) -> Result
 	when
 		Query :: [{Key, Value}],
 		Key :: string(),
@@ -300,9 +299,9 @@ get_offers(Query, RequestHeaders) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /productInventoryManagement/v2/'.
+%% @doc Respond to `GET /productInventoryManagement/v2/product/'.
 %% 	Retrieve all Product Inventories.
-get_inventories(Query, RequestHeaders) ->
+get_products(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -374,7 +373,7 @@ get_catalog(_Id, _Query) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /productCatalogManagement/v2'.
+%% @doc Respond to `GET /productCatalogManagement/v2/catalog/'.
 %% 	Retrieve all catalogs .
 get_catalogs([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -429,7 +428,7 @@ get_category(_Id, _Query) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /productCatalogManagement/v2/catalog'.
+%% @doc Respond to `GET /productCatalogManagement/v2/category/'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -487,7 +486,7 @@ get_product_spec(_Id, _Query) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification/'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -639,7 +638,7 @@ get_pla_spec(_Id, _Query) ->
 			detail => "Exception occurred parsing query"},
 	{error, 400, Problem}.
 
--spec patch_inventory(ProdId, Etag, RequestBody) -> Result
+-spec patch_product(ProdId, Etag, RequestBody) -> Result
 	when
 		ProdId :: string(),
 		Etag :: undefined | string(),
@@ -654,7 +653,7 @@ get_pla_spec(_Id, _Query) ->
 %% @doc Respond to `PATCH /productInventoryManagement/v2/product/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_inventory(ProdId, Etag, RequestBody) ->
+patch_product(ProdId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -773,7 +772,7 @@ delete_offer(Id) ->
 			{error, 500, Problem}
 	end.
 
--spec delete_inventory(Id) -> Result
+-spec delete_product(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -785,7 +784,7 @@ delete_offer(Id) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /productInventoryManagement/v2/product/{id}'
 %% 	request to remove a `Product Invenotry'.
-delete_inventory(Id) ->
+delete_product(Id) ->
 	try ocs:delete_product(Id) of
 		ok ->
 			{ok, [], []}

@@ -175,12 +175,12 @@ do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
 		["productInventoryManagement", "v2", "product", SubId],
 		_Query) ->
 	do_response(ModData,
-			Resource:patch_inventory(SubId, Etag, Body));
+			Resource:patch_product(SubId, Etag, Body));
 do_patch("application/merge-patch+json", Resource, ModData, Body, Etag,
 		["productInventoryManagement", "v2", "product", SubId],
 		_Query) ->
 	do_response(ModData,
-			Resource:patch_inventory(SubId, Etag, Body));
+			Resource:patch_product(SubId, Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
 		["catalogManagement", "v2", "pla", ProdId], _Query) ->
 	do_response(ModData,
@@ -194,7 +194,7 @@ do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
 		["serviceInventoryManagement", "v2", "service", ServiceId],
 		_Query) ->
 	do_response(ModData,
-			Resource:patch_inventory(ServiceId, Etag, Body));
+			Resource:patch_service(ServiceId, Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
 		["productCatalogManagement", "v2", "productOffering", ProdId],
 		_Query) ->

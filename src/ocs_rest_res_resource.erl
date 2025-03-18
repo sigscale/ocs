@@ -127,7 +127,7 @@ get_resource_spec(_) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification/'.
 %% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -188,7 +188,7 @@ get_resource_category(_) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory/'.
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -236,7 +236,7 @@ get_resource_candidate(_) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /catalogManagement/v2/resourceCandidate'.
+%% @doc Respond to `GET /catalogManagement/v2/resourceCandidate/'.
 %% 	Retrieve all Resource candidate.
 get_resource_candidates([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -284,7 +284,7 @@ get_resource_catalog(_) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog/'.
 %% 	Retrieve all Resource catalogs.
 get_resource_catalogs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -345,7 +345,7 @@ get_resource(Id) ->
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
 %% @doc Body producing function for
-%% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
+%% 	`GET /resourceInventoryManagement/v1/resource/'
 %% 	requests.
 get_resource(Query, RequestHeaders) ->
 	try
@@ -587,7 +587,7 @@ add_resource(RequestBody) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification/'.
 %% 	Retrieve all Pricing Logic Algorithm (PLA) specifications.
 get_pla_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],

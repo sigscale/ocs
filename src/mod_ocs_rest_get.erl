@@ -374,13 +374,13 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 do_get(Resource, ModData, ["serviceCatalogManagement", "v2", "serviceSpecification"], Query) ->
 	do_response(ModData, Resource:get_service_specs(Query));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
-	do_response(ModData, Resource:get_inventory(Id));
+	do_response(ModData, Resource:get_product(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
-	do_response(ModData, Resource:get_inventories(Query, Headers));
+	do_response(ModData, Resource:get_products(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2"], Query) ->
-	do_response(ModData, Resource:get_inventories(Query, Headers));
+	do_response(ModData, Resource:get_products(Query, Headers));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_product_hubs());
 do_get(Resource, ModData, ["productInventory", "v2", "hub"], []) ->
@@ -393,12 +393,12 @@ do_get(Resource, ModData, ["productInventory", "v2", "hub", Id], []) ->
 	do_response(ModData, Resource:get_product_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2", "service"], Query) ->
-	do_response(ModData, Resource:get_inventories(Query, Headers));
+	do_response(ModData, Resource:get_services(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2"], Query) ->
-	do_response(ModData, Resource:get_inventories(Query, Headers));
+	do_response(ModData, Resource:get_services(Query, Headers));
 do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
-	do_response(ModData, Resource:get_inventory(Id));
+	do_response(ModData, Resource:get_service(Id));
 do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->

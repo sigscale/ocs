@@ -411,7 +411,7 @@ event(Resource, Category) ->
 					ocs_rest_res_product:offer(Resource)
 			end;
 		service ->
-			ocs_rest_res_service:inventory(Resource);
+			ocs_rest_res_service:service(Resource);
 		resource ->
 			ocs_rest_res_resource:resource(Resource);
 		usage ->

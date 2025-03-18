@@ -22,10 +22,10 @@
 -copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_inventory/1, get_inventory/1, get_inventories/2,
-		delete_inventory/1, patch_inventory/3, head_inventory/0]).
+-export([add_service/1, get_service/1, get_services/2,
+		delete_service/1, patch_service/3]).
 -export([get_service_specs/1, get_service_spec/2]).
--export([inventory/1]).
+-export([service/1]).
 
 -include("ocs.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -48,7 +48,7 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/problem+json"].
 
--spec add_inventory(RequestBody) ->
+-spec add_service(RequestBody) ->
 	Result when
 		RequestBody :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -60,8 +60,8 @@ content_types_provided() ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /serviceInventoryManagement/v2/service'.
 %% 	Add a new Service Inventory.
-add_inventory(RequestBody) ->
-	try inventory(mochijson:decode(RequestBody)) of
+add_service(RequestBody) ->
+	try service(mochijson:decode(RequestBody)) of
 		#service{name = Identity, password = Password,
 				attributes = Attributes, product = ProductRef,
 				state = State, enabled = Enabled, multisession = MultiSession,
@@ -69,7 +69,7 @@ add_inventory(RequestBody) ->
 			case ocs:add_service(Identity, Password, State, ProductRef,
 					Chars, Attributes, Enabled, MultiSession) of
 				{ok, Service} ->
-					Body = mochijson:encode(inventory(Service)),
+					Body = mochijson:encode(service(Service)),
 					Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
 					Etag = ocs_rest:etag(Service#service.last_modified),
 					Headers = [{content_type, "application/json"},
@@ -99,7 +99,7 @@ add_inventory(RequestBody) ->
 			{error, 400, Problem}
 	end.
 
--spec get_inventory(Id) -> Result
+-spec get_service(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -110,11 +110,11 @@ add_inventory(RequestBody) ->
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `GET /serviceInventoryManagement/v2/service/{id}'.
-%% 	Retrieve a service inventories.
-get_inventory(Id) ->
+%% 	Retrieve a service inventory item.
+get_service(Id) ->
 	try ocs:find_service(Id) of
 			{ok, Service} ->
-				Body = mochijson:encode(inventory(Service)),
+				Body = mochijson:encode(service(Service)),
 				Etag = ocs_rest:etag(Service#service.last_modified),
 				Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
 				Headers = [{content_type, "application/json"},
@@ -134,34 +134,7 @@ get_inventory(Id) ->
 			{error, 500, Problem}
 	end.
 
--spec head_inventory() -> Result
-   when
-		Result :: {ok, ResponseHeaders, ResponseBody}
-				| {error, StatusCode}
-				| {error, StatusCode, Problem},
-		ResponseHeaders :: [tuple()],
-		ResponseBody :: iolist(),
-		StatusCode :: 400..599,
-		Problem :: ocs_rest:problem().
-%% @doc Body producing function for
-%%    `HEAD /serviceInventoryManagement/v2/service'
-%%    requests.
-head_inventory() ->
-   try
-      Size = mnesia:table_info(client, size),
-      LastItem = integer_to_list(Size),
-      ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
-      Headers = [{content_range, ContentRange}],
-      {ok, Headers, []}
-   catch
-      _:_ ->
-			Problem = #{type => "about:blank",
-					title => "Internal Server Error",
-					detail => "Exception occurred getting the Service inventory item"},
-			{error, 500, Problem}
-   end.
-
--spec get_inventories(Query, RequestHeaders) -> Result
+-spec get_services(Query, RequestHeaders) -> Result
 	when
 		Query :: [{Key, Value}],
 		Key :: string(),
@@ -174,9 +147,9 @@ head_inventory() ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `GET /serviceInventoryManagement/v2/service'.
+%% @doc Respond to `GET /serviceInventoryManagement/v2/service/'.
 %% 	Retrieve all Service Inventories.
-get_inventories(Query, RequestHeaders) ->
+get_services(Query, RequestHeaders) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -194,7 +167,7 @@ get_inventories(Query, RequestHeaders) ->
 		end
 	of
 		{Query2, Args} ->
-			Codec = fun inventory/1,
+			Codec = fun service/1,
 			query_filter({ocs, query_service, Args}, Codec, Query2, RequestHeaders)
 	catch
 		_:_ ->
@@ -204,7 +177,7 @@ get_inventories(Query, RequestHeaders) ->
 			{error, 400, Problem}
 	end.
 
--spec delete_inventory(Id) -> Result
+-spec delete_service(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -216,7 +189,7 @@ get_inventories(Query, RequestHeaders) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `DELETE /serviceInventoryManagement/v2/service/{id}'
 %% 	request to remove a `Service Inventory'.
-delete_inventory(Id) ->
+delete_service(Id) ->
 	try ocs:delete_service(Id) of
 		ok ->
 			{ok, [], []}
@@ -233,7 +206,7 @@ delete_inventory(Id) ->
 			{error, 500, Problem}
 	end.
 
--spec patch_inventory(ServiceId, Etag, RequestBody) -> Result
+-spec patch_service(ServiceId, Etag, RequestBody) -> Result
 	when
 		ServiceId :: string(),
 		Etag :: undefined | string(),
@@ -248,7 +221,7 @@ delete_inventory(Id) ->
 %% @doc Respond to `PATCH /serviceInventoryManagement/v2/service/{id}'.
 %% 	Update a Service Inventory using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_inventory(ServiceId, Etag, RequestBody) ->
+patch_service(ServiceId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -265,12 +238,12 @@ patch_inventory(ServiceId, Etag, RequestBody) ->
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined,
 								ProductRef =/= undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Service1)) of
+							case catch ocs_rest:patch(Operations, service(Service1)) of
 								{struct, _} = Service2 ->
 									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									case inventory(Service2) of
+									case service(Service2) of
 										#service{product = undefined} = Service3 ->
 											Service4 = Service3#service{last_modified = LM,
 													product = undefined},
@@ -309,9 +282,9 @@ patch_inventory(ServiceId, Etag, RequestBody) ->
 						[Service1] when
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Service1)) of
+							case catch ocs_rest:patch(Operations, service(Service1)) of
 								{struct, _} = Service2 ->
-									Service3 = inventory(Service2),
+									Service3 = service(Service2),
 									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
@@ -499,24 +472,24 @@ service_spec_chars() ->
 	Char8 = {struct, [Name8, Description8, Config8, Type8, Value8]},
 	[Char1, Char2, Char3, Char4, Char5, Char6, Char7, Char8].
 
--spec inventory(Service) -> Service
+-spec service(Service) -> Service
 	when
 		Service :: #service{} | {struct, list()}.
-%% @doc CODEC for service inventory
-inventory({struct, Service}) ->
-	inventory(Service, #service{});
-inventory(#service{} = Service) ->
-	inventory(record_info(fields, service), Service, [], []).
+%% @doc CODEC for service inventory item.
+service({struct, Service}) ->
+	service(Service, #service{});
+service(#service{} = Service) ->
+	service(record_info(fields, service), Service, [], []).
 %% @hidden
-inventory([{"id", Id}| T], Acc) ->
-	inventory(T, Acc#service{name = list_to_binary(Id)});
-inventory([{"state", State}| T], Acc) ->
-	inventory(T, Acc#service{state = service_state(State)});
-inventory([{"isServiceEnabled", Enabled}| T], Acc) ->
-	inventory(T, Acc#service{enabled = Enabled});
-inventory([{"product", ProductRef}| T], Acc) ->
-	inventory(T, Acc#service{product = ProductRef});
-inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
+service([{"id", Id}| T], Acc) ->
+	service(T, Acc#service{name = list_to_binary(Id)});
+service([{"state", State}| T], Acc) ->
+	service(T, Acc#service{state = service_state(State)});
+service([{"isServiceEnabled", Enabled}| T], Acc) ->
+	service(T, Acc#service{enabled = Enabled});
+service([{"product", ProductRef}| T], Acc) ->
+	service(T, Acc#service{product = ProductRef});
+service([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	Chars = service_chars(Characteristics),
 	F1 = fun(Key, Chars1) ->
 			case lists:keyfind(Key, 1, Chars1) of
@@ -582,101 +555,101 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	C2 = F2("ReserveSessionTime", Chars, C1),
 	NewAcc = Acc#service{name = Identity, password = Password,
 			multisession = MultiSession, attributes = A3, characteristics = C2},
-	inventory(T, NewAcc);
-inventory([{"category", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"description", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"endDate", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"hasStarted", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"href", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"isStateful", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"name", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"orderDate", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"startDate", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"startMode", StartMode}| T], Acc) ->
+	service(T, NewAcc);
+service([{"category", _}| T], Acc) ->
+	service(T, Acc);
+service([{"description", _}| T], Acc) ->
+	service(T, Acc);
+service([{"endDate", _}| T], Acc) ->
+	service(T, Acc);
+service([{"hasStarted", _}| T], Acc) ->
+	service(T, Acc);
+service([{"href", _}| T], Acc) ->
+	service(T, Acc);
+service([{"isStateful", _}| T], Acc) ->
+	service(T, Acc);
+service([{"name", _}| T], Acc) ->
+	service(T, Acc);
+service([{"orderDate", _}| T], Acc) ->
+	service(T, Acc);
+service([{"startDate", _}| T], Acc) ->
+	service(T, Acc);
+service([{"startMode", StartMode}| T], Acc) ->
 	_Mode = start_mode(StartMode),
-	inventory(T, Acc);
-inventory([{"status", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"type", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"supportingResource", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"serviceRelationship", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"place", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"note", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"supportingService", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"serviceSpecification", _}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"relatedPary", {array, _}}| T], Acc) ->
-	inventory(T, Acc);
-inventory([{"@type", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([{"@baseType", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([{"@schemaLocation", _} | T], Acc) ->
-	inventory(T, Acc);
-inventory([], Acc) ->
+	service(T, Acc);
+service([{"status", _}| T], Acc) ->
+	service(T, Acc);
+service([{"type", _}| T], Acc) ->
+	service(T, Acc);
+service([{"supportingResource", _}| T], Acc) ->
+	service(T, Acc);
+service([{"serviceRelationship", _}| T], Acc) ->
+	service(T, Acc);
+service([{"place", _}| T], Acc) ->
+	service(T, Acc);
+service([{"note", _}| T], Acc) ->
+	service(T, Acc);
+service([{"supportingService", _}| T], Acc) ->
+	service(T, Acc);
+service([{"serviceSpecification", _}| T], Acc) ->
+	service(T, Acc);
+service([{"relatedPary", {array, _}}| T], Acc) ->
+	service(T, Acc);
+service([{"@type", _} | T], Acc) ->
+	service(T, Acc);
+service([{"@baseType", _} | T], Acc) ->
+	service(T, Acc);
+service([{"@schemaLocation", _} | T], Acc) ->
+	service(T, Acc);
+service([], Acc) ->
 	Acc.
 %% @hidden
-inventory([product | T], #service{product = undefined} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([product | T], #service{product = ProductRef} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, [{"product", ProductRef} | Acc]);
-inventory([state | T], #service{state = State} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, [{"state", State} | Acc]);
-inventory([enabled | T], #service{enabled = Enabled} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, [{"isServiceEnabled", Enabled} | Acc]);
-inventory([name | T], #service{name = undefined} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([name | T], #service{name = Identity} = Service,
+service([product | T], #service{product = undefined} = Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([product | T], #service{product = ProductRef} = Service, Chars, Acc) ->
+	service(T, Service, Chars, [{"product", ProductRef} | Acc]);
+service([state | T], #service{state = State} = Service, Chars, Acc) ->
+	service(T, Service, Chars, [{"state", State} | Acc]);
+service([enabled | T], #service{enabled = Enabled} = Service, Chars, Acc) ->
+	service(T, Service, Chars, [{"isServiceEnabled", Enabled} | Acc]);
+service([name | T], #service{name = undefined} = Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([name | T], #service{name = Identity} = Service,
 		Chars, Acc) when is_binary(Identity) ->
 	SId = {"serviceIdentity", binary_to_list(Identity)},
 	Id = {"id", binary_to_list(Identity)},
 	Href = {"href", ?serviceInventoryPath ++ binary_to_list(Identity)},
 	NewChars = lists:keystore("serviceIdentity", 1, Chars, SId),
-	inventory(T, Service, NewChars, [Id, Href | Acc]);
-inventory([name | T], #service{name = Identity} = Service, Chars, Acc) ->
+	service(T, Service, NewChars, [Id, Href | Acc]);
+service([name | T], #service{name = Identity} = Service, Chars, Acc) ->
 	Id = {"id", Identity},
 	Href = {"href", ?serviceInventoryPath ++ Identity},
 	SId = {"serviceIdentity", Identity},
 	NewChars = lists:keystore("serviceIdentity", 1, Chars, SId),
-	inventory(T, Service, NewChars, [Id, Href | Acc]);
-inventory([password | T], #service{password = undefined} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([password | T], #service{password = Password} = Service,
+	service(T, Service, NewChars, [Id, Href | Acc]);
+service([password | T], #service{password = undefined} = Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([password | T], #service{password = Password} = Service,
 		Chars, Acc) when is_binary(Password) ->
 	SPwd = {"servicePassword", binary_to_list(Password)},
 	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
-	inventory(T, Service, NewChars, Acc);
-inventory([password | T],
+	service(T, Service, NewChars, Acc);
+service([password | T],
 		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
 		Chars, Acc) ->
 	NewChars = lists:keystore("serviceAkaK", 1, Chars,
 			{"serviceAkaK", binary_to_hex(K)}),
 	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
 			{"serviceAkaOPc", binary_to_hex(OPc)}),
-	inventory(T, Service, NextChars, Acc);
-inventory([multisession | T], #service{multisession = MultiSession} =
+	service(T, Service, NextChars, Acc);
+service([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
 	MS = {"multiSession", MultiSession},
 	NewChars = lists:keystore("multiSession", 1, Chars, MS),
-	inventory(T, Service, NewChars, Acc);
-inventory([attributes | T], #service{attributes = []} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([attributes | T], #service{attributes = Attributes} = Service, Chars, Acc) ->
+	service(T, Service, NewChars, Acc);
+service([attributes | T], #service{attributes = []} = Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([attributes | T], #service{attributes = Attributes} = Service, Chars, Acc) ->
 	C1 = case lists:keyfind(?AcctInterimInterval, 1, Attributes) of
 		{_, AcctSessionInterval} ->
 			[{"acctSessionInterval", AcctSessionInterval}];
@@ -690,19 +663,19 @@ inventory([attributes | T], #service{attributes = Attributes} = Service, Chars, 
 			C1
 	end,
 	NewChars = C2 ++ Chars,
-	inventory(T, Service, NewChars, Acc);
-inventory([characteristics | T],
+	service(T, Service, NewChars, Acc);
+service([characteristics | T],
 		#service{characteristics = []} = Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([characteristics | T], #service{characteristics = Chars2} =
+	service(T, Service, Chars, Acc);
+service([characteristics | T], #service{characteristics = Chars2} =
 		Service, Chars1, Acc) ->
 	NewChars = Chars1 ++ Chars2,
-	inventory(T, Service, NewChars, Acc);
-inventory([_ | T], Service, Chars, Acc) ->
-	inventory(T, Service, Chars, Acc);
-inventory([], _Service, [], Acc) ->
+	service(T, Service, NewChars, Acc);
+service([_ | T], Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([], _Service, [], Acc) ->
 	{struct, lists:reverse(Acc)};
-inventory([], _Service, Chars, Acc) ->
+service([], _Service, Chars, Acc) ->
 	Obj = [{"serviceCharacteristic", service_chars(Chars)},
 			{"@schemaLocation",
 					"/schema/serviceInventoryManagement.schema.json"
@@ -927,7 +900,7 @@ query_page(Codec, PageServer, Etag, [] = _Query, Filters, Start, End) ->
 			ContentRange1 = case string:split(ContentRange, "/") of
 				[Range, "*"] ->
 					case erlang:fun_info(Codec, name) of
-						{_, inventory} ->
+						{_, service} ->
 							Size = mnesia:table_info(service, size),
 							lists:concat([Range, "/",  Size]);
 						_Other ->

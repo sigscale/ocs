@@ -178,7 +178,7 @@ do_post(Resource, ModData, Body,
 	do_response(ModData, Resource:sync_offer(Body));
 do_post(Resource, ModData, Body,
 		["productInventoryManagement", "v2", "product"], _Query) ->
-	do_response(ModData, Resource:add_inventory(Body));
+	do_response(ModData, Resource:add_product(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		["productInventoryManagement", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
@@ -190,7 +190,7 @@ do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, ModData, Body,
 		["serviceInventoryManagement", "v2", "service"], _Query) ->
-	do_response(ModData, Resource:add_inventory(Body));
+	do_response(ModData, Resource:add_service(Body));
 do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 		["serviceInventoryManagement", "v2", "hub"], _Query) ->
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
