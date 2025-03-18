@@ -183,30 +183,33 @@ parse_query(_, #mod{parsed_header = RequestHeaders,
 	{proceed, [{response, {already_sent, 404, Size}} | Data]}.
 
 %% @hidden
-do_head(Resource, ModData,
-		["balanceManagement", "v1", "bucket"], _Query) ->
-	do_response(ModData, Resource:head_bucket());
-do_head(Resource, ModData,
-		["ocs", "v1", "client"], _Query) ->
-	do_response(ModData, Resource:head_client());
-do_head(Resource, ModData,
-		["serviceInventoryManagement", "v2", "service"], _Query) ->
-	do_response(ModData, Resource:head_inventory());
-do_head(Resource, ModData,
-		["resourceInventoryManagement", "v1", "resource"], _Query) ->
-	do_response(ModData, Resource:head_resource());
-do_head(Resource, ModData,
-		["catalogManagement", "v2", "productOffering"], _Query) ->
-	do_response(ModData, Resource:head_offer());
-do_head(Resource, ModData,
-		["productCatalogManagement", "v2", "productOffering"], _Query) ->
-	do_response(ModData, Resource:head_offer());
-do_head(Resource, ModData,
-		["productInventoryManagement", "v2", "product"], _Query) ->
-	do_response(ModData, Resource:head_product());
-do_head(Resource, ModData,
-		["partyManagement", "v1", "individual"], _Query) ->
-	do_response(ModData, Resource:head_user());
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["balanceManagement", "v1", "bucket"], Query) ->
+	do_response(ModData, Resource:get_buckets(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["ocs", "v1", "client"], Query) ->
+	do_response(ModData, Resource:get_clients(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["serviceInventoryManagement", "v2", "service"], Query) ->
+	do_response(ModData, Resource:get_services(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["resourceInventoryManagement", "v1", "resource"], Query) ->
+	do_response(ModData, Resource:get_resource(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["catalogManagement", "v2", "productOffering"], Query) ->
+	do_response(ModData, Resource:get_offers(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["productCatalogManagement", "v2", "productOffering"], Query) ->
+	do_response(ModData, Resource:get_offers(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["productInventoryManagement", "v2", "product"], Query) ->
+	do_response(ModData, Resource:get_inventories(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["partyManagement", "v1", "individual"], Query) ->
+	do_response(ModData, Resource:get_users(Query, Headers));
+do_head(Resource, #mod{parsed_header = Headers} = ModData,
+		["health"], Query) ->
+	do_response(ModData, Resource:get_health(Query, Headers));
 do_head(_Resource,
 		#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 		_Path, _Query) ->
@@ -225,8 +228,8 @@ do_response(#mod{data = Data} = ModData,
 		{ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size} | Headers],
-	send(ModData, 204, ResponseHeaders, ResponseBody),
-	{proceed, [{response, {already_sent, 204, Size}} | Data]};
+	send(ModData, 200, ResponseHeaders, []),
+	{proceed, [{response, {already_sent, 200, Size}} | Data]};
 do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 		{error, 400}) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",

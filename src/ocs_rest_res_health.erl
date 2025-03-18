@@ -27,7 +27,7 @@
 -copyright('Copyright (c) 2022 - 2024 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_health/2, get_applications/2, get_application/2]).
+		head_health/0, get_health/2, get_applications/2, get_application/2]).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -42,6 +42,26 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/health+json", "application/problem+json"].
+
+-spec head_health() -> Result
+	when
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, 503, ResponseHeaders, ResponseBody}
+				| {error, StatusCode}
+				| {error, StatusCode, Problem},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: [],
+		StatusCode :: 400..599,
+		Problem :: ocs_rest:problem().
+%% @doc Body producing function for `HEAD /health'
+%% requests.
+head_health() ->
+	case get_health([], []) of
+		{ok, ResponseHeaders, _ResponseBody} ->
+			{ok, ResponseHeaders, []};
+		Result ->
+			Result
+	end.
 
 -spec get_health(Query, RequestHeaders) -> Result
 	when
