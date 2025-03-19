@@ -503,9 +503,9 @@ get_product_specs(_Query) ->
 			detail => "Exception occurred parsing query"},
 	{error, 400, Problem}.
 
--spec patch_offer(ProdId, Etag, RequestBody) -> Result
+-spec patch_offer(OfferId, Etag, RequestBody) -> Result
 	when
-		ProdId :: string(),
+		OfferId :: string(),
 		Etag :: undefined | string(),
 		RequestBody :: string(),
 		Result :: {ok, ResponseHeaders, ResponseBody}
@@ -518,7 +518,7 @@ get_product_specs(_Query) ->
 %% @doc Respond to `PATCH /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_offer(ProdId, Etag, RequestBody) ->
+patch_offer(OfferId, Etag, RequestBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -530,14 +530,14 @@ patch_offer(ProdId, Etag, RequestBody) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(offer, ProdId, write) of
-						[Product1] when
-								Product1#offer.last_modified == Etag2;
+					case mnesia:read(offer, OfferId, write) of
+						[Offer1] when
+								Offer1#offer.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, offer(Product1)) of
-								{struct, _} = Product2  ->
-									case catch offer(Product2) of
-										#offer{price = Price} = Product3 ->
+							case catch ocs_rest:patch(Operations, offer(Offer1)) of
+								{struct, _} = Offer2  ->
+									case catch offer(Offer2) of
+										#offer{price = Price} = Offer3 ->
 											F1 = fun F1([#price{type = tariff,
 												char_value_use = []} | _]) ->
 													throw(bad_request);
@@ -547,9 +547,9 @@ patch_offer(ProdId, Etag, RequestBody) ->
 													TS = erlang:system_time(millisecond),
 													N = erlang:unique_integer([positive]),
 													LM = {TS, N},
-													Product4 = Product3#offer{last_modified = LM},
-													ok = mnesia:write(Product4),
-													{Product2, LM}
+													Offer4 = Offer3#offer{last_modified = LM},
+													ok = mnesia:write(Offer4),
+													{Offer2, LM}
 											end,
 											F1(Price);
 										_ ->
@@ -565,11 +565,11 @@ patch_offer(ProdId, Etag, RequestBody) ->
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Product, Etag3}} ->
-					Location = ?offeringPath ++ ProdId,
+				{atomic, {Offer, Etag3}} ->
+					Location = ?offeringPath ++ OfferId,
 					Headers = [{content_type, "application/json"},
 							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Product),
+					Body = mochijson:encode(Offer),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_offer}} ->
 					Problem = #{type => "about:blank",
