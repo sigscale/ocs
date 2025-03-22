@@ -719,30 +719,19 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 			{error, Reason}
 	end;
 rate2(_, _, _, [], Acc) when length(Acc) > 0 ->
-	{ok, RgIndependent} = application:get_env(ocs, nrf_rg_independent),
 	F = fun(#{"resultCode" := "SUCCESS"}) ->
 				true;
 			(_) ->
 				false
 	end,
-	rate3(RgIndependent, F, Acc);
-rate2(_, _, _, [], Acc) ->
-	{ok, Acc}.
-%% @hidden
-rate3(true = _RgIndependent, F, Acc) ->
 	case lists:any(F, Acc) of
 		true ->
 			{ok, Acc};
 		false ->
 			{error, out_of_credit}
 	end;
-rate3(false = _RgIndependent, F, Acc) ->
-	case lists:all(F, Acc) of
-		true ->
-			{ok, Acc};
-		false ->
-			{error, out_of_credit}
-	end.
+rate2(_, _, _, [], Acc) ->
+	{ok, Acc}.
 
 -spec nrf(Nrf) -> Nrf
 	when

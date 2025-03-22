@@ -196,6 +196,5 @@
 				{nrf_valid_time, undefined},
 				{nrf_valid_unit, undefined},
 				{nrf_sub_id_type, [imsi, msisdn]},
-				{nrf_rg_independent, true},
 				{elastic_shipper, undefined}]},
 		{mod, {ocs_app, []}}]}.
