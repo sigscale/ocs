@@ -230,8 +230,8 @@ September 5, 2023
 	- Tariff price rating of SMS
 	- Configuration feature for AAA-Failure-Indication on SWx
 
-August 1, 2023
---------------
+September 1, 2023
+-----------------
 	- Allowance bucket charging with price specific buckets
 	- AKA/AKA' FSM supervision fix (requires OTP 24)
 
