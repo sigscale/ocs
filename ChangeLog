@@ -1,3 +1,9 @@
+2024-04-08  Vance Shipley <vances@sigscale.org>
+
+	* vcs service information includes gmsc address and user location (#3)
+	* Revert "opionally disable rating group independent credit control"
+	* rename variables for clarity
+
 2024-03-18  Vance Shipley <vances@sigscale.org>
 
 	* rename some rest resource handling functions for uniformity
