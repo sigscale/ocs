@@ -106,7 +106,12 @@ ts00([], Max, Acc) ->
 	ts01(lists:reverse(Acc), Max, 0, []).
 %% @hidden
 ts01([H | T], NameLen, Max, Acc) ->
-	Size = mnesia:table_info(H, size),
+	Size = case mnesia:table_info(H, size) of
+		S when is_integer(S) ->
+			S;
+		_S ->
+			0
+	end,
 	NewMax = case length(integer_to_list(Size)) of
 		N when N > Max ->
 			N;
