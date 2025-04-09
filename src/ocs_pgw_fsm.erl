@@ -285,6 +285,21 @@ register({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode1 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode1, StateData)),
+	{stop, shutdown, StateData};
+register({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode1,
+		'Origin-Host' = HssHost, 'Origin-Realm' = HssRealm} = _Answer},
+		#statedata{from = Caller, session_id = SessionId,
+		pgw_host = PgwHost, pgw_realm = PgwRealm,
+		pgw_id = PGW, pgw_plmn = VPLMN, apn_name = APN,
+		imsi = IMSI, identity = Identity} = StateData) ->
+	error_logger:error_report(["Unexpected registration result",
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN}, {apn, APN},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData}.
 
 -spec profile(Event, StateData) -> Result
@@ -349,6 +364,21 @@ profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 	{stop, shutdown, StateData};
 profile({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}],
+		'Origin-Host' = HssHost, 'Origin-Realm' = HssRealm} = _Answer},
+		#statedata{from = Caller, session_id = SessionId,
+		pgw_host = PgwHost, pgw_realm = PgwRealm,
+		pgw_id = PGW, pgw_plmn = VPLMN, apn_name = APN,
+		imsi = IMSI, identity = Identity} = StateData) ->
+	error_logger:error_report(["Unexpected get user profile result",
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN}, {apn, APN},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	{stop, shutdown, StateData};
+profile({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode1,
 		'Origin-Host' = HssHost, 'Origin-Realm' = HssRealm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		pgw_host = PgwHost, pgw_realm = PgwRealm,

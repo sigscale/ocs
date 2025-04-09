@@ -275,6 +275,29 @@ abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
+abort({ok, #'diameter_base_answer-message'{'Session-Id' = SessionId,
+		'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
+		'Result-Code' = ResultCode}},
+		#statedata{sessions = Sessions} = StateData) ->
+	{value, #session{imsi = IMSI, identity = Identity,
+			hss_host = HssHost, hss_realm = HssRealm,
+			application = Application},
+			NewSessions} = lists:keytake(SessionId,
+			#session.id, Sessions),
+	error_logger:warning_report(["Unexpected abort result",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{application, Application},
+			{imsi, IMSI}, {identity, Identity},
+			{session_id, SessionId},
+			{result_code, ResultCode}]),
+	case NewSessions of
+		[] ->
+			{stop, shutdown, StateData};
+		NewSessions ->
+			NewStateData = StateData#statedata{sessions = NewSessions},
+			{next_state, abort, NewStateData, ?TIMEOUT}
+	end;
 abort(timeout, #statedata{sessions = []} = StateData) ->
 	{stop, shutdown, StateData}.
 	

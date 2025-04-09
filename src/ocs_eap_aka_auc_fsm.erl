@@ -470,6 +470,10 @@ vector({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
+vector({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
+	{next_state, idle, StateData};
 vector(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, timeout}),
 	{next_state, idle, StateData};
@@ -506,6 +510,10 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
 register({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
+	{next_state, idle, StateData};
+register({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};

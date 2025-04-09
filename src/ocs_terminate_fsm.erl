@@ -273,6 +273,19 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	deregister1(StateData);
+deregister({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode1}},
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
+		hss_realm = HssRealm, hss_host = HssHost,
+		from = Caller} = StateData) ->
+	error_logger:error_report(["Unexpected deregistration result",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	deregister1(StateData);
 deregister({error, Reason},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
 		nas_realm = NasRealm, nas_host = NasHost,
