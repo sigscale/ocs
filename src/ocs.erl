@@ -3836,7 +3836,7 @@ match_protocol3(Prefix) ->
 			throw(badmatch)
 	end.
 
-%% @hhidden
+%% @hidden
 make_lm() ->
 	{erlang:system_time(millisecond), erlang:unique_integer([positive])}.
 
