@@ -626,6 +626,21 @@ peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, Error}, Count
 			Acc#{Application => #{{CommandCode, RequestFlag, Error} => Count}}
 	end,
 	peer_stat1(T, NewAcc);
+peer_stat1([{{{Application, RequestFlag}, _Direction, Error}, Count} | T], Acc)
+		when Error == discarded ->
+	NewAcc = case maps:find(Application, Acc) of
+		{ok, CommandMap} ->
+			case maps:find({unknown, RequestFlag, Error}, CommandMap) of
+				{ok, Value} ->
+					Acc#{Application => CommandMap#{{unknown, RequestFlag, Error} => Value + Count}};
+				error->
+					Acc#{Application => CommandMap#{{unknown, RequestFlag, Error} => Count}}
+			end;
+		error->
+			Acc#{Application => #{{unknown, RequestFlag, Error} => Count}}
+
+	end,
+	peer_stat1(T, NewAcc);
 peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction}, Count} | T], Acc) ->
 	NewAcc = case maps:find(Application, Acc) of
 		{ok, CommandMap} ->
