@@ -183,24 +183,24 @@ handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		{value, Fsm} ->
 			NewHandlers = gb_trees:delete(SessionId, Handlers),
 			{noreply, State#state{handlers = NewHandlers}};
-		{value, _} ->
+		{value, _Fsm} ->
 			{noreply, State};
 		none ->
 			{noreply, State}
 	end;
 handle_info({'EXIT', _Pid, noconnection}, State) ->
 	{noreply, State};
-handle_info({'EXIT', Fsm, _Reason},
+handle_info({'EXIT', Pid, _Reason},
 		#state{handlers = Handlers} = State) ->
-	Fdel = fun(_F, {Key, {Pid, _Identity}, _Iter}) when Pid == Fsm ->
+	Fdel = fun F({Key, Fsm, _Iter}) when Fsm == Pid ->
 				Key;
-			(F, {_Key, _Val, Iter}) ->
-				F(F, gb_trees:next(Iter));
-			(_F, none) ->
+			F({_, _, Iter}) ->
+				F(gb_trees:next(Iter));
+			F(none) ->
 				none
 	end,
 	Iter = gb_trees:iterator(Handlers),
-	case Fdel(Fdel, gb_trees:next(Iter)) of
+	case Fdel(gb_trees:next(Iter)) of
 		none ->
 			{noreply, State};
 		Key ->
