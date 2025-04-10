@@ -39,10 +39,7 @@
 		{acct_sup :: pid(),
 		disc_sup :: undefined | pid(),
 		address :: inet:ip_address(),
-		port :: non_neg_integer(),
-		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
-				({NAS :: string() | inet:ip_address(), Port :: string(),
-				Peer :: string()}), Value :: (Fsm :: pid()))}).
+		port :: non_neg_integer()}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -151,32 +148,7 @@ handle_cast(_Request, State) ->
 handle_info(timeout, #state{acct_sup = AcctSup} = State) ->
 	Children = supervisor:which_children(AcctSup),
 	{_, DiscSup, _, _} = lists:keyfind(ocs_radius_disconnect_fsm_sup, 1, Children),
-	{noreply, State#state{disc_sup = DiscSup}};
-handle_info({'EXIT', _Pid, {shutdown, SessionId}},
-		#state{handlers = Handlers} = State) ->
-	NewHandlers = gb_trees:delete(SessionId, Handlers),
-	NewState = State#state{handlers = NewHandlers},
-	{noreply, NewState};
-handle_info({'EXIT', _Pid, noconnection}, State) ->
-	{noreply, State};
-handle_info({'EXIT', Fsm, _Reason},
-		#state{handlers = Handlers} = State) ->
-	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
-				Key;
-			(F, {_Key, _Val, Iter}) ->
-				F(F, gb_trees:next(Iter));
-			(_F, none) ->
-				none
-	end,
-	Iter = gb_trees:iterator(Handlers),
-	case Fdel(Fdel, gb_trees:next(Iter)) of
-		none ->
-			{noreply, State};
-		Key ->
-			NewHandlers = gb_trees:delete(Key, Handlers),
-			NewState = State#state{handlers = NewHandlers},
-			{noreply, NewState}
-	end.
+	{noreply, State#state{disc_sup = DiscSup}}.
 
 -spec terminate(Reason, State) -> any()
 	when
