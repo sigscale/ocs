@@ -1,3 +1,13 @@
+2024-04-10  Vance Shipley <vances@sigscale.org>
+
+	* modernize recursive fun() in radius auth port server
+	* remove unused handlers in radius acct port server state
+	* correct finding exited fsm process in diameter auth port server state
+	* handle diameter base answer
+	* diameter statistics shell commands handle unknown application
+	* handle undefined table size in ts()
+	* update copyright year
+
 2024-04-08  Vance Shipley <vances@sigscale.org>
 
 	* vcs service information includes gmsc address and user location (#3)
