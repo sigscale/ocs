@@ -127,8 +127,7 @@ diameter_transport(Services, [], _Dictionaries, In, Out) ->
 	diameter_services(Services, In, Out).
 %% @hidden
 diameter_transport(Services, Transports, Dictionaries,
-		[{{{AppId, Code, Rbit}, Direction}, Count} | T],
-		In, Out, Acc) ->
+		[{{{AppId, Code, Rbit}, Direction}, Count} | T], In, Out, Acc) ->
 	{_, Module} = lists:keyfind(AppId, 1, Dictionaries),
 	Message = case Rbit of
 		0 ->
@@ -154,8 +153,14 @@ diameter_transport(Services, Transports, Dictionaries,
 	end;
 diameter_transport(Services, Transports, Dictionaries,
 		[{{{_AppId, _Code, _Rbit}, _Direction,
-		{'Result-Code', _}}, _Count} | T], In, Out, Acc) ->
+				{'Result-Code', _}}, _Count} | T], In, Out, Acc) ->
 	% @todo result code metrics.
+	diameter_transport(Services, Transports, Dictionaries,
+			T, In, Out, Acc);
+diameter_transport(Services, Transports, Dictionaries,
+		[{{{_AppId, _Code, _Rbit}, _Direction,
+				error}, _Count} | T], In, Out, Acc) ->
+	% @todo error metrics.
 	diameter_transport(Services, Transports, Dictionaries,
 			T, In, Out, Acc);
 diameter_transport(Services, Transports,
