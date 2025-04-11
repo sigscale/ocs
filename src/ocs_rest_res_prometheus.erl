@@ -153,8 +153,16 @@ diameter_transport(Services, Transports, Dictionaries,
 	end;
 diameter_transport(Services, Transports, Dictionaries,
 		[{{{_AppId, _Code, _Rbit}, _Direction,
-				{'Result-Code', _}}, _Count} | T], In, Out, Acc) ->
+				{'Result-Code', _ResultCode}}, _Count}
+				| T], In, Out, Acc) ->
 	% @todo result code metrics.
+	diameter_transport(Services, Transports, Dictionaries,
+			T, In, Out, Acc);
+diameter_transport(Services, Transports, Dictionaries,
+		[{{{_AppId, _Code, _Rbit}, _Direction,
+				{_ExperimentalResult, _Vendor, _ResultCode}}, _Count}
+				| T], In, Out, Acc) ->
+	% @todo experimental result code metrics.
 	diameter_transport(Services, Transports, Dictionaries,
 			T, In, Out, Acc);
 diameter_transport(Services, Transports, Dictionaries,
