@@ -144,8 +144,10 @@ client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 						[{value, Port} | Acc];
 					(4, Acc) ->
 						[{value, binary_to_list(Id)} | Acc];
-					(5, Acc) ->
-						[{value, Proto} | Acc];
+					(5, Acc) when Proto == radius ->
+						[{value, 1} | Acc];
+					(5, Acc) when Proto == diameter ->
+						[{value, 2} | Acc];
 					(_, Acc) ->
 						[{noValue, noSuchInstance} | Acc]
 			end,
@@ -187,8 +189,10 @@ client_get_next(F1, Columns, First) ->
 								[{[3, 1, 4 | Key], Port} | Acc];
 							(4, Acc) ->
 								[{[4, 1, 4 | Key], binary_to_list(Id)} | Acc];
-							(5, Acc) ->
-								[{[5, 1, 4 | Key], Proto} | Acc];
+							(5, Acc) when Proto == radius ->
+								[{[5, 1, 4 | Key], 1} | Acc];
+							(5, Acc) when Proto == diameter ->
+								[{[5, 1, 4 | Key], 2} | Acc];
 							(_, Acc) ->
 								[endOfTable | Acc]
 					end,
