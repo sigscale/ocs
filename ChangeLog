@@ -1,3 +1,10 @@
+2024-04-11  Vance Shipley <vances@sigscale.org>
+
+	* correct client protocol in snmp mib handler
+	* expect (skip) experimental result counts in prometheus exporter
+	* expect (skip) error counts in prometheus exporter
+	* remove (deprecated) sasl sasl_error_logger configuration
+
 2024-04-10  Vance Shipley <vances@sigscale.org>
 
 	* modernize recursive fun() in radius auth port server
