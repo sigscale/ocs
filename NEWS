@@ -1,3 +1,8 @@
+April 10, 2025
+--------------
+	- Handle DIAMETER base answer errors 
+	- Handle unexpected DIAMETER auth FSM exits
+
 March 18, 2025
 --------------
 	- HTTP HEAD handling corrections/improvements
