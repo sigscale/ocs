@@ -584,7 +584,18 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, Reason} ->
-				{error, Reason}
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, print_sub(SubscriberIDs)},
+						{address, Address}, {direction, Direction}]),
+				ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SessionId, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		?CATCH_STACK ->
