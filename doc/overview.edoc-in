@@ -747,7 +747,7 @@ Logging configuration options:
 DIAMETER protocol services are configured with the following environment variable:
 <dl>
 	<dt>diameter</dt>
-		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()}]}</dd>
+		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()]}]}</dd>
 </dl>
 
 DIAMETER services may be configured with the following (optional) configuration group options:
@@ -795,7 +795,7 @@ DIAMETER services may be configured with the following (optional) configuration 
 RADIUS protocol services are configured with the following environment variable:
 <dl>
 	<dt>radius</dt>
-		<dd>Configuration groups for RADIUS: {radius, [{auth | acct, ip_address(), port(), [option()}]}</dd>
+		<dd>Configuration groups for RADIUS: {radius, [{auth | acct, ip_address(), port(), [option()]}]}</dd>
 </dl>
 
 RADIUS services may be configured with the following (optional) configuration group options:
