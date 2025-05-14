@@ -8,7 +8,7 @@ usage() {
 
 while getopts ":p" opt; do
   case ${opt} in
-    o)
+    p)
       PERMANENT=true
       ;;
     ?)
@@ -20,8 +20,7 @@ shift $(($OPTIND - 1))
 
 if [ $# -ne 1 ];
 then
-	echo "usage: $0 APP_NAME"
-	exit 1
+	usage
 else
 	PKG_NAME=$1
 fi
