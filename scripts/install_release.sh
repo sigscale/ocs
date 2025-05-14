@@ -21,7 +21,7 @@ fi
 
 if [ -f "releases/RELEASES" ];
 then
-	if ! PKG_OLD=$(erl -noinput -eval '{ok, [R]} = file:consult("releases/RELEASES"), {release, _, Vsn, _, _, permanent} = lists:keyfind(permanent, 6, R), io:fwrite("~s", [Vsn]), init:stop()');
+	if ! PKG_OLD=$(erl -noinput -eval '{ok, [R]} = file:consult("releases/RELEASES"), {release, _, Vsn, _, _, permanent} = lists:keyfind(permanent, 6, R), io:fwrite("~s", [Vsn]), init:stop()' 2> /dev/null);
 	then
 		echo "No permanent release found."
 		unset PKG_OLD
