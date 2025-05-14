@@ -1,6 +1,23 @@
 #!/bin/bash
 # Install an Erlang/OTP release package
 
+usage() {
+	echo "usage: $0 [-p] APP_NAME"
+	exit 1;
+}
+
+while getopts ":p" opt; do
+  case ${opt} in
+    o)
+      PERMANENT=true
+      ;;
+    ?)
+      usage
+      ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
 if [ $# -ne 1 ];
 then
 	echo "usage: $0 APP_NAME"
@@ -26,7 +43,7 @@ then
 		echo "No permanent release found."
 		unset PKG_OLD
 	else
-		if [[ ${PKG_OLD} != ${PKG_NAME}-* ]];
+		if [ -z "${PERMANENT}" ] && [[ ${PKG_OLD} != ${PKG_NAME}-* ]];
 		then
 			echo "Unpacked (only) release ${PKG_NEW}."
 			exit 0
