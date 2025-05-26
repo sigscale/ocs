@@ -41,7 +41,7 @@
                   mod_disk_log]},
             {bind_address, "%HTTP_ADDRESS%"},
             {port, %HTTP_PORT%},
-            {socket_type, {essl,
+            {socket_type, {ssl,
                   [{certfile, "%CERT_DIR%/cert.pem"},
                   {keyfile, "%CERT_DIR%/key.pem"}]}},
             {server_root, "%SERVER_ROOT%"},
