@@ -1,3 +1,18 @@
+2024-05-27  Vance Shipley <vances@sigscale.org>
+
+	* include address-type in send sms script
+	* handle nrf events in ipdr codec
+	* modernize inets httpd configuratiuon for ssl
+	* correct conversion of diameter event timestamp in ipdr
+	* correct install_release option
+	* option to overide permanent release
+	* suppress error output when releases not found
+	* typo in radius|diameter configuration options
+	* handle rating error for sms
+	* unpack only if another application is permanent
+	* parameterize release install script with application name
+	* handle invalid_error_bit in diameter statistics
+
 2024-04-11  Vance Shipley <vances@sigscale.org>
 
 	* correct client protocol in snmp mib handler

@@ -1,3 +1,10 @@
+May 27, 2025
+------------
+	- Handle Nrf events in IPDR
+	- Updated install release script
+	- Handle rating error for SMS
+	- Handle invalid_error_bit in DIAMETER statistics
+
 April 11, 2025
 --------------
 	- Prometheus exporter ignores unknown statistics
