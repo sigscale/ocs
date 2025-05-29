@@ -17,14 +17,18 @@
 # Install an Erlang/OTP release package
 
 usage() {
-	echo "usage: $0 [-p] APP_NAME"
+	echo "usage: $0 [-d] [-p] APP_NAME"
 	exit 1;
 }
 
-while getopts ":p" opt; do
+while getopts ":pd" opt; do
   case ${opt} in
     p)
       PERMANENT=true
+      ;;
+    d)
+      echo "$0 $*"
+		set -x
       ;;
     ?)
       usage
