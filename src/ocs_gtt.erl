@@ -1,7 +1,7 @@
 %%% ocs_gtt.erl
 %%%---------------------------------------------------------------------
 %%% @author Vance Shipley <vances@sigscale.com>
-%%% @copyright 2017 - 2024 SigScale Global Inc.
+%%% @copyright 2017 - 2025 SigScale Global Inc.
 %%% @end
 %%%---------------------------------------------------------------------
 %%% @doc Global Title Table.
@@ -35,7 +35,7 @@
 %%% @end
 %%%
 -module(ocs_gtt).
--copyright('Copyright (c) 2017 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2017 - 2025 SigScale Global Inc.').
 -author('vances@sigscale.com').
 
 %% export API

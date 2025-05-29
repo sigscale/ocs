@@ -1,7 +1,7 @@
 %%% ocs_eap_codec.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2024 SigScale Global Inc.
+%%% @copyright 2016 - 2025 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@
 %%% 	Authentication and Key Agreement (EAP-AKA')</a>
 %%%
 -module(ocs_eap_codec).
--copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2025 SigScale Global Inc.').
 
 %% export the ocs public API
 -export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,

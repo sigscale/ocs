@@ -1,7 +1,7 @@
 %%% ocs_diameter_codec_s6b.erl 
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2020 - 2024 SigScale Global Inc.
+%%% @copyright 2020 - 2025 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 %%% 	for the S6b interface in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_diameter_codec_s6b).
--copyright('Copyright (c) 2020 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2020 - 2025 SigScale Global Inc.').
 
 -export(['APN-Configuration'/3, 'APN-Configuration'/4,
 		'EPS-Subscribed-QoS-Profile'/3, 'EPS-Subscribed-QoS-Profile'/4,

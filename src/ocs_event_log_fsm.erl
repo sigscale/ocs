@@ -1,7 +1,7 @@
 %%% ocs_event_log_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2022 - 2024 SigScale Global Inc.
+%%% @copyright 2022 - 2025 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_event_log_fsm).
--copyright('Copyright (c) 2022 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2022 - 2025 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 

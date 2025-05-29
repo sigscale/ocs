@@ -1,7 +1,7 @@
 %%% ocs_rest_res_nrf.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2024 SigScale Global Inc.
+%%% @copyright 2016 - 2025 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_nrf).
--copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2025 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([initial_nrf/2, update_nrf/3, release_nrf/3]).

@@ -1,7 +1,7 @@
 %%% ocs_diameter_3gpp_ro_nrf_app_cb.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2024 SigScale Global Inc.
+%%% @copyright 2016 - 2025 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 %%% 	Nrf_Rating</a>
 %%%
 -module(ocs_diameter_3gpp_ro_nrf_app_cb).
--copyright('Copyright (c) 2016 - 2024 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2025 SigScale Global Inc.').
 
 -export([peer_up/4, peer_down/4, pick_peer/5, prepare_request/4,
 			prepare_retransmit/4, handle_answer/5, handle_error/5,
