@@ -1,3 +1,9 @@
+2024-06-08  Vance Shipley <vances@sigscale.org>
+
+	* refactor install release script for specific release name argument
+	* debug flag in install_release script
+	* update copyright year
+
 2024-05-27  Vance Shipley <vances@sigscale.org>
 
 	* include address-type in send sms script
