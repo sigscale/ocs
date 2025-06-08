@@ -1,5 +1,6 @@
 2024-06-08  Vance Shipley <vances@sigscale.org>
 
+	* unpack only if no change in application version
 	* refactor install release script for specific release name argument
 	* debug flag in install_release script
 	* update copyright year
