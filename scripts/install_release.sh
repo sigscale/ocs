@@ -61,7 +61,6 @@ then
 		echo "No permanent release found."
 		unset APP_OLD
 	else
-		if [ -z "${PERMANENT}" ] && [[ ${APP_OLD} != ${APP_NAME}-* ]];
 		if [[ ${APP_NEW} == ${APP_OLD} || ( -z "${PERMANENT}" && ( ${APP_OLD} != ${APP_NAME}-* )) ]];
 		then
 			echo "Unpacked (only) release ${APP_NEW}."
