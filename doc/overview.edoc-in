@@ -759,7 +759,7 @@ DIAMETER services may be configured with the following (optional) configuration 
 	<dt>'Host-IP-Address',</dt>
 		<dd>List of IP source addresses to be used.</dd>
 	<dt>'Auth-Application-Id'</dt>
-		<dd>List of IANA-assigned Application IDs. (default: [[5,16777250,16777264,16777265])</dd>
+		<dd>List of IANA-assigned Application IDs. (default: [5,16777250,16777264,16777265])</dd>
 	<dt><strike>capx_timeout</strike></dt>
 		<dd>Deprecated. Equivalent to {listen, [{capx_timeout, Time}]}.</dd>
 	<dt><strike>incoming_maxlen</strike></dt>
