@@ -2630,7 +2630,7 @@ ipdr_wlan1([acctSessionId | T], nrf = Protocol, TimeStamp, stop,
 		{_, {struct, PduSessionInformation}} ->
 			case lists:keyfind("pduSessionID", 1, PduSessionInformation) of
 				{_, PduSessionId} ->
-					IPDR#ipdr_wlan{acctSessionId = PduSessionId};
+					IPDR#ipdr_wlan{acctSessionId = integer_to_binary(PduSessionId)};
 				_ ->
 					IPDR
 			end;
