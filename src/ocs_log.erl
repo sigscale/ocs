@@ -779,7 +779,7 @@ ipdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
 ipdr_file3(_Log, _IoDevice, xdr, {_Cont,_Events}) ->
 	 {error, unimplemented};
 ipdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
-	ipdr_csv(Log, IoDevice, {Cont, Events}).
+	ipdr_csv(Log, IoDevice, $,, {Cont, Events}).
 
 -spec get_range(Log, Start, End) -> Result
 	when
@@ -2886,17 +2886,21 @@ ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
 	IPDR.
 
 %% @hidden
-ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
-	Header = [<<"Creation Time;Sequence Number;Username;">>,
-			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
-			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
-			<<"Class;Session Terminate Cause;Session Duration;">>,
-			<<"Input Octets;Output Octets;Chargeable Quantity;">>,
-			<<"Bucket Type;Bucket Value;Tariff Type;">>,
-			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
-	case file:write(IoDevice, Header) of
+ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdrDocWLAN{} | T]}) ->
+	Columns = [<<"Creation Time">>, <<"Sequence Number">>,
+			<<"Username">>, <<"Accounting Session ID">>,
+			<<"User IP Address">>, <<"Calling Station ID">>,
+			<<"Called Station ID">>, <<"NAS IP Address">>,
+			<<"NAS Identifier">>, <<"Class">>,
+			<<"Session Terminate Cause">>, <<"Session Duration">>,
+			<<"Input Octets">>, <<"Output Octets">>,
+			<<"Chargeable Quantity">>, <<"Bucket Type">>,
+			<<"Bucket Value">>, <<"Tariff Type">>, <<"Product">>,
+			<<"Price Type">>, <<"Usage Rating">>, <<"Charge Amount">>],
+	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
-			ipdr_csv(Log, IoDevice, {Cont, T});
+			ipdr_csv(Log, IoDevice, Seperator, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -2904,15 +2908,18 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
-	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
-			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
-			<<"Disconnect Reason;Host Name;">>,
-			<<"Bucket Type;Bucket Value;Tariff Type;">>,
-			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
-	case file:write(IoDevice, Header) of
+ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdrDocVoIP{} | T]}) ->
+	Columns = [<<"Creation Time">>, <<"Sequence Number">>,
+			<<"Subscriber ID">>, <<"Unique Call ID">>,
+			<<"Destination ID">>, <<"Call Completion Code">>,
+			<<"Disconnect Reason">>, <<"Host Name">>,
+			<<"Bucket Type">>, <<"Bucket Value">>,
+			<<"Tariff Type">>, <<"Product">>, <<"Price Type">>,
+			<<"Usage Rating">>, <<"Charge Amount">>],
+	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
-			ipdr_csv(Log, IoDevice, {Cont, T});
+			ipdr_csv(Log, IoDevice, Seperator, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -2920,20 +2927,20 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
+ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdr_voip{} = I | T]}) ->
 	Time = list_to_binary(I#ipdr_voip.ipdrCreationTime),
 	Seq = integer_to_binary(I#ipdr_voip.seqNum),
 	SubId = case I#ipdr_voip.subscriberId of
 		undefined ->
 			<<>>;
 		SID ->
-			list_to_binary(SID)
+			[$", SID, $"]
 	end,
 	UniqueId = case I#ipdr_voip.uniqueCallID of
 		undefined ->
 			<<>>;
 		UID ->
-			list_to_binary(UID)
+			[$", UID, $"]
 	end,
 	BType = case I#ipdr_voip.bucketType of
 		undefined ->
@@ -2975,13 +2982,13 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		CA ->
-		 list_to_binary(ocs_rest:millionths_out(CA))
+		 ocs_rest:millionths_out(CA)
 	end,
 	Dest = case I#ipdr_voip.destinationID of
 		undefined ->
 			<<>>;
 		DestID ->
-			list_to_binary(DestID)
+			[$", DestID, $"]
 	end,
 	CCCode = case I#ipdr_voip.callCompletionCode of
 		undefined ->
@@ -2989,7 +2996,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		ComCode when is_integer(ComCode) ->
 			integer_to_list(ComCode);
 		ComCode when is_list(ComCode) ->
-			list_to_binary(ComCode)
+			ComCode
 	end,
 	DiscReason = case I#ipdr_voip.disconnectReason of
 		undefined ->
@@ -2997,21 +3004,21 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		Disc when is_integer(Disc) ->
 			integer_to_binary(Disc);
 		Disc when is_list(Disc) ->
-			list_to_binary(Disc)
+			Disc
 	end,
 	HostName = case I#ipdr_voip.hostName of
 		undefined ->
 			<<>>;
 		HN ->
-			list_to_binary(HN)
+			HN
 	end,
-	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;, Dest, $;,
-			CCCode, $;, DiscReason, $;, HostName, $;, BType, $;,
-			BValue, $;, TType, $;, Prod, $;, PType, $;, URating, $;,
-			ChargeA, $\r, $\n],
-	case file:write(IoDevice, IPDR) of
+	Columns = [Time, Seq, SubId, UniqueId, Dest, CCCode,
+			DiscReason, HostName, BType, BValue, TType,
+			Prod, PType, URating, ChargeA],
+	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Row, $\r, $\n]) of
 		ok ->
-			ipdr_csv(Log, IoDevice, {Cont, T});
+			ipdr_csv(Log, IoDevice, Seperator, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -3019,23 +3026,23 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [I | T]})
+ipdr_csv(Log, IoDevice, Seperator, {Cont, [I | T]})
 		when ((size(I) =:= 48) and (element(1, I) == ipdr_wlan)) ->
-	ipdr_csv(Log, IoDevice, {Cont, [idpr_convert(I) | T]});
-ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
+	ipdr_csv(Log, IoDevice, Seperator, {Cont, [idpr_convert(I) | T]});
+ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdr_wlan{} = I | T]}) ->
 	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
 	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
 	User = case I#ipdr_wlan.username of
 		undefined ->
 			<<>>;
 		US ->
-			US
+			[$", US, $"]
 	end,
 	Sess = case I#ipdr_wlan.acctSessionId of
 		undefined ->
 			<<>>;
 		SI ->
-			SI
+			[$", SI, $"]
 	end,
 	IP = case I#ipdr_wlan.userIpAddress of
 		undefined ->
@@ -3047,13 +3054,13 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		CgID ->
-			CgID
+			[$", CgID, $"]
 	end,
 	Called = case I#ipdr_wlan.calledStationId of
 		undefined ->
 			<<>>;
 		CdID ->
-			CdID
+			[$", CdID, $"]
 	end,
 	NasIP = case I#ipdr_wlan.nasIpAddress of
 		undefined ->
@@ -3065,7 +3072,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		NID ->
-			NID
+			[$", NID, $"]
 	end,
 	Duration = case I#ipdr_wlan.sessionDuration of
 		undefined ->
@@ -3143,15 +3150,16 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		CA ->
-		 list_to_binary(ocs_rest:millionths_out(CA))
+		 ocs_rest:millionths_out(CA)
 	end,
-	IPDR = [Time, $;, Seq, $;, User, $;, $", Sess, $", $;, IP, $;, Calling, $;,
-			Called, $;, NasIP, $;, NasID, $;, Class, $;, Cause, $;, Duration, $;,
-			Input, $;, Output, $;, ChargeQ, $;, BType, $;, BValue, $;, TType, $;,
-			Prod, $;, PType, $;, URating, $;, ChargeA, $\r, $\n],
-	case file:write(IoDevice, IPDR) of
+	Columns = [Time, Seq, User, Sess, IP, Calling,
+			Called, NasIP, NasID, Class, Cause, Duration,
+			Input, Output, ChargeQ, BType, BValue, TType,
+			Prod, PType, URating, ChargeA],
+	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Row, $\r, $\n]) of
 		ok ->
-			ipdr_csv(Log, IoDevice, {Cont, T});
+			ipdr_csv(Log, IoDevice, Seperator, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -3159,9 +3167,9 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
+ipdr_csv(Log, IoDevice, _Seperator, {Cont, [#ipdrDocEnd{}]}) ->
 	ipdr_file3(Log, IoDevice, csv, {Cont, []});
-ipdr_csv(Log, IoDevice, {Cont, []}) ->
+ipdr_csv(Log, IoDevice, _Seperator, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, csv, {Cont, []}).
 
 % @private
