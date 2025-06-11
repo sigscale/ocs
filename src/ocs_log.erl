@@ -2313,9 +2313,9 @@ ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, [H | T], Acc)
 	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, T, [IPDR | Acc]);
 ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, undefined, Acc)
 		when Protocol == diameter; Protocol == nrf ->
-	ipdr_codec2(Protocol, TimeStamp, ReqType, Req, Res, undefined);
+	[ipdr_codec2(Protocol, TimeStamp, ReqType, Req, Res, undefined)];
 ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated, Acc) ->
-	ipdr_codec2(radius, TimeStamp, ReqType, Req, Res, Rated);
+	[ipdr_codec2(radius, TimeStamp, ReqType, Req, Res, Rated)];
 ipdr_codec1(_Protocol, _TimeStamp, _ReqType, _Req, _Res, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
