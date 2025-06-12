@@ -2472,8 +2472,12 @@ ipdr_ims_voip1([subscriberId | T], diameter = Protocol, TimeStamp, ReqType,
 			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
 	end;
 ipdr_ims_voip1([subscriberId | T], nrf = Protocol, TimeStamp, ReqType,
-		#{"subscriptionId" := [SubscriptionID | _]} = Req, Res, Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_voip{subscriberId = SubscriptionID},
+		#{"subscriptionId" := ["imsi-" ++ IMSI | _]} = Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{subscriberId = IMSI},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+ipdr_ims_voip1([subscriberId | T], nrf = Protocol, TimeStamp, ReqType,
+		#{"subscriptionId" := ["msisdn-" ++ MSISDN | _]} = Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{subscriberId = MSISDN},
 	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
 ipdr_ims_voip1([uniqueCallID | T], diameter = Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req, Res, Rated, IPDR) ->
@@ -2613,6 +2617,14 @@ ipdr_wlan1([username | T], diameter = Protocol, TimeStamp, stop,
 		_ ->
 			ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR)
 	end;
+ipdr_wlan1([username | T], nrf = Protocol, TimeStamp, ReqType,
+		#{"subscriptionId" := ["imsi-" ++ IMSI | _]} = Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{username = IMSI},
+	ipdr_wlan1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+ipdr_wlan1([username | T], nrf = Protocol, TimeStamp, ReqType,
+		#{"subscriptionId" := ["msisdn-" ++ MSISDN | _]} = Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{username = MSISDN},
+	ipdr_wlan1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
 ipdr_wlan1([scId | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([acctSessionId | T], radius = Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
