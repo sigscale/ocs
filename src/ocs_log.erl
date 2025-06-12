@@ -2626,14 +2626,9 @@ ipdr_wlan1([acctSessionId | T], diameter = Protocol, TimeStamp, stop,
 ipdr_wlan1([acctSessionId | T], nrf = Protocol, TimeStamp, stop,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
 		Resp, Rated, IPDR) ->
-	NewIPDR = case lists:keyfind("pduSessionInformation", 1, ServiceInfo) of
-		{_, {struct, PduSessionInformation}} ->
-			case lists:keyfind("pduSessionID", 1, PduSessionInformation) of
-				{_, PduSessionId} ->
-					IPDR#ipdr_wlan{acctSessionId = integer_to_binary(PduSessionId)};
-				_ ->
-					IPDR
-			end;
+	NewIPDR = case lists:keyfind("chargingId", 1, ServiceInfo) of
+		{_, ChargingId} ->
+			IPDR#ipdr_wlan{acctSessionId = integer_to_binary(ChargingId)};
 		_ ->
 			IPDR
 	end,
