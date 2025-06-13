@@ -522,8 +522,9 @@ ipdr_query(Continuation, Log, _Start, _End, _AttrsMatch) ->
 %%
 %% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
 %% 	or overwrites an existing, with filename `File'. The log starts
-%% 	with a `#ipdrDocWLAN{}' header, is followed by `#ipdr_wlan{}' records,
-%% 	and ends with a `#ipdrDocEnd{}' trailer.
+%% 	with a `#ipdrDocWLAN{}' | `#ipdrDocVoIP{}' header, is followed
+%% 	by `#ipdr_wlan{}' | `#ipdr_voip{}'  records, and ends with a
+%% 	`#ipdrDocEnd{}' trailer.
 %%
 %% 	The `ocs_acct' log is searched for events created between `Start'
 %% 	and `End' which may be given as
@@ -2649,12 +2650,12 @@ ipdr_wlan1([callingStationId | T], radius = Protocol, TimeStamp, stop, Req, Resp
 	CallingParty = proplists:get_value(?CallingStationId, Req),
 	NewIPDR = IPDR#ipdr_wlan{callingStationId = CallingParty},
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([callingStationId | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([calledStationId | T], radius = Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	CalledParty = proplists:get_value(?CalledStationId, Req),
 	NewIPDR = IPDR#ipdr_wlan{calledStationId = CalledParty},
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
-ipdr_wlan1([callingStationId | T], diameter = Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
-	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([calledStationId | T], diameter = Protocol, TimeStamp, stop,
 		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req, Resp, Rated, IPDR) ->
 	case ServiceInfo of
@@ -2701,11 +2702,31 @@ ipdr_wlan1([nasIpAddress | T], radius = Protocol, TimeStamp, stop, Req, Resp, Ra
 		{error, not_found} ->
 			ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR)
 	end;
-ipdr_wlan1([nasIpAddress | T], diameter = Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+ipdr_wlan1([nasIpAddress | T], nrf = Protocol, TimeStamp, stop,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Resp, Rated, IPDR) ->
+	NewIPDR = case nf_identification(ServiceInfo) of
+		NasIpAddress when is_list(NasIpAddress) ->
+			IPDR#ipdr_wlan{nasIpAddress = NasIpAddress};
+		undefined ->
+			IPDR
+	end,
+	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([nasIpAddress | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([nasId | T], radius = Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	Identifier = proplists:get_value(?NasIdentifier, Req),
 	NewIPDR = IPDR#ipdr_wlan{nasId = Identifier},
+	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([nasId | T], nrf = Protocol, TimeStamp, stop,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Resp, Rated, IPDR) ->
+	NewIPDR = case nf_name(ServiceInfo) of
+		NasId when is_list(NasId) ->
+			IPDR#ipdr_wlan{nasId = NasId};
+		undefined ->
+			IPDR
+	end,
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([nasId | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
@@ -3943,4 +3964,70 @@ idpr_convert({ipdr_wlan, IpdrCreationTime, SeqNum,
 	taxAmount = TaxAmount, taxType = TaxType,
 	intermediaryName = IntermediaryName, serviceName = ServiceName,
 	relatedIpdrIdList = RelatedIpdrIdList, tempUserId = TempUserId}.
+
+%% @hidden
+nf_identification(PDUSessionChargingInformation)
+		when is_list(PDUSessionChargingInformation) ->
+	nf_identification1(lists:keyfind("pduSessionInformation",
+			1, PDUSessionChargingInformation));
+nf_identification(_) ->
+	undefined.
+%% @hidden
+nf_identification1({_, {struct, PduSessionInformation}}) ->
+	nf_identification2(lists:keyfind("servingNetworkFunctionID",
+			1, PduSessionInformation));
+nf_identification1(_) ->
+	undefined.
+%% @hidden
+nf_identification2({_, {struct, ServingNetworkFunctionID}}) ->
+	nf_identification3(lists:keyfind("servingNetworkFunctionInformation",
+			1, ServingNetworkFunctionID));
+nf_identification2(_) ->
+	undefined.
+%% @hidden
+nf_identification3({_, {struct, NFIdentification}}) ->
+	nf_identification4(NFIdentification,
+			lists:keyfind("nFIPv4Address", 1, NFIdentification)); 
+nf_identification3(_) ->
+	undefined.
+%% @hidden
+nf_identification4(_NFIdentification, {_, Ipv4Addr}) ->
+	Ipv4Addr;
+nf_identification4(NFIdentification, _) ->
+	nf_identification5(lists:keyfind("nFIPv6Address", 1, NFIdentification)).
+%% @hidden
+nf_identification5({_, Ipv6Addr}) ->
+	Ipv6Addr;
+nf_identification5(_) ->
+	undefined.
+
+%% @hidden
+nf_name(PDUSessionChargingInformation)
+		when is_list(PDUSessionChargingInformation) ->
+	nf_name1(lists:keyfind("pduSessionInformation",
+			1, PDUSessionChargingInformation));
+nf_name(_) ->
+	undefined.
+%% @hidden
+nf_name1({_, {struct, PduSessionInformation}}) ->
+	nf_name2(lists:keyfind("servingNetworkFunctionID",
+			1, PduSessionInformation));
+nf_name1(_) ->
+	undefined.
+%% @hidden
+nf_name2({_, {struct, ServingNetworkFunctionID}}) ->
+	nf_name3(lists:keyfind("servingNetworkFunctionInformation",
+			1, ServingNetworkFunctionID));
+nf_name2(_) ->
+	undefined.
+%% @hidden
+nf_name3({_, {struct, NFIdentification}}) ->
+	nf_name4(lists:keyfind("nFName", 1, NFIdentification)); 
+nf_name3(_) ->
+	undefined.
+%% @hidden
+nf_name4({_, NFInstanceId}) ->
+	NFInstanceId;
+nf_name4(_) ->
+	undefined.
 
