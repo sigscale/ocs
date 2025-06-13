@@ -934,14 +934,17 @@ last3(Log, MaxItems, [Cont | T], NumItems, Acc) ->
 last3(_Log, _MaxItems, [], NumItems, Acc) ->
 	{NumItems, lists:reverse(Acc)}.
 
--spec date(MilliSeconds) -> Result
+-spec date(DateTime) -> Result
 	when
-		MilliSeconds :: timestamp(),
-		Result :: calendar:datetime().
-%% @doc Convert Unix epoch timestamp to OTP date and time.
-date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Seconds = ?EPOCH + (MilliSeconds div 1000),
-	calendar:gregorian_seconds_to_datetime(Seconds).
+		DateTime :: timestamp() | calendar:datetime1970(),
+		Result :: calendar:datetime() | timestamp().
+%% @doc Convert between Unix epoch timestamp and OTP date and time.
+date(DateTime) when is_integer(DateTime) ->
+	Seconds = ?EPOCH + (DateTime div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds);
+date(DateTime) when is_tuple(DateTime) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
+	Seconds * 1000.
 
 -spec iso8601(DateTime) -> DateTime
 	when
