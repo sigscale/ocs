@@ -373,14 +373,15 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
-		Start :: calendar:datetime(),
+		Start :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
 %% @doc Query diameter logs.
 %%
 %% 	End time will be now.
 %%
-ql(acct = _Log, {MatchHead, MatchConditions} = Match,
-		{{_, _, _}, {_, _, _}} = Start)
+ql(Log, Match, {{_, _, _}, {_, _, _}} = Start) ->
+	ql(Log, Match, ocs_log:date(Start));
+ql(acct = _Log, {MatchHead, MatchConditions} = Match, Start)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
@@ -391,7 +392,8 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		or is_record(MatchHead, '3gpp_gx_RAR')
 		or is_record(MatchHead, '3gpp_gx_RAA')
 		or is_map(MatchHead)
-		or is_record(MatchHead, rated)) ->
+		or is_record(MatchHead, rated)),
+		is_integer(Start) ->
 	End = erlang:universaltime(),
 	query_acct_log(Match, Start, End).
 
@@ -417,13 +419,15 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
-		Start :: calendar:datetime(),
-		End :: calendar:datetime(),
+		Start :: calendar:datetime() | ocs_log:timestamp(),
+		End :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
 %% @doc Query diameter logs.
-ql(acct = _Log, {MatchHead, MatchConditions} = Match,
-		{{_, _, _}, {_, _, _}} = Start,
-		{{_, _, _}, {_, _, _}} = End)
+ql(Log, Match, {{_, _, _}, {_, _, _}} = Start, End) ->
+	ql(Log, Match, ocs_log:date(Start), End);
+ql(Log, Match, Start, {{_, _, _}, {_, _, _}} = End) ->
+	ql(Log, Match, Start, ocs_log:date(End));
+ql(acct = _Log, {MatchHead, MatchConditions} = Match, Start, End)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
@@ -434,7 +438,8 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		or is_record(MatchHead, '3gpp_gx_RAR')
 		or is_record(MatchHead, '3gpp_gx_RAA')
 		or is_map(MatchHead)
-		or is_record(MatchHead, rated)) ->
+		or is_record(MatchHead, rated)),
+		is_integer(Start), is_integer(End) ->
 	query_acct_log(Match, Start, End).
 
 %%----------------------------------------------------------------------
