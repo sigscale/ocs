@@ -312,7 +312,8 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 -spec ql(Log, Match) -> Events
 	when
 		Log :: acct | auth,
-		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		Match :: MatchFilter | [MatchFilter],
+		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -336,25 +337,17 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 %%
 %% 	Start will be minus one hour from now.
 %%
-ql(acct = _Log, {MatchHead, MatchConditions} = Match)
-		when is_list(MatchConditions),
-		(is_record(MatchHead, '3gpp_ro_CCR')
-		or is_record(MatchHead, '3gpp_ro_CCA')
-		or is_record(MatchHead, '3gpp_gx_CCR')
-		or is_record(MatchHead, '3gpp_gx_CCA')
-		or is_record(MatchHead, '3gpp_gx_RAR')
-		or is_record(MatchHead, '3gpp_gx_RAA')
-		or is_map(MatchHead)
-		or is_record(MatchHead, rated)) ->
+ql(Log, Match) ->
 	End = erlang:universaltime(),
 	EndS = calendar:datetime_to_gregorian_seconds(End),
 	Start = calendar:gregorian_seconds_to_datetime(EndS - 3600),
-	query_acct_log(Match, Start, End).
+	ql(Log, Match, Start, End).
 
 -spec ql(Log, Match, Start) -> Events
 	when
 		Log :: acct | auth,
-		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		Match :: MatchFilter | [MatchFilter],
+		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -379,28 +372,15 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 %%
 %% 	End time will be now.
 %%
-ql(Log, Match, {{_, _, _}, {_, _, _}} = Start) ->
-	ql(Log, Match, ocs_log:date(Start));
-ql(acct = _Log, {MatchHead, MatchConditions} = Match, Start)
-		when is_list(MatchConditions),
-		(is_record(MatchHead, '3gpp_ro_CCR')
-		or is_record(MatchHead, '3gpp_ro_CCA')
-		or is_record(MatchHead, '3gpp_ro_RAR')
-		or is_record(MatchHead, '3gpp_ro_RAA')
-		or is_record(MatchHead, '3gpp_gx_CCR')
-		or is_record(MatchHead, '3gpp_gx_CCA')
-		or is_record(MatchHead, '3gpp_gx_RAR')
-		or is_record(MatchHead, '3gpp_gx_RAA')
-		or is_map(MatchHead)
-		or is_record(MatchHead, rated)),
-		is_integer(Start) ->
+ql(Log, Match, Start) ->
 	End = erlang:universaltime(),
-	query_acct_log(Match, Start, End).
+	ql(Log, Match, Start, End).
 
 -spec ql(Log, Match, Start, End) -> Events
 	when
 		Log :: acct | auth,
-		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		Match :: MatchFilter | [MatchFilter],
+		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: {exact, term()} | {notexact, term()}
@@ -423,11 +403,13 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match, Start)
 		End :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
 %% @doc Query diameter logs.
+ql(Log, Match, Start, End) when is_tuple(Match) ->
+	ql(Log, [Match], Start, End);
 ql(Log, Match, {{_, _, _}, {_, _, _}} = Start, End) ->
 	ql(Log, Match, ocs_log:date(Start), End);
 ql(Log, Match, Start, {{_, _, _}, {_, _, _}} = End) ->
 	ql(Log, Match, Start, ocs_log:date(End));
-ql(acct = _Log, {MatchHead, MatchConditions} = Match, Start, End)
+ql(acct = _Log, [{MatchHead, MatchConditions} | _] = Match, Start, End)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
