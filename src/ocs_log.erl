@@ -3607,7 +3607,7 @@ acct_query8(Events, Matches) ->
 	acct_query9(Events, Matches, RatedMatchSpec, []).
 %% @hidden
 acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
-		when length(RatedMatchSpec) > 0 ->
+		when is_list(element(9, H)), length(RatedMatchSpec) > 0 ->
 	F = fun(#rated{} = Rated) ->
 				case erlang:match_spec_test(Rated, RatedMatchSpec, table) of
 					{ok, #rated{}, [], []} ->
@@ -3624,6 +3624,9 @@ acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
 		false ->
 			acct_query9(T, Matches, RatedMatchSpec, Acc)
 	end;
+acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
+		when length(RatedMatchSpec) > 0 ->
+	acct_query9(T, Matches, RatedMatchSpec, Acc);
 acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
 	acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
 acct_query9([], _, _, Acc) ->
