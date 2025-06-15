@@ -3582,7 +3582,7 @@ acct_query6(Events, Matches) when is_list(Matches) ->
 	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
 	acct_query7(Events, Matches, DiameterMatchSpec, []).
 %% @hidden
-acct_query7([H | T] = _Events, Matches, [] = DiameterMatchSpec, Acc)
+acct_query7([H | T] = _Events, Matches, DiameterMatchSpec, Acc)
 		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
 	case erlang:match_spec_test(element(8, H), DiameterMatchSpec, table) of
 		{ok, Event, [], []} when is_tuple(Event) ->
