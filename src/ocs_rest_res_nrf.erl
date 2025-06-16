@@ -766,7 +766,10 @@ nrf1([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
 	nrf1(T, Acc#{"invocationSequenceNumber" => SeqNum});
 nrf1([{"subscriptionId", SubscriptionIds} | T], Acc) ->
 	nrf1(T, subscriptionId_map(SubscriptionIds, Acc));
-nrf1([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
+nrf1([{"nfConsumerIdentification",
+		{struct, NfConsumerIdentification}} | T], Acc) ->
+	{_, NF} = lists:keyfind("nodeFunctionality",
+			1, NfConsumerIdentification),
 	nrf1(T, Acc#{"nodeFunctionality" => NF});
 nrf1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
 	nrf1(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
