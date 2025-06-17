@@ -105,7 +105,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 				{"invocationSequenceNumber", InvocationSequenceNumber},
 				SubscriptionId, {"serviceRating", {array, ServiceRatingResults}}]},
 		RatingDataRef = integer_to_list(rand:uniform(16#ffff)),
-		Headers = [{location, "/ratingdata/" ++ RatingDataRef}],
+		Headers = [{location, "/nrf-rating/v1/ratingdata/" ++ RatingDataRef}],
 		do_response(ModData, {201, Headers, mochijson:encode(Response)})
 	catch
 		_:_Reason ->

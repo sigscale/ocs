@@ -126,7 +126,7 @@ initial_nrf1(ModData, NrfRequest) ->
 		end
 	of
 		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
-			Location = "/ratingdata/" ++ RatingDataRef,
+			Location = "/nrf-rating/v1/ratingdata/" ++ RatingDataRef,
 			Headers = [{content_type, "application/json"}, {location, Location}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), start,
