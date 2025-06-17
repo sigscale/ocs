@@ -420,29 +420,29 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
 			status => 403,
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.1.0#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6#/",
 			title => "Request denied due to insufficient credit (usage applied)"};
 rest_error_response(service_not_found, InvalidParams) ->
 	#{cause => "SUBSCRIPTION_NOT_FOUND",
 			status => 404,
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.1.0#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6#/",
 			title => "Request denied because the subscriber identity is unrecognized",
 			invalidParams => InvalidParams};
 rest_error_response(charging_failed, undefined) ->
 	#{cause => "CHARGING_FAILED",
 			status => 500,
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.1.0#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6#/",
 			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "RATING_DATA_REF_UNKNOWN",
 			status => 404,
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.1.0#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6#/",
 			title => "Request denied because the rating data ref is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "INVALID_SERVICE_TYPE",
 			status => 400,
-			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.1.0#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6#/",
 			title => "Request denied because the service context id is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(decode_failed, undefined) ->
