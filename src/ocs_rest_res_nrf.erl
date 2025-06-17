@@ -160,7 +160,7 @@ initial_nrf1(ModData, NrfRequest) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
+%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{RatingDataRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(ModData, RatingDataRef, NrfRequest) ->
 	case authorize_rating(ModData) of
@@ -217,7 +217,7 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 						Problem = rest_error_response(charging_failed, undefined),
 						{error, 500, LogRequest, Problem}
 				end;
-			_ ->
+			_Other->
 				error_logger:warning_report(["Unable to process Nrf request",
 						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
 						{operation, update}, {error, decode_failed}]),
@@ -258,7 +258,7 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/release'.
+%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{RatingDataRef}/release'.
 %%
 %%		Rate a final Nrf Request.
 %%
