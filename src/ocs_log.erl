@@ -2637,14 +2637,14 @@ ipdr_wlan1([acctSessionId | T], radius = Protocol, TimeStamp, stop, Req, Resp, R
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([acctSessionId | T], diameter = Protocol, TimeStamp, stop,
 		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Resp, Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_wlan{acctSessionId = SessionId},
+	NewIPDR = IPDR#ipdr_wlan{acctSessionId = binary_to_list(SessionId)},
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([acctSessionId | T], nrf = Protocol, TimeStamp, stop,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
 		Resp, Rated, IPDR) ->
 	NewIPDR = case lists:keyfind("chargingId", 1, ServiceInfo) of
 		{_, ChargingId} ->
-			IPDR#ipdr_wlan{acctSessionId = integer_to_binary(ChargingId)};
+			IPDR#ipdr_wlan{acctSessionId = integer_to_list(ChargingId)};
 		_ ->
 			IPDR
 	end,
