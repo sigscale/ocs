@@ -91,7 +91,7 @@ content_type_available(Headers, Uri, Body, #mod{data = Data} = ModData) ->
 	end.
 
 %% @hidden
-do_post(ModData, Body, ["ratingdata"]) ->
+do_post(ModData, Body, ["nrf-rating", "v1", "ratingdata"]) ->
 	try
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
@@ -126,7 +126,7 @@ do_post(ModData, Body, ["nrf-rating", "v1", "ratingdata", "tariffrequest"]) ->
 		_:_Reason ->
 			do_response(ModData, {error, 400})
 	end;
-do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
+do_post(ModData, Body, ["nrf-rating", "v1", "ratingdata", _RatingDataRef, Op])
 		when Op == "update"; Op == "release" ->
 	try
 		{struct, NrfRequest} = mochijson:decode(Body),
