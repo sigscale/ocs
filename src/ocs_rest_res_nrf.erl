@@ -91,15 +91,15 @@ initial_nrf1(ModData, NrfRequest) ->
 						initial
 				end,
 				case rate(RatingDataRef, NrfMap, Flag) of
-					{ok, ServiceRating} when is_list(ServiceRating) ->
+					{ok, ServiceRating, _Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						{NrfResponse, LogRequest, UpdatedMap};
-					{error, out_of_credit = Reason} ->
+					{out_of_credit, _ServiceRating, _Rated} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(Reason, undefined),
+						Problem = rest_error_response(out_of_credit, undefined),
 						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
@@ -191,14 +191,14 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
 				case rate(RatingDataRef, NrfMap, interim) of
-					{ok, ServiceRating} when is_list(ServiceRating) ->
+					{ok, ServiceRating, _Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						{NrfResponse, LogRequest, UpdatedMap};
-					{error, out_of_credit = Reason} ->
+					{out_of_credit, _ServiceRating, _Rated} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(Reason, undefined),
+						Problem = rest_error_response(out_of_credit, undefined),
 						{error, 403, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
@@ -291,32 +291,32 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
 				case rate(RatingDataRef, NrfMap, final) of
-					{ok, ServiceRating} when is_list(ServiceRating) ->
+					{ok, ServiceRating, Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{NrfResponse, LogRequest, UpdatedMap};
-					{error, out_of_credit = Reason} ->
+						{NrfResponse, LogRequest, UpdatedMap, Rated};
+					{out_of_credit, _ServiceRating, Rated} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(Reason, undefined),
-						{error, 403, LogRequest, Problem};
+						Problem = rest_error_response(out_of_credit, undefined),
+						{error, 403, LogRequest, Problem, Rated};
 					{error, service_not_found = Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, LogRequest, Problem};
+						{error, 404, LogRequest, Problem, []};
 					{error, invalid_service_type = Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, LogRequest, Problem};
+						{error, 400, LogRequest, Problem, []};
 					{error, _Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, LogRequest, Problem}
+						{error, 500, LogRequest, Problem, []}
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
@@ -325,15 +325,15 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				{error, decode_failed}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
+		{{struct, _} = NrfResponse1, LogRequest1, LogResponse, Rated1} ->
 			Headers = [{content_type, "application/json"}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
-					LogRequest1, LogResponse, undefined),
+					LogRequest1, LogResponse, Rated1),
 			{200, Headers, ResponseBody};
-		{error, StatusCode, LogRequest1, Problem1} ->
+		{error, StatusCode, LogRequest1, Problem1, Rated1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
-					LogRequest1, Problem1, undefined),
+					LogRequest1, Problem1, Rated1),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
 			Problem1 = rest_error_response(Reason1, undefined),
@@ -478,9 +478,12 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 		RatingDataRef :: string(),
 		NrfRequest :: map(),
 		Flag :: initial | interim | final | event,
-		Result :: {ok, ServiceRating} | {error, Reason},
+		Result :: {RateResult, ServiceRating, Rated} | {error, Reason},
+		RateResult :: ok | out_of_credit,
 		ServiceRating :: [map()],
-		Reason :: term().
+		Rated :: ocs_log:acct_rated(),
+		Reason :: offer_not_found | product_not_found | service_not_found
+				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = NrfRequest, Flag) ->
 	ServiceRating = maps:get("serviceRating", NrfRequest, []),
@@ -583,11 +586,11 @@ rate1(RatingDataRef, Flag, SubscriptionIds,
 rate1(RatingDataRef, Flag, SubscriptionIds, [Args1, Args2 | T], Acc) ->
 	rate1(RatingDataRef, Flag, SubscriptionIds, [Args2 | T], [Args1 | Acc]);
 rate1(RatingDataRef, Flag, SubscriptionIds, [Args1], Acc) ->
-	rate2(RatingDataRef, Flag, SubscriptionIds, [Args1 | Acc], []).
+	rate2(RatingDataRef, Flag, SubscriptionIds, [Args1 | Acc], [], []).
 %% @hidden
 rate2(RatingDataRef, Flag, SubscriptionIds,
 		[{ServiceType, ChargingKey, ServiceId, ServiceNetwork, Address,
-		Direction, SessionAttributes, Debits, Reserves} | T], Acc) ->
+		Direction, SessionAttributes, Debits, Reserves} | T], AccS, AccR) ->
 	TS = calendar:universal_time(),
 	SR1 = #{"serviceContextId" => integer_to_list(ServiceType) ++ "@3gpp.org"},
 	SR2 = case is_integer(ChargingKey) of
@@ -614,15 +617,18 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], AccR);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], AccR);
 		{ok, _Service, {messages, Amount} = _GrantedAmount}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], AccR);
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
@@ -633,7 +639,8 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], AccR);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
@@ -644,7 +651,8 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], AccR);
 		{ok, _Service, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
@@ -655,23 +663,28 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], AccR);
 		{ok, _Service, {_, 0} = _GrantedAmount} ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
-		{ok, _Service, {octets, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], AccR);
+		{ok, _Service, {octets, Amount} = _GrantedAmount, Rated}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
-		{ok, _Service, {seconds, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], [Rated | AccR]);
+		{ok, _Service, {seconds, Amount} = _GrantedAmount, Rated}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
-		{ok, _Service, {messages, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], [Rated | AccR]);
+		{ok, _Service, {messages, Amount} = _GrantedAmount, Rated}
 				when Flag == event, Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
-		{ok, _Service, {octets, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], [Rated | AccR]);
+		{ok, _Service, {octets, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount}},
@@ -681,8 +694,9 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
-		{ok, _Service, {seconds, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], [Rated | AccR]);
+		{ok, _Service, {seconds, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount}},
@@ -692,8 +706,9 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
-		{ok, _, {messages, Amount} = _GrantedAmount, _Rated}
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], [Rated | AccR]);
+		{ok, _, {messages, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount}},
@@ -703,35 +718,41 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					SR5
 			end,
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR6 | Acc]);
-		{ok, _Service, _Rated} ->
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR6 | AccS], [Rated | AccR]);
+		{ok, _Service, Rated} ->
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], [Rated | AccR]);
 		{out_of_credit, _RedirectServerAddress, _SessionList} ->
 			SR5 = SR4#{"resultCode" => "QUOTA_LIMIT_REACHED"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
-		{out_of_credit, _RedirectServerAddress, _SessionList, _Rated} ->
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], AccR);
+		{out_of_credit, _RedirectServerAddress, _SessionList, Rated} ->
 			SR5 = SR4#{"resultCode" => "QUOTA_LIMIT_REACHED"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T, [SR5 | Acc]);
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR5 | AccS], [Rated | AccR]);
 		{disabled, _SessionList} ->
-			{error, out_of_credit};
+			{error, service_rejected};
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate2(_, _, _, [], Acc) when length(Acc) > 0 ->
+rate2(_, _, _, [], AccS, AccR) when length(AccS) > 0 ->
+	Rated = lists:flatten(lists:reverse(AccR)),
 	F = fun(#{"resultCode" := "SUCCESS"}) ->
 				true;
 			(_) ->
 				false
 	end,
-	case lists:any(F, Acc) of
+	case lists:any(F, AccS) of
 		true ->
-			{ok, Acc};
+			{ok, AccS, Rated};
 		false ->
-			{error, out_of_credit}
+			{out_of_credit, AccS, Rated}
 	end;
-rate2(_, _, _, [], Acc) ->
-	{ok, Acc}.
+rate2(_, _, _, [], AccS, AccR) ->
+	Rated = lists:flatten(lists:reverse(AccR)),
+	{ok, AccS, Rated}.
 
 -spec nrf(Nrf) -> Nrf
 	when
