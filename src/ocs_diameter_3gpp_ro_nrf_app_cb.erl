@@ -46,7 +46,7 @@
 
 -define(EPOCH_OFFSET, 2208988800).
 -define(RO_APPLICATION_ID, 4).
--define(BASE_URI, "/ratingdata").
+-define(BASE_URI, "/nrf-rating/v1").
 -define(NRF_TABLE, nrf_session).
 
 -type state() :: #state{}.
@@ -981,7 +981,7 @@ post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
 	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
 post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, Destination, URL, {initial, b}) ->
-	Path = URL ++ ?BASE_URI,
+	Path = URL ++ ?BASE_URI ++ "/ratingdata",
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
 	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
@@ -1071,7 +1071,7 @@ post_request_iec1(_ServiceName, SubscriptionId,
 					{"subscriptionId", {array, SubscriptionId}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
-	Path = URL ++ ?BASE_URI,
+	Path = URL ++ ?BASE_URI ++ "/ratingdata",
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
@@ -1123,7 +1123,7 @@ post_request_scur(_ServiceName, SubscriptionId, SvcContextId, SessionId,
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
 post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
 		SessionId, MSCC, _, Location, URL, {initial, b}) ->
-	Path = URL ++ ?BASE_URI,
+	Path = URL ++ ?BASE_URI ++ "/ratingdata",
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
 	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
