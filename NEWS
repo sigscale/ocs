@@ -1,3 +1,13 @@
+June 23, 2025
+-------------
+	- Nrf accouting log includes rating results
+	- Correct Nrf Location: header as full relative path
+	- Shell script emulating Nrf client
+	- Nrf API v1.1.6
+	- Correct rated match specification in log query
+	- Shell shortcut command for log query accepts multiple matches
+	- IPDR export fixes and improvements
+
 June 8, 2025
 ------------
 	- Handle release downgrade

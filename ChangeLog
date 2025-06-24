@@ -1,3 +1,28 @@
+2024-06-23  Vance Shipley <vances@sigscale.org>
+
+	* correct final zero debits overwriting rated in acct log
+	* include rated element in acct log for nrf
+	* correct base path in diameter ro nrf client
+	* correct base path in nrf test server
+	* acct session id as string
+	* escript for nrf consumer
+	* include api root in location header of nrf
+	* correct urls problem reports of rest resource handler for nrf
+	* stricter definition for location header in 201 response (#4)
+	* correct urls in edoc of rest resource handler for nrf
+	* handle other nf consumer identication properties
+	* correct rated match in query log
+	* shell shortcut command for log query accepts multiple matches
+	* correct unreached diameter response matching in query log
+	* accept epoc timestamps in shell default query log
+	* make ocs_log:date/1 codec bidrectional
+	* handle nrf nf address/name in ipdr export
+	* handle nrf subscription id in ipdr export
+	* ipdr accounting session id from nrf pdu charging id
+	* nrf pdu session id as string in exported csv
+	* export csv column seperator as comma
+	* ipdr codec result always list
+
 2024-06-08  Vance Shipley <vances@sigscale.org>
 
 	* unpack only if no change in application version
