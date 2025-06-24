@@ -3417,15 +3417,29 @@ rated(Debits, #rated{} = Rated)
 	[Rated];
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
-rated(Debits, [#rated{} = Rated | T]) ->
+rated(Debits, [#rated{bucket_value = undefined,
+		tax_excluded_amount = undefined} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,
 						usage_rating_tag = non_included, is_billed = true,
 						tax_excluded_amount = Amount} | Acc];
 			(Units, Amount, Acc) ->
-				[Rated#rated{bucket_value = Amount,
-						usage_rating_tag = included, is_billed = true,
-						bucket_type = Units} | Acc]
+				[Rated#rated{bucket_type = Units, bucket_value = Amount,
+						usage_rating_tag = included, is_billed = true} | Acc]
+	end,
+	maps:fold(F, T, Debits);
+rated(Debits, [#rated{product = OfferName} | _] = T) ->
+	F = fun(_Units, 0 = _Amount, Acc) ->
+				Acc;
+			(cents, Amount, Acc) ->
+				[#rated{product = OfferName,
+						bucket_type = cents, bucket_value = Amount,
+						usage_rating_tag = non_included, is_billed = true,
+						tax_excluded_amount = Amount} | Acc];
+			(Units, Amount, Acc) ->
+				[#rated{product = OfferName,
+						bucket_type = Units, bucket_value = Amount,
+						usage_rating_tag = included, is_billed = true} | Acc]
 	end,
 	maps:fold(F, T, Debits).
 
