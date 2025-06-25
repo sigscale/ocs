@@ -49,7 +49,7 @@
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([ipdr_log/4, ipdr_file/3, ipdr_query/5]).
+-export([ipdr_log/4, ipdr_file/3]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
@@ -60,7 +60,7 @@
 -export([auth_to_ecs/1, acct_to_ecs/1]).
 
 %% exported the private function
--export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
+-export([acct_query/4, auth_query/5, abmf_query/6]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, abmf_event/0,
@@ -483,32 +483,6 @@ http_query8(Chunks) ->
 			[{H, U, D, M, URI, S} | Acc]
 	end,
 	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
-
--spec ipdr_query(Continuation, Log, Start, End, AttrsMatch) -> Result
-	when
-		Continuation :: start | disk_log:continuation(),
-		Log :: atom(),
-		Start :: calendar:datetime() | timestamp(),
-		End :: calendar:datetime() | timestamp(),
-		AttrsMatch :: [{Attribute, Match}] | '_',
-		Attribute :: byte(),
-		Match :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]} | '_',
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()].
-%% @doc Ipdr log query.
-ipdr_query(Continuation, Log, _Start, _End, _AttrsMatch) ->
-	case disk_log:chunk(Log, Continuation) of
-		eof ->
-			{eof, []};
-		{Continuation1, Events} ->
-			{Continuation1, Events}
-	end.
 
 -spec ipdr_log(Type, File, Start, End) -> Result
 	when
@@ -3631,58 +3605,6 @@ acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
 	acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
 acct_query9([], _, _, Acc) ->
 	lists:reverse(Acc).
-
--spec ipdr_query(Continuation, MatchSpec) -> Result
-	when
-		Continuation :: {Continuation2, Events},
-		MatchSpec :: [tuple()] | '_',
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [#ipdr_wlan{}].
-%% @doc Continue query of IPDR log events.
-%% @private
-ipdr_query({Cont, Events}, AttrsMatch)
-		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, ipdr_query3(Events, AttrsMatch, [])}.
-%% @hidden
-ipdr_query3(Events, '_', _Acc) ->
-	Events;
-ipdr_query3([H | T], AttrsMatch, Acc) ->
-	case ipdr_query4(element(7, H), AttrsMatch) of
-		true ->
-			ipdr_query3(T, AttrsMatch, [H | Acc]);
-		false ->
-			ipdr_query3(T, AttrsMatch, Acc)
-	end;
-ipdr_query3([], _AttrsMatch, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-ipdr_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Match1} when
-				(Match1 == Match) or (Match == '_') ->
-			ipdr_query4(Attributes, T);
-		_ ->
-			false
-	end;
-ipdr_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Value} ->
-			case lists:prefix(H, Value) of
-				true ->
-					ipdr_query4(Attributes, [{Attribute, {like, T1}} | T2]);
-				false ->
-					false
-			end;
-		_ ->
-			false
-	end;
-ipdr_query4(Attributes, [{_, {like, []}} | T]) ->
-	ipdr_query4(Attributes, T);
-ipdr_query4(Attributes, [_ | T]) ->
-	ipdr_query4(Attributes, T);
-ipdr_query4(_Attributes, []) ->
-	true.
 
 -spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
