@@ -533,6 +533,7 @@
    Reporting-Level                                        1011  Enumerated       VM
    ToS-Traffic-Class                                      1014  OctetString      VM
    Bearer-Identifier                                      1020  OctetString      VM
+   Access-Network-Charging-Identifier-Gx                  1022  Grouped          VM
    Network-Request-Support                                1024  Enumerated       VM
    Guaranteed-Bitrate-DL                                  1025  Unsigned32       VM
    Guaranteed-Bitrate-UL                                  1026  Unsigned32       VM
@@ -557,6 +558,7 @@
    Default-QoS-Information                                2816  Grouped          V
    Default-QoS-Name                                       2817  UTF8String       V
    Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          V
+   IP-CAN-Session-Charging-Scope                          2827  Enumerated       V
    ;; 3GPP TS 29.273
    3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
    Visited-Network-Identifier                              600  OctetString      VM
@@ -1780,6 +1782,13 @@
 ;     [ User-CSG-Information ]
      *[ AVP ]
 
+   Access-Network-Charging-Identifier-Gx ::= <AVP Header: 1022>
+      { Access-Network-Charging-Identifier-Value}
+     *[ Charging-Rule-Base-Name ]
+     *[ Charging-Rule-Name ]
+      [ IP-CAN-Session-Charging-Scope ]
+     *[ AVP ]
+
 @enum Trace-Depth
    Minimum                                  0
    Medium                                   1
@@ -2359,4 +2368,7 @@
 
 @enum Packet-Filter-Usage
    SEND_TO_UE                     1
+
+@enum IP-CAN-Session-Charging-Scope
+   IP-CAN_SESSION_SCOPE           0
 
