@@ -1070,7 +1070,7 @@ class dashBoard extends PolymerElement {
 			.attr('x', '285')
 			.attr('y', '54')
 			.attr("text-anchor", "middle")
-			.text('MULTI_ROUND_AUTH')
+			.text('MULTI ROUND AUTH')
 			.style('fill', 'black')
 			.attr("font-size", '18')
 			.attr("font-family", "Roboto");
@@ -1098,7 +1098,7 @@ class dashBoard extends PolymerElement {
 			.attr('x', '285')
 			.attr('y', '86')
 			.attr("text-anchor", "middle")
-			.text('USER_UNKNOWN')
+			.text('USER UNKNOWN')
 			.style('fill', 'black')
 			.attr("font-size", '18')
 			.attr("font-family", "Roboto");
