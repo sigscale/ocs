@@ -553,9 +553,9 @@ ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
 			{log, log_name(acct_log_name)}, {error, Reason}]),
-	ipdr_log4(IpdrLog, 0);
+	ipdr_log5(IpdrLog, 0);
 %ipdr_log1(IpdrLog, _Start, _End, eof) ->
-%	ipdr_log4(IpdrLog, 0);
+%	ipdr_log5(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
 	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(log_name(acct_log_name), Cont)).
 %% @hidden
@@ -564,9 +564,9 @@ ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
 			{log, log_name(acct_log_name)}, {error, Reason}]),
-	ipdr_log4(IpdrLog, 0);
+	ipdr_log5(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
-	ipdr_log4(IpdrLog, 0);
+	ipdr_log5(IpdrLog, 0);
 ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -588,62 +588,52 @@ ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
 			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
 %% @hidden
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
-	ipdr_log4(IpdrLog, SeqNum);
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
-	ipdr_log4(IpdrLog, SeqNum);
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
-	ipdr_log4(IpdrLog, SeqNum);
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(log_name(acct_log_name), Cont));
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
-	ipdr_log4(IpdrLog, SeqNum);
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
-	case ipdr_codec(H) of
-		[#ipdr_wlan{} | _] = IPDR ->
-			NewSeqNum = SeqNum + 1,
-			F1 = fun F1([H1 | T2]) ->
-					case disk_log:log(IpdrLog, H1#ipdr_wlan{seqNum = NewSeqNum}) of
-						ok ->
-							F1(T2);
-						{error, Reason} ->
-							Descr = lists:flatten(disk_log:format_error(Reason)),
-							Trunc = lists:sublist(Descr, length(Descr) - 1),
-							error_logger:error_report([Trunc, {module, ?MODULE},
-									{log, IpdrLog}, {error, Reason}]),
-							disk_log:close(IpdrLog),
-							{error, Reason}
-					end;
-				F1([]) ->
-					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T})
-			end,
-			F1(IPDR);
-		[#ipdr_voip{} | _] = IPDR ->
-			NewSeqNum = SeqNum + 1,
-			F2 = fun F2([H2 | T2]) ->
-					case disk_log:log(IpdrLog, H2#ipdr_voip{seqNum = NewSeqNum}) of
-						ok ->
-							F2(T2);
-						{error, Reason} ->
-							Descr = lists:flatten(disk_log:format_error(Reason)),
-							Trunc = lists:sublist(Descr, length(Descr) - 1),
-							error_logger:error_report([Trunc, {module, ?MODULE},
-									{log, IpdrLog}, {error, Reason}]),
-							disk_log:close(IpdrLog),
-							{error, Reason}
-					end;
-				F2([]) ->
-					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T})
-			end,
-			F2(IPDR);
-		_ ->
-			ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T})
-	end;
+	ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, T}, ipdr_codec(H));
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
-ipdr_log4(IpdrLog, SeqNum) ->
+ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_wlan{} = IPDR | T]) ->
+	NewSeqNum = SeqNum + 1,
+	case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
+		ok ->
+			ipdr_log4(IpdrLog, Start, End, NewSeqNum, Cont, T);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
+			{error, Reason}
+	end;
+ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_voip{} = IPDR | T]) ->
+	NewSeqNum = SeqNum + 1,
+	case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
+		ok ->
+			ipdr_log4(IpdrLog, Start, End, NewSeqNum, Cont, T);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
+			{error, Reason}
+	end;
+ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, []) ->
+	ipdr_log3(IpdrLog, Start, End, SeqNum, Cont).
+%% @hidden
+ipdr_log5(IpdrLog, SeqNum) ->
 	EndTime = iso8601(erlang:system_time(millisecond)),
 	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
 	case disk_log:log(IpdrLog, IpdrDocEnd) of
