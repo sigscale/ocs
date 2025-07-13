@@ -3021,9 +3021,6 @@ ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdr_voip{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, Seperator, {Cont, [I | T]})
-		when ((size(I) =:= 48) and (element(1, I) == ipdr_wlan)) ->
-	ipdr_csv(Log, IoDevice, Seperator, {Cont, [idpr_convert(I) | T]});
 ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdr_wlan{} = I | T]}) ->
 	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
 	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
@@ -3838,50 +3835,6 @@ abmf_query6(Attributes, [_H | T]) ->
 	false;
 abmf_query6(_Attributes, []) ->
 	false.
-
-%% @hidden
-idpr_convert({ipdr_wlan, IpdrCreationTime, SeqNum,
-		Username, ScIdType, ScId, HomeServiceProviderType,
-		HomeServiceProvider, AcctSessionId, UserIpAddress,
-		CallingStationId, CalledStationId, NasIpAddress, NasId, AccessProviderType,
-		AccessServiceProvider, LocationName, LocationId, LocationType,
-		LocationCountryCode, LocationStateProvince, LocationCity,
-		LocationGeocode, LocationGeocodeType, NasPortType, PaymentType,
-		NetworkConnectionType, SessionDuration, InputOctets,
-		OutputOctets, Class, GmtSessionStartDateTime, GmtSessionEndDateTime, SessionTerminateCause,
-		BillingClassOfService, UnitOfMeasure, ChargeableUnit, ChargeableQuantity,
-		ChargeAmount, ChargeCurrencyType, OtherParty,
-		TaxPercentage, TaxAmount, TaxType, IntermediaryName,
-		ServiceName, RelatedIpdrIdList, TempUserId}) ->
-	#ipdr_wlan{ipdrCreationTime = IpdrCreationTime, seqNum = SeqNum,
-	username = Username, scIdType = ScIdType, scId = ScId,
-	homeServiceProviderType = HomeServiceProviderType,
-	homeServiceProvider = HomeServiceProvider, acctSessionId = AcctSessionId,
-	userIpAddress = UserIpAddress, callingStationId = CallingStationId,
-	calledStationId = CalledStationId, nasIpAddress = NasIpAddress,
-	nasId = NasId, accessProviderType = AccessProviderType,
-	accessServiceProvider = AccessServiceProvider, locationName = LocationName,
-	locationId = LocationId, locationType = LocationType,
-	locationCountryCode = LocationCountryCode,
-	locationStateProvince = LocationStateProvince, locationCity = LocationCity,
-	locationGeocode = LocationGeocode, locationGeocodeType = LocationGeocodeType,
-	nasPortType = NasPortType, paymentType = PaymentType,
-	networkConnectionType = NetworkConnectionType,
-	sessionDuration = SessionDuration, inputOctets = InputOctets,
-	outputOctets = OutputOctets, class = Class,
-	gmtSessionStartDateTime = GmtSessionStartDateTime,
-	gmtSessionEndDateTime = GmtSessionEndDateTime,
-	sessionTerminateCause = SessionTerminateCause,
-	billingClassOfService = BillingClassOfService, unitOfMeasure = UnitOfMeasure,
-	chargeableUnit = ChargeableUnit, chargeableQuantity = ChargeableQuantity,
-	chargeAmount = ChargeAmount, chargeCurrencyType = ChargeCurrencyType,
-	bucketType = undefined, bucketValue = undefined,
-	tariffType = undefined, product = undefined,
-	priceType = undefined, usageRating = undefined,
-	otherParty = OtherParty, taxPercentage = TaxPercentage,
-	taxAmount = TaxAmount, taxType = TaxType,
-	intermediaryName = IntermediaryName, serviceName = ServiceName,
-	relatedIpdrIdList = RelatedIpdrIdList, tempUserId = TempUserId}.
 
 %% @hidden
 nf_identification(PDUSessionChargingInformation)
