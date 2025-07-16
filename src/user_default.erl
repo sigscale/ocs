@@ -514,20 +514,20 @@ set_max_heap() ->
 
 %% @hidden
 tables() ->
-	Tables = [offer, product, service, bucket, resource, client, session],
-	Other = mnesia:system_info(tables)
-			-- [schema, httpd_user, httpd_group | Tables],
-	tables(Other, lists:reverse(Tables)).
+	All = mnesia:system_info(tables),
+	Base = [offer, product, service, bucket, resource, client, session],
+	Ignore = [schema, httpd_user, httpd_group],
+	tables(Base, (All -- Ignore) -- Base, []).
 %% @hidden
-tables([H | T], Acc) ->
-	case mnesia:table_info(H, record_name) of
-		gtt ->
-			tables(T, [H | Acc]);
+tables(Base, [H | T], Acc) ->
+	case lists:keyfind(ocs, 1, mnesia:table_info(H, user_properties)) of
+		{ocs, true} ->
+			tables(Base, T, [H | Acc]);
 		_ ->
-			tables(T, Acc)
+			tables(Base, T, Acc)
 	end;
-tables([], Acc) ->
-	lists:reverse(Acc).
+tables(Base, [], Acc) ->
+	Base ++ lists:reverse(Acc).
 
 %% @hidden
 snodes(Nodes) ->
