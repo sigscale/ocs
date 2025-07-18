@@ -520,10 +520,13 @@ tables() ->
 	tables(Base, (All -- Ignore) -- Base, []).
 %% @hidden
 tables(Base, [H | T], Acc) ->
-	case lists:keyfind(ocs, 1, mnesia:table_info(H, user_properties)) of
+	try lists:keyfind(ocs, 1, mnesia:table_info(H, user_properties)) of
 		{ocs, true} ->
 			tables(Base, T, [H | Acc]);
 		_ ->
+			tables(Base, T, Acc)
+	catch
+		_:_ ->
 			tables(Base, T, Acc)
 	end;
 tables(Base, [], Acc) ->
