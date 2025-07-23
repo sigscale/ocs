@@ -374,29 +374,48 @@ service_options(ServiceOpts, ExtraOpts) ->
 		false ->
 			[{'Inband-Security-Id', [0]} | ServiceOpts3]
 	end,
-	ServiceOpts4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	AuthAppIds = case lists:keyfind('Auth-Application-Id', 1, ServiceOpts4) of
+		{_, AIDs} when is_list(AIDs) ->
+			AIDs;
+		false ->
+			[?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]
+	end,
+	ServiceOpts5 = lists:keystore('Auth-Application-Id', 1,
+			ServiceOpts4, {'Auth-Application-Id', AuthAppIds}),
+	ServiceOpts6 = ServiceOpts5 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]},
-		{'Vendor-Specific-Application-Id',
-				[#'diameter_base_Vendor-Specific-Application-Id'{
-						'Vendor-Id' = ?IANA_PEN_3GPP,
-						'Auth-Application-Id' = [?Gx_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, ?BASE_APPLICATION_DICT},
 				{module, ?BASE_APPLICATION_CALLBACK},
-				{request_errors, callback}]},
-		{application, [{alias, ?RO_APPLICATION},
-				{dictionary, ?RO_APPLICATION_DICT},
-				{module, [Callback, Config]},
-				{request_errors, callback}]},
-		{application, [{alias, ?Gx_APPLICATION},
-				{dictionary, ?Gx_APPLICATION_DICT},
-				{module, ?Gx_APPLICATION_CALLBACK},
-				{request_errors, callback}]}].
+				{request_errors, callback}]}],
+	ServiceOpts7 = case lists:member(?RO_APPLICATION_ID, AuthAppIds) of
+		true ->
+			ServiceOpts6 ++ [{application,
+					[{alias, ?RO_APPLICATION},
+					{dictionary, ?RO_APPLICATION_DICT},
+					{module, [Callback, Config]},
+					{request_errors, callback}]}];
+		false ->
+			ServiceOpts6
+	end,
+	case lists:member(?Gx_APPLICATION_ID, AuthAppIds) of
+		true ->
+			ServiceOpts7 ++ [{'Vendor-Specific-Application-Id',
+					[#'diameter_base_Vendor-Specific-Application-Id'{
+							'Vendor-Id' = ?IANA_PEN_3GPP,
+							'Auth-Application-Id' = [?Gx_APPLICATION_ID]}]},
+					{application,
+							[{alias, ?Gx_APPLICATION},
+							{dictionary, ?Gx_APPLICATION_DICT},
+							{module, ?Gx_APPLICATION_CALLBACK},
+							{request_errors, callback}]}];
+		false ->
+			ServiceOpts7
+	end.
 
 -spec transport_options(Address, Port, Options) -> Options
 	when
@@ -456,6 +475,8 @@ split_options([{'Origin-Realm', DiameterIdentity} = H | T], Acc1, Acc2, Acc3)
 split_options([{'Host-IP-Address', Addresses} = H | T], Acc1, Acc2, Acc3)
 		when is_list(Addresses), is_tuple(hd(Addresses)) ->
 	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{application, _} = H | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, [H | Acc2], Acc3);
 split_options([{callback, _} = H | T], Acc1, Acc2, Acc3) ->
 	split_options(T, Acc1, [H | Acc2], Acc3);
 split_options([{'Vendor-Id', _} | T], Acc1, Acc2, Acc3) ->
@@ -466,10 +487,10 @@ split_options([{'Origin-State-Id', _} | T], Acc1, Acc2, Acc3) ->
 	split_options(T, Acc1, Acc2, Acc3);
 split_options([{'Supported-Vendor-Id', _} | T], Acc1, Acc2, Acc3) ->
 	split_options(T, Acc1, Acc2, Acc3);
-split_options([{'Auth-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
-	split_options(T, Acc1, Acc2, Acc3);
-split_options([{'Acct-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
-	split_options(T, Acc1, Acc2, Acc3);
+split_options([{'Auth-Application-Id', _} = H | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, [H | Acc2], Acc3);
+split_options([{'Acct-Application-Id', _} = H | T], Acc1, Acc2, Acc3) ->
+	split_options(T, Acc1, [H | Acc2], Acc3);
 split_options([{'Inband-Security-Id', _} | T], Acc1, Acc2, Acc3) ->
 	split_options(T, Acc1, Acc2, Acc3);
 split_options([{'Vendor-Specific-Application-Id', _} | T], Acc1, Acc2, Acc3) ->
