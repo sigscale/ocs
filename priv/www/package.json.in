@@ -53,6 +53,7 @@
     "d3-array": "^3.2.4",
     "d3-delaunay": "^6.0.4",
     "d3-scale-chromatic": "^3.0.0",
+    "d3-transition": "^3.0.0",
     "@vaadin/vaadin-grid": "^6.0.0"
   },
   "devDependencies": {

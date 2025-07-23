@@ -63,9 +63,9 @@ $(abs_builddir)/index.html:
 package.json: yarn.lock
 
 yarn.lock:
-	yarn add d3
-	yarn global add polymer-cli
-	yarn global add workbox-cli
+	yarn global add d3
+	yarn global add polymer-cli --ignore-engines
+	yarn global add workbox-cli --ignore-engines
 	yarn install
 
 $(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
