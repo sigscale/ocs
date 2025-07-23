@@ -1,3 +1,8 @@
+July 23, 2025
+-------------
+	- Disable Ro or Gx in DIAMETER acct service with Auth-Application-Id option
+	- Improvements in DevOps shell table commands 
+
 June 30, 2025
 -------------
 	- Handle Access-Network-Charging-Identifier-Gx AVP (Open5GS)

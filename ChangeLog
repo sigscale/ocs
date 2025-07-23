@@ -1,3 +1,13 @@
+2024-07-23  Vance Shipley <vances@sigscale.org>
+
+	* disable either ro or gx if omitted from auth-application-id
+	* guard against non-existence table in ts/0 and td/0
+	* table commands include all tables with ocs user property
+	* remove ipdr_convert/1
+	* refactor ipdr_log for simple tail recursion
+	* update references to nrf_rating docs to v1.1.6
+	* typo in credit control label on dashboard
+
 2024-06-30  Vance Shipley <vances@sigscale.org>
 
 	* include gx charging identifier in 3gpp diameter dictionary
