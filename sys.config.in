@@ -62,6 +62,7 @@
                   {"css", "text/css"},
                   {"js", "application/javascript"},
                   {"json", "application/json"},
+                  {"jsonld", "application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""},
                   {"svg", "image/svg+xml"},
                   {"png", "image/png"},
                   {"csv", "text/csv"}]},
@@ -72,5 +73,6 @@
 %                 {keyfile, "ssl/key.pem"}]}},
             {server_root, "./"},
             {alias, {"/doc", "lib/@PACKAGE@-@VERSION@/doc"}},
+            {alias, {"/.well-known/api-catalog", "lib/@PACKAGE@-@VERSION@/priv/www/api-catalog.linkset.jsonld"}},
             {alias, {"/schema", "lib/@PACKAGE@-@VERSION@/priv/schema"}},
             {document_root, "lib/@PACKAGE@-@VERSION@/priv/www"}]}]}]}].

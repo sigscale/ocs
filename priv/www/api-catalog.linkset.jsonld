@@ -1,0 +1,187 @@
+{
+	"linkset": [
+		{
+			"anchor": "/health",
+			"service-doc": [
+				{
+					"href": "https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check-06",
+					"type": "text/html"
+				}
+			]
+		},
+		{
+			"anchor": "/metrics",
+			"service-doc": [
+				{
+					"href": "https://prometheus.io/docs/specs/om/open_metrics_spec/",
+					"type": "text/html"
+				}
+			]
+		},
+		{
+			"anchor": "/usageManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/usageManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF635_Usage/4.0.0/user_guides/TMF635_Usage_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/partyManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/partyManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF632_Party/4.0.0/user_guides/TMF632_Party_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/partyRoleManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/partyRoleManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF669_Party_Role/4.0.0/user_guides/TMF669_Party_Role_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/balanceManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/balanceManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF654_PrepayBalance/4.0.0/user_guides/TMF654_Prepay_Balance_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/productCatalogManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/productCatalogManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF620_Product_Catalog/4.1.0/user_guides/TMF620_Product_Catalog_Management_API_v4.1.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/productInventoryManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/productInventoryManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF637_Product_Inventory/4.0.0/user_guides/TMF637_Product_Inventory_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/serviceCatalogManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/serviceCatalogManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF633_Service_Catalog/4.0.0/user_guides/TMF633_Service_Catalog_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/serviceInventoryManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/serviceInventoryManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF638_Service_Inventory/4.0.0/user_guides/TMF638_Service_Inventory_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/resourceCatalogManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/resourceCatalogManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF634_Resource_Catalog/4.1.0/user_guides/TMF634_Resource_Catalog_Management_API_v4.1.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/resourceInventoryManagement/v4/",
+			"service-desc": [
+				{
+					"href": "/schema/resourceInventoryManagement.swagger.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://tmf-open-api-table-documents.s3.eu-west-1.amazonaws.com/OpenApiTable/TMF639_Resource_Inventory/4.0.0/user_guides/TMF639_Resource_Inventory_Management_API_v4.0.0_specification.pdf",
+					"type": "application/pdf"
+				}
+			]
+		},
+		{
+			"anchor": "/nrf-rating/v1/",
+			"service-desc": [
+				{
+					"href": "/schema/Nrf_Rating.json",
+					"type": "application/json"
+				}
+			],
+			"service-doc": [
+				{
+					"href": "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.6",
+					"type": "text/html"
+				}
+			]
+		}
+	]
+}
