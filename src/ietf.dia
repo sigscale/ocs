@@ -548,7 +548,7 @@
 @enum Final-Unit-Action
    TERMINATE                        0
    REDIRECT                         1
-   REDIRECT_ACCESS                  2
+   RESTRICT_ACCESS                  2
 
 @enum Multiple-Services-Indicator
    MULTIPLE_SERVICES_NOT_SUPPORTED  0

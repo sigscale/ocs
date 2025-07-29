@@ -289,7 +289,7 @@
 @enum Final-Unit-Action
 	TERMINATE								0
 	REDIRECT									1
-	REDIRECT_ACCESS						2
+	RESTRICT_ACCESS						2
 
 @define Result-Code
 	END_USER_SERVICE_DENIED				4010
