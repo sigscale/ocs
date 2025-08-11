@@ -15,9 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for the 3GPP DIAMETER S6a/S6d in the {@link //ocs. ocs} application.
+%%% @doc This {@link //diameter/diameter_app. diameter_app}
+%%% 	behaviour callback module handles {@link //diameter. diameter}
+%%% 	messages for the 3GPP DIAMETER S6a/S6d applications
+%%% 	in the {@link //cse. cse} application.
 %%%
 %%% @reference 3GPP TS TS 29.272 MME and SGSN Diameter Interfaces
 %%%
@@ -33,6 +34,8 @@
 -include("diameter_gen_ietf.hrl").
 -include("diameter_gen_3gpp_s6a_application.hrl").
 -include("ocs.hrl").
+
+-behaviour(diameter_app).
 
 -record(state, {}).
 

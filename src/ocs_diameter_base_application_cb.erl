@@ -15,9 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for authentication in the {@link //ocs. ocs} application.
+%%% @doc This {@link //diameter/diameter_app. diameter_app}
+%%% 	behaviour callback module handles {@link //diameter. diameter}
+%%% 	messages for the 3GPP DIAMETER Base protocol
+%%% 	in the {@link //cse. cse} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
 %%% 	RFC6733 - DIAMETER base protocol</a>
@@ -31,6 +32,8 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+
+-behaviour(diameter_app).
 
 -record(state, {}).
 

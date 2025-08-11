@@ -15,9 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for authentication in the {@link //ocs. ocs} application.
+%%% @doc This {@link //diameter/diameter_app. diameter_app}
+%%% 	behaviour callback module handles {@link //diameter. diameter}
+%%% 	messages for the 3GPP DIAMETER EAP application
+%%% 	in the {@link //cse. cse} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc4072.pdf">
 %%% 	RFC4072 - DIAMETER Extensible Authentication Protocol (EAP) Application</a>
@@ -34,6 +35,8 @@
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
+
+-behaviour(diameter_app).
 
 -record(state, {}).
 

@@ -15,9 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for accounting in the {@link //ocs. ocs} application.
+%%% @doc This {@link //diameter/diameter_app. diameter_app}
+%%% 	behaviour callback module handles {@link //diameter. diameter}
+%%% 	messages for the 3GPP DIAMETER Credit Control application
+%%% 	in the {@link //cse. cse} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
 %%% 	RFC4006 - DIAMETER Credit-Control Application </a>
@@ -33,6 +34,8 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
+
+-behaviour(diameter_app).
 
 -record(state, {}).
 

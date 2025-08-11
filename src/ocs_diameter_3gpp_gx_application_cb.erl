@@ -15,9 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for the 3GPP DIAMETER Gx in the {@link //ocs. ocs} application.
+%%% @doc This {@link //diameter/diameter_app. diameter_app}
+%%% 	behaviour callback module handles {@link //diameter. diameter}
+%%% 	messages for the 3GPP DIAMETER Gx application
+%%% 	in the {@link //cse. cse} application.
 %%%
 %%% @reference 3GPP TS 29.212 Policy and Charging Control (PCC)&#59; Reference points
 %%%
@@ -35,6 +36,8 @@
 -include("diameter_gen_3gpp_gx_application.hrl").
 -include("diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
+
+-behaviour(diameter_app).
 
 -record(state, {}).
 
