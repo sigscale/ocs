@@ -32,6 +32,8 @@
          [{httpd,
             [{server_name, "ocs"},
             {directory_index, ["index.html"]},
+            {directory, {"/.well-known", []}},
+            {directory, {"/schema", []}},
             {directory, {"/health", []}},
             {directory, {"/partyRoleManagement", []}},
             {directory, {"/",
