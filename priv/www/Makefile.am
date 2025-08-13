@@ -82,7 +82,6 @@ check_DATA = .polymer_lint_ok
 
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
-	cp $(abs_srcdir)/api-catalog.linkset.jsonld $(DESTDIR)$(wwwdir)/
 	cp -R $(abs_builddir)/build/esm-bundled/* $(DESTDIR)$(wwwdir)
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
 	cp $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales

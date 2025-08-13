@@ -3,19 +3,25 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-schema_DATA = $(abs_builddir)/partyManagement.swagger.json \
-				$(abs_builddir)/usageManagement.swagger.json \
-				$(abs_builddir)/resourceInventoryManagement.swagger.json \
-				$(abs_builddir)/resourceCatalogManagement.swagger.json \
-				$(abs_builddir)/serviceInventoryManagement.swagger.json \
-				$(abs_builddir)/serviceCatalogManagement.swagger.json \
-				$(abs_builddir)/productInventoryManagement.swagger.json \
-				$(abs_builddir)/productCatalogManagement.swagger.json \
-				$(abs_builddir)/balanceManagement.swagger.json \
-				$(abs_builddir)/Nrf_Rating.json
+schema_DATA = $(abs_builddir)/api-catalog.linkset.jsonld \
+		$(abs_builddir)/partyManagement.swagger.json \
+		$(abs_builddir)/usageManagement.swagger.json \
+		$(abs_builddir)/resourceInventoryManagement.swagger.json \
+		$(abs_builddir)/resourceCatalogManagement.swagger.json \
+		$(abs_builddir)/serviceInventoryManagement.swagger.json \
+		$(abs_builddir)/serviceCatalogManagement.swagger.json \
+		$(abs_builddir)/productInventoryManagement.swagger.json \
+		$(abs_builddir)/productCatalogManagement.swagger.json \
+		$(abs_builddir)/balanceManagement.swagger.json \
+		$(abs_builddir)/Nrf_Rating.json
 
 
 $(abs_builddir)/%.json:	$(srcdir)/%.json
+	if [ ! -e $@ ]; then \
+		$(LN_S) $< $@; \
+	fi
+
+$(abs_builddir)/%.jsonld:	$(srcdir)/%.jsonld
 	if [ ! -e $@ ]; then \
 		$(LN_S) $< $@; \
 	fi
@@ -24,6 +30,8 @@ check_DATA = .validation_ok
 
 .validation_ok:
 	@if ajv help > /dev/null 2>&1; then \
+		if ! ajv --strict=false compile -s api-catalog.linkset.jsonld; \
+         then exit 1; fi; \
 		if ! ajv --strict=false compile -s partyManagement.swagger.json; \
          then exit 1; fi; \
 		if ! ajv --strict=false compile -s usageManagement.swagger.json; \
