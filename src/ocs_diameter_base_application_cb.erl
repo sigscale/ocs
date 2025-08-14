@@ -33,7 +33,11 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 
--behaviour(diameter_app).
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 27).
+		-behaviour(diameter_app).
+  -endif.
+-endif.
 
 -record(state, {}).
 

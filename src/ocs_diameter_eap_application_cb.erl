@@ -36,7 +36,11 @@
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
--behaviour(diameter_app).
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 27).
+		-behaviour(diameter_app).
+  -endif.
+-endif.
 
 -record(state, {}).
 
