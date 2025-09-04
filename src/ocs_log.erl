@@ -2093,7 +2093,7 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
-btree_search(Log, Start) ->
+btree_search(Log, Start) when is_integer(Start) ->
 	btree_search(Log, Start, disk_log:chunk(Log, start, 1)).
 %% @hidden
 btree_search(Log, Start, {Cont, Terms, BadBytes}) ->
