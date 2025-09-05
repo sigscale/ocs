@@ -30,8 +30,10 @@ check_DATA = .validation_ok
 
 .validation_ok:
 	@if ajv help > /dev/null 2>&1; then \
-		if ! ajv --strict=false compile -s api-catalog.linkset.jsonld; \
-			then exit 1; fi; \
+		TMPDIR=$(mktemp -d); \
+			cp api-catalog.linkset.jsonld ${TMPDIR}/api-catalog.linkset.json; \
+			if ! ajv --strict=false compile -s ${TMPDIR}/api-catalog.linkset.json; \
+				then exit 1; fi; \
 		if ! ajv --strict=false compile -s partyManagement.swagger.json; \
 			then exit 1; fi; \
 		if ! ajv --strict=false compile -s usageManagement.swagger.json; \
