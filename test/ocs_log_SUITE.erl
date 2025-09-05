@@ -262,6 +262,9 @@ diameter_log_auth_event(_Config) ->
 	end,
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
 
+radius_log_acct_event() ->
+   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
+
 radius_log_acct_event(_Config) ->
 	Start = erlang:system_time(millisecond),
 	Node = node(),
@@ -838,9 +841,6 @@ binary_tree_half(_Config) ->
 	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, CurrentFile - 1),
 	Cont = ocs_log:btree_search(ocs_acct, erlang:system_time(milli_seconds)).
-
-radius_log_acct_event() ->
-   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
 
 binary_tree_before() ->
    [{userdata, [{doc, "When `Start' is smaller and out of the log range"}]}].
