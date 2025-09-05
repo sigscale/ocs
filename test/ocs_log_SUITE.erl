@@ -912,7 +912,7 @@ binary_tree_last(_Config) ->
 	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 binary_tree_first() ->
-   [{userdata, [{doc, "When start is in first chunck of the log"}]}].
+   [{userdata, [{doc, "When start is in first chunk of the log"}]}].
 
 binary_tree_first(_Config) ->
 	ocs_log:acct_open(),
