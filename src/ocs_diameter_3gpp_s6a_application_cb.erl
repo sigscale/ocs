@@ -35,12 +35,6 @@
 -include("diameter_gen_3gpp_s6a_application.hrl").
 -include("ocs.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 27).
-		-behaviour(diameter_app).
-  -endif.
--endif.
-
 -record(state, {}).
 
 -define(S6a_APPLICATION_ID, 16777251).

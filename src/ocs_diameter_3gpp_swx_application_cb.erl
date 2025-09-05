@@ -35,12 +35,6 @@
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include("ocs.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 27).
-		-behaviour(diameter_app).
-  -endif.
--endif.
-
 -record(state, {}).
 
 -define(SWx_APPLICATION_ID, 16777265).
