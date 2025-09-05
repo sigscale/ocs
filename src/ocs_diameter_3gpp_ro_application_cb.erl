@@ -40,12 +40,6 @@
 -include("ocs.hrl").
 -include("ocs_log.hrl").
 
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 27).
-		-behaviour(diameter_app).
-  -endif.
--endif.
-
 -record(state, {}).
 
 -define(EPOCH_OFFSET, 2208988800).
