@@ -2088,11 +2088,13 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 -spec btree_search(Log, Start) -> Result
 	when
 		Log :: disk_log:log(),
-		Start :: timestamp(),
+		Start :: timestamp() | calendar:datetime1970(),
 		Result :: disk_log:continuation() | {error, Reason},
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
+btree_search(Log, {{_, _, _}, {_, _, _}} = Start) ->
+	btree_search(Log, date(Start));
 btree_search(Log, Start) when is_integer(Start) ->
 	btree_search(Log, Start, disk_log:chunk(Log, start, 1)).
 %% @hidden
