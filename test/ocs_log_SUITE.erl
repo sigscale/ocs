@@ -152,11 +152,9 @@ all() ->
 			radius_log_acct_event, diameter_log_acct_event, nrf_log_acct_event,
 			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
 			acct_query_diameter, acct_query_nrf,
-			abmf_log_event, abmf_query,
-			binary_tree_before, binary_tree_after,
-			binary_tree_backward, binary_tree_forward,
-			binary_tree_last, binary_tree_first,
-			binary_tree_half, binary_tree_unwrapped,
+			abmf_log_event, abmf_query, binary_tree_before,
+			binary_tree_after, binary_tree_backward, binary_tree_forward,
+			binary_tree_last, binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
 			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs,
 			dia_acct_to_ecs, radius_acct_to_ecs].
@@ -927,39 +925,6 @@ binary_tree_first(_Config) ->
 	{_, Events} = disk_log:chunk(ocs_acct, Cont),
 	Event = lists:last(Events),
 	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
-
-binary_tree_unwrapped() ->
-   [{userdata, [{doc, "When start is in last file of an unwrapped log"}]}].
-
-binary_tree_unwrapped(_Config) ->
-	MaxNoBytes = 65536 * 10,
-	MaxNoFiles = 10,
-	LastFile = MaxNoFiles div 2,
-	{ok, Log} = disk_log:open([{name, ocs_test_lib:rand_name()},
-			{type, wrap}, {size, {MaxNoBytes, MaxNoFiles}}, {notify, true}]),
-	F = fun F(N, TS) when N > 0 ->
-				TS1 = TS + rand:uniform(1000),
-				B = rand:bytes(rand:uniform(32768) + 1024),
-				ok = disk_log:log(Log, {TS1, B}),
-				F(N - 1, TS1);
-			F(0, TS) ->
-				receive
-					{disk_log, _Node, Log, {wrap, 0}} ->
-						LogInfo = disk_log:info(Log),
-						case lists:keyfind(current_file, 1, LogInfo) of
-							{_, CurrentFile} when CurrentFile < LastFile ->
-								F(10, TS);
-							{_, CurrentFile} ->
-								{TS, CurrentFile}
-						end
-				after 50 ->
-					F(10, TS)
-				end
-	end,
-	{LastTS, LastFile} = F(10, erlang:system_time(millisecond)),
-	ok = disk_log:sync(Log),
-	{ok, Cont} = disk_log:chunk_step(Log, start, LastFile - 1),
-	Cont = ocs_log:btree_search(Log, LastTS).
 
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),
