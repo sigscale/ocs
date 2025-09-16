@@ -2119,7 +2119,8 @@ btree_search(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
 				{size, {_MaxBytes, MaxFiles}} ->
 					MaxFiles div 2
 			end,
-			btree_search(Log, Start, Step, start, element(1, R), disk_log:chunk_step(Log, Cont, Step))
+			btree_search(Log, Start, Step, start, element(1, R),
+					disk_log:chunk_step(Log, Cont, Step))
 	end.
 %% @hidden
 btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
@@ -2127,20 +2128,10 @@ btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
 			disk_log:chunk(Log, Cont, 1));
 btree_search(_Log, _Start, 1, PrevCont, _PrevChunkStart, {error, end_of_log}) ->
 	PrevCont;
-btree_search(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
-	case disk_log:info(Log) of
-		{error,no_such_log} ->
-			{error,no_such_log};
-		LogInfo ->
-			case lists:keyfind(current_file, 1, LogInfo) of
-				{current_file, CurrentFile} when CurrentFile > 1 ->
-					Step1 = CurrentFile - 1,
-					btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
-							disk_log:chunk_step(Log, start, Step1));
-				{current_file, 1} ->
-					PrevCont
-			end
-	end;
+btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
+	Step1 = Step div 2,
+	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
+			disk_log:chunk_step(Log, PrevCont, Step1));
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
 	{error, Reason}.
 %% @hidden
