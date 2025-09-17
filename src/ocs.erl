@@ -39,7 +39,7 @@
 		query_offer/7]).
 -export([add_resource/1, update_resource/1, get_resources/0,
 		get_resource/1, delete_resource/1, query_resource/5]).
--export([clean_services/1, clean_buckets/1,
+-export([clean_services/1, clean_buckets/0, clean_buckets/1,
 		clean_reservations/1, clean_reservations/2]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
@@ -3033,6 +3033,23 @@ clean_services(Before, Key) when is_binary(Key) ->
 clean_services(_Before, '$end_of_table') ->
 	ok.
 
+-spec clean_buckets() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Clean the `bucket' table.
+%%
+%% 	Traverse the `buckets' table, removing expired buckets.
+%%
+%% 	The `bucket' table entries optionally include an
+%% 	expiration date and time in the `end_date' field.
+%%
+%% 	This function lazily traverses the `bucket' table,
+%% 	removing expired buckets.
+%%
+clean_buckets() ->
+	clean_buckets(0).
+
 -spec clean_buckets(Before) -> Result
 	when
 		Before :: ocs_rest:timestamp(),
@@ -3056,8 +3073,8 @@ clean_services(_Before, '$end_of_table') ->
 %% 	field may (optionally) contain an expiration date.
 %%
 %% 	This function lazily traverses the `bucket' table,
-%% 	removing expired buckets and those which haven't been
-%% 	written since `Before'.
+%% 	removing expired buckets and stale buckets which
+%% 	have not been modified after `Before'.
 %%
 clean_buckets(Before) when is_tuple(Before) ->
 	clean_buckets(ocs_rest:date(Before));
@@ -3066,7 +3083,7 @@ clean_buckets(Before) when is_list(Before) ->
 clean_buckets(Before) when is_integer(Before) ->
 	clean_buckets(Before, mnesia:dirty_first(bucket)).
 %% @hidden
-clean_buckets(Before, Key) when is_list(Key) ->
+clean_buckets(Before, Key) when is_list(Key) -e
 	Next = mnesia:dirty_next(bucket, Key),
 	Now = erlang:system_time(millisecond),
 	Ftrans = fun() ->
