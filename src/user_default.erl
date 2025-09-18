@@ -461,7 +461,7 @@ diameter_service_info([], _Info, Acc) ->
 
 -spec query_acct_log(Match, Start, End) -> Events
 	when
-		Match :: MatchFilter | [MatchFilter],
+		Match :: [MatchFilter],
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
@@ -485,7 +485,7 @@ diameter_service_info([], _Info, Acc) ->
 		End :: calendar:datetime() | pos_integer(),
 		Events :: [ocs_log:acct_event()].
 %% @hidden
-query_acct_log(Match, Start, End) ->
+query_acct_log(Match, Start, End) when is_list(Match) ->
 	set_max_heap(),
 	query_acct_log(start, Start, End, Match, []).
 %% @hidden
