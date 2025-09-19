@@ -3083,7 +3083,7 @@ clean_buckets(Before) when is_list(Before) ->
 clean_buckets(Before) when is_integer(Before) ->
 	clean_buckets(Before, mnesia:dirty_first(bucket)).
 %% @hidden
-clean_buckets(Before, Key) when is_list(Key) -e
+clean_buckets(Before, Key) when is_list(Key) ->
 	Next = mnesia:dirty_next(bucket, Key),
 	Now = erlang:system_time(millisecond),
 	Ftrans = fun() ->
