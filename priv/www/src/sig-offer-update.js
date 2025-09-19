@@ -489,11 +489,11 @@ class offerUpdate extends PolymerElement {
 							<iron-collapse
 									id="updateAddCall">
 								<paper-checkbox
-										checked="priceUpdateCallDirIn">
+										checked="{{priceUpdateCallDirIn}}">
 									Incoming
 								</paper-checkbox>
 								<paper-checkbox
-										checked="priceUpdateCallDirOut">
+										checked="{{priceUpdateCallDirOut}}">
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
