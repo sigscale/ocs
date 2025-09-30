@@ -1176,8 +1176,6 @@ service_network(_) ->
 		Direction :: answer | originate | undefined.
 %% @doc Get call/message direction.
 %% @private
-direction(#{"messageType" := "SUBMISSION"}) ->
-	originate;
 direction(#{"roleOfNode" := "ORIGINATING"}) ->
 	originate;
 direction(#{"roleOfNode" := "TERMINATING"}) ->
