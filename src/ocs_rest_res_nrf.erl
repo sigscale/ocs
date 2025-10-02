@@ -133,7 +133,7 @@ initial_nrf1(ModData, NrfRequest) ->
 					LogRequest1, LogResponse, undefined),
 			{ok, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1} ->
-			ok = ocs_log:acct_log(nrf, server(ModData), start,
+			ocs_log:acct_log(nrf, server(ModData), start,
 					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
@@ -231,7 +231,7 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 					LogRequest1, LogResponse, undefined),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1} ->
-			ok = ocs_log:acct_log(nrf, server(ModData), update,
+			ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
@@ -332,7 +332,7 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 					LogRequest1, LogResponse, Rated1),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1, Rated1} ->
-			ok = ocs_log:acct_log(nrf, server(ModData), stop,
+			ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, Problem1, Rated1),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
