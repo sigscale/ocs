@@ -486,9 +486,13 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = NrfRequest, Flag) ->
-	ServiceRating = maps:get("serviceRating", NrfRequest, []),
-	rate(list_to_binary(RatingDataRef),
-			Flag, SubscriptionIds, ServiceRating, []).
+	case maps:get("serviceRating", NrfRequest, []) of
+		ServiceRating when length(ServiceRating) > 0 ->
+			rate(list_to_binary(RatingDataRef),
+					Flag, SubscriptionIds, ServiceRating, []);
+		[] = _ServiceRating ->
+			{error, invalid_service_type}
+	end.
 %% @hidden
 rate(RatingDataRef, Flag, SubscriptionIds,
 		[#{"serviceContextId" := SCI} = H | T], Acc) ->
