@@ -125,19 +125,11 @@ init([Address, Port, Options] = _Args) ->
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
-					init1(StateData);
+					process_flag(trap_exit, true),
+					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
 			end;
-		{error, Reason} ->
-			{stop, Reason}
-	end.
-%% @hidden
-init1(StateData) ->
-	case ocs_log:auth_open() of
-		ok ->
-			process_flag(trap_exit, true),
-			{ok, wait_for_start, StateData, 0};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -323,8 +315,7 @@ terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port}= _StateData) ->
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	catch diameter:stop_service(SvcName),
-	catch diameter:remove_transport(SvcName, TransRef),
-	catch ocs_log:auth_close().
+	catch diameter:remove_transport(SvcName, TransRef).
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when

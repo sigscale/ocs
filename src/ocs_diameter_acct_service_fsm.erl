@@ -101,20 +101,6 @@ init([Address, Port, Options] = _Args) ->
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
-					init1(StateData);
-				{error, Reason} ->
-					{stop, Reason}
-			end;
-		{error, Reason} ->
-			{stop, Reason}
-	end.
-
-%% @hidden
-init1(StateData) ->
-	case ocs_log:acct_open() of
-		ok ->
-			case ocs_log:abmf_open() of
-				ok ->
 					process_flag(trap_exit, true),
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
@@ -309,8 +295,7 @@ terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port} = _StateData) ->
 	ServiceName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	catch diameter:stop_service(ServiceName),
-	catch diameter:remove_transport(ServiceName, TransRef),
-	catch ocs_log:acct_close().
+	catch diameter:remove_transport(ServiceName, TransRef).
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when

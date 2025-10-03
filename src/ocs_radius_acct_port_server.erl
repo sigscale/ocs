@@ -67,18 +67,8 @@
 %%
 init([AcctSup, IpAddress, Port, _Options]) ->
 	State = #state{address = IpAddress, port = Port, acct_sup = AcctSup},
-	case ocs_log:acct_open() of
-		ok ->
-			case ocs_log:abmf_open() of
-				ok ->
-					process_flag(trap_exit, true),
-					{ok, State, 0};
-				{error, Reason} ->
-					{stop, Reason}
-			end;
-		{error, Reason} ->
-			{stop, Reason}
-	end.
+	process_flag(trap_exit, true),
+	{ok, State, 0}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -159,7 +149,7 @@ handle_info(timeout, #state{acct_sup = AcctSup} = State) ->
 %% @private
 %%
 terminate(_Reason,  _State) ->
-	ocs_log:acct_close().
+	ok.
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when

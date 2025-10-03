@@ -99,13 +99,8 @@ init([AuthPortSup, Address, Port, Options]) ->
 			[akap, aka, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
 			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
-	case ocs_log:auth_open() of
-		ok ->
-			process_flag(trap_exit, true),
-			{ok, State, 0};
-		{error, Reason} ->
-			{stop, Reason}
-		end.
+	process_flag(trap_exit, true),
+	{ok, State, 0}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -218,7 +213,6 @@ handle_info({'EXIT', Pid, _Reason},
 %% @private
 %%
 terminate(_Reason, _State) ->
-	ocs_log:auth_close(),
 	stop.
 
 -spec code_change(OldVsn, State, Extra) -> Result
