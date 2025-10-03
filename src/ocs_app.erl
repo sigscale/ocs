@@ -196,39 +196,14 @@ start11(Profile) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-%% @doc Migrate client table, if necessary, to add Trusted field.
 %% @hidden
 start12() ->
-	case mnesia:table_info(client, arity) of
-		9 ->
-			start13();
-		8 ->
-			F = fun({client, Address, Identifier, Port, Protocol,
-						Secret, PasswordRequired, LastModified}) ->
-					#client{address = Address, identifier = Identifier,
-							port = Port, protocol = Protocol, secret = Secret,
-							password_required = PasswordRequired,
-							last_modified = LastModified}
-			end,
-			NewAttributes = record_info(fields, client),
-			case mnesia:transform_table(client, F, NewAttributes) of
-				{atomic, ok} ->
-					error_logger:info_report(["Migrated client table"]),
-					start13();
-				{aborted, Reason} ->
-					error_logger:error_report(["Failed to migrate client table",
-							mnesia:error_description(Reason), {error, Reason}]),
-					{error, Reason}
-			end
-	end.
-%% @hidden
-start13() ->
 	Tables = [session, nrf_ref],
-	start14(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES)).
+	start13(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES)).
 %% @hidden
-start14(_Tables, ok) ->
-	start15();
-start14(_Tables, {timeout, BadTables}) ->
+start13(_Tables, ok) ->
+	start14();
+start13(_Tables, {timeout, BadTables}) ->
 	F = fun F([Table | T]) ->
 				case create_table(Table, mnesia:system_info(db_nodes)) of
 					ok ->
@@ -241,52 +216,27 @@ start14(_Tables, {timeout, BadTables}) ->
 	end,
 	case F(BadTables) of
 		ok ->
-			start15();
+			start14();
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start14(Tables, {error, Reason}) ->
+start13(Tables, {error, Reason}) ->
 	error_logger:error_report(["Failed to load mnesia tables",
 			{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
 	{error, Reason}.
 %% @hidden
-start15() ->
-	case mnesia:table_info(session, arity) of
-		12 ->
-			start16();
-		11 ->
-			F = fun({session, Id, IMSI, App, NasHost, NasRealm, NasAddress,
-					HssHost, HssRealm, UserProfile, LM}) ->
-				#session{id = Id, imsi = IMSI, application = App,
-						nas_host = NasHost, nas_realm = NasRealm,
-						nas_address = NasAddress, hss_host = HssHost,
-						hss_realm = HssRealm, user_profile = UserProfile,
-						last_modified = LM}
-			end,
-			NewAttributes = record_info(fields, session),
-			case mnesia:transform_table(session, F, NewAttributes) of
-				{atomic, ok} ->
-					error_logger:info_report(["Migrated session table"]),
-					start15();
-				{aborted, Reason} ->
-					error_logger:error_report(["Failed to migrate session table",
-							mnesia:error_description(Reason), {error, Reason}]),
-					{error, Reason}
-			end
-	end.
-%% @hidden
-start16() ->
+start14() ->
 	Options = [set, public, named_table, {write_concurrency, true}],
 	ets:new(nrf_session, Options),
    ets:new(counters, Options),
    case catch ets:insert(counters, {nrf_seq, 0}) of
 		true ->
-			start17();
+			start15();
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start17() ->
+start15() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
@@ -362,25 +312,25 @@ start17() ->
 		TopSup
 	of
 		Sup ->
-			start18(Sup)
+			start16(Sup)
 	catch
 		Reason ->
 			{error, Reason}
 	end.
 %% @hidden
-start18(Sup) ->
+start16(Sup) ->
 	catch ocs_mib:load(),
-	start19(Sup).
+	start17(Sup).
 %% @hidden
-start19(Sup) ->
+start17(Sup) ->
 	case ocs_scheduler:start() of
 		ok ->
-			start20(Sup);
+			start18(Sup);
 		{error, Reason2} ->
 			{error, Reason2}
 	end.
 %% @hidden
-start20(Sup) ->
+start18(Sup) ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			case application:get_env(elastic_shipper) of
@@ -401,7 +351,7 @@ start20(Sup) ->
 					case supervisor:start_child(ocs_event_log_sup,
 							[Url, Profile, Options -- SetOptions]) of
 						{ok, _EventLogSup, _Id} ->
-							start21(Sup, Profile, ServicesInfo, SetOptions);
+							start19(Sup, Profile, ServicesInfo, SetOptions);
 						{error, Reason} ->
 							{error, Reason}
 					end
@@ -410,16 +360,16 @@ start20(Sup) ->
 			{error, Reason}
 	end.
 %% @hidden
-start21(Sup, Profile, [{httpc, _Pid, Info} | T], SetOptions) ->
+start19(Sup, Profile, [{httpc, _Pid, Info} | T], SetOptions) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			start22(Sup, Profile, SetOptions);
+			start20(Sup, Profile, SetOptions);
 		_ ->
-			start21(Sup, Profile, T, SetOptions)
+			start19(Sup, Profile, T, SetOptions)
 	end;
-start21(Sup, Profile, [_ | T], SetOptions) ->
-	start21(Sup, Profile, T, SetOptions);
-start21(Sup, Profile, [], _SetOptions) ->
+start19(Sup, Profile, [_ | T], SetOptions) ->
+	start19(Sup, Profile, T, SetOptions);
+start19(Sup, Profile, [], _SetOptions) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
 			{ok, Sup};
@@ -427,7 +377,7 @@ start21(Sup, Profile, [], _SetOptions) ->
 			{error, Reason}
 	end.
 %% @hidden
-start22(Sup, Profile, SetOptions) ->
+start20(Sup, Profile, SetOptions) ->
 	case httpc:set_options(SetOptions, Profile) of
 		ok ->
 			{ok, Sup};
