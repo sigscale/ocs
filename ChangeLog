@@ -1,3 +1,35 @@
+2024-10-05  Vance Shipley <vances@sigscale.org>
+
+	* test script improvements ported from cse project
+	* remove table transformations for migration add in v3.1.21
+	* move log opening to application handler
+	* return invalid_service_type if no service rating data
+	* message type of submission does not denote [orig|dest]ination
+	* correct call direction characteristic checkboxes
+	* correct query_acct_log/3 typespec, add guard
+	* add ocs:clean_buckets/0 to remove only expired, not stale, buckets
+	* simple backoff when stepping beyond end of log
+	* accept datetime() argument to btree search
+	* correct binary tree search of log file without overflow
+	* correct out of place test case description function
+	* work around for ajv-cli issue #77
+	* callbacks extended in call_opt()
+	* callbacks extended in application_module()
+	* btree_search/2 guard on start argument
+	* diameter_app supports behaviour_info from otp 27
+	* refactor including api-catalog in release
+	* correct httpd directives for /schema, /doc directories
+	* move api-catalog to /schemas with no auth required
+	* no authentication required for http discovery
+	* correct documented behaviour of diameter_app callback modules
+	* workaround for .appup files uneeded in otp 28
+	* correct final-unit-action enumeration macro
+	* update nrf_rating api version
+	* final unit indication (fui) (#5)
+	* enable discovery with well known (rfc8615) api catalog (rfc9727)
+	* skip node version check to work around @type/glob version glob
+	* missing d3 dependancy
+
 2024-07-23  Vance Shipley <vances@sigscale.org>
 
 	* disable either ro or gx if omitted from auth-application-id

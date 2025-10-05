@@ -1,3 +1,11 @@
+October 5, 2025
+---------------
+	- Test script improvements
+	- Correct call direction in Price update dialog
+	- Correct binary tree search of log before first overflow
+	- Nrf_Rating API v1.1.7
+	- API discovery with well known (RFC8615) API catalog (RFC9727)
+
 July 23, 2025
 -------------
 	- Disable Ro or Gx in DIAMETER acct service with Auth-Application-Id option
