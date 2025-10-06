@@ -5,6 +5,7 @@ October 5, 2025
 	- Correct binary tree search of log before first overflow
 	- Nrf_Rating API v1.1.7
 	- API discovery with well known (RFC8615) API catalog (RFC9727)
+	- Include GSU in Nrf ServiceRatingResult for onetime IEC
 
 July 23, 2025
 -------------

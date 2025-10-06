@@ -1,5 +1,7 @@
 2024-10-05  Vance Shipley <vances@sigscale.org>
 
+	* remove ratingdataref on release error
+	* include gsu in onetime iec service rating response and log rated
 	* test script improvements ported from cse project
 	* remove table transformations for migration add in v3.1.21
 	* move log opening to application handler
