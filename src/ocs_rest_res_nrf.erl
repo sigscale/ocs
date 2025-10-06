@@ -98,7 +98,7 @@ initial_nrf1(ModData, NrfRequest) ->
 						{LogEventType, NrfResponse, LogRequest, UpdatedMap, Rated};
 					{ok, ServiceRating, _Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						ok = add_rating_ref(RatingDataRef, UpdatedMap),
+						ok = add_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						{LogEventType, NrfResponse, LogRequest, UpdatedMap, undefined};
@@ -298,7 +298,6 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 				case rate(RatingDataRef, NrfMap, final) of
 					{ok, ServiceRating, Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						ok = remove_ref(RatingDataRef),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						{NrfResponse, LogRequest, UpdatedMap, Rated};
@@ -331,21 +330,25 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		end
 	of
 		{{struct, _} = NrfResponse1, LogRequest1, LogResponse, Rated1} ->
+			ok = remove_ref(RatingDataRef),
 			Headers = [{content_type, "application/json"}],
 			ResponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, LogResponse, Rated1),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1, Rated1} ->
+			ok = remove_ref(RatingDataRef),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, Problem1, Rated1),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
+			ok = remove_ref(RatingDataRef),
 			Problem1 = rest_error_response(Reason1, undefined),
 			{error, 400, Problem1}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
+			ok = remove_ref(RatingDataRef),
 			error_logger:warning_report(["Unable to process Nrf request",
 					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
 					{operation, release}, {error, Reason1}, {stack, StackTrace}]),
@@ -394,14 +397,14 @@ lookup_ref(RatingDataRef)
 			true
 	end.
 
--spec add_rating_ref(RatingDataRef, NrfMap) -> Result
+-spec add_ref(RatingDataRef, NrfMap) -> Result
 	when
 		RatingDataRef :: string(),
 		NrfMap :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
-add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
+add_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 		"subscriptionId" := SubscriptionId} = _NrfMap) ->
 	F = fun() ->
 			NewRef = #nrf_ref{rating_ref = RatingDataRef,
