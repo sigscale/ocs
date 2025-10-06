@@ -84,39 +84,44 @@ initial_nrf1(ModData, NrfRequest) ->
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
-				Flag = case NrfMap of
+				{Flag, LogEventType} = case NrfMap of
 					#{"oneTimeEvent" := true, "oneTimeEventType" := "IEC"} ->
-						event;
+						{event, event};
 					_ ->
-						initial
+						{initial, start}
 				end,
 				case rate(RatingDataRef, NrfMap, Flag) of
+					{ok, ServiceRating, Rated} when Flag == event ->
+						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
+						NrfResponse = nrf(UpdatedMap),
+						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
+						{LogEventType, NrfResponse, LogRequest, UpdatedMap, Rated};
 					{ok, ServiceRating, _Rated} ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{NrfResponse, LogRequest, UpdatedMap};
+						{LogEventType, NrfResponse, LogRequest, UpdatedMap, undefined};
 					{out_of_credit, _ServiceRating, _Rated} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(out_of_credit, undefined),
-						{error, 403, LogRequest, Problem};
+						{error, 403, LogEventType, LogRequest, Problem};
 					{error, service_not_found = Reason} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, LogRequest, Problem};
+						{error, 404, LogEventType, LogRequest, Problem};
 					{error, invalid_service_type = Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
 						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, LogRequest, Problem};
+						{error, 400, LogEventType, LogRequest, Problem};
 					{error, _Reason} ->
 						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
 						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, LogRequest, Problem}
+						{error, 500, LogEventType, LogRequest, Problem}
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process Nrf request",
@@ -125,15 +130,15 @@ initial_nrf1(ModData, NrfRequest) ->
 				{error, decode_failed}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
+		{LogEventType1, {struct, _} = NrfResponse1, LogRequest1, LogResponse, Rated1} ->
 			Location = "/nrf-rating/v1/ratingdata/" ++ RatingDataRef,
 			Headers = [{content_type, "application/json"}, {location, Location}],
 			ResponseBody = mochijson:encode(NrfResponse1),
-			ok = ocs_log:acct_log(nrf, server(ModData), start,
-					LogRequest1, LogResponse, undefined),
+			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
+					LogRequest1, LogResponse, Rated1),
 			{ok, Headers, ResponseBody};
-		{error, StatusCode, LogRequest1, Problem1} ->
-			ok = ocs_log:acct_log(nrf, server(ModData), start,
+		{error, StatusCode, LogEventType1, LogRequest1, Problem1} ->
+			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, Problem1, undefined),
 			{error, StatusCode, Problem1};
 		{error, decode_failed = Reason1} ->
@@ -619,21 +624,6 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 			ServiceNetwork, subscriber_id(SubscriptionIds), TS, Address, Direction,
 			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], AccR);
-		{ok, _Service, {seconds, Amount} = _GrantedAmount}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], AccR);
-		{ok, _Service, {messages, Amount} = _GrantedAmount}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], AccR);
-		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount}},
@@ -673,21 +663,6 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 			SR5 = SR4#{"resultCode" => "SUCCESS"},
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
 					[SR5 | AccS], AccR);
-		{ok, _Service, {octets, Amount} = _GrantedAmount, Rated}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], [Rated | AccR]);
-		{ok, _Service, {seconds, Amount} = _GrantedAmount, Rated}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], [Rated | AccR]);
-		{ok, _Service, {messages, Amount} = _GrantedAmount, Rated}
-				when Flag == event, Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], [Rated | AccR]);
 		{ok, _Service, {octets, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
 			SR5 = SR4#{"resultCode" => "SUCCESS",
