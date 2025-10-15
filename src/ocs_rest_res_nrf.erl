@@ -404,7 +404,8 @@ lookup_ref(RatingDataRef)
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
-add_ref(RatingDataRef, #{"nodeFunctionality" := NF,
+add_ref(RatingDataRef,
+		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
 		"subscriptionId" := SubscriptionId} = _NrfMap) ->
 	F = fun() ->
 			NewRef = #nrf_ref{rating_ref = RatingDataRef,
@@ -739,7 +740,7 @@ rate2(_, _, _, [], AccS, AccR) ->
 -spec nrf(Nrf) -> Nrf
 	when
 		Nrf :: map() | {struct, [tuple()]}.
-%% @doc CODEC for Nrf Response.
+%% @doc CODEC for Nrf body.
 nrf({struct, StructList}) ->
 	nrf1(StructList, #{});
 nrf(NrfRequest) when is_map(NrfRequest) ->
@@ -748,7 +749,7 @@ nrf(NrfRequest) when is_map(NrfRequest) ->
 nrf1(#{"invocationTimeStamp" := TS,
 		"invocationSequenceNumber" := SeqNum,
 		"subscriptionId" := SubIds,
-		"nodeFunctionality" := NF,
+		"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
 		"serviceRating" := ServiceRating}) ->
 	{struct, [{"invocationTimeStamp", TS},
 			{"invocationSequenceNumber", SeqNum},
@@ -773,7 +774,7 @@ nrf1([{"nfConsumerIdentification",
 		{struct, NfConsumerIdentification}} | T], Acc) ->
 	{_, NF} = lists:keyfind("nodeFunctionality",
 			1, NfConsumerIdentification),
-	nrf1(T, Acc#{"nodeFunctionality" => NF});
+	nrf1(T, Acc#{"nfConsumerIdentification" => #{"nodeFunctionality" => NF}});
 nrf1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
 	nrf1(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
 nrf1([_H | T], Acc) ->
