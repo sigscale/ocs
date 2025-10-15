@@ -365,6 +365,7 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Remove a rating data ref.
+%% @hidden
 remove_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
@@ -383,6 +384,7 @@ remove_ref(RatingDataRef)
 		Result :: boolean() | {error, Reason},
 		Reason :: term().
 %% @doc Look up a rating data ref.
+%% @hidden
 lookup_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
@@ -404,6 +406,7 @@ lookup_ref(RatingDataRef)
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
+%% @hidden
 add_ref(RatingDataRef,
 		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
 		"subscriptionId" := SubscriptionId} = _NrfMap) ->
@@ -426,6 +429,7 @@ add_ref(RatingDataRef,
 		InvalidParams :: [map()] | undefined,
 		Result :: map().
 %% @doc Construct a problem report for an error response.
+%% @hidden
 rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
 			status => 403,
@@ -494,6 +498,7 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 		Reason :: offer_not_found | product_not_found | service_not_found
 				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
+%% @hidden
 rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = NrfRequest, Flag) ->
 	case maps:get("serviceRating", NrfRequest, []) of
 		ServiceRating when length(ServiceRating) > 0 ->
@@ -526,15 +531,17 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 	Address = case Direction of
 		originate ->
 			case maps:find("destinationId", H) of
-				{ok, #{"destinationIdData" := DN}} ->
-					DN;
+				{ok, DI} ->
+					hd([D || #{"destinationIdType" := "DN",
+							"destinationIdData" := D} <- DI]);
 				_ ->
 					undefined
 			end;
 		answer ->
 			case maps:find("originationId", H) of
-				{ok, #{"originationIdData" := DN}} ->
-					DN;
+				{ok, OI} ->
+					hd([D || #{"originationIdType" := "DN",
+							"originationIdData" := D} <- OI]);
 				_ ->
 					undefined
 			end;
@@ -741,6 +748,7 @@ rate2(_, _, _, [], AccS, AccR) ->
 	when
 		Nrf :: map() | {struct, [tuple()]}.
 %% @doc CODEC for Nrf body.
+%% @hidden
 nrf({struct, StructList}) ->
 	nrf1(StructList, #{});
 nrf(NrfRequest) when is_map(NrfRequest) ->
@@ -757,7 +765,7 @@ nrf1(#{"invocationTimeStamp" := TS,
 			{"nfConsumerIdentification",
 					{struct, [{"nodeFunctionality", NF}]}},
 			{"serviceRating",
-					{array, struct_service_rating(ServiceRating)}}]}.
+					{array, service_rating(ServiceRating)}}]}.
 %% @hidden
 nrf1([{"invocationTimeStamp", TS} | T], Acc) ->
 	nrf1(T, Acc#{"invocationTimeStamp" => TS});
@@ -776,7 +784,7 @@ nrf1([{"nfConsumerIdentification",
 			1, NfConsumerIdentification),
 	nrf1(T, Acc#{"nfConsumerIdentification" => #{"nodeFunctionality" => NF}});
 nrf1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
-	nrf1(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
+	nrf1(T, Acc#{"serviceRating" => service_rating(ServiceRating)});
 nrf1([_H | T], Acc) ->
 	nrf1(T, Acc);
 nrf1([], Acc) ->
@@ -903,119 +911,286 @@ get_iccid([_ | T]) ->
 get_iccid([]) ->
 	undefined.
 
--spec struct_service_rating(ServiceRating) -> Result
+-spec service_rating(ServiceRating) -> ServiceRating
 	when
-		ServiceRating :: [map()],
-		Result :: [{struct, [tuple()]}].
-%% @doc Convert a Service Rating map to a struct.
-struct_service_rating(ServiceRating) ->
-	struct_service_rating(ServiceRating, []).
+		ServiceRating :: [map()] | [{struct, [tuple()]}].
+%% @doc CODEC for Service Rating.
 %% @hidden
-struct_service_rating([H | T], Acc) ->
-	Acc1 = case maps:find("grantedUnit", H) of
-		{ok, Units1} ->
-			[{"grantedUnit", {struct, maps:to_list(Units1)}}];
-		_ ->
-			[]
-	end,
-	Acc2 = case maps:find("consumedUnit", H) of
-		{ok, Units2} ->
-			[{"consumedUnit", {struct, maps:to_list(Units2)}} | Acc1];
-		_ ->
-			Acc1
-	end,
-	Acc3 = case maps:find("serviceContextId", H) of
-		{ok, SCI} ->
-			[{"serviceContextId", SCI} | Acc2];
-		_ ->
-			Acc2
-	end,
-	Acc4 = case maps:find("serviceId", H) of
-		{ok, SI} ->
-			[{"serviceId", SI} | Acc3];
-		_ ->
-			Acc3
-	end,
-	Acc5 = case maps:find("ratingGroup", H) of
-		{ok, RG} ->
-			[{"ratingGroup", RG} | Acc4];
-		_ ->
-			Acc4
-	end,
-	Acc6 = case maps:find("serviceInformation", H) of
-		{ok, #{"mcc" := MCC, "mnc" := MNC}} ->
-			[{"serviceInformation",
-					{struct, [{"sgsnMccMnc", {struct,
-					[{"mcc", MCC}, {"mnc", MNC}]}}]}} | Acc5];
-		error ->
-			Acc5
-	end,
-	Acc7 = case maps:find("validUnits", H) of
-		{ok, VU} ->
-			[{"validUnits", VU} | Acc6];
-		error ->
-			Acc6
-	end,
-	Acc8 = case maps:find("uPFID", H) of
-		{ok, UPFID} ->
-			[{"uPFID", UPFID} | Acc7];
-		error ->
-			Acc7
-	end,
-	Acc9 = case maps:find("resultCode", H) of
-		{ok, RC} ->
-			[{"resultCode", RC} | Acc8];
-		error ->
-			Acc8
-	end,
-	struct_service_rating(T, [{struct, Acc9} | Acc]);
-struct_service_rating([], Acc) ->
-	lists:reverse(Acc).
-
--spec map_service_rating(ServiceRating) -> Result
-	when
-		ServiceRating :: [{struct, [tuple()]}],
-		Result :: [map()].
-%% @doc Convert a Service Rating struct to a map.
-map_service_rating(ServiceRating) ->
-	map_service_rating(ServiceRating, []).
+service_rating(ServiceRating)
+		when is_list(ServiceRating) ->
+	service_rating(ServiceRating, []).
 %% @hidden
-map_service_rating([{struct, Elements} | T], Acc) ->
-	F = fun F([{"requestedUnit", {_, Units}} | T1], Acc1) ->
-			Acc2 = Acc1#{"requestedUnit" => units(Units)},
-			F(T1, Acc2);
-		F([{"consumedUnit", {_, Units}} | T1], Acc1) ->
-			Acc2 = Acc1#{"consumedUnit" => units(Units)},
-			F(T1, Acc2);
-		F([{"serviceInformation", {_, [{_, {_ ,
-				[{"mcc", MCC}, {"mnc", MNC}]}}]}} | T1], Acc1) ->
-			Acc2 = Acc1#{"serviceInformation" => #{"mcc" => MCC, "mnc" => MNC}},
-			F(T1, Acc2);
-		F([{Name, Value} | T1], Acc1) ->
-			F(T1, Acc1#{Name => Value});
-		F([], Acc1) ->
-			Acc1
-	end,
-	ServiceRatingMap = F(Elements, #{}),
-	map_service_rating(T, [ServiceRatingMap | Acc]);
-map_service_rating([], Acc) ->
+service_rating([H | T], Acc) ->
+	service_rating(T, [service_rating1(H) | Acc]);
+service_rating([], Acc) ->
 	lists:reverse(Acc).
+%% @hidden
+service_rating1({struct, SR}) ->
+	sr_in(SR, #{});
+service_rating1(SR) when is_map(SR) ->
+	sr_out(SR, []).
 
 %% @hidden
-units(Units) ->
-	units(Units, #{}).
+sr_out(#{"resultCode" := RC} = M, Acc) ->
+	sr_out1(M, [{"resultCode", RC} | Acc]);
+sr_out(M, Acc) ->
+	sr_out1(M, Acc).
 %% @hidden
-units([{"time", CCTime} | T], Acc) ->
-	units(T, Acc#{"time" => CCTime});
-units([{"downlinkVolume", DownLinkVolume} | T], Acc) ->
-	units(T, Acc#{"downlinkVolume" => DownLinkVolume});
-units([{"uplinkVolume", UpLinkVolume} | T], Acc) ->
-	units(T, Acc#{"uplinkVolume" => UpLinkVolume});
-units([{"totalVolume", TotalVolume} | T], Acc) ->
-	units(T, Acc#{"totalVolume" => TotalVolume});
-units([{"serviceSpecificUnit", SpecUnits} | T], Acc) ->
-	units(T, Acc#{"serviceSpecificUnit" => SpecUnits});
-units([], Acc) ->
+sr_out1(#{"serviceInformation" := SI} = M, Acc) ->
+	sr_out2(M, [{"serviceInformation", service_information(SI)} | Acc]);
+sr_out1(M, Acc) ->
+	sr_out2(M, Acc).
+%% @hidden
+sr_out2(#{"uPFID" := UPFID} = M, Acc) ->
+	sr_out3(M, [{"uPFID", UPFID} | Acc]);
+sr_out2(M, Acc) ->
+	sr_out3(M, Acc).
+%% @hidden
+sr_out3(#{"validUnits" := VU} = M, Acc) ->
+	sr_out4(M, [{"validUnits", VU} | Acc]);
+sr_out3(M, Acc) ->
+	sr_out4(M, Acc).
+%% @hidden
+sr_out4(#{"grantedUnit" := Units} = M, Acc) ->
+	sr_out5(M, [{"grantedUnit", {struct, maps:to_list(Units)}} | Acc]);
+sr_out4(M, Acc) ->
+	sr_out5(M, Acc).
+%% @hidden
+sr_out5(#{"consumedUnit" := Units} = M, Acc) ->
+	sr_out6(M, [{"consumedUnit", {struct, maps:to_list(Units)}} | Acc]);
+sr_out5(M, Acc) ->
+	sr_out6(M, Acc).
+%% @hidden
+sr_out6(#{"ratingGroup" := RG} = M, Acc) ->
+	sr_out7(M, [{"ratingGroup", RG} | Acc]);
+sr_out6(M, Acc) ->
+	sr_out7(M, Acc).
+%% @hidden
+sr_out7(#{"serviceId" := SI} = M, Acc) ->
+	sr_out8(M, [{"serviceId", SI} | Acc]);
+sr_out7(M, Acc) ->
+	sr_out8(M, Acc).
+%% @hidden
+sr_out8(#{"serviceContextId" := SCI} = _M, Acc)
+		when is_list(SCI) ->
+	{struct, [{"serviceContextId", SCI} | Acc]};
+sr_out8(_M, Acc) ->
+	{struct, Acc}.
+
+%% @hidden
+sr_in([{"serviceContextId", SCI} | T], Acc)
+		when is_list(SCI) ->
+	sr_in(T, Acc#{"serviceContextId" => SCI});
+sr_in([{"serviceId", SI} | T], Acc)
+		when is_integer(SI) ->
+	sr_in(T, Acc#{"serviceId" => SI});
+sr_in([{"ratingGroup", RG} | T], Acc)
+		when is_integer(RG) ->
+	sr_in(T, Acc#{"ratingGroup" => RG});
+sr_in([{"originationId", {array, OI}} | T], Acc) ->
+	sr_in(T, Acc#{"originationId" => origination_id(OI)});
+sr_in([{"destinationId", {array, DI}} | T], Acc) ->
+	sr_in(T, Acc#{"destinationId" => destination_id(DI)});
+sr_in([{"requestSubType", "RESERVE"} | T], Acc) ->
+	sr_in(T, Acc#{"requestSubType" => "RESERVE"});
+sr_in([{"requestSubType", "DEBIT"} | T], Acc) ->
+	sr_in(T, Acc#{"requestSubType" => "DEBIT"});
+sr_in([{"uPFID", UPFID} | T], Acc)
+		when is_list(UPFID) ->
+	sr_in(T, Acc#{"uPFID" => UPFID});
+sr_in([{"requestedUnit", {struct, Units}} | T], Acc) ->
+	sr_in(T, Acc#{"requestedUnit" => maps:from_list(Units)});
+sr_in([{"consumedUnit", {struct, Units}} | T], Acc) ->
+	sr_in(T, Acc#{"consumedUnit" => maps:from_list(Units)});
+sr_in([{"serviceInformation", {struct, SI}} | T], Acc) ->
+	sr_in(T, Acc#{"serviceInformation" => service_information(SI)});
+sr_in([_Other | T], Acc) ->
+	sr_in(T, Acc);
+sr_in([], Acc) ->
+	Acc.
+
+%% @hidden
+origination_id(OriginationId) ->
+	origination_id(OriginationId, []).
+%% @hidden
+origination_id([{struct, OI} | T], Acc) ->
+	origination_id(T, [origination_id1(OI, #{}) | Acc]);
+origination_id([_H | T], Acc) ->
+	origination_id(T, Acc);
+origination_id([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+origination_id1([{"originationIdType", Type} | T], Acc)
+		when is_list(Type) ->
+	origination_id1(T, Acc#{"originationIdType" => Type});
+origination_id1([{"originationIdData", Data} | T], Acc)
+		when is_list(Data) ->
+	origination_id1(T, Acc#{"originationIdData" => Data});
+origination_id1([_H | T], Acc) ->
+	origination_id1(T, Acc);
+origination_id1([], Acc) ->
+	Acc.
+
+%% @hidden
+destination_id(DestinationId) ->
+	destination_id(DestinationId, []).
+%% @hidden
+destination_id([{struct, DI} | T], Acc) ->
+	destination_id(T, [destination_id1(DI, #{}) | Acc]);
+destination_id([_H | T], Acc) ->
+	destination_id(T, Acc);
+destination_id([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+destination_id1([{"destinationIdType", Type} | T], Acc)
+		when is_list(Type) ->
+	destination_id1(T, Acc#{"destinationIdType" => Type});
+destination_id1([{"destinationIdData", Data} | T], Acc)
+		when is_list(Data) ->
+	destination_id1(T, Acc#{"destinationIdData" => Data});
+destination_id1([_H | T], Acc) ->
+	destination_id1(T, Acc);
+destination_id1([], Acc) ->
+	Acc.
+
+%% @hidden
+service_information(ServiceInformation) ->
+	si_in(ServiceInformation, #{}).
+
+%% @hidden
+si_in([{"servingNodeType", SNT} | T], Acc)
+		when is_list(SNT) ->
+	si_in(T, Acc#{"servingNodeType" => SNT});
+si_in([{"sgsnMccMnc", {struct, MccMnc}} | T], Acc)
+		when is_list(MccMnc) ->
+	si_in(T, Acc#{"sgsnMccMnc" => maps:from_list(MccMnc)});
+si_in([{"userLocationinfo", {struct, ULI}} | T], Acc)
+		when is_list(ULI) ->
+	si_in(T, Acc#{"userLocationinfo" => user_location_info(ULI)});
+si_in([{"visitedNetworkIdentifier", VNI} | T], Acc)
+		when is_list(VNI) ->
+	si_in(T, Acc#{"visitedNetworkIdentifier" => VNI});
+si_in([{"nodeFunctionality", NF} | T], Acc)
+		when is_list(NF) ->
+	si_in(T, Acc#{"nodeFunctionality" => NF});
+si_in([{"roleOfNode", RON} | T], Acc)
+		when is_list(RON) ->
+	si_in(T, Acc#{"roleOfNode" => RON});
+si_in([_ | T], Acc) ->
+	si_in(T, Acc);
+si_in([], Acc) ->
+	Acc.
+
+%% @hidden
+user_location_info(ULI) ->
+	user_location_info(ULI, #{}).
+%% @hidden
+user_location_info([{"utraLocation", {struct, Location}} | T], Acc)
+		when is_list(Location) ->
+	case user_location_info1(Location, #{}) of
+		ULI when map_size(ULI) > 0 ->
+			Acc#{"utraLocation" => ULI};
+		_ULI ->
+			user_location_info(T, Acc)
+	end;
+user_location_info([{"eutraLocation", {struct, Location}} | T], Acc)
+		when is_list(Location) ->
+	case user_location_info1(Location, #{}) of
+		ULI when map_size(ULI) > 0 ->
+			Acc#{"eutraLocation" => ULI};
+		_ULI ->
+			user_location_info(T, Acc)
+	end;
+user_location_info([{"nrLocation", {struct, Location}} | T], Acc)
+		when is_list(Location) ->
+	case user_location_info1(Location, #{}) of
+		ULI when map_size(ULI) > 0 ->
+			Acc#{"nrLocation" => ULI};
+		_ULI ->
+			user_location_info(T, Acc)
+	end;
+user_location_info([{"n3gaLocation", {struct, Location}} | T], Acc)
+		when is_list(Location) ->
+	case user_location_info1(Location, #{}) of
+		ULI when map_size(ULI) > 0 ->
+			Acc#{"nrLocation" => ULI};
+		_ULI ->
+			user_location_info(T, Acc)
+	end;
+user_location_info([_ | T], Acc) ->
+	user_location_info(T, Acc);
+user_location_info([], Acc) ->
+	Acc.
+
+%% @hidden
+user_location_info1([{"cgi", {struct, CGI}} | T], Acc)
+		when is_list(CGI) ->
+	case user_location_info2(CGI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"cgi" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"ecgi", {struct, ECGI}} | T], Acc)
+		when is_list(ECGI) ->
+	case user_location_info2(ECGI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"ecgi" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"ncgi", {struct, NCGI}} | T], Acc)
+		when is_list(NCGI) ->
+	case user_location_info2(NCGI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"ncgi" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"tai", {struct, TAI}} | T], Acc)
+		when is_list(TAI) ->
+	case user_location_info2(TAI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"tai" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"sai", {struct, SAI}} | T], Acc)
+		when is_list(SAI) ->
+	case user_location_info2(SAI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"sai" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"rai", {struct, RAI}} | T], Acc)
+		when is_list(RAI) ->
+	case user_location_info2(RAI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"rai" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([{"n3gppTai", {struct, TAI}} | T], Acc)
+		when is_list(TAI) ->
+	case user_location_info2(TAI, #{}) of
+		PLMN when map_size(PLMN) > 0 ->
+			Acc#{"n3gppTai" => PLMN};
+		_PLMN ->
+			user_location_info1(T, Acc)
+	end;
+user_location_info1([_ | T], Acc) ->
+	user_location_info1(T, Acc);
+user_location_info1([], Acc) ->
+	Acc.
+
+%% @hidden
+user_location_info2([{"plmnid", {struct, PLMN}} | _T], Acc)
+		when is_list(PLMN) ->
+	Acc#{"plmnid" => maps:from_list(PLMN)};
+user_location_info2([_ | T], Acc) ->
+	user_location_info2(T, Acc);
+user_location_info2([], Acc) ->
 	Acc.
 
 -spec service_type(ServiceContextId) -> ServiceType
@@ -1041,6 +1216,7 @@ service_type(ServiceContextId) ->
 		Result :: ID,
 		ID :: string().
 %% @doc Generate a unique identifier
+%% @hidden
 unique() ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
@@ -1053,6 +1229,7 @@ unique() ->
 		Address :: inet:ip_address(),
 		Port :: inet:port_number().
 %% @doc Get server IP address and Port.
+%% @hidden
 server(#mod{socket = Socket, socket_type = ip_comm}) ->
 	server1(inet:sockname(Socket));
 server(#mod{socket = Socket, socket_type = {ip_comm, _Config}}) ->
@@ -1075,6 +1252,7 @@ server1({error, _Reason}) ->
 		Problem :: map().
 %% @doc Do Authorization for Re interface.
 %% @todo Handle other httpd configurations.
+%% @hidden
 authorize_rating(#mod{data = Data, config_db = ConfigDb} = _ModData) ->
 	case lists:keyfind(remote_user, 1, Data) of
 		{remote_user, Username} ->
@@ -1126,7 +1304,7 @@ authorize_rating4(Username, Address, Port, Directory) ->
 		ServiceInformation :: map(),
 		ServiceNetwork :: string() | undefined.
 %% @doc Get serving PLMN.
-%% @private
+%% @hidden
 service_network(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"utraLocation"
@@ -1138,6 +1316,12 @@ service_network(#{"userLocationinfo" := #{"utraLocation"
 service_network(#{"userLocationinfo" := #{"utraLocation"
 		:= #{"rai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"eutraLocation"
+		:= #{"ecgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
+service_network(#{"userLocationinfo" := #{"eutraLocation"
+		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"nrLocation"
 		:= #{"ncgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
@@ -1147,9 +1331,6 @@ service_network(#{"userLocationinfo" := #{"nrLocation"
 service_network(#{"userLocationinfo" := #{"n3gaLocation"
 		:= #{"n3gppTai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
-service_network(#{"userLocationinfo" := #{"eutraLocation"
-		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
-	MCC ++ MNC;
 service_network(_) ->
 	undefined.
 
@@ -1158,7 +1339,7 @@ service_network(_) ->
 		ServiceInformation :: map(),
 		Direction :: answer | originate | undefined.
 %% @doc Get call/message direction.
-%% @private
+%% @hidden
 direction(#{"roleOfNode" := "ORIGINATING"}) ->
 	originate;
 direction(#{"roleOfNode" := "TERMINATING"}) ->
