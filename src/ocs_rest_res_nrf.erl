@@ -529,14 +529,6 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 			{undefined, undefined}
 	end,
 	Address = case Direction of
-		originate ->
-			case maps:find("destinationId", H) of
-				{ok, DI} ->
-					hd([D || #{"destinationIdType" := "DN",
-							"destinationIdData" := D} <- DI]);
-				_ ->
-					undefined
-			end;
 		answer ->
 			case maps:find("originationId", H) of
 				{ok, OI} ->
@@ -545,8 +537,14 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 				_ ->
 					undefined
 			end;
-		undefined ->
-			undefined
+		_ ->
+			case maps:find("destinationId", H) of
+				{ok, DI} ->
+					hd([D || #{"destinationIdType" := "DN",
+							"destinationIdData" := D} <- DI]);
+				_ ->
+					undefined
+			end
 	end,
 	Reserve = case maps:find("requestedUnit", H) of
 		{ok, #{"totalVolume" := RA}} when RA > 0->
@@ -1076,6 +1074,9 @@ si_in([{"nodeFunctionality", NF} | T], Acc)
 si_in([{"roleOfNode", RON} | T], Acc)
 		when is_list(RON) ->
 	si_in(T, Acc#{"roleOfNode" => RON});
+si_in([{"messageType", MT} | T], Acc)
+		when is_list(MT) ->
+	si_in(T, Acc#{"messageType" => MT});
 si_in([_ | T], Acc) ->
 	si_in(T, Acc);
 si_in([], Acc) ->
@@ -1343,6 +1344,10 @@ service_network(_) ->
 direction(#{"roleOfNode" := "ORIGINATING"}) ->
 	originate;
 direction(#{"roleOfNode" := "TERMINATING"}) ->
+	answer;
+direction(#{"messageType" := "SUBMISSION"}) ->
+	originate;
+direction(#{"messageType" := "DELIVERY"}) ->
 	answer;
 direction(_) ->
 	undefined.
