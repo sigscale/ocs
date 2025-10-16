@@ -1,3 +1,10 @@
+October 16, 2025
+---------------
+	- Nrf handles SMS messageType
+	- Nrf ignores missing direction, defaults to rating destination address
+	- Nrf ignores additional origination/destination addresses
+	- Nrf OAS version 1.1.8
+
 October 6, 2025
 ---------------
 	- Include GSU in Nrf ServiceRatingResult for onetime IEC

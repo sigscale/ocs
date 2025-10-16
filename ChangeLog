@@ -1,3 +1,11 @@
+2024-10-16  Vance Shipley <vances@sigscale.org>
+
+	* nrf handles sms message type, ignore missing direction
+	* update references to nrf oas for v1.1.8
+	* add sms mt message type: delivery (#6)
+	* refactor nrf codec; fix orig/dest dn
+	* nodeFunctionality inside nfConsumerIdentification within internal map()
+
 2024-10-06  Vance Shipley <vances@sigscale.org>
 
 	* remove ratingdataref on release error
