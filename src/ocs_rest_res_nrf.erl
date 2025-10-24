@@ -83,7 +83,7 @@ initial_nrf1(ModData, RatingDataRequest)
 		when is_list(RatingDataRequest) ->
 	try mochijson:decode(RatingDataRequest) of
 		{struct, _Attributes} = NrfStruct ->
-			initial_nrf1(ModData, nrf(NrfStruct))
+			initial_nrf1(ModData, rating_data(NrfStruct))
 	catch
 		_ ->
 			error_logger:warning_report(["Unable to process Nrf request",
@@ -92,7 +92,12 @@ initial_nrf1(ModData, RatingDataRequest)
 			Problem = rest_error_response(decode_failed, undefined),
 			{error, 400, Problem}
 	end;
-initial_nrf1(ModData, #{} = RatingDataRequest) ->
+initial_nrf1(ModData,
+		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
+		"invocationTimeStamp" := TS,
+		"invocationSequenceNumber" := SN,
+		"serviceContextId" := Context} = RatingDataRequest)
+		when is_list(NF), is_list(TS), is_integer(SN), is_list(Context) ->
 	RatingDataRef = unique(),
 	try
 		{Flag, LogEventType} = case RatingDataRequest of
@@ -104,13 +109,13 @@ initial_nrf1(ModData, #{} = RatingDataRequest) ->
 		case rate(RatingDataRef, RatingDataRequest, Flag) of
 			{ok, ServiceRating, Rated} when Flag == event ->
 				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
-				RatingDataResponse = nrf(UpdatedMap),
+				RatingDataResponse = rating_data(UpdatedMap),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{LogEventType, RatingDataResponse, LogRequest, UpdatedMap, Rated};
 			{ok, ServiceRating, _Rated} ->
 				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
 				ok = add_ref(RatingDataRef, UpdatedMap),
-				RatingDataResponse = nrf(UpdatedMap),
+				RatingDataResponse = rating_data(UpdatedMap),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{LogEventType, RatingDataResponse, LogRequest, UpdatedMap, undefined};
 			{out_of_credit, _ServiceRating, _Rated} ->
@@ -153,7 +158,15 @@ initial_nrf1(ModData, #{} = RatingDataRequest) ->
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, start}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
-	end.
+	end;
+initial_nrf1(_ModData, RatingDataRequest) ->
+	Mandatory = ["nfConsumerIdentification", "invocationTimeStamp",
+			"invocationSequenceNumber", "serviceContextId"],
+	Missing = Mandatory -- maps:keys(RatingDataRequest),
+	InvalidParams = [#{param => "/" ++ IE,
+			reason => "Missing mandatory IE."} || IE <- Missing],
+	Problem = rest_error_response(mandatory_missing, InvalidParams),
+	{error, 400, Problem}.
 	
 -spec update_nrf(ModData, RatingDataRef, RatingDataRequest) -> RatingDataResponse
 	when
@@ -183,7 +196,7 @@ update_nrf1(ModData, RatingDataRef, RatingDataRequest)
 		when is_list(RatingDataRequest) ->
 	try mochijson:decode(RatingDataRequest) of
 		{struct, _Attributes} = NrfStruct ->
-			update_nrf1(ModData, RatingDataRef, nrf(NrfStruct))
+			update_nrf1(ModData, RatingDataRef, rating_data(NrfStruct))
 	catch
 		_ ->
 			error_logger:warning_report(["Unable to process Nrf request",
@@ -197,7 +210,7 @@ update_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 		true ->
 			update_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
-			InvalidParams = [#{param => RatingDataRef,
+			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
@@ -205,12 +218,17 @@ update_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 			{error, 500}
 	end.
 %% @hidden
-update_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
+update_nrf2(ModData, RatingDataRef,
+		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
+		"invocationTimeStamp" := TS,
+		"invocationSequenceNumber" := SN,
+		"serviceContextId" := Context} = RatingDataRequest)
+		when is_list(NF), is_list(TS), is_integer(SN), is_list(Context) ->
 	try
 		case rate(RatingDataRef, RatingDataRequest, interim) of
 			{ok, ServiceRating, _Rated} ->
 				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
-				RatingDataResponse = nrf(UpdatedMap),
+				RatingDataResponse = rating_data(UpdatedMap),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{RatingDataResponse, LogRequest, UpdatedMap};
 			{out_of_credit, _ServiceRating, _Rated} ->
@@ -252,7 +270,15 @@ update_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, update}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
-	end.
+	end;
+update_nrf2(_ModData, _RatingDataRef, RatingDataRequest) ->
+	Mandatory = ["nfConsumerIdentification", "invocationTimeStamp",
+			"invocationSequenceNumber", "serviceContextId"],
+	Missing = Mandatory -- maps:keys(RatingDataRequest),
+	InvalidParams = [#{param => "/" ++ IE,
+			reason => "Missing mandatory IE."} || IE <- Missing],
+	Problem = rest_error_response(mandatory_missing, InvalidParams),
+	{error, 400, Problem}.
 
 -spec release_nrf(ModData, RatingDataRef, RatingDataRequest) -> RatingDataResponse
 	when
@@ -284,7 +310,7 @@ release_nrf1(ModData, RatingDataRef, RatingDataRequest)
 		when is_list(RatingDataRequest) ->
 	try mochijson:decode(RatingDataRequest) of
 		{struct, _Attributes} = NrfStruct ->
-			release_nrf1(ModData, RatingDataRef, nrf(NrfStruct))
+			release_nrf1(ModData, RatingDataRef, rating_data(NrfStruct))
 	catch
 		_ ->
 			error_logger:warning_report(["Unable to process Nrf request",
@@ -298,7 +324,7 @@ release_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 		true ->
 			release_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
-			InvalidParams = [#{param => RatingDataRef,
+			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
@@ -306,12 +332,17 @@ release_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 			{error, 500}
 	end.
 %% @hidden
-release_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
+release_nrf2(ModData, RatingDataRef,
+		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
+		"invocationTimeStamp" := TS,
+		"invocationSequenceNumber" := SN,
+		"serviceContextId" := Context} = RatingDataRequest)
+		when is_list(NF), is_list(TS), is_integer(SN), is_list(Context) ->
 	try
 		case rate(RatingDataRef, RatingDataRequest, final) of
 			{ok, ServiceRating, Rated} ->
 				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
-				RatingDataResponse = nrf(UpdatedMap),
+				RatingDataResponse = rating_data(UpdatedMap),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
 			{out_of_credit, _ServiceRating, Rated} ->
@@ -356,7 +387,15 @@ release_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, release}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
-	end.
+	end;
+release_nrf2(_ModData, _RatingDataRef, RatingDataRequest) ->
+	Mandatory = ["nfConsumerIdentification", "invocationTimeStamp",
+			"invocationSequenceNumber", "serviceContextId"],
+	Missing = Mandatory -- maps:keys(RatingDataRequest),
+	InvalidParams = [#{param => "/" ++ IE,
+			reason => "Missing mandatory IE."} || IE <- Missing],
+	Problem = rest_error_response(mandatory_missing, InvalidParams),
+	{error, 300, Problem}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -453,7 +492,13 @@ rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "MANDATORY_IE_INCORRECT",
 			status => 400,
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.8#/",
-			title => "Request denied because the RatingDataRef is not recognized",
+			title => "Request denied because the rating data ref is not recognized",
+			invalidParams => InvalidParams};
+rest_error_response(mandatory_missing, InvalidParams) ->
+	#{cause => "MANDATORY_IE_INCORRECT",
+			status => 400,
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.8#/",
+			title => "Request denied because of missing mandatory IE(s)",
 			invalidParams => InvalidParams};
 rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "INVALID_SERVICE_TYPE",
@@ -745,17 +790,14 @@ rate2(_, _, _, [], AccS, AccR) ->
 	Rated = lists:flatten(lists:reverse(AccR)),
 	{ok, AccS, Rated}.
 
--spec nrf(Nrf) -> Nrf
+-spec rating_data(RatingData) -> RatingData
 	when
-		Nrf :: map() | {struct, [tuple()]}.
+		RatingData :: map() | {struct, [tuple()]}.
 %% @doc CODEC for Nrf body.
 %% @hidden
-nrf({struct, StructList}) ->
-	nrf1(StructList, #{});
-nrf(RatingDataRequest) when is_map(RatingDataRequest) ->
-	nrf1(RatingDataRequest).
-%% @hidden
-nrf1(#{"invocationTimeStamp" := TS,
+rating_data({struct, StructList} = _RatingData) ->
+	rating_data1(StructList, #{});
+rating_data(#{"invocationTimeStamp" := TS,
 		"invocationSequenceNumber" := SeqNum,
 		"serviceRating" := ServiceRating}) ->
 	{struct, [{"invocationTimeStamp", TS},
@@ -763,45 +805,39 @@ nrf1(#{"invocationTimeStamp" := TS,
 			{"serviceRating",
 					{array, service_rating(ServiceRating)}}]}.
 %% @hidden
-nrf1([{"invocationTimeStamp", TS} | T], Acc) ->
-	nrf1(T, Acc#{"invocationTimeStamp" => TS});
-nrf1([{"oneTimeEvent", OneTimeEvent} | T], Acc)
+rating_data1([{"invocationTimeStamp", TS} | T], Acc)
+		when is_list(TS) ->
+	rating_data1(T, Acc#{"invocationTimeStamp" => TS});
+rating_data1([{"oneTimeEvent", OneTimeEvent} | T], Acc)
 		when is_boolean(OneTimeEvent) ->
-	nrf1(T, Acc#{"oneTimeEvent" => OneTimeEvent});
-nrf1([{"oneTimeEventType", EventType} | T], Acc) ->
-	nrf1(T, Acc#{"oneTimeEventType" => EventType});
-nrf1([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
-	nrf1(T, Acc#{"invocationSequenceNumber" => SeqNum});
-nrf1([{"subscriptionId", SubscriptionIds} | T], Acc) ->
-	nrf1(T, subscriptionId_map(SubscriptionIds, Acc));
-nrf1([{"nfConsumerIdentification",
+	rating_data1(T, Acc#{"oneTimeEvent" => OneTimeEvent});
+rating_data1([{"oneTimeEventType", EventType} | T], Acc) ->
+	rating_data1(T, Acc#{"oneTimeEventType" => EventType});
+rating_data1([{"invocationSequenceNumber", SeqNum} | T], Acc)
+		when is_integer(SeqNum) ->
+	rating_data1(T, Acc#{"invocationSequenceNumber" => SeqNum});
+rating_data1([{"subscriptionId", {array, SubscriptionIds}} | T], Acc)
+		when is_list(SubscriptionIds) ->
+	rating_data1(T, Acc#{"subscriptionId" => SubscriptionIds});
+rating_data1([{"serviceContextId", Context} | T], Acc)
+		when is_list(Context) ->
+	rating_data1(T, Acc#{"serviceContextId" => Context});
+rating_data1([{"nfConsumerIdentification",
 		{struct, NfConsumerIdentification}} | T], Acc) ->
-	{_, NF} = lists:keyfind("nodeFunctionality",
-			1, NfConsumerIdentification),
-	nrf1(T, Acc#{"nfConsumerIdentification" => #{"nodeFunctionality" => NF}});
-nrf1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
-	nrf1(T, Acc#{"serviceRating" => service_rating(ServiceRating)});
-nrf1([_H | T], Acc) ->
-	nrf1(T, Acc);
-nrf1([], Acc) ->
+	Acc1 = case lists:keyfind("nodeFunctionality",
+			1, NfConsumerIdentification) of
+		{_, NF} ->
+			Acc#{"nfConsumerIdentification" => #{"nodeFunctionality" => NF}};
+		false ->
+			Acc
+	end,
+	rating_data1(T, Acc1);
+rating_data1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
+	rating_data1(T, Acc#{"serviceRating" => service_rating(ServiceRating)});
+rating_data1([_H | T], Acc) ->
+	rating_data1(T, Acc);
+rating_data1([], Acc) ->
 	Acc.
-
-%% @hidden
-subscriptionId_map({array, Ids}, Acc) ->
-	subscriptionId_map(Ids, Acc#{"subscriptionId" => []});
-subscriptionId_map(["msisdn-" ++ MSISDN | T],
-		#{"subscriptionId" := SubscriptionIds} = Acc) ->
-	subscriptionId_map(T, Acc#{"subscriptionId" =>
-			["msisdn-" ++ MSISDN | SubscriptionIds]});
-subscriptionId_map(["imsi-" ++ IMSI | T],
-		#{"subscriptionId" := SubscriptionIds} = Acc) ->
-	subscriptionId_map(T, Acc#{"subscriptionId" =>
-			["imsi-" ++ IMSI | SubscriptionIds]});
-subscriptionId_map([_ | T], Acc) ->
-	subscriptionId_map(T, Acc);
-subscriptionId_map([], #{"subscriptionId" := SubscriptionIds} = Acc) ->
-	SubscriptionIds1 = lists:reverse(SubscriptionIds),
-	Acc#{"subscriptionId" := SubscriptionIds1}.
 
 -spec subscriber_id(SubscriptionIds) -> SubscriberIDs
 	when
