@@ -197,7 +197,7 @@ update_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 		true ->
 			update_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
-			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
+			InvalidParams = [#{param => RatingDataRef,
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
@@ -298,7 +298,7 @@ release_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 		true ->
 			release_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
-			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
+			InvalidParams = [#{param => RatingDataRef,
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
@@ -450,10 +450,10 @@ rest_error_response(charging_failed, undefined) ->
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.8#/",
 			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
-	#{cause => "RATING_DATA_REF_UNKNOWN",
-			status => 404,
+	#{cause => "MANDATORY_IE_INCORRECT",
+			status => 400,
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.1.8#/",
-			title => "Request denied because the rating data ref is not recognized",
+			title => "Request denied because the RatingDataRef is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "INVALID_SERVICE_TYPE",
