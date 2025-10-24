@@ -53,11 +53,11 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/problem+json"].
 
--spec initial_nrf(ModData, NrfRequest) -> NrfResponse
+-spec initial_nrf(ModData, RatingDataRequest) -> RatingDataResponse
 	when
-		NrfRequest :: iolist(),
+		RatingDataRequest :: iolist(),
 		ModData :: #mod{},
-		NrfResponse :: {ok, ResponseHeaders, ResponseBody}
+		RatingDataResponse :: {ok, ResponseHeaders, ResponseBody}
 				| {error, StatusCode}
 				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
@@ -68,97 +68,99 @@ content_types_provided() ->
 %%
 %%		Rate an intial Nrf Request.
 %%
-initial_nrf(ModData, NrfRequest) ->
+initial_nrf(ModData, RatingDataRequest)
+		when is_list(RatingDataRequest) ->
 	case authorize_rating(ModData) of
 		{ok, authorized} ->
-			initial_nrf1(ModData, NrfRequest);
+			initial_nrf1(ModData, RatingDataRequest);
 		{error, Status} ->
 			{error, Status};
 		{error, Status, Problem} ->
 			{error, Status, Problem}
 	end.
 %% @hidden
-initial_nrf1(ModData, NrfRequest) ->
+initial_nrf1(ModData, RatingDataRequest)
+		when is_list(RatingDataRequest) ->
+	try mochijson:decode(RatingDataRequest) of
+		{struct, _Attributes} = NrfStruct ->
+			initial_nrf1(ModData, nrf(NrfStruct))
+	catch
+		_ ->
+			error_logger:warning_report(["Unable to process Nrf request",
+					{request, RatingDataRequest},
+					{operation, start}, {error, decode_failed}]),
+			Problem = rest_error_response(decode_failed, undefined),
+			{error, 400, Problem}
+	end;
+initial_nrf1(ModData, #{} = RatingDataRequest) ->
 	RatingDataRef = unique(),
 	try
-		case mochijson:decode(NrfRequest) of
-			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf(NrfStruct),
-				{Flag, LogEventType} = case NrfMap of
-					#{"oneTimeEvent" := true, "oneTimeEventType" := "IEC"} ->
-						{event, event};
-					_ ->
-						{initial, start}
-				end,
-				case rate(RatingDataRef, NrfMap, Flag) of
-					{ok, ServiceRating, Rated} when Flag == event ->
-						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						NrfResponse = nrf(UpdatedMap),
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{LogEventType, NrfResponse, LogRequest, UpdatedMap, Rated};
-					{ok, ServiceRating, _Rated} ->
-						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						ok = add_ref(RatingDataRef, UpdatedMap),
-						NrfResponse = nrf(UpdatedMap),
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{LogEventType, NrfResponse, LogRequest, UpdatedMap, undefined};
-					{out_of_credit, _ServiceRating, _Rated} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(out_of_credit, undefined),
-						{error, 403, LogEventType, LogRequest, Problem};
-					{error, service_not_found = Reason} ->
-						InvalidParams = [#{param => "/subscriptionId",
-								reason => "Unknown subscriber identifier"}],
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, LogEventType, LogRequest, Problem};
-					{error, invalid_service_type = Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						InvalidParams = [#{param => "/serviceContextId",
-								reason => "Invalid Service Type"}],
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, LogEventType, LogRequest, Problem};
-					{error, _Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, LogEventType, LogRequest, Problem}
-				end;
+		{Flag, LogEventType} = case RatingDataRequest of
+			#{"oneTimeEvent" := true, "oneTimeEventType" := "IEC"} ->
+				{event, event};
 			_ ->
-				error_logger:warning_report(["Unable to process Nrf request",
-						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
-						{operation, start}, {error, decode_failed}]),
-				{error, decode_failed}
+				{initial, start}
+		end,
+		case rate(RatingDataRef, RatingDataRequest, Flag) of
+			{ok, ServiceRating, Rated} when Flag == event ->
+				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
+				RatingDataResponse = nrf(UpdatedMap),
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				{LogEventType, RatingDataResponse, LogRequest, UpdatedMap, Rated};
+			{ok, ServiceRating, _Rated} ->
+				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
+				ok = add_ref(RatingDataRef, UpdatedMap),
+				RatingDataResponse = nrf(UpdatedMap),
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				{LogEventType, RatingDataResponse, LogRequest, UpdatedMap, undefined};
+			{out_of_credit, _ServiceRating, _Rated} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(out_of_credit, undefined),
+				{error, 403, LogEventType, LogRequest, Problem};
+			{error, service_not_found = Reason} ->
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Unknown subscriber identifier"}],
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 404, LogEventType, LogRequest, Problem};
+			{error, invalid_service_type = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/serviceContextId",
+						reason => "Invalid Service Type"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 400, LogEventType, LogRequest, Problem};
+			{error, _Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(charging_failed, undefined),
+				{error, 500, LogEventType, LogRequest, Problem}
 		end
 	of
-		{LogEventType1, {struct, _} = NrfResponse1, LogRequest1, LogResponse, Rated1} ->
+		{LogEventType1, {struct, _} = RatingDataResponse1, LogRequest1, LogResponse, Rated1} ->
 			Location = "/nrf-rating/v1/ratingdata/" ++ RatingDataRef,
 			Headers = [{content_type, "application/json"}, {location, Location}],
-			ResponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, LogResponse, Rated1),
 			{ok, Headers, ResponseBody};
 		{error, StatusCode, LogEventType1, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, Problem1, undefined),
-			{error, StatusCode, Problem1};
-		{error, decode_failed = Reason1} ->
-			Problem1 = rest_error_response(Reason1, undefined),
-			{error, 400, Problem1}
+			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process Nrf request",
-					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, start}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 	
--spec update_nrf(ModData, RatingDataRef, NrfRequest) -> NrfResponse
+-spec update_nrf(ModData, RatingDataRef, RatingDataRequest) -> RatingDataResponse
 	when
 		ModData ::#mod{},
 		RatingDataRef :: string(),
-		NrfRequest :: iolist(),
-		NrfResponse :: {200, ResponseHeaders, ResponseBody}
+		RatingDataRequest :: iolist(),
+		RatingDataResponse :: {200, ResponseHeaders, ResponseBody}
 				| {error, StatusCode}
 				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
@@ -167,20 +169,33 @@ initial_nrf1(ModData, NrfRequest) ->
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{RatingDataRef}/update'.
 %%		Rate an interim Nrf Request.
-update_nrf(ModData, RatingDataRef, NrfRequest) ->
+update_nrf(ModData, RatingDataRef, RatingDataRequest) ->
 	case authorize_rating(ModData) of
 		{ok, authorized} ->
-			update_nrf1(ModData, RatingDataRef, NrfRequest);
+			update_nrf1(ModData, RatingDataRef, RatingDataRequest);
 		{error, Status} ->
 			{error, Status};
 		{error, Status, Problem} ->
 			{error, Status, Problem}
 	end.
 %% @hidden
-update_nrf1(ModData, RatingDataRef, NrfRequest) ->
+update_nrf1(ModData, RatingDataRef, RatingDataRequest)
+		when is_list(RatingDataRequest) ->
+	try mochijson:decode(RatingDataRequest) of
+		{struct, _Attributes} = NrfStruct ->
+			update_nrf1(ModData, RatingDataRef, nrf(NrfStruct))
+	catch
+		_ ->
+			error_logger:warning_report(["Unable to process Nrf request",
+					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
+					{operation, update}, {error, decode_failed}]),
+			Problem = rest_error_response(decode_failed, undefined),
+			{error, 400, Problem}
+	end;
+update_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
-			update_nrf2(ModData, RatingDataRef, NrfRequest);
+			update_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
@@ -190,73 +205,61 @@ update_nrf1(ModData, RatingDataRef, NrfRequest) ->
 			{error, 500}
 	end.
 %% @hidden
-update_nrf2(ModData, RatingDataRef, NrfRequest) ->
+update_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
 	try
-		case mochijson:decode(NrfRequest) of
-			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf(NrfStruct),
-				case rate(RatingDataRef, NrfMap, interim) of
-					{ok, ServiceRating, _Rated} ->
-						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						NrfResponse = nrf(UpdatedMap),
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{NrfResponse, LogRequest, UpdatedMap};
-					{out_of_credit, _ServiceRating, _Rated} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(out_of_credit, undefined),
-						{error, 403, LogRequest, Problem};
-					{error, service_not_found = Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						InvalidParams = [#{param => "/subscriptionId",
-								reason => "Unknown subscriber identifier"}],
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, LogRequest, Problem};
-					{error, invalid_service_type = Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						InvalidParams = [#{param => "/serviceContextId",
-								reason => "Invalid Service Type"}],
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, LogRequest, Problem};
-					{error, _Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, LogRequest, Problem}
-				end;
-			_Other->
-				error_logger:warning_report(["Unable to process Nrf request",
-						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
-						{operation, update}, {error, decode_failed}]),
-				{error, decode_failed}
+		case rate(RatingDataRef, RatingDataRequest, interim) of
+			{ok, ServiceRating, _Rated} ->
+				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
+				RatingDataResponse = nrf(UpdatedMap),
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				{RatingDataResponse, LogRequest, UpdatedMap};
+			{out_of_credit, _ServiceRating, _Rated} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(out_of_credit, undefined),
+				{error, 403, LogRequest, Problem};
+			{error, service_not_found = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Unknown subscriber identifier"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 404, LogRequest, Problem};
+			{error, invalid_service_type = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/serviceContextId",
+						reason => "Invalid Service Type"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 400, LogRequest, Problem};
+			{error, _Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(charging_failed, undefined),
+				{error, 500, LogRequest, Problem}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest1, LogResponse} ->
+		{{struct, _} = RatingDataResponse1, LogRequest1, LogResponse} ->
 			Headers = [{content_type, "application/json"}],
-			ResponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, LogResponse, undefined),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, Problem1, undefined),
-			{error, StatusCode, Problem1};
-		{error, decode_failed = Reason1} ->
-			Problem1 = rest_error_response(Reason1, undefined),
-			{error, 400, Problem1}
+			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process Nrf request",
-					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, update}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 
--spec release_nrf(ModData, RatingDataRef, NrfRequest) -> NrfResponse
+-spec release_nrf(ModData, RatingDataRef, RatingDataRequest) -> RatingDataResponse
 	when
 		ModData ::#mod{},
-		NrfRequest :: iolist(),
+		RatingDataRequest :: iolist(),
 		RatingDataRef :: string(),
-		NrfResponse :: {200, ResponseHeaders, ResponseBody}
+		RatingDataResponse :: {200, ResponseHeaders, ResponseBody}
 				| {error, StatusCode}
 				| {error, StatusCode, Problem},
 		ResponseHeaders :: [tuple()],
@@ -267,20 +270,33 @@ update_nrf2(ModData, RatingDataRef, NrfRequest) ->
 %%
 %%		Rate a final Nrf Request.
 %%
-release_nrf(ModData, RatingDataRef, NrfRequest) ->
+release_nrf(ModData, RatingDataRef, RatingDataRequest) ->
 	case authorize_rating(ModData) of
 		{ok, authorized} ->
-			release_nrf1(ModData, RatingDataRef, NrfRequest);
+			release_nrf1(ModData, RatingDataRef, RatingDataRequest);
 		{error, Status} ->
 			{error, Status};
 		{error, Status, Problem} ->
 			{error, Status, Problem}
 	end.
 %% @hidden
-release_nrf1(ModData, RatingDataRef, NrfRequest) ->
+release_nrf1(ModData, RatingDataRef, RatingDataRequest)
+		when is_list(RatingDataRequest) ->
+	try mochijson:decode(RatingDataRequest) of
+		{struct, _Attributes} = NrfStruct ->
+			release_nrf1(ModData, RatingDataRef, nrf(NrfStruct))
+	catch
+		_ ->
+			error_logger:warning_report(["Unable to process Nrf request",
+					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
+					{operation, release}, {error, decode_failed}]),
+			Problem = rest_error_response(decode_failed, undefined),
+			{error, 400, Problem}
+	end;
+release_nrf1(ModData, RatingDataRef, #{} = RatingDataRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
-			release_nrf2(ModData, RatingDataRef, NrfRequest);
+			release_nrf2(ModData, RatingDataRef, RatingDataRequest);
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
@@ -290,49 +306,40 @@ release_nrf1(ModData, RatingDataRef, NrfRequest) ->
 			{error, 500}
 	end.
 %% @hidden
-release_nrf2(ModData, RatingDataRef, NrfRequest) ->
+release_nrf2(ModData, RatingDataRef, RatingDataRequest) ->
 	try
-		case mochijson:decode(NrfRequest) of
-			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf(NrfStruct),
-				case rate(RatingDataRef, NrfMap, final) of
-					{ok, ServiceRating, Rated} ->
-						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						NrfResponse = nrf(UpdatedMap),
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						{NrfResponse, LogRequest, UpdatedMap, Rated};
-					{out_of_credit, _ServiceRating, Rated} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(out_of_credit, undefined),
-						{error, 403, LogRequest, Problem, Rated};
-					{error, service_not_found = Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						InvalidParams = [#{param => "/subscriptionId",
-								reason => "Unknown subscriber identifier"}],
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 404, LogRequest, Problem, []};
-					{error, invalid_service_type = Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						InvalidParams = [#{param => "/serviceContextId",
-								reason => "Invalid Service Type"}],
-						Problem = rest_error_response(Reason, InvalidParams),
-						{error, 400, LogRequest, Problem, []};
-					{error, _Reason} ->
-						LogRequest = NrfMap#{"ratingSessionId" => RatingDataRef},
-						Problem = rest_error_response(charging_failed, undefined),
-						{error, 500, LogRequest, Problem, []}
-				end;
-			_ ->
-				error_logger:warning_report(["Unable to process Nrf request",
-						{ratingDataRef, RatingDataRef}, {request, NrfRequest},
-						{operation, release}, {error, decode_failed}]),
-				{error, decode_failed}
+		case rate(RatingDataRef, RatingDataRequest, final) of
+			{ok, ServiceRating, Rated} ->
+				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
+				RatingDataResponse = nrf(UpdatedMap),
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
+			{out_of_credit, _ServiceRating, Rated} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(out_of_credit, undefined),
+				{error, 403, LogRequest, Problem, Rated};
+			{error, service_not_found = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Unknown subscriber identifier"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 404, LogRequest, Problem, []};
+			{error, invalid_service_type = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/serviceContextId",
+						reason => "Invalid Service Type"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 400, LogRequest, Problem, []};
+			{error, _Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				Problem = rest_error_response(charging_failed, undefined),
+				{error, 500, LogRequest, Problem, []}
 		end
 	of
-		{{struct, _} = NrfResponse1, LogRequest1, LogResponse, Rated1} ->
+		{{struct, _} = RatingDataResponse1, LogRequest1, LogResponse, Rated1} ->
 			ok = remove_ref(RatingDataRef),
 			Headers = [{content_type, "application/json"}],
-			ResponseBody = mochijson:encode(NrfResponse1),
+			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, LogResponse, Rated1),
 			{200, Headers, ResponseBody};
@@ -340,17 +347,13 @@ release_nrf2(ModData, RatingDataRef, NrfRequest) ->
 			ok = remove_ref(RatingDataRef),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, Problem1, Rated1),
-			{error, StatusCode, Problem1};
-		{error, decode_failed = Reason1} ->
-			ok = remove_ref(RatingDataRef),
-			Problem1 = rest_error_response(Reason1, undefined),
-			{error, 400, Problem1}
+			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
 			ok = remove_ref(RatingDataRef),
 			error_logger:warning_report(["Unable to process Nrf request",
-					{ratingDataRef, RatingDataRef}, {request, NrfRequest},
+					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, release}, {error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
@@ -399,17 +402,17 @@ lookup_ref(RatingDataRef)
 			true
 	end.
 
--spec add_ref(RatingDataRef, NrfMap) -> Result
+-spec add_ref(RatingDataRef, RatingDataRequest) -> Result
 	when
 		RatingDataRef :: string(),
-		NrfMap :: map(),
+		RatingDataRequest :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
 %% @hidden
 add_ref(RatingDataRef,
 		#{"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
-		"subscriptionId" := SubscriptionId} = _NrfMap) ->
+		"subscriptionId" := SubscriptionId} = _RatingDataRequest) ->
 	F = fun() ->
 			NewRef = #nrf_ref{rating_ref = RatingDataRef,
 					node_functionality = NF, subscription_id = SubscriptionId,
@@ -486,10 +489,10 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 			type => "https://www.erlang.org/doc/apps/inets/httpd#props_auth",
 			title => "The inets httpd configuration is missing `directory` for mod_auth"}.
 
--spec rate(RatingDataRef, NrfRequest, Flag) -> Result
+-spec rate(RatingDataRef, RatingDataRequest, Flag) -> Result
 	when
 		RatingDataRef :: string(),
-		NrfRequest :: map(),
+		RatingDataRequest :: map(),
 		Flag :: initial | interim | final | event,
 		Result :: {RateResult, ServiceRating, Rated} | {error, Reason},
 		RateResult :: ok | out_of_credit,
@@ -499,8 +502,8 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 %% @hidden
-rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = NrfRequest, Flag) ->
-	case maps:get("serviceRating", NrfRequest, []) of
+rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = RatingDataRequest, Flag) ->
+	case maps:get("serviceRating", RatingDataRequest, []) of
 		ServiceRating when length(ServiceRating) > 0 ->
 			rate(list_to_binary(RatingDataRef),
 					Flag, SubscriptionIds, ServiceRating, []);
@@ -749,8 +752,8 @@ rate2(_, _, _, [], AccS, AccR) ->
 %% @hidden
 nrf({struct, StructList}) ->
 	nrf1(StructList, #{});
-nrf(NrfRequest) when is_map(NrfRequest) ->
-	nrf1(NrfRequest).
+nrf(RatingDataRequest) when is_map(RatingDataRequest) ->
+	nrf1(RatingDataRequest).
 %% @hidden
 nrf1(#{"invocationTimeStamp" := TS,
 		"invocationSequenceNumber" := SeqNum,
