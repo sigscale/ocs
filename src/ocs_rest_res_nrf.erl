@@ -1322,7 +1322,9 @@ authorize_rating4(Username, Address, Port, Directory) ->
 					{ok, authorized};
 				{rating, false} ->
 					Problem = rest_error_response(not_authorized, Username),
-					{error, 403, Problem}
+					{error, 403, Problem};
+				false ->
+					{ok, authorized};
 			end;
 		{error, no_such_user = Reason} ->
 			Problem = rest_error_response(Reason, Username),
