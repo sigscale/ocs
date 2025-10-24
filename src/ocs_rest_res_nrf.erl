@@ -754,14 +754,9 @@ nrf(NrfRequest) when is_map(NrfRequest) ->
 %% @hidden
 nrf1(#{"invocationTimeStamp" := TS,
 		"invocationSequenceNumber" := SeqNum,
-		"subscriptionId" := SubIds,
-		"nfConsumerIdentification" := #{"nodeFunctionality" := NF},
 		"serviceRating" := ServiceRating}) ->
 	{struct, [{"invocationTimeStamp", TS},
 			{"invocationSequenceNumber", SeqNum},
-			{"subscriptionId", {array, SubIds}},
-			{"nfConsumerIdentification",
-					{struct, [{"nodeFunctionality", NF}]}},
 			{"serviceRating",
 					{array, service_rating(ServiceRating)}}]}.
 %% @hidden
