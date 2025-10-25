@@ -621,16 +621,8 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 			[]
 	end,
 	ServiceType = service_type(SCI),
-	SessionAttributes = case {ChargingKey, maps:find("uPFID", H)} of
-		{undefined, error} ->
-			[{nrf_ref, RatingDataRef}];
-		{undefined, {ok, UpfId}} ->
-			[{nrf_ref, RatingDataRef}, {upfid, UpfId}];
-		{RG1, error} ->
-			[{nrf_ref, RatingDataRef}, {rg, RG1}];
-		{RG1, {ok, UpfId}} ->
-			[{nrf_ref, RatingDataRef}, {upfid, UpfId}, {rg, RG1}]
-	end,
+	SessionAttributes = session_id(RatingDataRef,
+			ChargingKey, maps:get("uPFID", H, undefined)),
 	Args = {ServiceType, ChargingKey, ServiceId, ServiceNetwork,
 			Address, Direction, SessionAttributes, Debit, Reserve},
 	rate(RatingDataRef, Flag, SubscriptionIds, T, [Args | Acc]);
@@ -1324,7 +1316,7 @@ authorize_rating4(Username, Address, Port, Directory) ->
 					Problem = rest_error_response(not_authorized, Username),
 					{error, 403, Problem};
 				false ->
-					{ok, authorized};
+					{ok, authorized}
 			end;
 		{error, no_such_user = Reason} ->
 			Problem = rest_error_response(Reason, Username),
@@ -1397,4 +1389,27 @@ combine([], [{Units, Amount}]) ->
 	[{Units, Amount}];
 combine([], []) ->
 	[].
+
+-spec session_id(RatingDataRef, ChargingKeyArg, UpfIdArg) -> SessionAttributes
+	when
+		RatingDataRef :: string(),
+		ChargingKeyArg :: ChargingKey | undefined,
+		ChargingKey :: 0..4294967295,
+		UpfIdArg :: UpfId | undefined,
+		UpfId :: string(),
+		SessionAttributes :: [Attribute],
+		Attribute :: {nrf_ref, RatingDataRef} | {rg, ChargingKey} | {upfid, UpfId}.
+%% @doc Construct session attributes which uniquely identify a rating session.
+%% @private
+session_id(RatingDataRef, ChargingKey = _ChargingKeyArg, UpfId = _UpfIdArg)
+		when is_integer(ChargingKey), is_list(UpfId) ->
+	[{nrf_ref, RatingDataRef}, {upfid, UpfId}, {rg, ChargingKey}];
+session_id(RatingDataRef, ChargingKey, undefined)
+		when is_integer(ChargingKey) ->
+	[{nrf_ref, RatingDataRef}, {rg, ChargingKey}];
+session_id(RatingDataRef, undefined, UpfId)
+		when is_list(UpfId) ->
+	[{nrf_ref, RatingDataRef}, {upfid, UpfId}];
+session_id(RatingDataRef, undefined, undefined) ->
+	[{nrf_ref, RatingDataRef}].
 

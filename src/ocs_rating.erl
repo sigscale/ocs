@@ -116,6 +116,10 @@
 %% 	is not enabled. The value of `SessionList' describes the
 %% 	known active sessions which should be disconnected.
 %%
+%% 	A successful call with `Flag' value of `initial' starts a session
+%% 	which must eventually be released by another call with exactly
+%% 	the same `SessionAttributes' and a `Flag' value of `final'.
+%%
 rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		ServiceNetwork, SubscriberIDs, Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts,
