@@ -68,6 +68,8 @@ content_types_provided() ->
 %%
 %%		Rate an intial Nrf Request.
 %%
+%% @todo Handle authorize only (empty `serviceRating').
+%%
 initial_nrf(ModData, RatingDataRequest)
 		when is_list(RatingDataRequest) ->
 	case authorize_rating(ModData) of
@@ -1019,6 +1021,8 @@ sr_in([{"requestSubType", "RESERVE"} | T], Acc) ->
 	sr_in(T, Acc#{"requestSubType" => "RESERVE"});
 sr_in([{"requestSubType", "DEBIT"} | T], Acc) ->
 	sr_in(T, Acc#{"requestSubType" => "DEBIT"});
+sr_in([{"requestSubType", "RELEASE"} | T], Acc) ->
+	sr_in(T, Acc#{"requestSubType" => "RELEASE"});
 sr_in([{"uPFID", UPFID} | T], Acc)
 		when is_list(UPFID) ->
 	sr_in(T, Acc#{"uPFID" => UPFID});
