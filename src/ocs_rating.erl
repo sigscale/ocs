@@ -535,6 +535,14 @@ charge(Protocol, Flag, SubscriberIDs, ServiceId, ChargingKey,
 
 %% @doc Split and order buckets.
 %% @hidden
+charge1(_Protocol, final = Flag, Service, ServiceId, Product, Buckets,
+		[#price{units = Units} | _ ] = _Prices,
+		[] = _DebitAmounts, ReserveAmounts, SessionId, ChargingKey,
+		_Address, _ServiceNetwork, Rated)
+		when ReserveAmounts == undefined; ReserveAmounts == [] ->
+	charge4(Flag, Service, ServiceId, Product, Buckets,
+			{Units, 0}, {Units, 0}, {Units, 0}, {Units, 0},
+			SessionId, Rated, ChargingKey, Buckets);
 charge1(Protocol, Flag, Service, ServiceId, Product, Buckets,
 		[#price{units = Units, size = UnitSize, name = PriceName,
 				type = PriceType, currency = Currency} | _ ] = Prices,
