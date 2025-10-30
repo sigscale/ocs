@@ -549,17 +549,15 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 %% @hidden
-rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = RatingDataRequest, Flag) ->
-	case maps:get("serviceRating", RatingDataRequest, []) of
-		ServiceRating when length(ServiceRating) > 0 ->
-			rate(list_to_binary(RatingDataRef),
-					Flag, SubscriptionIds, ServiceRating, []);
-		[] = _ServiceRating ->
-			{error, invalid_service_type}
-	end.
+rate(RatingDataRef, #{"serviceContextId" := ServiceContextId,
+		"subscriptionId" := SubscriptionIds,
+		"serviceRating" := ServiceRating} = _RatingDataRequest, Flag)
+		when length(SubscriptionIds) > 0 ->
+	rate(list_to_binary(RatingDataRef), Flag,
+			ServiceContextId, SubscriptionIds, ServiceRating, []).
 %% @hidden
-rate(RatingDataRef, Flag, SubscriptionIds,
-		[#{"serviceContextId" := SCI} = H | T], Acc) ->
+rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
+		[H | T], Acc) ->
 	ChargingKey = case maps:find("ratingGroup", H) of
 		{ok, RG} ->
 			RG;
@@ -596,39 +594,48 @@ rate(RatingDataRef, Flag, SubscriptionIds,
 					undefined
 			end
 	end,
-	Reserve = case maps:find("requestedUnit", H) of
-		{ok, #{"totalVolume" := RA}} when RA > 0->
-			[{octets, RA}];
-		{ok, #{"time" := RA}} when RA > 0 ->
-			[{seconds, RA}];
-		{ok, #{"serviceSpecificUnit" := RA}} when RA > 0 ->
-			[{messages, RA}];
+	{Reserve, Debit} = case maps:get("requestSubType", H, undefined) of
+		"RESERVE" ->
+			case maps:find("requestedUnit", H) of
+				{ok, #{"totalVolume" := RA}} when RA > 0->
+					{[{octets, RA}], []};
+				{ok, #{"time" := RA}} when RA > 0 ->
+					{[{seconds, RA}], []};
+				{ok, #{"serviceSpecificUnit" := RA}} when RA > 0 ->
+					{[{messages, RA}], []};
+				_ ->
+					{[], []}
+			end;
+		"DEBIT" ->
+			case maps:find("consumedUnit", H) of
+				{ok, #{"totalVolume" := DA}} when DA > 0 ->
+					{undefined, [{octets, DA}]};
+				{ok, #{"uplinkVolume" := UL, "downlinkVolume" := DL}} when (UL + DL) > 0 ->
+					{undefined, [{octets, UL + DL}]};
+				{ok, #{"uplinkVolume" := UL}} when UL > 0 ->
+					{undefined, [{octets, UL}]};
+				{ok, #{"downlinkVolume" := DL}} when DL > 0 ->
+					{undefined, [{octets, DL}]};
+				{ok, #{"time" := DA}} when DA > 0 ->
+					{undefined, [{seconds, DA}]};
+				{ok, #{"serviceSpecificUnit" := DA}} when DA > 0 ->
+					{undefined, [{messages, DA}]};
+				_ ->
+					{undefined, []}
+			end;
+		"RELEASE" ->
+			{undefined, []};
 		_ ->
-			[]
+			{undefined, []}
 	end,
-	Debit = case maps:find("consumedUnit", H) of
-		{ok, #{"totalVolume" := DA}} when DA > 0 ->
-			[{octets, DA}];
-		{ok, #{"uplinkVolume" := UL, "downlinkVolume" := DL}} when (UL + DL) > 0 ->
-			[{octets, UL + DL}];
-		{ok, #{"uplinkVolume" := UL}} when UL > 0 ->
-			[{octets, UL}];
-		{ok, #{"downlinkVolume" := DL}} when DL > 0 ->
-			[{octets, DL}];
-		{ok, #{"time" := DA}} when DA > 0 ->
-			[{seconds, DA}];
-		{ok, #{"serviceSpecificUnit" := DA}} when DA > 0 ->
-			[{messages, DA}];
-		_ ->
-			[]
-	end,
-	ServiceType = service_type(SCI),
+	ServiceType = service_type(ServiceContextId),
 	SessionAttributes = session_id(RatingDataRef,
 			ChargingKey, maps:get("uPFID", H, undefined)),
 	Args = {ServiceType, ChargingKey, ServiceId, ServiceNetwork,
 			Address, Direction, SessionAttributes, Debit, Reserve},
-	rate(RatingDataRef, Flag, SubscriptionIds, T, [Args | Acc]);
-rate(RatingDataRef, Flag, SubscriptionIds, [], Acc) ->
+	rate(RatingDataRef, Flag, ServiceContextId,
+			SubscriptionIds, T, [Args | Acc]);
+rate(RatingDataRef, Flag, _ServiceContextId, SubscriptionIds, [], Acc) ->
 	rate1(RatingDataRef, Flag, SubscriptionIds, lists:sort(Acc), []).
 %% @hidden
 rate1(RatingDataRef, Flag, SubscriptionIds,
@@ -652,116 +659,114 @@ rate2(RatingDataRef, Flag, SubscriptionIds,
 		[{ServiceType, ChargingKey, ServiceId, ServiceNetwork, Address,
 		Direction, SessionAttributes, Debits, Reserves} | T], AccS, AccR) ->
 	TS = calendar:universal_time(),
-	SR1 = #{"serviceContextId" => integer_to_list(ServiceType) ++ "@3gpp.org"},
-	SR2 = case is_integer(ChargingKey) of
+	SR1 = case is_integer(ChargingKey) of
 		true ->
-			SR1#{"ratingGroup" => ChargingKey};
+			#{"ratingGroup" => ChargingKey};
 		false ->
-			SR1#{}
+			#{}
 	end,
-	SR3 = case is_integer(ServiceId) of
+	SR2 = case is_integer(ServiceId) of
 		true ->
-			SR2#{"serviceId" => ServiceId};
+			SR1#{"serviceId" => ServiceId};
+		false ->
+			SR1
+	end,
+	SR3 = case lists:keyfind(upfid, 1, SessionAttributes) of
+		{_, UpfId} ->
+			SR2#{"uPFID" =>  UpfId};
 		false ->
 			SR2
-	end,
-	SR4 = case lists:keyfind(upfid, 1, SessionAttributes) of
-		{_, UpfId} ->
-			SR3#{"uPFID" =>  UpfId};
-		false ->
-			SR3
 	end,
 	case ocs_rating:rate(nrf, ServiceType, ServiceId, ChargingKey,
 			ServiceNetwork, subscriber_id(SubscriptionIds), TS, Address, Direction,
 			Flag, Debits, Reserves, SessionAttributes) of
 		{ok, _Service, {octets, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_volume) of
+			SR5 = case application:get_env(ocs, nrf_valid_volume) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], AccR);
+					[SR5 | AccS], AccR);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_time) of
+			SR5 = case application:get_env(ocs, nrf_valid_time) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], AccR);
+					[SR5 | AccS], AccR);
 		{ok, _Service, {messages, Amount} = _GrantedAmount}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_unit) of
+			SR5 = case application:get_env(ocs, nrf_valid_unit) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], AccR);
-		{ok, _Service, {_, 0} = _GrantedAmount} ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
-			rate2(RatingDataRef, Flag, SubscriptionIds, T,
 					[SR5 | AccS], AccR);
+		{ok, _Service, {_, 0} = _GrantedAmount} ->
+			SR4 = SR3#{"resultCode" => "SUCCESS"},
+			rate2(RatingDataRef, Flag, SubscriptionIds, T,
+					[SR4 | AccS], AccR);
 		{ok, _Service, {octets, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"totalVolume" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_volume) of
+			SR5 = case application:get_env(ocs, nrf_valid_volume) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], [Rated | AccR]);
+					[SR5 | AccS], [Rated | AccR]);
 		{ok, _Service, {seconds, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"time" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_time) of
+			SR5 = case application:get_env(ocs, nrf_valid_time) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], [Rated | AccR]);
+					[SR5 | AccS], [Rated | AccR]);
 		{ok, _, {messages, Amount} = _GrantedAmount, Rated}
 				when Amount > 0 ->
-			SR5 = SR4#{"resultCode" => "SUCCESS",
+			SR4 = SR3#{"resultCode" => "SUCCESS",
 					"grantedUnit" => #{"serviceSpecificUnit" => Amount}},
-			SR6 = case application:get_env(ocs, nrf_valid_unit) of
+			SR5 = case application:get_env(ocs, nrf_valid_unit) of
 				{ok, Threshold} when is_integer(Threshold), Amount > Threshold ->
-					SR5#{"validUnits" => Threshold};
+					SR4#{"validUnits" => Threshold};
 				_ ->
-					SR5
+					SR4
 			end,
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR6 | AccS], [Rated | AccR]);
+					[SR5 | AccS], [Rated | AccR]);
 		{ok, _Service, Rated} ->
-			SR5 = SR4#{"resultCode" => "SUCCESS"},
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], [Rated | AccR]);
+					AccS, [Rated | AccR]);
 		{out_of_credit, _RedirectServerAddress, _SessionList} ->
-			SR5 = SR4#{"resultCode" => "QUOTA_LIMIT_REACHED"},
+			SR4 = SR3#{"resultCode" => "QUOTA_LIMIT_REACHED"},
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], AccR);
+					[SR4 | AccS], AccR);
 		{out_of_credit, _RedirectServerAddress, _SessionList, Rated} ->
-			SR5 = SR4#{"resultCode" => "QUOTA_LIMIT_REACHED"},
+			SR4 = SR3#{"resultCode" => "QUOTA_LIMIT_REACHED"},
 			rate2(RatingDataRef, Flag, SubscriptionIds, T,
-					[SR5 | AccS], [Rated | AccR]);
+					[SR4 | AccS], [Rated | AccR]);
 		{disabled, _SessionList} ->
 			{error, service_rejected};
 		{error, Reason} ->
@@ -997,16 +1002,10 @@ sr_out7(#{"serviceId" := SI} = M, Acc) ->
 sr_out7(M, Acc) ->
 	sr_out8(M, Acc).
 %% @hidden
-sr_out8(#{"serviceContextId" := SCI} = _M, Acc)
-		when is_list(SCI) ->
-	{struct, [{"serviceContextId", SCI} | Acc]};
 sr_out8(_M, Acc) ->
 	{struct, Acc}.
 
 %% @hidden
-sr_in([{"serviceContextId", SCI} | T], Acc)
-		when is_list(SCI) ->
-	sr_in(T, Acc#{"serviceContextId" => SCI});
 sr_in([{"serviceId", SI} | T], Acc)
 		when is_integer(SI) ->
 	sr_in(T, Acc#{"serviceId" => SI});
@@ -1391,7 +1390,17 @@ combine([{Units, Amount}], []) ->
 	[{Units, Amount}];
 combine([], [{Units, Amount}]) ->
 	[{Units, Amount}];
+combine([{Units, Amount}], undefined) ->
+	[{Units, Amount}];
+combine(undefined, [{Units, Amount}]) ->
+	[{Units, Amount}];
 combine([], []) ->
+	[];
+combine(undefined, undefined) ->
+	undefined;
+combine(undefined, []) ->
+	[];
+combine([], undefined) ->
 	[].
 
 -spec session_id(RatingDataRef, ChargingKeyArg, UpfIdArg) -> SessionAttributes
