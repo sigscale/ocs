@@ -1,3 +1,16 @@
+2024-10-30  Vance Shipley <vances@sigscale.org>
+
+	* handle service rating data request subtype release; empty service rating data response on release
+	* short circuit charge request with empty debit amounts
+	* handle request subtype value release in service rating codec
+	* clarify role of session attributes in identifying rating session
+	* allow users rating unless explicitly denied
+	* problem report on missing mandatory ie(s) in nrf rating data
+	* use 3gpp ts 29.500 cause for missing mandatory ie
+	* refactor nrf rest handler for error reporting
+	* no nfConsumerIdentification and subscriptionId in rating data response
+	* service context id moved to top level of rating data request (#7)
+
 2024-10-16  Vance Shipley <vances@sigscale.org>
 
 	* nrf handles sms message type, ignore missing direction

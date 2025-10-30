@@ -1,3 +1,13 @@
+October 30, 2025
+---------------
+	- Nrf OAS version 1.2.0 
+	- Service context ID moved to top level of RatingDataRequst
+	- Handle ServiceRatingRequest subtype RELEASE
+	- Empty ServiceRatingResponse on release
+	- Problem report on missing mandatory Nrf IE(s)
+	- No nfConsumerIdentification and subscriptionId in RatingDataResponse
+	- Allow users rating permission unless explicitly denied
+
 October 16, 2025
 ---------------
 	- Nrf handles SMS messageType
