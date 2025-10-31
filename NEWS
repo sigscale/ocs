@@ -1,6 +1,10 @@
+October 31, 2025
+---------------
+	- Correct last day of October monthly period calculation
+
 October 30, 2025
 ---------------
-	- Nrf OAS version 1.2.0 
+	- Nrf OAS version 1.2.0
 	- Service context ID moved to top level of RatingDataRequst
 	- Handle ServiceRatingRequest subtype RELEASE
 	- Empty ServiceRatingResponse on release

@@ -1,3 +1,7 @@
+2024-10-31  Vance Shipley <vances@sigscale.org>
+
+	* correct monthly period calculation on last day of october
+
 2024-10-30  Vance Shipley <vances@sigscale.org>
 
 	* handle service rating data request subtype release; empty service rating data response on release
