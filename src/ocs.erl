@@ -3709,13 +3709,15 @@ end_period1({{Year, 4, 30}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 5, 31}, Time}) - 1;
 end_period1({{Year, 5, 31}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 6, 30}, Time}) - 1;
-end_period1({{Year, 6, 31}, Time}, monthly) ->
+end_period1({{Year, 6, 30}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 7, 31}, Time}) - 1;
+end_period1({{Year, 7, 31}, Time}, monthly) ->
+	gregorian_datetime_to_system_time({{Year, 8, 31}, Time}) - 1;
 end_period1({{Year, 8, 31}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 9, 30}, Time}) - 1;
 end_period1({{Year, 9, 30}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 10, 31}, Time}) - 1;
-end_period1({{Year, 10, 30}, Time}, monthly) ->
+end_period1({{Year, 10, 31}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 11, 30}, Time}) - 1;
 end_period1({{Year, 11, 30}, Time}, monthly) ->
 	gregorian_datetime_to_system_time({{Year, 12, 31}, Time}) - 1;
