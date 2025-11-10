@@ -1,3 +1,9 @@
+2024-11-10  Vance Shipley <vances@sigscale.org>
+
+	* rating_failed, not charging_failed, nrf cause
+	* nrf charging failed should have 400 status code
+	* update references to nrf oas for v1.2.0
+
 2024-10-31  Vance Shipley <vances@sigscale.org>
 
 	* correct monthly period calculation on last day of october
