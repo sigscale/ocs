@@ -139,7 +139,7 @@ initial_nrf1(ModData,
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				Problem = rest_error_response(charging_failed, undefined),
-				{error, 500, LogEventType, LogRequest, Problem}
+				{error, 400, LogEventType, LogRequest, Problem}
 		end
 	of
 		{LogEventType1, {struct, _} = RatingDataResponse1, LogRequest1, LogResponse, Rated1} ->
@@ -252,7 +252,7 @@ update_nrf2(ModData, RatingDataRef,
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				Problem = rest_error_response(charging_failed, undefined),
-				{error, 500, LogRequest, Problem}
+				{error, 400, LogRequest, Problem}
 		end
 	of
 		{{struct, _} = RatingDataResponse1, LogRequest1, LogResponse} ->
@@ -366,7 +366,7 @@ release_nrf2(ModData, RatingDataRef,
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				Problem = rest_error_response(charging_failed, undefined),
-				{error, 500, LogRequest, Problem, []}
+				{error, 400, LogRequest, Problem, []}
 		end
 	of
 		{{struct, _} = RatingDataResponse1, LogRequest1, LogResponse, Rated1} ->
@@ -487,7 +487,7 @@ rest_error_response(service_not_found, InvalidParams) ->
 			invalidParams => InvalidParams};
 rest_error_response(charging_failed, undefined) ->
 	#{cause => "CHARGING_FAILED",
-			status => 500,
+			status => 400,
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.0#/",
 			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
