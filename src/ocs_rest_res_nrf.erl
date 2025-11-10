@@ -138,7 +138,7 @@ initial_nrf1(ModData,
 				{error, 400, LogEventType, LogRequest, Problem};
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
-				Problem = rest_error_response(charging_failed, undefined),
+				Problem = rest_error_response(rating_failed, undefined),
 				{error, 400, LogEventType, LogRequest, Problem}
 		end
 	of
@@ -251,7 +251,7 @@ update_nrf2(ModData, RatingDataRef,
 				{error, 400, LogRequest, Problem};
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
-				Problem = rest_error_response(charging_failed, undefined),
+				Problem = rest_error_response(rating_failed, undefined),
 				{error, 400, LogRequest, Problem}
 		end
 	of
@@ -365,7 +365,7 @@ release_nrf2(ModData, RatingDataRef,
 				{error, 400, LogRequest, Problem, []};
 			{error, _Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
-				Problem = rest_error_response(charging_failed, undefined),
+				Problem = rest_error_response(rating_failed, undefined),
 				{error, 400, LogRequest, Problem, []}
 		end
 	of
@@ -485,6 +485,11 @@ rest_error_response(service_not_found, InvalidParams) ->
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.0#/",
 			title => "Request denied because the subscriber identity is unrecognized",
 			invalidParams => InvalidParams};
+rest_error_response(rating_failed, undefined) ->
+	#{cause => "RATING_FAILED",
+			status => 400,
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.0#/",
+			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(charging_failed, undefined) ->
 	#{cause => "CHARGING_FAILED",
 			status => 400,
