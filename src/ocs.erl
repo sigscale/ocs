@@ -3048,7 +3048,7 @@ clean_services(_Before, '$end_of_table') ->
 %% 	removing expired buckets.
 %%
 clean_buckets() ->
-	clean_buckets(0).
+	clean_buckets(1).
 
 -spec clean_buckets(Before) -> Result
 	when
