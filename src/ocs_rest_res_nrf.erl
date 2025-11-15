@@ -490,11 +490,11 @@ rest_error_response(rating_failed, undefined) ->
 			status => 400,
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
 			title => "Incomplete or erroneous session or subscriber information"};
-rest_error_response(charging_failed, undefined) ->
-	#{cause => "CHARGING_FAILED",
-			status => 400,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
-			title => "Incomplete or erroneous session or subscriber information"};
+%rest_error_response(charging_failed, undefined) ->
+%	#{cause => "CHARGING_FAILED",
+%			status => 400,
+%			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+%			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "MANDATORY_IE_INCORRECT",
 			status => 400,
@@ -1410,7 +1410,7 @@ combine([], undefined) ->
 
 -spec session_id(RatingDataRef, ChargingKeyArg, UpfIdArg) -> SessionAttributes
 	when
-		RatingDataRef :: string(),
+		RatingDataRef :: binary(),
 		ChargingKeyArg :: ChargingKey | undefined,
 		ChargingKey :: 0..4294967295,
 		UpfIdArg :: UpfId | undefined,
