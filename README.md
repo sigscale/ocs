@@ -86,7 +86,7 @@ Product Catalog, Product Inventory, Prepay Balance, Service Inventory,
 Resource Inventory and Usage Management.
 
 Real-time rating and charging is supported by the
-[Nrf_Rating](https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.0)
+[Nrf_Rating](https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1)
 REST API, both as a producer and consumer.  The SigScale
 [CHF](https://github.com/sigscale/chf) and SigScale
 [CSE](https://github.com/sigscale/cse) applications are both consumers,
