@@ -554,15 +554,15 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 				| invalid_service_type | invalid_bundle_product | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 %% @hidden
-rate(RatingDataRef, #{"serviceContextId" := ServiceContextId,
-		"subscriptionId" := SubscriptionIds,
-		"serviceRating" := ServiceRating} = _RatingDataRequest, Flag)
-		when length(SubscriptionIds) > 0 ->
-	rate(list_to_binary(RatingDataRef), Flag,
-			ServiceContextId, SubscriptionIds, ServiceRating, []).
+rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds,
+		"serviceRating" := ServiceRating} = RatingDataRequest,
+		Flag) when length(SubscriptionIds) > 0 ->
+	rate(list_to_binary(RatingDataRef), RatingDataRequest, Flag,
+			ServiceRating, []).
 %% @hidden
-rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
-		[H | T], Acc) ->
+rate(RatingDataRef,
+		#{"serviceContextId" := ServiceContextId} = RatingDataRequest,
+		Flag, [H | T], Acc) ->
 	ChargingKey = case maps:find("ratingGroup", H) of
 		{ok, RG} ->
 			RG;
@@ -599,8 +599,20 @@ rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
 					undefined
 			end
 	end,
-	{Reserve, Debit} = case maps:get("requestSubType", H, undefined) of
-		"RESERVE" ->
+	{Reserve, Debit} = case {maps:get("requestSubType", H, undefined),
+			Flag, maps:get("oneTimeEventType", RatingDataRequest, undefined)} of
+		{"RESERVE", event, "IEC"} ->
+			case maps:find("requestedUnit", H) of
+				{ok, #{"totalVolume" := RA}} when RA > 0->
+					{[], [{octets, RA}]};
+				{ok, #{"time" := RA}} when RA > 0 ->
+					{[], [{seconds, RA}]};
+				{ok, #{"serviceSpecificUnit" := RA}} when RA > 0 ->
+					{[], [{messages, RA}]};
+				_ ->
+					{[], [{messages, 1}]}
+			end;
+		{"RESERVE", _, _} ->
 			case maps:find("requestedUnit", H) of
 				{ok, #{"totalVolume" := RA}} when RA > 0->
 					{[{octets, RA}], []};
@@ -611,7 +623,7 @@ rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
 				_ ->
 					{[], []}
 			end;
-		"DEBIT" ->
+		{"DEBIT", _, _} ->
 			case maps:find("consumedUnit", H) of
 				{ok, #{"totalVolume" := DA}} when DA > 0 ->
 					{undefined, [{octets, DA}]};
@@ -628,7 +640,7 @@ rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
 				_ ->
 					{undefined, []}
 			end;
-		"RELEASE" ->
+		{"RELEASE", _, _} ->
 			{undefined, []};
 		_ ->
 			{undefined, []}
@@ -638,9 +650,10 @@ rate(RatingDataRef, Flag, ServiceContextId, SubscriptionIds,
 			ChargingKey, maps:get("uPFID", H, undefined)),
 	Args = {ServiceType, ChargingKey, ServiceId, ServiceNetwork,
 			Address, Direction, SessionAttributes, Debit, Reserve},
-	rate(RatingDataRef, Flag, ServiceContextId,
-			SubscriptionIds, T, [Args | Acc]);
-rate(RatingDataRef, Flag, _ServiceContextId, SubscriptionIds, [], Acc) ->
+	rate(RatingDataRef, RatingDataRequest, Flag, T, [Args | Acc]);
+rate(RatingDataRef,
+		#{"subscriptionId" := SubscriptionIds} = _RatingDataRequest,
+		Flag, [], Acc) ->
 	rate1(RatingDataRef, Flag, SubscriptionIds, lists:sort(Acc), []).
 %% @hidden
 rate1(RatingDataRef, Flag, SubscriptionIds,
