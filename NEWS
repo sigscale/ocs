@@ -1,3 +1,8 @@
+November 16, 2025
+-----------------
+	- Nrf (SMS) IEC Service Rating request type is RESERVE 
+	- Nrf OAS version 1.2.1
+
 November 10, 2025
 -----------------
 	- Nrf HTTP Status Code 400 for RATING_FAILED problem cause 

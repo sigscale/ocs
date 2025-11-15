@@ -1,3 +1,11 @@
+2024-11-16  Vance Shipley <vances@sigscale.org>
+
+	* pos_integer() to appease dialyzer
+	* nrf iec uses reserve semantics
+	* correct type to appease dialyzer
+	* updates for nrf v1.2.1
+	* iec must use reserve to allow centralized unit determination (#8)
+
 2024-11-10  Vance Shipley <vances@sigscale.org>
 
 	* rating_failed, not charging_failed, nrf cause
