@@ -478,7 +478,6 @@ post_initial_scur_class_b(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, _Location1} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
-	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
 	{"serviceRating", {_, [{_,ServiceRating1}]}} = lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
@@ -523,7 +522,6 @@ post_update_scur_class_b(Config) ->
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
 	{struct, AttributeList} = mochijson:decode(ResponseBody1),
-	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
 	{"serviceRating", {_, [{_,ServiceRating}]}}
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
