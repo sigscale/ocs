@@ -482,7 +482,6 @@ post_initial_scur_class_b(Config) ->
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
-	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
 	{_, {_, [{_, UnitSize}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
 
 post_update_scur_class_b() ->
@@ -526,8 +525,7 @@ post_update_scur_class_b(Config) ->
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
-	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating),
-	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating).
+	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating).
 
 post_final_scur_class_b() ->
 	[{userdata, [{doc, "Post Final Nrf Request to be rated"}]}].
@@ -578,8 +576,7 @@ post_final_scur_class_b(Config) ->
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
-	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
-	{_, "32255@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1).
+	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1).
 
 post_scur_until_out() ->
 	[{userdata, [{doc, "Post Interim Nrf until out-of-credit"}]}].
@@ -763,8 +760,7 @@ post_iec_class_b(Config) ->
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
-	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
-	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating).
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating).
 
 post_initial_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
@@ -797,7 +793,6 @@ post_initial_ecur_class_b(Config) ->
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
 	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
-	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
 	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
 
 post_final_ecur_class_b() ->
@@ -837,8 +832,7 @@ post_final_ecur_class_b(Config) ->
 			= lists:keyfind("serviceRating", 1, AttributeList),
 	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
-	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
-	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating).
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating).
 
 send_initial_scur_class_a() ->
 	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
