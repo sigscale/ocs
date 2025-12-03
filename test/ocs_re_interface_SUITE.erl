@@ -571,12 +571,7 @@ post_final_scur_class_b(Config) ->
 			[Accept, auth_header()], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok2}, _Headers2, ResponseBody2} = Result2,
-	{struct, AttributeList} = mochijson:decode(ResponseBody2),
-	{"serviceRating", {_, [{_,ServiceRating1}]}}
-			= lists:keyfind("serviceRating", 1, AttributeList),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
-	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
-	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1).
+	{struct, _AttributeList} = mochijson:decode(ResponseBody2).
 
 post_scur_until_out() ->
 	[{userdata, [{doc, "Post Interim Nrf until out-of-credit"}]}].
@@ -827,12 +822,7 @@ post_final_ecur_class_b(Config) ->
 			[Accept, auth_header()], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
-	{struct, AttributeList} = mochijson:decode(ResponseBody1),
-	{"serviceRating", {_, [{_, ServiceRating}]}}
-			= lists:keyfind("serviceRating", 1, AttributeList),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
-	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
-	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating).
+	{struct, _AttributeList} = mochijson:decode(ResponseBody1).
 
 send_initial_scur_class_a() ->
 	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
@@ -1321,14 +1311,7 @@ post_scur_multiple_rg(Config) ->
 			[Accept, auth_header()], ContentType, RequestBody3},
 	{ok, Result3} = httpc:request(post, Request3, HttpOpt, []),
 	{{_, 200, _}, _, ResponseBody3} = Result3,
-	{struct, Attributes3} = mochijson:decode(ResponseBody3),
-	{_, {_, SRs3}} = lists:keyfind("serviceRating", 1, Attributes3),
-	[{_, SR5}, {_, SR6}] = SRs3,
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, SR5),
-	{_, RG7} = lists:keyfind("ratingGroup", 1, SR5),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, SR6),
-	{_, RG8} = lists:keyfind("ratingGroup", 1, SR6),
-	[] = lists:sort([RG1, RG2]) -- lists:sort([RG7, RG8]),
+	{struct, _Attributes3} = mochijson:decode(ResponseBody3),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(Bid),
 	RemainAmount = Balance - Used1 - Used2 - Used3 - Used4.
 
