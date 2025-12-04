@@ -664,7 +664,7 @@ charge2(radius = Protocol, Flag, Service, ServiceId, Product,
 			DebitAmounts, [ReserveAmount], DebitedAmount, ReservedAmount,
 			SessionId, ChargingKey, Address, ServiceNetwork, Rated,
 			PriceBuckets, OtherBuckets, NewAcc, OldBuckets);
-charge2(diameter = Protocol, Flag, Service, ServiceId, Product,
+charge2(Protocol, Flag, Service, ServiceId, Product,
 		[#price{type = usage, units = Units, size = UnitSize} | _ ] = Prices,
 		DebitAmounts, [] = _ReserveAmounts, DebitedAmount, ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
