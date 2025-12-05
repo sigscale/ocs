@@ -599,20 +599,8 @@ rate(RatingDataRef,
 					undefined
 			end
 	end,
-	{Reserve, Debit} = case {maps:get("requestSubType", H, undefined),
-			Flag, maps:get("oneTimeEventType", RatingDataRequest, undefined)} of
-		{"RESERVE", event, "IEC"} ->
-			case maps:find("requestedUnit", H) of
-				{ok, #{"totalVolume" := RA}} when RA > 0->
-					{[], [{octets, RA}]};
-				{ok, #{"time" := RA}} when RA > 0 ->
-					{[], [{seconds, RA}]};
-				{ok, #{"serviceSpecificUnit" := RA}} when RA > 0 ->
-					{[], [{messages, RA}]};
-				_ ->
-					{[], [{messages, 1}]}
-			end;
-		{"RESERVE", _, _} ->
+	{Reserve, Debit} = case maps:get("requestSubType", H, undefined) of
+		"RESERVE" ->
 			case maps:find("requestedUnit", H) of
 				{ok, #{"totalVolume" := RA}} when RA > 0->
 					{[{octets, RA}], []};
@@ -623,7 +611,7 @@ rate(RatingDataRef,
 				_ ->
 					{[], []}
 			end;
-		{"DEBIT", _, _} ->
+		"DEBIT" ->
 			case maps:find("consumedUnit", H) of
 				{ok, #{"totalVolume" := DA}} when DA > 0 ->
 					{undefined, [{octets, DA}]};
@@ -640,7 +628,7 @@ rate(RatingDataRef,
 				_ ->
 					{undefined, []}
 			end;
-		{"RELEASE", _, _} ->
+		"RELEASE" ->
 			{undefined, []};
 		_ ->
 			{undefined, []}
