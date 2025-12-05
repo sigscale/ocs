@@ -94,14 +94,30 @@
 %% 	<i>Product Offering Price</i> (POP) used to rate the
 %% 	service usage.
 %%
+%% 	<h3>Centralized Unit Determination</h3>
+%% 	If `ReserveAmounts' is an empty list, and `Flag' is `initial',
+%% 	`interim' or `event', the `UnitType' and `Amount' are determined
+%% 	by applicable POP.
+%%
+%% 	<h3>Decentralized Unit Determination</h3>
+%% 	If `ReserveAmounts' is a non empty list, and `Flag' is `initial',
+%% 	`interim' or `event', the list provides one or more alternate
+%%    measures of service with different `UnitType' allowing the
+%% 	applicable POP to determine which `UnitType' is used, with the
+%% 	`Amount' explicitly provided.
+%%
+%% 	<h3>Immediate Event Charging (IEC)</h3>
+%% 	If `Flag' is `event' then `DebitAmounts' should be an empty list
+%% 	and centralized, or decentralized, unit determination on
+%% 	`ReserveAmounts' provides a `UnitType' and `Amount' to be
+%% 	immediately debited (without reservation).
+%%
+%% 	If `ReserveAmounts' is `undefined' no reservation is performed.
+%%
 %% 	The value of `DebitAmounts' is a list of one or more alternate
 %% 	measures	of the service usage with different `UnitType'
 %% 	(i.e. `octets'	and `seconds') allowing the applied POP to
-%% 	determine the `UnitType' selected.
-%%
-%% 	If `ReserveAmounts' is an empty list, and `Flag' is  `initial',
-%% 	`interim' or `event', the `UnitType' and `Amount' are determined
-%% 	by applicable POP. If `undefined' no reservation is performed.
+%% 	determine the `UnitType' used for rating.
 %%
 %% 	If successful returns `{ok, Service, GrantedAmount}' for `initial'
 %% 	and `interim' updates, `{ok, Service, Rated}' for `final' or
@@ -109,12 +125,14 @@
 %%
 %% 	If subscriber's balance is insufficient to cover the `DebitAmounts'
 %% 	and `ReserveAmounts' returns
-%% 	`{out_of_credit, RedirectServerAddressAddress, SessionList}'
+%% 	`{out_of_credit, RedirectServerAddress, SessionList}'
 %% 	for `initial' or `interim' and
-%% 	`{out_of_credit, RedirectServerAddressAddress, SessionList, Rated}'
-%% 	for `final'. Returns `{disabled, SessionList}' if the subscriber
-%% 	is not enabled. The value of `SessionList' describes the
-%% 	known active sessions which should be disconnected.
+%% 	`{out_of_credit, RedirectServerAddress, SessionList, Rated}'
+%% 	for `final'.
+%%
+%% 	Returns `{disabled, SessionList}' if the subscriber is not enabled.
+%% 	The value of `SessionList' describes the known active sessions
+%% 	which should be disconnected.
 %%
 %% 	A successful call with `Flag' value of `initial' starts a session
 %% 	which must eventually be released by another call with exactly
