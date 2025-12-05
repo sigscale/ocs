@@ -1391,7 +1391,7 @@ nrf_post_iec_class_b(MSISDN, IMSI) ->
 							{"destinationId",
 									{array, [{struct, [{"destinationIdType", "DN"},
 									{"destinationIdData", "14165556789"}]}]}},
-							{"requestSubType", "DEBIT"}]}]}}]}.
+							{"requestSubType", "RESERVE"}]}]}}]}.
 
 diameter_ecur_start({MSISDN, IMSI}, SId, RequestNum) ->
 	MSISDN1 = #'3gpp_ro_Subscription-Id'{
