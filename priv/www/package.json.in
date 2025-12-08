@@ -11,9 +11,7 @@
   "scripts": {
     "build": "yarn run build:static",
     "build:static": "polymer build",
-    "lint": "polymer lint",
-    "test": "polymer test",
-    "test:integration": "polymer build # test that psk builds without error with the CLI"
+    "lint": "polymer lint"
   },
   "dependencies": {
     "@webcomponents/webcomponentsjs": "^2.8.0",
@@ -57,8 +55,7 @@
     "@vaadin/vaadin-grid": "^6.0.0"
   },
   "devDependencies": {
-    "polymer-cli": "^1.9.11",
-    "wct-browser-legacy": "^1.0.0"
+    "polymer-cli": "^1.9.11"
   },
   "engines": {
     "node": ">=8.0"
