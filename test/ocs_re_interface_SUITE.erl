@@ -217,7 +217,7 @@ all() ->
 		post_update_scur_class_b, post_final_scur_class_b,
 		post_iec_class_b, post_initial_ecur_class_b,
 		post_final_ecur_class_b, post_scur_until_out,
-		post_scur_multiple_rg].
+		post_scur_multiple_rg, post_iec_tariff].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1314,6 +1314,75 @@ post_scur_multiple_rg(Config) ->
 	{struct, _Attributes3} = mochijson:decode(ResponseBody3),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(Bid),
 	RemainAmount = Balance - Used1 - Used2 - Used3 - Used4.
+
+post_iec_tariff() ->
+	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated by Tariff POPs"}]}].
+
+post_iec_tariff(Config) ->
+	Table1 = ocs:generate_identity(),
+	Table2 = ocs:generate_identity(),
+	Table3 = ocs:generate_identity(),
+	F = fun F(N, Items) when N >= $0, N =< $9 ->
+				Description = ocs:generate_identity(),
+				Rate = rand:uniform(4) * 1000000,
+				Value = {Description, Rate},
+				Number = [N],
+				Item = {Number, Value},
+				F(N - 1, [Item | Items]);
+			F(_N, Items) ->
+				Items
+	end,
+	ok = ocs_gtt:new(Table1, [], F($9, [])),
+	ok = ocs_gtt:new(Table2, [], F($9, [])),
+	ok = ocs_gtt:new(Table3, [], F($9, [])),
+	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table1}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = Table2}]},
+			#char_value_use{name = "fixedPriceBucket",
+					values = [#char_value{value = true}]}],
+	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = Table3}]}],
+	PriceName1 = ocs:generate_identity(),
+	PriceName2 = ocs:generate_identity(),
+	PriceName3 = ocs:generate_identity(),
+	P1 = #price{name = PriceName1, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse1},
+	P2 = #price{name = PriceName2, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse2},
+	P3 = #price{name = PriceName3, type = tariff,
+			units = messages, size = 1,
+			char_value_use = CharValueUse3},
+	OfferId = add_offer([P1, P2, P3], 11),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service([ServiceId],
+			undefined, undefined),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [ServiceRef]),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	Body = nrf_post_iec_class_b(MSISDN, IMSI),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{"serviceRating", {_, [{_,ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
