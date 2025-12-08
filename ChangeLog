@@ -1,3 +1,15 @@
+2024-12-08  Vance Shipley <vances@sigscale.org>
+
+	* test case for sms iec nrf with tariff pops
+	* improved documentation for ocs_rating:rate/13
+	* correct nrf iec use of rate/13 (reserve amounts)
+	* correct re test case for iec with reserve subtype (nrf 1.2)
+	* handle centralized unit determination for nrf
+	* expect no service rating result in final rating data response
+	* move service context id from service rating to rating data (nrf 1.2)
+	* no service context id in service rating response
+	* no subscription id in rating data response
+
 2024-11-16  Vance Shipley <vances@sigscale.org>
 
 	* pos_integer() to appease dialyzer

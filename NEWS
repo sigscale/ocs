@@ -1,3 +1,9 @@
+December 8, 2025
+----------------
+	- Correct SMS IEC over Nrf rating and charging (reserve semantics)
+	- Omproved documentation for ocs_rating:rate/13
+	- Handle centralized unit determination for Nrf
+
 November 16, 2025
 -----------------
 	- Nrf (SMS) IEC Service Rating request type is RESERVE 
