@@ -97,7 +97,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							parse_query(Resource, ModData, uri_string:parse(Uri));
+							parse_query(Resource, ModData, Uri);
 						_Response ->
 							{proceed,  Data}
 					end
@@ -107,17 +107,21 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-parse_query(Resource, #mod{entity_body = Body} = ModData,
+parse_query(Resource, ModData, Uri) ->
+	parse_query1(Resource, ModData,
+			uri_string:percent_decode(uri_string:parse(Uri))).
+%% @hidden
+parse_query1(Resource, #mod{entity_body = Body} = ModData,
 		#{path := Path, query := Query}) ->
 	do_post(Resource, ModData, Body,
 			string:lexemes(Path, [$/]),
 			uri_string:dissect_query(Query));
-parse_query(Resource, #mod{entity_body = Body} = ModData,
+parse_query1(Resource, #mod{entity_body = Body} = ModData,
 		#{path := Path}) ->
 	do_post(Resource, ModData, Body,
 			string:lexemes(Path, [$/]),
 			[]);
-parse_query(_Resource,
+parse_query1(_Resource,
 		#mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/"
 					"rfc7231#section-6.5.4",
