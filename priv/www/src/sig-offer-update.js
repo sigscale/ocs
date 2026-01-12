@@ -844,6 +844,9 @@ class offerUpdate extends PolymerElement {
 					return [];
 				}
 			},
+			offerUpdateStatus: {
+				type: String
+			},
 			priceUpdatePolicy: {
 				type: String
 			},
@@ -877,7 +880,19 @@ class offerUpdate extends PolymerElement {
 			priceUpdatePla: {
 				type: String
 			},
+			priceUpdateType: {
+				type: String
+			},
 			priceUpdateSize: {
+				type: String
+			},
+			priceUpdateUnits: {
+				type: String
+			},
+			priceUpdatePeriod: {
+				type: String
+			},
+			priceUpdateAlteration: {
 				type: String
 			},
 			priceUpdateCurrency: {
@@ -927,6 +942,15 @@ class offerUpdate extends PolymerElement {
 			},
 			updateReserveSessionOctets: {
 				type: String
+			},
+			altUpdateType: {
+				type: String
+			},
+			altUpdateUnits: {
+				type: String
+			},
+			altUpdatePeriod: {
+				type: String
 			}
 		}
 	}
@@ -972,7 +996,6 @@ class offerUpdate extends PolymerElement {
 			} else if(last) {
 				current = last;
 			}
-//			this.$.getOffersAjax.generateRequest();
 			this.$.updateOfferModal.open();
 			this.updateOfferName = current.id;
 			this.updateOfferDescription = current.description;
@@ -988,7 +1011,32 @@ class offerUpdate extends PolymerElement {
 				date = new Date(current.endDate);
 				this.set('updateOfferEndDate', date.toISOString().slice(0, -1));
 			}
-			this.offerUpdateStatus = current.lifecycleStatus;
+			switch(current.lifecycleStatus) {
+				case "In Study":
+					this.$.updateOfferStatus.selected = 0;
+					break;
+				case "In Design":
+					this.$.updateOfferStatus.selected = 1;
+					break;
+				case "In Test":
+					this.$.updateOfferStatus.selected = 2;
+					break;
+				case "Active":
+					this.$.updateOfferStatus.selected = 3;
+					break;
+				case "Rejected":
+					this.$.updateOfferStatus.selected = 4;
+					break;
+				case "Launched":
+					this.$.updateOfferStatus.selected = 5;
+					break;
+				case "Retired":
+					this.$.updateOfferStatus.selected = 6;
+					break;
+				case "Obsolete":
+					this.$.updateOfferStatus.selected = 7;
+					break;
+			}
 			for (var indexCha in current.prodSpecCharValueUse) {
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
 					var rst = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0];
@@ -1328,12 +1376,13 @@ class offerUpdate extends PolymerElement {
 				this.priceUpdateDescription = null;
 				this.updateOfferStartDatePrice = null;
 				this.updateOfferEndDatePrice = null;
-				this.priceUpdateType = null;
+				this.$.updatePriceType.selected = null;
 				this.priceUpdatePla = null;
 				this.priceUpdateSize = null;
 				this.priceUpdateAmount = null;
+				this.$.updatePriceUnits.selected = null;
 				this.priceUpdateCurrency = null;
-				this.priceUpdatePeriod = null;
+				this.$.updatePricePeriod.selected = null;
 				this.priceUpdateReserveTime = null;
 				this.$.priceUpdateReserveTimeInput.disabled = false;
 				this.priceUpdateReserveOctets = null;
@@ -1352,12 +1401,25 @@ class offerUpdate extends PolymerElement {
 				this.priceUpdateTODEnd = null;
 				this.priceUpdateCallDirIn = false;
 				this.priceUpdateCallDirOut = false;
-				this.priceUpdateAlteration = null;
+				this.$.addUpdatePriceAlteration.selected = null;
 			} else {
 				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				this.updateOfferStartDatePrice = this.prices[indexUpdatePrice].start;
 				this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
-				this.priceUpdateType = this.prices[indexUpdatePrice].priceType;
+				switch(this.prices[indexUpdatePrice].priceType) {
+					case "Recurring":
+						this.$.updatePriceType.selected = 0;
+						break;
+					case "One Time":
+						this.$.updatePriceType.selected = 1;
+						break;
+					case "Usage":
+						this.$.updatePriceType.selected = 2;
+						break;
+					case "Tariff":
+						this.$.updatePriceType.selected = 3;
+						break;
+				}
 				if(this.priceUpdateType == 0) {
 					this.$.updatePricePerioddrop.disabled = false;
 				} else {
@@ -1386,10 +1448,26 @@ class offerUpdate extends PolymerElement {
 					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
 				if(this.prices[indexUpdatePrice].period) {
-					this.priceUpdatePeriod = this.prices[indexUpdatePrice].period;
+					switch(this.prices[indexUpdatePrice].period) {
+					case "Hourly":
+						this.$.updatePricePeriod.selected = 0;
+					case "Daily":
+						this.$.updatePricePeriod.selected = 1;
+					case "Weekly":
+						this.$.updatePricePeriod.selected = 2;
+					case "Monthly":
+						this.$.updatePricePeriod.selected = 3;
+					case "Yearly":
+						this.$.updatePricePeriod.selected = 4;
+					}
 				}
 				if(this.prices[indexUpdatePrice].alteration) {
-					this.priceUpdateAlteration = this.prices[indexUpdatePrice].alteration;
+					var altName = this.prices[indexUpdatePrice].alteration;
+					function checkAlt(alt) {
+						alt.name == altName;
+					}
+					var altIndex = this.alterations.findIndex(checkAlt);
+					this.$.addUpdatePriceAlteration.selection = altIndex;
 				}
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
@@ -1490,19 +1568,29 @@ class offerUpdate extends PolymerElement {
 				this.altUpdateDescription = null;
 				this.updateOfferStartDateAlt = null;
 				this.updateOfferEndDateAlt = null;
-				this.altUpdateType = null;
+				this.$.updateAltType.selected = null;
 				this.$.updateAltSize.value = null;
-				this.altUpdateUnits = null;
+				this.$.updateAlterationUnits.selected = null;
 				this.$.updateAltAmount.value = null;
 				this.altUpdateCurrency = null;
-				this.altUpdatePeriod = null;
+				this.$.updateAltPeriod.selected = null;
 			} else {
 				this.altUpdateDescription = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
 					this.updateOfferStartDateAlt = this.alterations[indexAlt].start;
 					this.updateOfferEndDateAlt = this.alterations[indexAlt].end;
 				}
-				this.altUpdateType = this.alterations[indexAlt].priceType;
+				switch(this.alterations[indexAlt].priceType) {
+					case "Recurring":
+						this.$.updateAltType.selected = 0;
+						break;
+					case "One Time":
+						this.$.updateAltType.selected = 1;
+						break;
+					case "Usage":
+						this.$.updateAltType.selected = 2;
+						break;
+				}
 				this.$.updateAltSize.value = this.alterations[indexAlt].size.toString();
 				switch(this.alterations[indexAlt].unit) {
 					case "b":
@@ -1525,7 +1613,23 @@ class offerUpdate extends PolymerElement {
 				} else {
 					this.altUpdateCurrency = null;
 				}
-				this.altUpdatePeriod = this.alterations[indexAlt].period;
+				switch(this.alterations[indexAlt].period) {
+					case "Hourly":
+						this.$.updateAltPeriod.selected = 0;
+						break;
+					case "Daily":
+						this.$.updateAltPeriod.selected = 1;
+						break;
+					case "Weekly":
+						this.$.updateAltPeriod.selected = 2;
+						break;
+					case "Monthly":
+						this.$.updateAltPeriod.selected = 3;
+						break;
+					case "Yearly":
+						this.$.updateAltPeriod.selected = 4;
+						break;
+				}
 			}
 		}
 	}
@@ -2002,7 +2106,8 @@ class offerUpdate extends PolymerElement {
 		if(!this.priceUpdateSize && this.prices[indexPrices].size) {
 			var unitOfMeasure = new Object();
 			unitOfMeasure.op = "remove";
-			unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+			unitOfMeasure.path = "/productOfferingPrice/" + indexPrices
+					+ "/unitOfMeasure";
 			updatePriceNew.push(unitOfMeasure);
 		} else if(this.priceUpdateSize && this.priceUpdateUnits) {
 			if(this.priceUpdateUnits == "Seconds") {
@@ -2068,20 +2173,44 @@ class offerUpdate extends PolymerElement {
 		if(!this.priceUpdateAmount && this.prices[indexPrices].amount) {
 			var priceAmount = new Object();
 			priceAmount.op = "remove";
-			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price";
+			priceAmount.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/taxIncludedAmount";
 			updatePriceNew.push(priceAmount);
 		} else if(this.priceUpdateAmount && !this.prices[indexPrices].amount) {
 			var priceAmount = new Object();
 			priceAmount.op = "add";
-			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price";
-			priceAmount.value = {"taxIncludedAmount": this.priceUpdateAmount};
+			priceAmount.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/taxIncludedAmount";
+			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
 		} else if(this.priceUpdateAmount !== this.prices[indexPrices].amount) {
 			var priceAmount = new Object();
 			priceAmount.op = "replace";
-			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price";
-			priceAmount.value = {"taxIncludedAmount": this.priceUpdateAmount};
+			priceAmount.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/taxIncludedAmount";
+			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
+		}
+		if(!this.priceUpdateCurrency && this.prices[indexPrices].currency) {
+			var priceCurrency = new Object();
+			priceCurrency.op = "remove";
+			priceCurrency.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/currencyCode";
+			updatePriceNew.push(priceCurrency);
+		} else if(this.priceUpdateCurrency && !this.prices[indexPrices].currency) {
+			var priceCurrency = new Object();
+			priceCurrency.op = "add";
+			priceCurrency.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/currencyCode";
+			priceCurrency.value = this.priceUpdateCurrency;
+			updatePriceNew.push(priceCurrency);
+		} else if(this.priceUpdateCurrency !== this.prices[indexPrices].currency) {
+			var priceCurrency = new Object();
+			priceCurrency.op = "replace";
+			priceCurrency.path = "/productOfferingPrice/" + indexPrices
+					+ "/price/currencyCode";
+			priceCurrency.value = this.priceUpdateCurrency;
+			updatePriceNew.push(priceCurrency);
 		}
 		if(!this.priceUpdatePeriod && this.prices[indexPrices].period) {
 			var pricePeriod = new Object();
@@ -3472,7 +3601,7 @@ class offerUpdate extends PolymerElement {
 			this.altUpdateDescription = null;
 			this.updateOfferStartDateAlt = null;
 			this.updateOfferEndDateAlt = null;
-			this.altUpdateType = null;
+			this.$.updateAltType.selected = null;
 			this.$.updateAltSize.value = null;
 			this.altUpdateCurrency = null;
 			this.$.updateAltAmount.value = null;
@@ -3533,7 +3662,6 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferSpecification = null;
 		this.updateOfferStartDatee = null;
 		this.updateOfferEndDate = null;
-		this.offerUpdateStatus = null;
 		this.$.updateOfferStatus.selected = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
@@ -3541,33 +3669,28 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateDescription = null;
 		this.updateOfferStartDatePrice = null;
 		this.updateOfferEndDatePrice = null;
-		this.priceUpdateType = null;
 		this.$.updatePriceType.selected = null;
 		this.$.priceBytes.disabled = false;
 		this.$.priceSeconds.disabled = false;
 		this.priceUpdatePla = null;
-		this.priceUpdateUnits = null;
 		this.priceUpdateAmount = null;
 		this.priceUpdateSize = null;
+		this.$.updatePriceUnits.selected = null;
 		this.priceUpdateCurrency = null;
-		this.priceUpdatePeriod = null;
-		this.priceUpdateAlteration = null;
+		this.$.updatePricePeriod.selected = null;
+		this.$.addUpdatePriceAlteration.selected = null;
 		this.altUpdateName = null;
 		this.altUpdateDescription = null;
 		this.updateOfferStartDateAlt = null;
 		this.updateOfferEndDateAlt = null;
-		this.altUpdateType = null;
 		this.$.updateAltType.selected = null;
-		this.addUpdatePriceAlteration = null;
 		this.$.updateAlterationUnits.selected = null;
 		this.$.altSeconds.disabled = false;
 		this.$.altBytes.disabled = false;
 		this.$.updateAltSize.value = null;
 		this.altUpdateCurrency = null;
 		this.$.updateAltAmount.value = null;
-		this.altUpdatePeriod = null;
-		this.updateAltPeriod = null;
-		this.altUpdateUnits = null;
+		this.$.updateAltPeriod.selected = null;
 		this.priceUpdateReserveTime = null;
 		this.$.priceUpdateReserveTimeInput.disabled = false;
 		this.priceUpdateReserveOctets = null;
