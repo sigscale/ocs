@@ -1649,7 +1649,8 @@ class offerUpdate extends PolymerElement {
 			offerDesc.path = "/description";
 			offerDesc.value = this.updateOfferDescription;
 			offerNew.push(offerDesc);
-		} else if(this.updateOfferDescription != this.activeItem.description) {
+		} else if(this.updateOfferDescription && this.activeItem.description
+					&& (this.updateOfferDescription !== this.activeItem.description)) {
 			var offerDesc = new Object();
 			offerDesc.op = "replace";
 			offerDesc.path = "/description";
@@ -1688,7 +1689,7 @@ class offerUpdate extends PolymerElement {
 				startDateTime.path = "/validFor/startDateTime";
 				startDateTime.value = this.updateOfferStartDate;
 				offerNew.push(startDateTime);
-			} else if(this.activeItem.startDate
+			} else if(this.activeItem.startDate && this.updateOfferStartDate
 					&& !this.updateOfferStartDate.startsWith(this.activeItem.startDate)) {
 				var startDateTime = new Object();
 				startDateTime.op = "replace";
@@ -1707,7 +1708,7 @@ class offerUpdate extends PolymerElement {
 				endDateTime.path = "/validFor/endDateTime";
 				endDateTime.value = this.updateOfferEndDate;
 				offerNew.push(endDateTime);
-			} else if(this.activeItem.endDate
+			} else if(this.activeItem.endDate && this.updateOfferEndDate
 					&& !this.updateOfferEndDate.startsWith(this.activeItem.endDate)) {
 				var endDateTime = new Object();
 				endDateTime.op = "replace";
@@ -1727,7 +1728,8 @@ class offerUpdate extends PolymerElement {
 			stat.path = "/lifecycleStatus";
 			stat.value = this.offerUpdateStatus;
 			offerNew.push(stat);
-		} else if(this.offerUpdateStatus !== this.activeItem.lifecycleStatus) {
+		} else if(this.offerUpdateStatus && this.activeItem.lifecycleStatus
+					&& (this.offerUpdateStatus !== this.activeItem.lifecycleStatus)) {
 			var stat = new Object();
 			stat.op = "replace";
 			stat.path = "/lifecycleStatus";
@@ -1967,7 +1969,8 @@ class offerUpdate extends PolymerElement {
 			descr.path = "/productOfferingPrice/" + indexPrices + "/description";
 			descr.value = this.priceUpdateDescription;
 			updatePriceNew.push(descr);
-		} else if(this.priceUpdateDescription != this.prices[indexPrices].description) {
+		} else if(this.priceUpdateDescription && this.priceUpdateDescription
+					&& (this.priceUpdateDescription !== this.prices[indexPrices].description)) {
 			var descr = new Object();
 			descr.op = "replace";
 			descr.path = "/productOfferingPrice/" + indexPrices + "/description";
@@ -2006,7 +2009,7 @@ class offerUpdate extends PolymerElement {
 				priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor/startDateTime";
 				priceStart.value = this.updateOfferStartDatePrice;
 				updatePriceNew.push(priceStart);
-			} else if(this.prices[indexPrices].start
+			} else if(this.prices[indexPrices].start && this.updateOfferStartDatePrice
 					&& !this.updateOfferStartDatePrice.startsWith(this.prices[indexPrices].start)) {
 				var priceStart = new Object();
 				priceStart.op = "replace";
@@ -2025,7 +2028,7 @@ class offerUpdate extends PolymerElement {
 				priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor/endDateTime";
 				priceEnd.value = this.updateOfferEndDatePrice;
 				updatePriceNew.push(priceEnd);
-			} else if(this.prices[indexPrices].end
+			} else if(this.prices[indexPrices].end && this.updateOfferEndDatePrice
 					&& !this.updateOfferEndDatePrice.startsWith(this.prices[indexPrices].end)) {
 				var priceEnd = new Object();
 				priceEnd.op = "replace";
@@ -2059,7 +2062,8 @@ class offerUpdate extends PolymerElement {
 						break;
 				}
 				updatePriceNew.push(priceType);
-			} else if(this.priceUpdateType !== this.prices[indexPrices].priceType) {
+			} else if(this.priceUpdateType && this.prices[indexPrices].priceType
+						&& (this.priceUpdateType !== this.prices[indexPrices].priceType)) {
 				var priceType = new Object();
 				priceType.op = "replace";
 				priceType.path = "/productOfferingPrice/" + indexPrices + "/priceType";
@@ -2095,7 +2099,8 @@ class offerUpdate extends PolymerElement {
 				plaRef.href = this.priceUpdatePla;
 				pricePla.value.push(plaRef);
 				updatePriceNew.push(pricePla);
-			} else if(this.priceUpdatePla !== this.prices[indexPrices].pla) {
+			} else if(this.priceUpdatePla && this.prices[indexPrices].pla
+						&& (this.priceUpdatePla !== this.prices[indexPrices].pla)) {
 				var pricePla = new Object();
 				pricePla.path = "/productOfferingPrice/" + indexPrices + "/pricingLogicAlgorithm/0/href";
 				pricePla.op = "replace";
@@ -2122,8 +2127,9 @@ class offerUpdate extends PolymerElement {
 				} else {
 					priceSizeN = parseInt(this.priceUpdateSize);
 				}
-				if((this.prices[indexPrices].unit != "s")
-						 || (this.prices[indexPrices].size != priceSizeN)) {
+				if(priceSizeN
+						&& ((this.prices[indexPrices].unit != "s")
+						|| (this.prices[indexPrices].size != priceSizeN))) {
 					var unitOfMeasure = new Object();
 					unitOfMeasure.op = "replace";
 					unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
@@ -2144,8 +2150,9 @@ class offerUpdate extends PolymerElement {
 				} else {
 					priceSizeN = parseInt(this.priceUpdateSize);
 				}
-				if((this.prices[indexPrices].unit != "b")
-						 || (this.prices[indexPrices].size != priceSizeN)) {
+				if(priceSizeN
+						&& ((this.prices[indexPrices].unit != "b")
+						|| (this.prices[indexPrices].size != priceSizeN))) {
 					var unitOfMeasure = new Object();
 					unitOfMeasure.op = "replace";
 					unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
@@ -2160,8 +2167,9 @@ class offerUpdate extends PolymerElement {
 				} else {
 					priceSizeN = parseInt(this.priceUpdateSize);
 				}
-				if((this.prices[indexPrices].unit != "msg")
-						|| (this.prices[indexPrices].size != priceSizeN)) {
+				if(priceSizeN
+						&& ((this.prices[indexPrices].unit != "msg")
+						|| (this.prices[indexPrices].size != priceSizeN))) {
 					var unitOfMeasure = new Object();
 					unitOfMeasure.op = "replace";
 					unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
@@ -2183,7 +2191,8 @@ class offerUpdate extends PolymerElement {
 					+ "/price/taxIncludedAmount";
 			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
-		} else if(this.priceUpdateAmount !== this.prices[indexPrices].amount) {
+		} else if(this.priceUpdateAmount && this.prices[indexPrices].amount
+					&& (this.priceUpdateAmount !== this.prices[indexPrices].amount)) {
 			var priceAmount = new Object();
 			priceAmount.op = "replace";
 			priceAmount.path = "/productOfferingPrice/" + indexPrices
@@ -2204,7 +2213,8 @@ class offerUpdate extends PolymerElement {
 					+ "/price/currencyCode";
 			priceCurrency.value = this.priceUpdateCurrency;
 			updatePriceNew.push(priceCurrency);
-		} else if(this.priceUpdateCurrency !== this.prices[indexPrices].currency) {
+		} else if(this.priceUpdateCurrency && this.prices[indexPrices].currency
+					&& (this.priceUpdateCurrency !== this.prices[indexPrices].currency)) {
 			var priceCurrency = new Object();
 			priceCurrency.op = "replace";
 			priceCurrency.path = "/productOfferingPrice/" + indexPrices
@@ -2240,7 +2250,8 @@ class offerUpdate extends PolymerElement {
 						break;
 				}
 				updatePriceNew.push(pricePeriod);
-			} else if(this.priceUpdatePeriod != this.prices[indexPrices].period) {
+			} else if(this.priceUpdatePeriod && this.prices[indexPrices].period
+					&& (this.priceUpdatePeriod !== this.prices[indexPrices].period)) {
 				var pricePeriod = new Object();
 				pricePeriod.op = "replace";
 				pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
@@ -2305,7 +2316,6 @@ class offerUpdate extends PolymerElement {
 					radiusReserveTime.op = "replace";
 					radiusReserveTime.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
 							+ rrtIndex + "/productSpecCharacteristicValue/0";
-					radiusReserveTime.op = "replace";
 					radiusReserveTime.value = rrtCharValue;
 					updatePriceNew.push(radiusReserveTime);
 				}
@@ -2352,7 +2362,6 @@ class offerUpdate extends PolymerElement {
 					radiusReserveOctets.op = "replace";
 					radiusReserveOctets.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
 							+ rroIndex + "/productSpecCharacteristicValue/0";
-					radiusReserveOctets.op = "replace";
 					radiusReserveOctets.value = rroCharValue;
 					updatePriceNew.push(radiusReserveOctets);
 				}
@@ -2392,7 +2401,9 @@ class offerUpdate extends PolymerElement {
 				tarCharValueUse.productSpecification = tarProductSpec;
 				tariffTable.value = tarCharValueUse;
 				updatePriceNew.push(tariffTable);
-			} else if(this.priceUpdateTariff != this.prices[indexPrices].prodSpecCharValueUse[tarIndex].value) {
+			} else if(this.priceUpdateTariff
+					&& this.prices[indexPrices].prodSpecCharValueUse[tarIndex].value
+					&& (this.priceUpdateTariff !== this.prices[indexPrices].prodSpecCharValueUse[tarIndex].value)) {
 				var tariffTable = new Object();
 				tariffTable.op = "replace";
 				tariffTable.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2435,7 +2446,8 @@ class offerUpdate extends PolymerElement {
 				ckeyCharValueUse.productSpecification = ckeyProductSpec;
 				chargingKey.value = ckeyCharValueUse;
 				updatePriceNew.push(chargingKey);
-			} else if(this.priceUpdateChargingKey != this.prices[indexPrices].prodSpecCharValueUse[ckeyIndex].value) {
+			} else if(this.priceUpdateChargingKey && this.prices[indexPrices].prodSpecCharValueUse[ckeyIndex].value
+						&& (this.priceUpdateChargingKey !== this.prices[indexPrices].prodSpecCharValueUse[ckeyIndex].value)) {
 				var chargingKey = new Object();
 				chargingKey.op = "replace";
 				chargingKey.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2478,7 +2490,8 @@ class offerUpdate extends PolymerElement {
 				roamCharValueUse.productSpecification = roamProductSpec;
 				roamingTable.value = roamCharValueUse;
 				updatePriceNew.push(roamingTable);
-			} else if(this.priceUpdateRoamingTable!= this.prices[indexPrices].prodSpecCharValueUse[roamIndex].value) {
+			} else if(this.priceUpdateRoamingTable && this.prices[indexPrices].prodSpecCharValueUse[roamIndex].value
+						&& (this.priceUpdateRoamingTable !== this.prices[indexPrices].prodSpecCharValueUse[roamIndex].value)) {
 				var roamingTable = new Object();
 				roamingTable.op = "replace";
 				roamingTable.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2572,7 +2585,8 @@ class offerUpdate extends PolymerElement {
 				fixedCharValueUse.productSpecification = fixedProductSpec;
 				fixedKey.value = fixedCharValueUse;
 				updatePriceNew.push(fixedKey);
-			} else if(this.fixedUpdatePriceBucket != this.prices[indexPrices].prodSpecCharValueUse[fixedIndex].value) {
+			} else if(this.fixedUpdatePriceBucket && this.prices[indexPrices].prodSpecCharValueUse[fixedIndex].value
+						&& (this.fixedUpdatePriceBucket !== this.prices[indexPrices].prodSpecCharValueUse[fixedIndex].value)) {
 				var fixedKey = new Object();
 				fixedKey.op = "replace";
 				fixedKey.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2631,8 +2645,8 @@ class offerUpdate extends PolymerElement {
 				timeOfDay.value = todCharValueUse;
 				updatePriceNew.push(timeOfDay);
 			} else {
-				if(this.priceUpdateTODStart != this.prices[indexPrices].prodSpecCharValueUse[todIndex].value
-						|| this.priceUpdateTODEnd != this.prices[indexPrices].prodSpecCharValueUse[todIndex].value) {
+				if(this.priceUpdateTODStart && this.prices[indexPrices].prodSpecCharValueUse[todIndex].value
+						&& (this.priceUpdateTODStart !== this.prices[indexPrices].prodSpecCharValueUse[todIndex].value)) {
 					var timeOfDayLower = new Object();
 					timeOfDayLower.op = "replace";
 					timeOfDayLower.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2640,6 +2654,9 @@ class offerUpdate extends PolymerElement {
 					var todEpochStart = new Date("1970-01-01T" + this.priceUpdateTODStart);
 					timeOfDayLower.value = (todEpochStart.getHours() * 60) + todEpochStart.getMinutes();
 					updatePriceNew.push(timeOfDayLower);
+				}
+				if(this.priceUpdateTODEnd && this.prices[indexPrices].prodSpecCharValueUse[todIndex].value
+						&& (this.priceUpdateTODEnd !== this.prices[indexPrices].prodSpecCharValueUse[todIndex].value)) {
 					var timeOfDayUpper = new Object();
 					timeOfDayUpper.op = "replace";
 					timeOfDayUpper.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
@@ -2698,7 +2715,8 @@ class offerUpdate extends PolymerElement {
 					+ "/productOfferPriceAlteration/description";
 			alterationDesc.value = this.altUpdateDescription;
 			updateAlterationNew.push(alterationDesc);
-		} else if(this.altUpdateDescription != this.alterations[indexAlt].description) {
+		} else if(this.altUpdateDescription && this.alterations[indexAlt].description
+				&& (this.altUpdateDescription !== this.alterations[indexAlt].description)) {
 			var alterationDesc = new Object();
 			alterationDesc.op = "replace";
 			alterationDesc.path = "/productOfferingPrice/" + indexPrice
@@ -2742,7 +2760,7 @@ class offerUpdate extends PolymerElement {
 						+ "/productOfferPriceAlteration/validFor/startDateTime";
 				alterationStart.value = this.updateOfferStartDateAlt;
 				updateAlterationNew.push(alterationStart);
-			} else if(this.alterations[indexAlt].start
+			} else if(this.alterations[indexAlt].start && this.updateOfferStartDateAlt
 					&& !this.updateOfferStartDateAlt.startsWith(this.alterations[indexAlt].start)) {
 				var alterationStart = new Object();
 				alterationStart.op = "replace";
@@ -2764,7 +2782,7 @@ class offerUpdate extends PolymerElement {
 						+ "/productOfferPriceAlteration/validFor/endDateTime";
 				alterationEnd.value = this.updateOfferEndDateAlt;
 				updateAlterationNew.push(alterationEnd);
-			} else if(this.alterations[indexAlt].end
+			} else if(this.alterations[indexAlt].end && this.updateOfferEndDateAlt
 					&& !this.updateOfferEndDateAlt.startsWith(this.alterations[indexAlt].end)) {
 				var alterationEnd = new Object();
 				alterationEnd.op = "replace";
@@ -2774,7 +2792,8 @@ class offerUpdate extends PolymerElement {
 				updateAlterationNew.push(alterationEnd);
 			}
 		}
-		if(this.altUpdateType != this.alterations[indexAlt].priceType) {
+		if(this.altUpdateType && this.alterations[indexAlt].priceType
+				&& (this.altUpdateType !== this.alterations[indexAlt].priceType)) {
 			var alterationType = new Object();
 			alterationType.op = "replace";
 			alterationType.path = "/productOfferingPrice/" + indexPrice
@@ -2792,51 +2811,74 @@ class offerUpdate extends PolymerElement {
 			}
 			updateAlterationNew.push(alterationType);
 		}
-		if((this.$.updateAltSize.value != this.alterations[indexAlt].size)
-				|| ((this.$.updateAltsUnitsdrop.value == "Seconds")
-						&& (this.alterations[indexAlt].unit != "s"))
-				|| ((this.$.updateAltsUnitsdrop.value == "Bytes")
-						&& (this.alterations[indexAlt].unit != "b"))
-				|| ((this.$.updateAltsUnitsdrop.value == "Messages")
-						&& (this.alterations[indexAlt].unit != "msg"))
-				|| ((this.$.updateAltsUnitsdrop.value == "Cents")
-						&& (this.alterations[indexAlt].unit != "c"))) {
-			var alterationSize = new Object();
-			alterationSize.op = "replace";
-			alterationSize.path = "/productOfferingPrice/"
-					+ indexPrice + "/productOfferPriceAlteration/unitOfMeasure";
-			var sizeL = this.$.updateAltSize.value.length;
-			var sizeM = this.$.updateAltSize.value.charAt(sizeL - 1);
-			if(isNaN(parseInt(sizeM))) {
-				var sizeN = this.$.updateAltSize.value.slice(0, (sizeL - 1));
-			} else {
-				var sizeN = this.$.updateAltSize.value;
-			}
-			if(this.$.updateAltsUnitsdrop.value == "Bytes") {
-				if (sizeM == "m") {
-					alterationSize.value = sizeN + "000000b";
-				} else if(sizeM == "g") {
-					alterationSize.value = sizeN + "000000000b";
-				} else if(sizeM == "k") {
-					alterationSize.value = sizeN + "000b";
+		if(!this.updateAltSize && this.alterations[indexAlt].size) {
+			var unitOfMeasure = new Object();
+			unitOfMeasure.op = "remove";
+			unitOfMeasure.path = "/productOfferingPrice/" + indexPrice
+					+ "/productOfferPriceAlteration/unitOfMeasure";
+			updateAlterationNew.push(unitOfMeasure);
+		} else if(this.updateAltSize && this.altUpdateUnits) {
+			if(this.priceUpdateUnits == "Seconds") {
+				alterationSizeLast = this.updateAltSize.slice(-1);
+				alterationSizeN = new Number();
+				if(alterationSizeLast === "s") {
+					alterationSizeN = parseInt(this.updateAltSize);
+				} else if(alterationSizeLast === "m") {
+					alterationSizeN = parseInt(this.updateAltSize) * 60;
+				} else if(alterationSizeLast === "h") {
+					alterationSizeN = parseInt(this.updateAltSize) * 3600;
 				} else {
-					alterationSize.value = sizeN + "b";
+					alterationSizeN = parseInt(this.updateAltSize);
 				}
-			} else if(this.$.updateAltsUnitsdrop.value == "Seconds") {
-				var numSize = Number(sizeN);
-				if (sizeM == "m") {
-					numSize = numSize * 60;
-					alterationSize.value = numSize.toString() + "s";
-				} else if(sizeM == "h") {
-					numSize = numSize * 3600;
-					alterationSize.value = numSize.toString() + "s";
-				} else {
-					alterationSize.value = numSize.toString() + "s";
+				if(alterationSizeN
+						&& ((this.alterations[indexAlt].unit != "s")
+						|| (this.alterations[indexAlt].size != alterationSizeN))) {
+					var unitOfMeasure = new Object();
+					unitOfMeasure.op = "replace";
+					unitOfMeasure.path = "/productOfferingPrice/" + indexPrice
+							+ "/productOfferPriceAlteration/unitOfMeasure";
+					unitOfMeasure.value = alterationSizeN.toString() + "s";
+					updateAlterationNew.push(unitOfMeasure);
 				}
-			} else if(this.$.updateAltsUnitsdrop.value == "Messages") {
-				alterationSize.value = sizeN + "msg";
+			} else if(this.priceUpdateUnits == "Bytes") {
+				alterationSizeLast = this.updateAltSize.slice(-1);
+				alterationSizeN = new Number();
+				if(alterationSizeLast === "b") {
+					alterationSizeN = parseInt(this.updateAltSize);
+				} else if(aleterationSizeLast === "k") {
+					alterationSizeN = parseInt(this.updateAltSize) * 1000;
+				} else if(aleterationSizeLast === "m") {
+					alterationSizeN = parseInt(this.updateAltSize) * 1000000;
+				} else if(aleterationSizeLast === "g") {
+					alterationSizeN = parseInt(this.updateAltSize) * 1000000000;
+				}
+				if(alterationSizeN
+						&& ((this.alterations[indexAlt].unit != "b")
+						|| (this.alterations[indexAlt].size != alterationSizeN))) {
+					var unitOfMeasure = new Object();
+					unitOfMeasure.op = "replace";
+					unitOfMeasure.path = "/productOfferingPrice/" + indexPrice
+							+ "/productOfferPriceAlteration/unitOfMeasure";
+					unitOfMeasure.value = alterationSizeN.toString() + "b";
+					updateAlterationNew.push(unitOfMeasure);
+				}
+			} else if(this.priceUpdateUnits == "Messages") {
+				alterationSizeLast = this.updateAltSize.slice(-3);
+				alterationSizeN = new Number();
+				if(alterationSizeLast === "msg") {
+					alterationSizeN = parseInt(this.updateAltSize);
+				}
+				if(alterationSizeN
+						&& ((this.alterations[indexAlt].unit != "msg")
+						|| (this.alterations[indexAlt].size != alterationSizeN))) {
+					var unitOfMeasure = new Object();
+					unitOfMeasure.op = "replace";
+					unitOfMeasure.path = "/productOfferingPrice/" + indexPrice
+							+ "/productOfferPriceAlteration/unitOfMeasure";
+					unitOfMeasure.value = alterationSizeN.toString() + "msg";
+					updateAlterationNew.push(unitOfMeasure);
+				}
 			}
-			updateAlterationNew.push(alterationSize);
 		}
 		if((!this.$.updateAltAmount.value && !this.altUpdateCurrency)
 				&& (this.alterations[indexAlt].amount
@@ -2878,8 +2920,8 @@ class offerUpdate extends PolymerElement {
 						+ "/productOfferPriceAlteration/price/taxIncludedAmount";
 				altAmount.value = this.$.updateAltAmount.value;
 				updateAlterationNew.push(altAmount);
-			} else if(this.$.updateAltAmount.value
-					!= this.alterations[indexAlt].amount) {
+			} else if(this.$.updateAltAmount.value && this.alterations[indexAlt].amount
+					&& (this.$.updateAltAmount.value !== this.alterations[indexAlt].amount)) {
 				var altAmount = new Object();
 				altAmount.op = "replace";
 				altAmount.path = "/productOfferingPrice/" + indexPrice
@@ -2902,7 +2944,8 @@ class offerUpdate extends PolymerElement {
 						+ "/productOfferPriceAlteration/price/currencyCode";
 				altCurrency.value = this.altUpdateCurrency;
 				updateAlterationNew.push(altCurrency);
-			} else if(this.altUpdateCurrency != this.alterations[indexAlt].currency) {
+			} else if(this.altUpdateCurrency && this.alterations[indexAlt].currency
+					&& (this.altUpdateCurrency !== this.alterations[indexAlt].currency)) {
 				var altCurrency = new Object();
 				altCurrency.op = "replace";
 				altCurrency.path = "/productOfferingPrice/" + indexPrice
@@ -2939,7 +2982,8 @@ class offerUpdate extends PolymerElement {
 					altPeriod.value = "yearly";
 			}
 			updateAlterationNew.push(altPeriod);
-		} else if(this.$.addAltPeriodDrop.value != this.alterations[indexAlt].period) {
+		} else if(this.$.addAltPeriodDrop.value && this.alterations[indexAlt].period
+				&& (this.$.addAltPeriodDrop.value !== this.alterations[indexAlt].period)) {
 			var altPeriod = new Object();
 			altPeriod.op = "replace";
 			altPeriod.path = "/productOfferingPrice/" + indexPrice
