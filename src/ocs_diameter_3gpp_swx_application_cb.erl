@@ -193,7 +193,7 @@ request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
 		origin_realm = {ORealm, DRealm},
 		host_ip_address = {_, [H | _]}} = _Capabilities,
 		Request) ->
-	[Info] = diameter:service_info(ServiceName, transport),
+	[Info | _] = diameter:service_info(ServiceName, transport),
 	{options, Options} = lists:keyfind(options, 1, Info),
 	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
 			1, Options) of

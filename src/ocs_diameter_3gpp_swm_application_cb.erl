@@ -199,7 +199,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 request(ServiceName,
 		#diameter_caps{host_ip_address = {_, ClientAddresses}} = Capabilities,
 		Request) ->
-	[Info] = diameter:service_info(ServiceName, transport),
+	[Info | _] = diameter:service_info(ServiceName, transport),
 	{options, Options} = lists:keyfind(options, 1, Info),
 	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
 			1, Options) of
