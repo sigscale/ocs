@@ -251,7 +251,7 @@ errors(ServiceName, Capabilities, Request, []) ->
 %% peer's capabilities and diameter request.
 %% @hidden 
 send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Trusted, Request) ->
-	[Info] = diameter:service_info(Svc, transport),
+	[Info | _] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
 			case lists:keyfind(transport_config, 1, Options) of
