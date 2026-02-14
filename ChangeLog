@@ -1,4 +1,4 @@
-2024-12-08  Vance Shipley <vances@sigscale.org>
+2025-12-08  Vance Shipley <vances@sigscale.org>
 
 	* test case for sms iec nrf with tariff pops
 	* improved documentation for ocs_rating:rate/13
@@ -10,7 +10,7 @@
 	* no service context id in service rating response
 	* no subscription id in rating data response
 
-2024-11-16  Vance Shipley <vances@sigscale.org>
+2025-11-16  Vance Shipley <vances@sigscale.org>
 
 	* pos_integer() to appease dialyzer
 	* nrf iec uses reserve semantics
@@ -18,17 +18,17 @@
 	* updates for nrf v1.2.1
 	* iec must use reserve to allow centralized unit determination (#8)
 
-2024-11-10  Vance Shipley <vances@sigscale.org>
+2025-11-10  Vance Shipley <vances@sigscale.org>
 
 	* rating_failed, not charging_failed, nrf cause
 	* nrf charging failed should have 400 status code
 	* update references to nrf oas for v1.2.0
 
-2024-10-31  Vance Shipley <vances@sigscale.org>
+2025-10-31  Vance Shipley <vances@sigscale.org>
 
 	* correct monthly period calculation on last day of october
 
-2024-10-30  Vance Shipley <vances@sigscale.org>
+2025-10-30  Vance Shipley <vances@sigscale.org>
 
 	* handle service rating data request subtype release; empty service rating data response on release
 	* short circuit charge request with empty debit amounts
@@ -41,7 +41,7 @@
 	* no nfConsumerIdentification and subscriptionId in rating data response
 	* service context id moved to top level of rating data request (#7)
 
-2024-10-16  Vance Shipley <vances@sigscale.org>
+2025-10-16  Vance Shipley <vances@sigscale.org>
 
 	* nrf handles sms message type, ignore missing direction
 	* update references to nrf oas for v1.1.8
@@ -49,12 +49,12 @@
 	* refactor nrf codec; fix orig/dest dn
 	* nodeFunctionality inside nfConsumerIdentification within internal map()
 
-2024-10-06  Vance Shipley <vances@sigscale.org>
+2025-10-06  Vance Shipley <vances@sigscale.org>
 
 	* remove ratingdataref on release error
 	* include gsu in onetime iec service rating response and log rated
 
-2024-10-05  Vance Shipley <vances@sigscale.org>
+2025-10-05  Vance Shipley <vances@sigscale.org>
 
 	* test script improvements ported from cse project
 	* remove table transformations for migration add in v3.1.21
@@ -86,7 +86,7 @@
 	* skip node version check to work around @type/glob version glob
 	* missing d3 dependancy
 
-2024-07-23  Vance Shipley <vances@sigscale.org>
+2025-07-23  Vance Shipley <vances@sigscale.org>
 
 	* disable either ro or gx if omitted from auth-application-id
 	* guard against non-existence table in ts/0 and td/0
@@ -96,13 +96,13 @@
 	* update references to nrf_rating docs to v1.1.6
 	* typo in credit control label on dashboard
 
-2024-06-30  Vance Shipley <vances@sigscale.org>
+2025-06-30  Vance Shipley <vances@sigscale.org>
 
 	* include gx charging identifier in 3gpp diameter dictionary
 	* include address-type in send sms script
 	* remove unused ipdr_query/2,5 functions
 
-2024-06-23  Vance Shipley <vances@sigscale.org>
+2025-06-23  Vance Shipley <vances@sigscale.org>
 
 	* correct final zero debits overwriting rated in acct log
 	* include rated element in acct log for nrf
@@ -127,14 +127,14 @@
 	* export csv column seperator as comma
 	* ipdr codec result always list
 
-2024-06-08  Vance Shipley <vances@sigscale.org>
+2025-06-08  Vance Shipley <vances@sigscale.org>
 
 	* unpack only if no change in application version
 	* refactor install release script for specific release name argument
 	* debug flag in install_release script
 	* update copyright year
 
-2024-05-27  Vance Shipley <vances@sigscale.org>
+2025-05-27  Vance Shipley <vances@sigscale.org>
 
 	* include address-type in send sms script
 	* handle nrf events in ipdr codec
@@ -149,14 +149,14 @@
 	* parameterize release install script with application name
 	* handle invalid_error_bit in diameter statistics
 
-2024-04-11  Vance Shipley <vances@sigscale.org>
+2025-04-11  Vance Shipley <vances@sigscale.org>
 
 	* correct client protocol in snmp mib handler
 	* expect (skip) experimental result counts in prometheus exporter
 	* expect (skip) error counts in prometheus exporter
 	* remove (deprecated) sasl sasl_error_logger configuration
 
-2024-04-10  Vance Shipley <vances@sigscale.org>
+2025-04-10  Vance Shipley <vances@sigscale.org>
 
 	* modernize recursive fun() in radius auth port server
 	* remove unused handlers in radius acct port server state
@@ -166,13 +166,13 @@
 	* handle undefined table size in ts()
 	* update copyright year
 
-2024-04-08  Vance Shipley <vances@sigscale.org>
+2025-04-08  Vance Shipley <vances@sigscale.org>
 
 	* vcs service information includes gmsc address and user location (#3)
 	* Revert "opionally disable rating group independent credit control"
 	* rename variables for clarity
 
-2024-03-18  Vance Shipley <vances@sigscale.org>
+2025-03-18  Vance Shipley <vances@sigscale.org>
 
 	* rename some rest resource handling functions for uniformity
 	* refactor and correct http head request handling
@@ -183,18 +183,18 @@
 	* remove clause redundancy and reorder
 	* shell command ql/2,3,4 filters out other protocols
 
-2024-03-07  Vance Shipley <vances@sigscale.org>
+2025-03-07  Vance Shipley <vances@sigscale.org>
 
 	* opionally disable rating group independent credit control
 
-2024-02-28  Vance Shipley <vances@sigscale.org>
+2025-02-28  Vance Shipley <vances@sigscale.org>
 
 	* handle nrf request with no servicerating key
 	* link to published edoc in readme
 	* warn against using clean_buckets/1
 	* do not wait infinitely for workers to terminate
 
-2024-01-24  Vance Shipley <vances@sigscale.org>
+2025-01-24  Vance Shipley <vances@sigscale.org>
 
 	* service information may be combined (i.e. sms + ps) (#2)
 	* test cases for clean services, buckets, reservations
@@ -205,7 +205,7 @@
 	* do not update last modified on administrative action
 	* refactor and correct clean_reservations/2
 
-2024-01-16  Vance Shipley <vances@sigscale.org>
+2025-01-16  Vance Shipley <vances@sigscale.org>
 
 	* option to not refund during clean reservations
 
