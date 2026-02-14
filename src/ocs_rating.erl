@@ -46,6 +46,7 @@
 -define(IMSVOICE, 32260).
 -define(SMS, 32274).
 -define(VCS, 32276).
+-define(MMTel, 32275).
 
 -spec rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		ServiceNetwork, SubscriberIDs, Timestamp, Address, Direction,
@@ -53,7 +54,7 @@
 	when
 		Protocol :: radius | diameter | nrf,
 		ServiceType :: ?RADIUSLOGIN | ?RADIUSFRAMED | ?RADIUSVOICE
-				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?SMS | ?VCS | binary(),
+				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?VCS | ?MMTel | ?SMS | binary(),
 		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
 		ServiceNetwork :: string() | binary() | undefined,
@@ -269,7 +270,8 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 								(((ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
 										and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS))
+								(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS)
+												orelse (ServiceType == ?MMTel))
 										and ((Spec == "5") orelse (Spec == "9")))
 								orelse
 								((ServiceType == ?SMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
@@ -307,7 +309,8 @@ rate1(Protocol, Service, ServiceId, Product, Buckets,
 				(((ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
 						and ((Spec == "4") orelse (Spec == "8")))
 				orelse
-				(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS))
+				(((ServiceType == ?IMSVOICE) orelse (ServiceType == ?VCS)
+								orelse (ServiceType == ?MMTel))
 						and ((Spec == "5") orelse (Spec == "9")))
 				orelse
 				((ServiceType == ?SMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
@@ -1800,7 +1803,7 @@ charge4(event = _Flag,
 	when
 		Protocol :: radius | diameter | nrf,
 		ServiceType :: ?RADIUSLOGIN | ?RADIUSFRAMED | ?RADIUSVOICE
-				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?SMS | ?VCS
+				| ?PSDATA | ?'5GCDATA' | ?IMSVOICE | ?VCS | ?SMS | ?MMTel
 				| binary() | undefined,
 		SubscriberIDs :: [SubscriberID],
 		SubscriberID :: binary() | string(),
@@ -2104,7 +2107,7 @@ authorize5(#service{session_attributes = ExistingAttr} = Service,
 						orelse (ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
 						and ((U == octets) orelse (U == cents) orelse (U == seconds)))
 				orelse (((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?IMSVOICE)
-						orelse (ServiceType == ?VCS)) and
+						orelse (ServiceType == ?VCS) orelse (ServiceType == ?MMTel)) and
 						((U == seconds) orelse (U == cents)))
 				orelse
 				((ServiceType == ?SMS) and ((U == messages) orelse (U == cents))))
