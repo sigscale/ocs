@@ -226,7 +226,7 @@
    Originator-Received-Address                            2027  Grouped          VM
    Recipient-Received-Address                             2028  Grouped          VM
    SM-Service-Type                                        2029  Enumerated       VM
-;  MMTel-Information                                      2030  Grouped          VM
+   MMTel-Information                                      2030  Grouped          VM
    MMTel-SService-Type                                    2031  Unsigned32       VM
    Service-Mode                                           2032  Unsigned32       VM
 ;  Subscriber-Role                                        2033  Enumerated       VM
@@ -244,8 +244,8 @@
    Time-Usage                                             2045  Unsigned32       VM
    Traffic-Data-Volumes                                   2046  Grouped          VM
    Serving-Node-Type                                      2047  Enumerated       VM
-;  Supplementary-Service                                  2048  Grouped          VM
-;  Participant-Action-Type                                2049  Enumerated       VM
+   Supplementary-Service                                  2048  Grouped          VM
+   Participant-Action-Type                                2049  Enumerated       VM
    PDN-Connection-Charging-ID                             2050  Unsigned32       VM
    Dynamic-Address-Flag                                   2051  Enumerated       VM
 ;  Accumulated-Cost                                       2052  Grouped          VM
@@ -809,7 +809,7 @@
 ;     [ MBMS-Information ]
       [ SMS-Information ]
 ;     [ VCS-Information ]
-;     [ MMTel-Information ]
+      [ MMTel-Information ]
 ;     [ ProSe-Information ]
 ;     [ Service-Generic-Information ]
 ;     [ IM-Information ]
@@ -1040,7 +1040,7 @@
       [ External-Identifier ]
      *[ AVP ]
 
-;  VCS-Information :: = < AVP Header: 3410>
+;  VCS-Information ::= <AVP Header: 3410>
 ;     [ Bearer-Capability ]
 ;     [ Network-Call-Reference-Number ]
 ;     [ MSC-Address ]
@@ -1054,10 +1054,22 @@
 ;     [ Stop-Time ]
 ;     [ PS-Free-Format-Data ]
 
-;  MMTel-Information :: = < AVP Header: 2030>
-;    *[ Supplementary-Service ]
+   MMTel-Information ::= <AVP Header: 2030>
+     *[ Supplementary-Service ]
 
-;  ProSe-Information :: = < AVP Header: 3447>
+   Supplementary-Service ::= <AVP Header: 2048>
+      [ MMTel-SService-Type ]
+      [ Service-Mode ]
+      [ Number-Of-Diversions ]
+      [ Associated-Party-Address ]
+      [ Service-Id ]
+      [ Change-Time ]
+      [ Number-Of-Participants ]
+      [ Participant-Action-Type ]
+      [ CUG-Information ]
+;     [ AoC-Information ]
+
+;  ProSe-Information ::= <AVP Header: 3447>
 ;     [ Announcing-UE-HPLMN-Identifier ]
 ;     [ Announcing-UE-VPLMN-Identifier ]
 ;     [ Monitoring-UE-HPLMN-Identifier ]
@@ -2371,4 +2383,10 @@
 
 @enum IP-CAN-Session-Charging-Scope
    IP-CAN_SESSION_SCOPE           0
+
+@enum Participant-Action-Type
+   CREATE_CONF                    0
+   JOIN_CONF                      1
+   INVITE_INTO_CONF               2
+   QUIT_CONF                      3
 
