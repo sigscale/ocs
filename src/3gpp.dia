@@ -349,13 +349,13 @@
    SM-Device-Trigger-Indicator                            3407  Enumerated       VM
    SM-Sequence-Number                                     3408  Unsigned32       VM
    SMS-Result                                             3409  Unsigned32       VM
-;  VCS-Information                                        3410  Grouped          VM
-;  Basic-Service-Code                                     3411  Grouped          VM
+   VCS-Information                                        3410  Grouped          VM
+   Basic-Service-Code                                     3411  Grouped          VM
    Teleservice                                            3413  OctetString      VM
    Bearer-Capability                                      3412  OctetString      VM
    ISUP-Location-Number                                   3414  OctetString      VM
-;  Forwarding-Pending                                     3415  Enumerated       VM
-;  ISUP-Cause                                             3416  Grouped          VM
+   Forwarding-Pending                                     3415  Enumerated       VM
+   ISUP-Cause                                             3416  Grouped          VM
    MSC-Address                                            3417  OctetString      VM
    Network-Call-Reference-Number                          3418  OctetString      VM
    Start-of-Charging                                      3419  Time             VM
@@ -808,7 +808,7 @@
 ;     [ PoC-Information ]
 ;     [ MBMS-Information ]
       [ SMS-Information ]
-;     [ VCS-Information ]
+      [ VCS-Information ]
       [ MMTel-Information ]
 ;     [ ProSe-Information ]
 ;     [ Service-Generic-Information ]
@@ -1040,19 +1040,19 @@
       [ External-Identifier ]
      *[ AVP ]
 
-;  VCS-Information ::= <AVP Header: 3410>
-;     [ Bearer-Capability ]
-;     [ Network-Call-Reference-Number ]
-;     [ MSC-Address ]
-;     [ Basic-Service-Code ]
-;     [ ISUP-Location-Number ]
-;     [ VLR-Number ]
-;     [ Forwarding-Pending ]
-;     [ ISUP-Cause ]
-;     [ Start-Time ]
-;     [ Start-of-Charging ]
-;     [ Stop-Time ]
-;     [ PS-Free-Format-Data ]
+   VCS-Information ::= <AVP Header: 3410>
+      [ Bearer-Capability ]
+      [ Network-Call-Reference-Number ]
+      [ MSC-Address ]
+      [ Basic-Service-Code ]
+      [ ISUP-Location-Number ]
+      [ VLR-Number ]
+      [ Forwarding-Pending ]
+      [ ISUP-Cause ]
+      [ Start-Time ]
+      [ Start-of-Charging ]
+      [ Stop-Time ]
+      [ PS-Free-Format-Data ]
 
    MMTel-Information ::= <AVP Header: 2030>
      *[ Supplementary-Service ]
@@ -1801,6 +1801,15 @@
       [ IP-CAN-Session-Charging-Scope ]
      *[ AVP ]
 
+   ISUP-Cause ::= <AVP Header: 3416>
+      [ ISUP-Cause-Location ]
+      [ ISUP-Cause-Value ]
+      [ ISUP-Cause-Diagnostics ]
+
+   Basic-Service-Code ::= <AVP Header: 3411>
+      [ Bearer-Service ]
+      [ Teleservice ]
+
 @enum Trace-Depth
    Minimum                                  0
    Medium                                   1
@@ -2389,4 +2398,8 @@
    JOIN_CONF                      1
    INVITE_INTO_CONF               2
    QUIT_CONF                      3
+
+@enum Forwarding-Pending
+   FORWARDING_NOT_PENDING         0
+   FORWARDING_PENDING             1
 
