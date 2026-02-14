@@ -207,7 +207,7 @@
    Originator-SCCP-Address                                2008  OctetString      VM
    Originator-Interface                                   2009  Grouped          VM
    Recipient-SCCP-Address                                 2010  OctetString      VM
-;  Reply-Path-Requested                                   2011  Enumerated       VM
+   Reply-Path-Requested                                   2011  Enumerated       VM
    SM-Discharge-Time                                      2012  Time             VM
    SM-Protocol-ID                                         2013  OctetString      VM
    SM-Status                                              2014  OctetString      VM
@@ -1024,7 +1024,7 @@
       [ Originator-Interface ]
       [ Destination-Interface ]
       [ SM-Protocol-ID ]
-;     [ Reply-Path-Requested ]
+      [ Reply-Path-Requested ]
       [ SM-Status ]
       [ SM-User-Data-Header ]
       [ Number-Of-Messages-Sent ]
@@ -2402,4 +2402,8 @@
 @enum Forwarding-Pending
    FORWARDING_NOT_PENDING         0
    FORWARDING_PENDING             1
+
+@enum Reply-Path-Requested
+   NO_REPLY_PATH_SET              0
+   REPLY_PATH_SET                 1
 
