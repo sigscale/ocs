@@ -1,3 +1,12 @@
+February 14, 2026
+-----------------
+	- Support MMTel-Information
+	- Support MMTel Service-Context-Id as alias for IMS
+	- Derive VPLMN from 3GPP-User-Location-Info
+	- Handle Requested-Party-Address in IMS
+	- Nrf ServiceRating optionally present, optionally empty
+	- Product Offering Update dialog fixes
+
 December 8, 2025
 ----------------
 	- Correct SMS IEC over Nrf rating and charging (reserve semantics)

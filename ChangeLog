@@ -1,3 +1,20 @@
+2026-12-08  Vance Shipley <vances@sigscale.org>
+
+	* mmtel service-context-id as alias for ims/vcs
+	* include mmtel-information in 3gpp diameter codec
+	* derive vplmn from 3gpp-user-location-info
+	* handle requested-party-address in ims
+	* handle multiple accepted connections in diameter callbacks
+	* serviceRating optionally present, optionally empty (#9)
+	* check exists before check not equal
+	* paper-dropdown-menu: value is read only, select item to set
+	* product offering update web component fixes
+	* Reapply "percent decode uri map to handle special chars in path"
+	* wait for diameter service start in escripts
+	* correct unit type handling in offer price update dialog
+	* install exactly workbox-cli v7.3.0
+	* remove unused polymer test from build
+
 2025-12-08  Vance Shipley <vances@sigscale.org>
 
 	* test case for sms iec nrf with tariff pops
