@@ -1,5 +1,7 @@
-2026-12-08  Vance Shipley <vances@sigscale.org>
+2026-02-14  Vance Shipley <vances@sigscale.org>
 
+	* include sms reply-path-requested in diamater codec
+	* include vcs-information in 3gpp diameter codec
 	* mmtel service-context-id as alias for ims/vcs
 	* include mmtel-information in 3gpp diameter codec
 	* derive vplmn from 3gpp-user-location-info
