@@ -775,6 +775,10 @@ service_network([#'3gpp_ro_Service-Information'{
 		'Access-Network-Information' = ANI}]}])
 		when length(ANI) > 0 ->
 	access_info(ANI);
+service_network([#'3gpp_ro_Service-Information'{
+		'PS-Information' = [#'3gpp_ro_PS-Information'{
+		'3GPP-User-Location-Info' = [<<_, MCCMNC:3/binary, _/binary>>]}]}]) ->
+	tbcd(MCCMNC);
 service_network(_) ->
 	undefined.
 
@@ -1271,4 +1275,22 @@ print_sub([H | T], Acc) ->
 	print_sub(T, Acc ++ "," ++ binary_to_list(H));
 print_sub([], Acc) ->
 	Acc.
+
+%% @hidden
+tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4, MNC2:4, MNC1:4>>) ->
+	MCC = tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4>>, []),
+	MNC = tbcd(<<MNC2:4, MNC1:4>>, []),
+	MCC ++ MNC;
+tbcd(<<MCC2:4, MCC1:4, MNC3:4, MCC3:4, MNC2:4, MNC1:4>>) ->
+	MCC = tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4>>, []),
+	MNC = tbcd(<<MNC2:4, MNC1:4, 15:4, MNC3:4>>, []),
+	MCC ++ MNC.
+%% @hidden
+tbcd(<<15:4, A:4>>, Acc) ->
+	lists:reverse([A + 48 | Acc]);
+tbcd(<<A2:4, A1:4, Rest/binary>>, Acc)
+		when A1 >= 0, A1 < 10, A2 >= 0, A2 < 10 ->
+	tbcd(Rest, [A2 + 48, A1 + 48 | Acc]);
+tbcd(<<>>, Acc) ->
+	lists:reverse(Acc).
 
