@@ -48,7 +48,8 @@ voice_call(Options) ->
 			#diameter_event{service = Name, info = start} ->
 				ok
 		end,
-		TransportOptions =  [{transport_module, diameter_tcp},
+		TransportModule =  maps:get(transport, Options, diameter_tcp),
+		TransportOptions =  [{transport_module, TransportModule},
 				{transport_config,
 						[{raddr, maps:get(raddr, Options, {127,0,0,1})},
 						{rport, maps:get(rport, Options, 3868)},
@@ -229,16 +230,17 @@ usage() ->
 	Option9 = " [--imsi 001001123456789]",
 	Option10 = " [--interval 1000]",
 	Option11 = " [--updates 1]",
-	Option12 = " [--ip 127.0.0.1]",
-	Option13 = " [--raddr 127.0.0.1]",
-	Option14 = " [--rport 3868]",
-	Option15 = " [--origin 14165551234]",
-	Option16 = " [--destination 14165556789]",
-	Option17 = " [--role originating]",
+	Option12 = " [--transport tcp]",
+	Option13 = " [--ip 127.0.0.1]",
+	Option14 = " [--raddr 127.0.0.1]",
+	Option15 = " [--rport 3868]",
+	Option16 = " [--origin 14165551234]",
+	Option17 = " [--destination 14165556789]",
+	Option18 = " [--role originating]",
 	Options = [Option1, Option2, Option3, Option4, Option5,
 			Option6, Option7, Option8, Option9, Option10,
 			Option11, Option12, Option13, Option14, Option15,
-			Option16, Option17],
+			Option16, Option17, Option18],
 	Format = lists:flatten(["usage: ~s", Options, "~n"]),
 	io:fwrite(Format, [escript:script_name()]),
 	halt(1).
@@ -269,6 +271,10 @@ options(["--interval", MS | T], Acc) ->
 	options(T, Acc#{interval => list_to_integer(MS)});
 options(["--updates", N | T], Acc) ->
 	options(T, Acc#{updates => list_to_integer(N)});
+options(["--transport", "tcp" | T], Acc) ->
+	options(T, Acc#{transport => diameter_tcp});
+options(["--transport", "sctp" | T], Acc) ->
+	options(T, Acc#{transport => diameter_sctp});
 options(["--ip", Address | T], Acc) ->
 	{ok, IP} = inet:parse_address(Address),
 	options(T, Acc#{ip => IP});
