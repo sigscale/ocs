@@ -3322,14 +3322,16 @@ query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
 query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
-query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+query_log(start, Start, End, Log, MFA)
+		when is_integer(Start), is_integer(End), Start =< End ->
 	case btree_search(Log, Start) of
 		{error, Reason} ->
 			{error, Reason};
 		Continuation ->
 			query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
 	end;
-query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+query_log(Continuation, Start, End, Log, MFA)
+		when is_integer(Start), is_integer(End), Start =< End ->
 	query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
 %% @hidden
 query_log1(_Start, _End, {M, F, A}, eof, Acc) ->
