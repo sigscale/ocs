@@ -3448,7 +3448,8 @@ acct_query3(Events, '_') ->
 %% @hidden
 acct_query4([H | T] = _Events, Matches,
 		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == radius, length(RadiusMatchSpec) > 0 ->
+		when element(3, H) == radius,
+		length(RadiusMatchSpec) > 0 ->
 	case acct_query5(element(7, H), RadiusMatchSpec) of
 		true ->
 			acct_query4(T, Matches, RadiusMatchSpec,
@@ -3459,7 +3460,15 @@ acct_query4([H | T] = _Events, Matches,
 	end;
 acct_query4([H | T] = _Events, Matches,
 		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
+		when element(3, H) == radius,
+		((length(DiameterMatchSpec) > 0)
+				orelse (length(NrfMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == diameter,
+		length(DiameterMatchSpec) > 0 ->
 	case erlang:match_spec_test(element(7, H), DiameterMatchSpec, table) of
 		{ok, Event, [], []} when is_tuple(Event) ->
 			acct_query4(T,  Matches,RadiusMatchSpec,
@@ -3472,7 +3481,15 @@ acct_query4([H | T] = _Events, Matches,
 	end;
 acct_query4([H | T] = _Events, Matches,
 		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == nrf, length(NrfMatchSpec) > 0 ->
+		when element(3, H) == diameter,
+		((length(RadiusMatchSpec) > 0)
+				orelse (length(NrfMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == nrf,
+		length(NrfMatchSpec) > 0 ->
 	case erlang:match_spec_test(element(7, H), NrfMatchSpec, table) of
 		{ok, #{}, [], []} ->
 			acct_query4(T, Matches, RadiusMatchSpec,
@@ -3483,6 +3500,13 @@ acct_query4([H | T] = _Events, Matches,
 		{error, Reason} ->
 			{error, Reason}
 	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == nrf,
+		((length(RadiusMatchSpec) > 0)
+				orelse (length(DiameterMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
 acct_query4([H | T], Matches, RadiusMatchSpec,
 		DiameterMatchSpec, NrfMatchSpec, Acc) ->
 	acct_query4(T, Matches, RadiusMatchSpec,
