@@ -205,6 +205,6 @@ else
 	fi
 	cp releases/${APP_NEW}/sys.config releases/${APP_NEW}/sys.config.dist
 fi
-ERTS=$(grep "^\[{release," releases/RELEASES | sed -e 's/^\[{release,[[:blank:]]*\"//' -e 's/^[^"]*\",[[:blank:]]*\"//' -e 's/^[^"]*\",[[:blank:]]*\"//' -e 's/^\([0-9.]*\).*/\1/')
+ERTS=$(sed -ne 's/^.*{erts,[[:blank:]]*\"\([0-9.]*\)\"}.*$/\1/p' releases/${APP_NEW}/${APP_NEW}.rel)
 echo "${ERTS} ${APP_NEW}" > releases/start_erl.data
 
