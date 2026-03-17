@@ -1,6 +1,6 @@
 [Unit]
-Description="SigScale OCS"
-Documentation="https://github.com/sigscale/ocs"
+Description=SigScale OCS
+Documentation=https://github.com/sigscale/ocs
 After=epmd.service epmd.socket
 
 [Service]

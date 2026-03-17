@@ -155,7 +155,9 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 ##
 ## Output:  create output files
 ## 
-
+AS_VERSION_COMPARE([$ERLANG_LIB_VER_sasl], ["4.2"],
+		[RELDIR="releases"], [RELDIR="/home/otp/releases"], [RELDIR="/home/otp/releases"])
+AC_SUBST([RELDIR])
 AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
 		priv/mibs/Makefile mibs/Makefile priv/www/Makefile priv/examples/Makefile
