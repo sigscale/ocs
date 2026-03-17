@@ -1,3 +1,8 @@
+March 17, 2026
+--------------
+	- support RPM packages
+	- Match filters exclusive in ocs_log:acct_query/5,6
+
 February 26, 2026
 -----------------
 	- Update MCCMNC codes
