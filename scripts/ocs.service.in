@@ -1,5 +1,5 @@
 [Unit]
-Description="Online Charging System by SigScale Global Inc."
+Description="SigScale OCS"
 Documentation="https://github.com/sigscale/ocs"
 After=epmd.service epmd.socket
 
@@ -10,8 +10,8 @@ WorkingDirectory=/home/otp
 RuntimeDirectory=ocs
 RuntimeDirectoryMode=0750
 EnvironmentFile=/etc/default/ocs
-ExecStart=/usr/lib/erlang/bin/run_erl -daemon /run/ocs/ log \
-                'ERL_LIBS=lib exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} releases \
+ExecStart=@ERLANG_ROOT_DIR@/bin/run_erl -daemon /run/ocs/ log \
+                'ERL_LIBS=lib exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} ${RELDIR} \
                 ${START_ERL_DATA} -boot_var OTPHOME . +K true +A 32 +Bi -sname ${NODENAME}'
 GuessMainPID=no
 Type=forking
