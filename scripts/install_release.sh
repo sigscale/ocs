@@ -1,6 +1,6 @@
 #!/bin/bash
 ########################################################################
-# Copyright (c) 2018 - 2025 SigScale Global Inc.
+# Copyright (c) 2018 - 2026 SigScale Global Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
