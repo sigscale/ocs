@@ -444,10 +444,7 @@ service_counters(_Application, [], Counters) ->
 
 %% @doc Parse peer statistics.
 %% @hidden
-peer_stat(Application, PeerStats, Counters) ->
-	NewCounters = peer_stat1(Application, PeerStats, Counters).
-%% @hidden
-peer_stat1(Application, [{{{Application, CommandCode, 0}, send,
+peer_stat(Application, [{{{Application, CommandCode, 0}, send,
 		{'Result-Code', ResultCode}}, Count} | T], Acc) ->
 	NewAcc = case maps:find({CommandCode, ResultCode}, Acc) of
 		{ok, Value} ->
@@ -455,10 +452,10 @@ peer_stat1(Application, [{{{Application, CommandCode, 0}, send,
 		error->
 			Acc#{{CommandCode, ResultCode} => Count}
 	end,
-	peer_stat1(Application, T, NewAcc);
-peer_stat1(Application, [_ | T], Acc) ->
-	peer_stat1(Application, T, Acc);
-peer_stat1(_Application, [], Acc) ->
+	peer_stat(Application, T, NewAcc);
+peer_stat(Application, [_ | T], Acc) ->
+	peer_stat(Application, T, Acc);
+peer_stat(_Application, [], Acc) ->
 	Acc.
 
 -spec dia_count(CommandCode, ResultCode, Count) -> Component 
