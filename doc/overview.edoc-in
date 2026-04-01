@@ -296,23 +296,31 @@ interfaces is depicted below:
 		src="swm-swx-msc.svg" alt="AAA" />
 
 ===Logging===
-Every detail of each DIAMETER/RADIUS transaction is logged to disk.
+Every detail of each Charging Trigger Function (CTF) transaction with
+the OCF is logged to disk. Details of trannsactions with the AAA and
+ABMF are also logged.
 
 ====Disk Logs====
-Event details are logged to fixed size FIFO logs consisting of a configurable
-number, and size, of internally formatted files. Events are written to archive
-log files on a scheduled basis (default daily). These internally formatted
-archive logs may be exported on demand to a supported file format (e.g. CSV).
-A shell script is provided (`bin/export_ipdr') for this purpose.
+Event details are logged to fixed size FIFO logs consisting of a
+configurable number, and size, of internally formatted files. OCF
+events are in the `acct' FIFO log, AAA events are in `auth' and
+ABMF in `abmf'.
+
+Events are read from FIFO logs and written to archive log files on a
+scheduled basis (default daily). These internally formatted archive
+logs may be exported on demand to a supported file format (e.g. CSV).
+Shell scripts are provided (`bin/export_[cdr|ipdr]') for this purpose.
 
 <img class="diagram" src="disk_logs.svg" alt="Disk Logs" />
 
-See `acct_log_dir', `acct_log_files', `acct_log_rotate', `acct_log_rotate_time',
-`acct_log_size', `auth_log_dir', `auth_log_files', `auth_log_size', `ipdr_log_dir',
-and `export_dir' in the Configuration section below.
+See `acct_log_dir', `acct_log_files', `acct_log_rotate',
+`acct_log_rotate_time', `acct_log_size', `auth_log_dir',
+`auth_log_files', `auth_log_size', `cdr_log_dir',
+`ipdr_log_dir' and `export_dir' in the
+<a href="#Configuration">Configuration</a> section below.
 
 ====Elasstic Stack====
-Optionally DIAMETER/RADIUS transactions may be shipped to
+Optionally OCF/AAA transactions may be shipped to
 <a target="_blank" href="https://www.elastic.co/logstash/">LogStash</a>
 with the <a target="_blank"
 href="https://www.elastic.co/guide/en/logstash/current/plugins-inputs-http.html">
@@ -735,6 +743,8 @@ Logging configuration options:
 		<dd>Number of authorization log files.</dd>
 	<dt>auth_log_size</dt>
 		<dd>Size in bytes of authorization log files.</dd>
+	<dt>cdr_log_dir</dt>
+		<dd>Path of directory to store CDR logs.</dd>
 	<dt>ipdr_log_dir</dt>
 		<dd>Path of directory to store IPDR logs.</dd>
 	<dt>export_dir</dt>
@@ -905,6 +915,7 @@ following environment variables:
       {auth_log_dir, "log/auth"},
       {auth_log_size, 10485760},
       {auth_log_files, 100},
+      {cdr_log_dir, "log/cdr"},
       {ipdr_log_dir, "log/ipdr"},
       {export_dir, "log/export"},
       {rest_page_size, 1000},
