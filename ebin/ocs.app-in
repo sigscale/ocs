@@ -160,6 +160,7 @@
 				{auth_log_name, ocs_auth},
 				{auth_log_size, 10485760},
 				{auth_log_files, 100},
+				{cdr_log_dir, "log/cdr"},
 				{ipdr_log_dir, "log/ipdr"},
 				{abmf_log_dir, "log/abmf"},
 				{abmf_log_name, ocs_abmf},

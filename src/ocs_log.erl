@@ -1,7 +1,7 @@
 %%% ocs_log.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2025 SigScale Global Inc.
+%%% @copyright 2016 - 2026 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements functions used in handling logging
-%%% 	in the {@link //ocs. ocs} application.
+%%% @doc This library module implements functions used in handling of
+%%% 	logging in the {@link //ocs. ocs} application.
 %%%
 %%% 	Event logging in {@link //ocs. ocs} uses
 %%% 	{@link //kernel/disk_log. disk_log} wrap logs configured for file
-%%% 	size, and number of files, using application environment variables
+%%% 	size, and number of files, with application environment variables
 %%% 	(e.g. `acct_log_size', `acct_log_files'). As the log items are
 %%% 	chronologically ordered finding an event by start time is relatively
 %%% 	efficient. The {@link btree_search/2. btree_search/2} function is
@@ -39,32 +39,28 @@
 %%% 	Functions reading log files SHALL assume the above format and
 %%% 	SHOULD ignore items with unexpected tuple arity or element values.
 %%%
-%%% @reference <a href="http://www.tmforum.org/ipdr/">IPDR Specifications</a>.
-%%%
 -module(ocs_log).
--copyright('Copyright (c) 2016 - 2025 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/6, acct_close/0,
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([ipdr_log/4, ipdr_file/3]).
+-export([cdr_log/3, cdr_file/3]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
 -export([log_name/1]).
--export([btree_search/2]).
 -export([auth_to_ecs/1, acct_to_ecs/1]).
+%% export the deprecated public API
+-export([ipdr_log/4, ipdr_file/3]).
 
-%% exported the private function
+%% export the private API
 -export([acct_query/4, auth_query/5, abmf_query/6]).
-
-%% export the ocs_log event types
--export_type([auth_event/0, acct_event/0, abmf_event/0,
-		http_event/0]).
+-export([btree_search/2]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -83,7 +79,6 @@
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
 
-%% export the common log field types
 -type timestamp() :: pos_integer().
 -type unique() :: pos_integer().
 -type protocol() :: radius | diameter | nrf.
@@ -91,11 +86,84 @@
 		Port :: non_neg_integer()} | undefined.
 -export_type([timestamp/0, unique/0, protocol/0, server/0]).
 
-%% export the ocs_acct field types
+-type diameter_auth_event() :: {
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
+		Node :: atom(),
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
+		RequestAttributes :: ocs_log:auth_request(),
+		ResponseAttributes :: ocs_log:auth_response()}.
+%% DIAMETER event in the `auth' log.
+
+-type radius_auth_event() :: {
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
+		Node :: atom(),
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
+		Type :: ocs_log:auth_type(),
+		RequestAttributes :: ocs_log:auth_request(),
+		ResponseAttributes :: ocs_log:auth_response()}.
+%% RADIUS event in the `auth' log.
+
+-type auth_event() :: diameter_auth_event() | radius_auth_event().
+%% Event in the `auth' log.
+
+-type acct_event() :: {
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
+		Node :: atom(),
+		Server :: ocs_log:server(),
+		Type :: ocs_log:acct_type(),
+		RequestAttributes :: ocs_log:acct_request(),
+		ResponseAttributes :: ocs_log:acct_response(),
+		Rated :: [#rated{}]}.
+%% Event in the `acct' log.
+
+-type http_event() :: {
+		Host :: string(),
+		User :: string(),
+		DateTime :: string(),
+		Method :: string(),
+		URI :: string(),
+		HttpStatus :: string()}.
+%% Event in the `http' log.
+
+-type abmf_event() :: {
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Node :: atom(),
+		Type :: topup | adjustment | delete | deduct | reserve | unreserve | transfer,
+		Subscriber :: binary(),
+		Bucket :: undefined | string(),
+		Units :: cents | seconds | octets | messages,
+		Product :: string(),
+		Amount :: integer(),
+		AmountBefore :: integer() | undefined,
+		AmountAfter :: integer() | undefined,
+		Validity :: undefined | pos_integer(),
+		Channel :: undefined | string(),
+		Requestor :: undefined | [{Id :: string(),
+				Role :: string(), Name :: string()}],
+		RelatedParty :: undefined | [{Id :: string(),
+				Role :: string(), Name :: string()}],
+		PaymentMeans :: undefined | string(),
+		Action :: undefined | string(),
+		Status :: undefined | term()}.
+%% Event in the `abmf' log.
+
+-export_type([auth_event/0, acct_event/0, abmf_event/0,
+		http_event/0]).
+
 -export_type([acct_type/0, acct_request/0, acct_response/0, acct_rated/0]).
 
-%% export the ocs_auth field types
 -export_type([auth_type/0, auth_request/0, auth_response/0]).
+
+-export_type([cdr/0]).
 
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
@@ -122,15 +190,26 @@ acct_open() ->
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
 -type nrf_request() :: map().
+%% A request on the Nrf interface.
+
 -type nrf_response() :: map().
--type acct_type() :: on | off | start | stop | update | interim | final | 'event'.
+%% A response on the Nrf interface.
+
+-type acct_type() :: on | off | start | stop | update | interim | final | event.
+%% Type of an event in the `acct' log.
+
 -type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
 		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{}
 		| radius_attributes:attributes() | nrf_request().
+%% A request in an event of the `acct' log.
+
 -type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
 		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{}
 		| radius_attributes:attributes() | nrf_response().
+%% A response in an event of the `acct' log.
+
 -type acct_rated() :: [#rated{}].
+%% Rated records in an event of the `acct' log.
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -263,20 +342,33 @@ auth_open() ->
 	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles).
 
 -type auth_type() :: accept | reject | change.
+%% Type of an event in the `auth' log.
+
 -type auth_request_rad() :: radius_attributes:attributes().
+%% A request on a RADIUS interface.
+
 -type auth_request_dia() :: #diameter_nas_app_AAR{}
 		| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
 		| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | #'3gpp_s6b_STR'{}
 		| #'3gpp_swx_RTR'{} | #'3gpp_s6b_AAR'{} | #'3gpp_s6a_AIR'{}
 		| #'3gpp_s6a_ULR'{} | #'3gpp_s6a_PUR'{}.
+%% A request on a DIAMETER interface.
+
 -type auth_request() :: auth_request_rad() | auth_request_dia().
+%% A request in an event of the `auth' log.
+
 -type auth_response_rad() :: radius_attributes:attributes().
+%% A response on a RADIUS interface.
+
 -type auth_response_dia() :: #diameter_nas_app_AAA{}
 		| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
 		| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{} | #'3gpp_s6b_STA'{}
 		| #'3gpp_swx_RTA'{} | #'3gpp_s6b_AAA'{} | #'3gpp_s6a_AIA'{}
 		| #'3gpp_s6a_ULA'{} | #'3gpp_s6a_PUA'{}.
+%% A response on a DIAMETER interface.
+
 -type auth_response() :: auth_response_rad() | auth_response_dia().
+%% A response in an event of the `auth' log.
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -484,6 +576,215 @@ http_query8(Chunks) ->
 	end,
 	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
 
+-spec cdr_log(File, Start, End) -> Result
+	when
+		File :: file:filename(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Log accounting records within range to new CDR disk log.
+%%
+%% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
+%% 	or overwrites an existing, with filename `File'.
+%%
+%% 	The `ocs_acct' log is searched for events created between
+%% 	`Start' and `End' of type `Type'.
+%%
+cdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
+	cdr_log(File, Seconds * 1000, End);
+cdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
+	cdr_log(File, Start, Seconds * 1000 + 999);
+cdr_log(File, Start, End) when is_list(File),
+		is_integer(Start), is_integer(End) ->
+		{ok, Directory} = application:get_env(ocs, cdr_log_dir),
+		FileName = Directory ++ "/" ++ File,
+	case disk_log:open([{name, File},
+			{file, FileName}, {repair, truncate}]) of
+		{ok, CdrLog} ->
+			cdr_log1(CdrLog, Start, End, btree_search(CdrLog, Start));
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc,
+					{module, ?MODULE}, {function, ?FUNCTION_NAME},
+					{file, File}, {error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+cdr_log1(CdrLog, _Start, _End, {error, Reason}) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc,
+			{module, ?MODULE}, {function, ?FUNCTION_NAME},
+			{log, CdrLog}, {error, Reason}]),
+	cdr_log4(CdrLog);
+cdr_log1(CdrLog, Start, End, Cont) ->
+	cdr_log2(CdrLog, Start, End, [], disk_log:chunk(CdrLog, Cont)).
+%% @hidden
+cdr_log2(CdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc,
+			{module, ?MODULE}, {function, ?FUNCTION_NAME},
+			{log, CdrLog}, {error, Reason}]),
+	cdr_log4(CdrLog);
+cdr_log2(CdrLog, _Start, _End, [], eof) ->
+	cdr_log4(CdrLog);
+cdr_log2(CdrLog, Start, End, PrevChunk, eof) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	cdr_log3(CdrLog, Start, End,
+			{eof, lists:dropwhile(Fstart, PrevChunk)});
+cdr_log2(CdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	cdr_log2(CdrLog, Start, End, T, disk_log:chunk(CdrLog, Cont));
+cdr_log2(CdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	cdr_log3(CdrLog, Start, End,
+			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
+%% @hidden
+cdr_log3(CdrLog, _Start, _End, eof) ->
+	cdr_log4(CdrLog);
+cdr_log3(CdrLog, _Start, _End, {error, _Reason}) ->
+	cdr_log4(CdrLog);
+cdr_log3(CdrLog, _Start, _End, {eof, []}) ->
+	cdr_log4(CdrLog);
+cdr_log3(CdrLog, Start, End, {Cont, []}) ->
+	cdr_log3(CdrLog, Start, End, disk_log:chunk(CdrLog, Cont));
+cdr_log3(CdrLog, _Start, End, {_Cont, [H | _]})
+		when element(1, H) > End ->
+	cdr_log4(CdrLog);
+cdr_log3(CdrLog, Start, End, {Cont, [H | T]})
+		when element(6, H) == stop ->
+	case disk_log:log(CdrLog, cdr_codec(H)) of
+		ok ->
+			cdr_log3(CdrLog, Start, End, {Cont, T});
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc,
+					{module, ?MODULE}, {function, ?FUNCTION_NAME},
+					{log, CdrLog}, {error, Reason}]),
+			disk_log:close(CdrLog),
+			{error, Reason}
+	end;
+cdr_log3(CdrLog, Start, End, {Cont, [_ | T]}) ->
+	cdr_log3(CdrLog, Start, End, {Cont, T}).
+%% @hidden
+cdr_log4(CdrLog) ->
+	case disk_log:close(CdrLog) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc,
+					{module, ?MODULE}, {function, ?FUNCTION_NAME},
+					{log, CdrLog}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec cdr_file(LogFile, Type, Format) -> Result
+	when
+		LogFile :: file:filename(),
+		Type :: ps | cs | ims | sms | vcs,
+		Format :: xml | json | csv,
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Export internal CDR disk log.
+%%
+%% 	Creates a file named `LogFile.Format' with the details from the
+%% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
+%% 	created previously with {@link cdr_log/3}.
+%%
+cdr_file(LogFile, Type, Format) when is_list(LogFile),
+		((Format == xml) or (Format == json) or (Format == csv)) ->
+	{ok, Directory} = application:get_env(ocs, cdr_log_dir),
+	FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ LogFile,
+	case disk_log:open([{name, make_ref()},
+			{file, FileName}, {repair, true}]) of
+		{ok, Log} ->
+			cdr_file1(LogFile, Log, Format);
+		{repaired, Log, Recovered, BadBytes} ->
+			error_logger:warning_report(["Log Repaired",
+					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
+			cdr_file1(LogFile, Log, Format);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc,
+					{module, ?MODULE}, {function, ?FUNCTION_NAME},
+					{file, FileName}, {error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+cdr_file1(FileName, Log, Format) ->
+	{ok, Directory} = application:get_env(ocs, export_dir),
+	case file:make_dir(Directory) of
+		ok ->
+			cdr_file2(FileName, Log, Format, Directory);
+		{error, eexist} ->
+			cdr_file2(FileName, Log, Format, Directory);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
+					{directory, Directory}, {error, Reason}]),
+			disk_log:close(Log),
+			{error, Reason}
+	end.
+%% @hidden
+cdr_file2(FileName, Log, Format, ExportDir) ->
+	CsvFile = ExportDir ++ "/" ++ FileName ++ "." ++ atom_to_list(Format),
+	case file:open(CsvFile, [raw, write, delayed_write]) of
+		{ok, IoDevice} ->
+			cdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
+					{filename, CsvFile}, {error, Reason}]),
+			disk_log:close(Log),
+			{error, Reason}
+	end.
+%% @hidden
+cdr_file3(Log, IoDevice, _Format, eof) ->
+	case disk_log:close(Log) of
+		ok ->
+			file:close(IoDevice);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason}
+	end;
+cdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+			{log, Log}, {error, Reason}]),
+	disk_log:close(Log),
+	file:close(IoDevice),
+	{error, Reason};
+cdr_file3(Log, IoDevice, Format, {Cont, []}) ->
+	cdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, Cont));
+cdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
+	 {error, unimplemented};
+cdr_file3(_Log, _IoDevice, json, {_Cont,_Events}) ->
+	 {error, unimplemented};
+cdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
+	cdr_csv(Log, IoDevice, $,, {Cont, Events}).
+
 -spec ipdr_log(Type, File, Start, End) -> Result
 	when
 		Type :: wlan | voip,
@@ -504,6 +805,8 @@ http_query8(Chunks) ->
 %% 	and `End' which may be given as
 %% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
 %% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
+%%
+%% @deprecated The IPDR format has been deprecated.
 %%
 ipdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
@@ -669,6 +972,8 @@ ipdr_log5(IpdrLog, SeqNum) ->
 %% 	Creates a file named `LogFile'.`Format' with the details from the
 %% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
 %% 	created previously with {@link ipdr_log/3}.
+%%
+%% @deprecated The IPDR format has been deprecated.
 %%
 ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 		((Format == xml) or (Format == xdr) or (Format == csv)) ->
@@ -1027,13 +1332,6 @@ iso8601millisecond(EpocMilliseconds, [$., N | _])
 iso8601millisecond(EpocMilliseconds, _) ->
 	EpocMilliseconds.
 
-uuid() ->
-	<<A:32, B:16, C:16, D:16, E:48>> = crypto:strong_rand_bytes(16),
-	Format = "~8.16.0b-~4.16.0b-~4.16.0b-~4.16.0b-~12.16.0b",
-	Values = [A, B, (C bsr 4) bor 16#4000, (D bsr 2) bor 16#8000, E],
-	Chars = io_lib:fwrite(Format, Values),
-	lists:flatten(Chars).
-
 -spec abmf_open() -> Result
 	when
 		Result :: ok | {error, Reason},
@@ -1347,8 +1645,520 @@ acct_to_ecs(_Event, _ClientObj, false) ->
 	throw(not_found).
 
 %%----------------------------------------------------------------------
+%%  The ocs_log private API
+%%----------------------------------------------------------------------
+
+-spec acct_query(Continuation, Protocol, Types, Matches) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [acct_event()],
+		Protocol :: protocol() | [protocol()] | '_',
+		Types :: [Type] | '_',
+		Type :: start | interim | stop | event | on | off,
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
+				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
+				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
+				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
+		NrfMatchHead :: map(),
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Result :: {Continuation2, Events}.
+%% @doc Continue query of accounting log events.
+%% @private
+acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches)
+		when (is_tuple(Cont) or (Cont == eof)) ->
+	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
+%% @hidden
+acct_query1(Events, Protocol, '_', Matches, _Acc) ->
+	acct_query2(Events, Protocol, Matches, []);
+acct_query1([H | T], Protocol, Types, Matches, Acc) ->
+	case lists:member(element(6, H), Types) of
+		true ->
+			acct_query1(T, Protocol, Types, Matches, [H | Acc]);
+		false ->
+			acct_query1(T, Protocol, Types, Matches, Acc)
+	end;
+acct_query1([], Protocol, _Types,  Matches, Acc) ->
+	acct_query2(lists:reverse(Acc), Protocol, Matches, []).
+%% @hidden
+acct_query2(Events, '_', Matches, _Acc) ->
+	acct_query3(Events, Matches);
+acct_query2([H | T], Protocol, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocol, Matches, [H |Acc]);
+acct_query2([H | T], [Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
+acct_query2([H | T], [_, Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
+acct_query2([H | T], [_, _, Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	acct_query2(T, Protocols, Matches, [H |Acc]);
+acct_query2([_ | T], Protocol, Matches, Acc) ->
+	acct_query2(T, Protocol, Matches, Acc);
+acct_query2([], _Protocol, Matches, Acc) ->
+	acct_query3(lists:reverse(Acc), Matches).
+%% @hidden
+acct_query3(Events, Matches) when is_list(Matches) ->
+	Fradius = fun({Attribute, _Match}) when is_integer(Attribute) ->
+				true;
+			(_) ->
+				false
+	end,
+	Fdiameter = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_ro_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_CCR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	Fnrf = fun({MatchHead, MatchConds}) when is_map(MatchHead) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	RadiusMatchSpec = lists:filtermap(Fradius, Matches),
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	NrfMatchSpec = lists:filtermap(Fnrf, Matches),
+	acct_query4(Events, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, []);
+acct_query3(Events, '_') ->
+	Events.
+%% @hidden
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == radius,
+		length(RadiusMatchSpec) > 0 ->
+	case acct_query5(element(7, H), RadiusMatchSpec) of
+		true ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		false ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc)
+	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == radius,
+		((length(DiameterMatchSpec) > 0)
+				orelse (length(NrfMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == diameter,
+		length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(7, H), DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			acct_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == diameter,
+		((length(RadiusMatchSpec) > 0)
+				orelse (length(NrfMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == nrf,
+		length(NrfMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(7, H), NrfMatchSpec, table) of
+		{ok, #{}, [], []} ->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, NrfMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
+		when element(3, H) == nrf,
+		((length(RadiusMatchSpec) > 0)
+				orelse (length(DiameterMatchSpec) > 0)) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, Acc);
+acct_query4([H | T], Matches, RadiusMatchSpec,
+		DiameterMatchSpec, NrfMatchSpec, Acc) ->
+	acct_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
+acct_query4([], Matches, _, _, _, Acc) ->
+	acct_query6(lists:reverse(Acc), Matches).
+%% @hidden
+acct_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Match1} when
+				(Match1 == Match) or (Match == '_') ->
+			acct_query5(Attributes, T);
+		_ ->
+			false
+	end;
+acct_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2])
+		when is_list(H) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Value} ->
+			case lists:prefix(H, Value) of
+				true ->
+					acct_query5(Attributes, [{Attribute, {like, T1}} | T2]);
+				false ->
+					false
+			end;
+		_ ->
+			false
+	end;
+acct_query5(Attributes, [{_, {like, []}} | T]) ->
+	acct_query5(Attributes, T);
+acct_query5(Attributes, [_ | T]) ->
+	acct_query5(Attributes, T);
+acct_query5(_Attributes, []) ->
+	true.
+%% @hidden
+acct_query6(Events, Matches) when is_list(Matches) ->
+	Fdiameter = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_ro_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_CCA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_gx_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	acct_query7(Events, Matches, DiameterMatchSpec, []).
+%% @hidden
+acct_query7([H | T] = _Events, Matches, DiameterMatchSpec, Acc)
+		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(8, H), DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query7(T, Matches, DiameterMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query7([H | T], Matches, DiameterMatchSpec, Acc) ->
+	acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
+acct_query7([], Matches, _, Acc) ->
+	acct_query8(lists:reverse(Acc), Matches).
+%% @hidden
+acct_query8(Events, Matches) ->
+	Frated = fun({#rated{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	RatedMatchSpec = lists:filtermap(Frated, Matches),
+	acct_query9(Events, Matches, RatedMatchSpec, []).
+%% @hidden
+acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
+		when is_list(element(9, H)), length(RatedMatchSpec) > 0 ->
+	F = fun(#rated{} = Rated) ->
+				case erlang:match_spec_test(Rated, RatedMatchSpec, table) of
+					{ok, #rated{}, [], []} ->
+						true;
+					{ok, false , [], []}->
+						false;
+					{error, _Reason} ->
+						false
+				end
+	end,
+	case lists:any(F, element(9, H)) of
+		true ->
+			acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
+		false ->
+			acct_query9(T, Matches, RatedMatchSpec, Acc)
+	end;
+acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
+		when length(RatedMatchSpec) > 0 ->
+	acct_query9(T, Matches, RatedMatchSpec, Acc);
+acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
+	acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
+acct_query9([], _, _, Acc) ->
+	lists:reverse(Acc).
+
+-spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		Protocol :: radius | diameter | '_',
+		Types :: [Type] | '_',
+		Type :: atom(),
+		ReqAttrsMatch :: [tuple()] | '_',
+		RespAttrsMatch :: [tuple()] | '_',
+		Result :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+
+		Events :: [acct_event()].
+%% @doc Continue query of authentication log events.
+%% @private
+auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+		when (is_tuple(Cont) or (Cont == eof)) ->
+	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
+%% @hidden
+auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query1(Events, Protocol, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
+	auth_query2(Events, Protocol, ReqAttrsMatch, RespAttrsMatch, []);
+auth_query1([{_, _, _, _, _, _, Type, _, _} = H | T],
+		Protocol, Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	case lists:member(Type, Types) of
+		true ->
+			auth_query1(T, Protocol, Types,
+				ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query1(T, Protocol, Types,
+				ReqAttrsMatch, RespAttrsMatch, Acc)
+	end;
+auth_query1([], Protocol, _Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(lists:reverse(Acc), Protocol, ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query2(Events, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
+	auth_query3(Events, ReqAttrsMatch, RespAttrsMatch, []);
+auth_query2([{_, _, Protocol, _, _, _, _, _, _} = H | T],
+		Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+auth_query2([_ | T], Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, Acc);
+auth_query2([], _Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query3(lists:reverse(Acc), ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query3(Events, '_', RespAttrsMatch, []) ->
+	auth_query4(Events, RespAttrsMatch, []);
+auth_query3([{_, _, _, _, _, _, _, ReqAttr, _} = H | T],
+		ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	case auth_query5(ReqAttr, ReqAttrsMatch) of
+		true ->
+			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, Acc)
+	end;
+auth_query3([], _ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query4(lists:reverse(Acc), RespAttrsMatch, []).
+%% @hidden
+auth_query4(Events, '_', []) ->
+	Events;
+auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
+		RespAttrsMatch, Acc) ->
+	case auth_query5(RespAttr, RespAttrsMatch) of
+		true ->
+			auth_query4(T, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query4(T, RespAttrsMatch, Acc)
+	end;
+auth_query4([], _RespAttrsMatch, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+auth_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Match1} when
+				(Match == Match1) or (Match == '_') ->
+			auth_query5(Attributes, T);
+		_ ->
+			false
+	end;
+auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Value} ->
+			case lists:prefix(H, Value) of
+				true ->
+					auth_query5(Attributes, [{Attribute, {like, T1}} | T2]);
+				false ->
+					false
+			end;
+		_ ->
+			false
+	end;
+auth_query5(Attributes, [{_, {like, []}} | T]) ->
+	auth_query5(Attributes, T);
+auth_query5(Attributes, [_H | T]) ->
+	auth_query5(Attributes, T);
+auth_query5(_Attributes, []) ->
+	true.
+
+-spec abmf_query(Continuation, Type, Subscriber, Bucket,
+		Units, Product) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [abmf_event()],
+		Type :: [{type, {MatchType, TypeValue}}] | '_',
+		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
+		Subscriber :: [{subscriber, {MatchType, SubscriberValue}}] | '_',
+		SubscriberValue :: binary() | '_',
+		Bucket :: [{bucket, {MatchType, BucketValue}}] | '_',
+		BucketValue :: string() | '_',
+		Units :: [{units, {MatchType, UnitsValue}}] | '_',
+		UnitsValue :: cents | seconds | octets | messages | '_',
+		Product :: [{product, {MatchType, ProductValue}}] | '_',
+		ProductValue :: string() | '_',
+		MatchType :: exact | like,
+		Result :: {Continuation2, Events}.
+%% @doc Continue query of balance activity log events.
+%% @private
+abmf_query({Cont, Events}, Type, Subscriber, Bucket, Units, Product)
+		when (is_tuple(Cont) or (Cont == eof)) ->
+	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product, [])}.
+%% @hidden
+abmf_query1(Events, '_', Subscriber, Bucket, Units, Product, []) ->
+	abmf_query2(Events, Subscriber, Bucket, Units, Product, []);
+abmf_query1([H | T] = _Events, Type, Subscriber, Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Type) of
+		true ->
+			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, Acc)
+	end;
+abmf_query1([], _Type, Subscriber, Bucket, Units, Product, Acc) ->
+	abmf_query2(lists:reverse(Acc), Subscriber, Bucket, Units, Product, []).
+%% @hidden
+abmf_query2(Events, '_', Bucket, Units, Product, []) ->
+	abmf_query3(Events, Bucket, Units, Product, []);
+abmf_query2([H | T], Subscriber, Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Subscriber) of
+		true ->
+			abmf_query2(T, Subscriber, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query2(T, Subscriber, Bucket, Units, Product, Acc)
+	end;
+abmf_query2([], _Subscriber, Bucket, Units, Product, Acc) ->
+	abmf_query3(lists:reverse(Acc), Bucket, Units, Product, []).
+%% @hidden
+abmf_query3(Events, '_', Units, Product, []) ->
+	abmf_query4(Events, Units, Product, []);
+abmf_query3([H | T], Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Bucket) of
+		true ->
+			abmf_query3(T, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query3(T, Bucket, Units, Product, Acc)
+	end;
+abmf_query3([], _Bucket, Units, Product, Acc) ->
+	abmf_query4(lists:reverse(Acc), Units, Product, []).
+%% @hidden
+abmf_query4(Events, '_', Product, []) ->
+	abmf_query5(Events, Product, []);
+abmf_query4([H | T], Units, Product, Acc) ->
+	case abmf_query6(H, Units) of
+		true ->
+			abmf_query4(T, Units, Product, [H | Acc]);
+		false ->
+			abmf_query4(T, Units, Product, Acc)
+	end;
+abmf_query4([], _Units, Product, Acc) ->
+	abmf_query5(lists:reverse(Acc), Product, []).
+%% @hidden
+abmf_query5(Events, '_', []) ->
+	Events;
+abmf_query5([H | T], Product, Acc) ->
+	case abmf_query6(H, Product) of
+		true ->
+			abmf_query5(T, Product, [H | Acc]);
+		false ->
+			abmf_query5(T, Product, Acc)
+	end;
+abmf_query5([], _Product, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
+		when Match == element(4, Attributes) ->
+	true;
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
+		when Match == element(5, Attributes) ->
+	true;
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
+		when Match == element(6, Attributes) ->
+	true;
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
+		when Match == element(7, Attributes) ->
+	true;
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
+		when Match == element(8, Attributes) ->
+	true;
+abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
+		when is_atom(element(4, Attributes)) ->
+		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{subscriber, {like, [H | _T1]}} | _])
+		when is_list(element(5, Attributes))->
+		case lists:prefix(H, element(5, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{bucket, {like, [H | _T1]}} | _])
+		when is_list(element(6, Attributes))->
+		case lists:prefix(H, element(6, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{units, {like, [H | _T1]}} | _])
+		when is_atom(element(7, Attributes))->
+		case lists:prefix(H, atom_to_list(element(7, Attributes))) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{product, {like, [H | _T1]}} | _])
+		when is_list(element(8, Attributes))->
+		case lists:prefix(H, element(8, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [_H | T]) ->
+	false;
+abmf_query6(_Attributes, []) ->
+	false.
+
+%%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+uuid() ->
+	<<A:32, B:16, C:16, D:16, E:48>> = crypto:strong_rand_bytes(16),
+	Format = "~8.16.0b-~4.16.0b-~4.16.0b-~4.16.0b-~12.16.0b",
+	Values = [A, B, (C bsr 4) bor 16#4000, (D bsr 2) bor 16#8000, E],
+	Chars = io_lib:fwrite(Format, Values),
+	lists:flatten(Chars).
 
 %% @hidden
 event_type(on) ->
@@ -2190,7 +3000,6 @@ btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Rea
 %%
 %% 	Filters out records before `Start' and after `End'.
 %% 	Returns filtered records.
-%% @private
 %% @hidden
 get_range(Log, Start, End, Cont) ->
 	get_range(Log, Start, End, [], disk_log:bchunk(Log, Cont)).
@@ -2233,12 +3042,93 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
+-spec cdr_codec(Event) -> CDRs
+	when
+		Event :: acct_event(),
+		CDRs :: [CDR],
+		CDR :: cdr().
+%% @doc Convert `ocs_acct' log event to rated CDR log events.
+%% @private
+cdr_codec(Event) when size(Event) > 6,
+		((element(3, Event) == radius)
+		orelse (element(3, Event) == diameter)
+		orelse (element(3, Event) == nrf)),
+		element(6, Event) == stop ->
+	TimeStamp = element(1, Event),
+	Unique = element(2, Event),
+	Protocol = element(3, Event),
+	ReqType = element(6, Event),
+	Req = element(7, Event),
+	Res = case size(Event) > 7 of
+		true ->
+			element(8, Event);
+		false ->
+			undefined
+	end,
+	Rated = case size(Event) > 8 of
+		true ->
+			element(9, Event);
+		false ->
+			undefined
+	end,
+	cdr_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
+%% @hidden
+cdr_codec1(TimeStamp, Unique, diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Id} = Req, Res, Rated) ->
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceType = binary:part(Id, byte_size(Id) - 14, 5),
+			cdr_codec2(TimeStamp, Unique, Protocol,
+					ReqType, Req, Res, Rated, ServiceType);
+		_ ->
+			exit(missing_service_context_id)
+	end;
+cdr_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
+		#{"serviceContextId" := Id} = Req, Res, Rated) ->
+	case lists:sublist(Id, length(Id) - 7, 8) of
+		"3gpp.org" ->
+			ServiceType = lists:sublist(Id, length(Id) - 13, 5),
+			cdr_codec2(TimeStamp, Unique, Protocol,
+					ReqType, Req, Res, Rated, ServiceType);
+		_ ->
+			exit(missing_service_context_id)
+	end;
+cdr_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceContextId" := Id} | _]} = Req,
+		Res, Rated) ->
+	% deprecated in Nrf_Rating v1.2.0
+	case lists:sublist(Id, length(Id) - 7, 8) of
+		"3gpp.org" ->
+			ServiceType = lists:sublist(Id, length(Id) - 13, 5),
+			cdr_codec2(TimeStamp, Unique, Protocol,
+					ReqType, Req, Res, Rated, ServiceType);
+		_ ->
+			exit(missing_service_context_id)
+	end;
+cdr_codec1(TimeStamp, Unique, radius, ReqType, Req, Res, Rated)
+		when is_list(Req) ->
+	cdr_ps(TimeStamp, Unique, radius, ReqType, Req, Res, Rated).
+%% @hidden
+cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+		when ServiceType == <<"32251">>; ServiceType == "32251" ->
+	cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated,  ServiceType)
+		when ServiceType == <<"32260">>; ServiceType == "32260" ->
+	cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+		when ServiceType == <<"32276">>; ServiceType == "32276" ->
+	cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+		when ServiceType == <<"32274">>; ServiceType == "32274" ->
+	cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
+
 -spec ipdr_codec(Event) -> IPDRs
 	when
 		Event :: tuple(),
 		IPDRs :: [IPDR],
 		IPDR :: #ipdr_wlan{} | #ipdr_voip{} | undefined.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
+%% @deprecated The IPDR format has been deprecated.
 %% @private
 ipdr_codec(Event) when size(Event) > 6,
 		((element(3, Event) == radius)
@@ -2353,7 +3243,8 @@ ipdr_codec3(_, _ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 		Rated :: [#rated{}] | undefined,
 		IPDR :: #ipdr_voip{}.
 %% @doc CODEC for IMS VOIP
-%% @todo ipdr_data
+%% @deprecated The IPDR format has been deprecated.
+%% @private
 ipdr_ims(<<"32251">> = _Data, _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated) ->
 	exit(not_found);
 ipdr_ims(<<"32260">> = _Voice, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
@@ -2368,6 +3259,8 @@ ipdr_ims(<<"32260">> = _Voice, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 		Res :: #'3gpp_ro_CCA'{} | map(),
 		Rated :: [#rated{}] | undefined,
 		IPDR :: #ipdr_voip{}.
+%% @doc CODEC for IMS VOIP
+%% @hidden
 ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 	ipdr_ims_voip1(record_info(fields, ipdr_voip), Protocol,
 			TimeStamp, ReqType, Req, Res, Rated, #ipdr_voip{}).
@@ -2552,6 +3445,8 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		Rated :: #rated{} | undefined,
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
+%% @deprecated The IPDR format has been deprecated.
+%% @private
 ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
 			ReqType, Req, Res, Rated, #ipdr_wlan{}).
@@ -2868,7 +3763,7 @@ ipdr_wlan1([_ | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
 	IPDR.
 
-%% @hidden
+% @hidden
 ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	Columns = [<<"Creation Time">>, <<"Sequence Number">>,
 			<<"Username">>, <<"Accounting Session ID">>,
@@ -3152,37 +4047,37 @@ ipdr_csv(Log, IoDevice, _Seperator, {Cont, [#ipdrDocEnd{}]}) ->
 ipdr_csv(Log, IoDevice, _Seperator, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, csv, {Cont, []}).
 
-% @private
+%% @hidden
 http_parse(Event) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<Host:Offset/binary, 32, $-, 32, Rest/binary>> = Event,
 	http_parse1(Rest, #event{host = binary_to_list(Host)}).
-% @hidden
+%% @hidden
 http_parse1(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<User:Offset/binary, 32, $[, Rest/binary>> = Event,
 	http_parse2(Rest, Acc#event{user = binary_to_list(User)}).
-% @hidden
+%% @hidden
 http_parse2(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<$]>>),
 	<<Date:Offset/binary, $], 32, $", Rest/binary>> = Event,
 	http_parse3(Rest, Acc#event{date = binary_to_list(Date)}).
-% @hidden
+%% @hidden
 http_parse3(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<Method:Offset/binary, 32, Rest/binary>> = Event,
 	http_parse4(Rest, Acc#event{method = binary_to_list(Method)}).
-% @hidden
+%% @hidden
 http_parse4(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<URI:Offset/binary, 32, Rest/binary>> = Event,
 	http_parse5(Rest, Acc#event{uri = binary_to_list(URI)}).
-% @hidden
+%% @hidden
 http_parse5(Event, Acc) ->
 	{Offset, 2} = binary:match(Event, <<$", 32>>),
 	<<_Http:Offset/binary, $", 32, Rest/binary>> = Event,
 	http_parse6(Rest, Acc).
-% @hidden
+%% @hidden
 http_parse6(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
@@ -3196,7 +4091,8 @@ http_parse6(Event, Acc) ->
 		LogFiles :: integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc open disk log file
+%% @doc Open log.
+%% @hidden
 open_log(Directory, Log, LogSize, LogFiles) ->
 	case file:make_dir(Directory) of
 		ok ->
@@ -3260,7 +4156,8 @@ open_log3(Log, Reason) ->
 		Event :: list(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc write event into given log file
+%% @doc Write event to log.
+%% @hidden
 write_log(Log, Event) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
@@ -3282,7 +4179,8 @@ write_log(ocs_abmf, _LogEvent, Result) ->
 		Log :: atom(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc close log files
+%% @doc Close log.
+%% @hidden
 close_log(Log) ->
 	close_log1(Log,  disk_log:sync(Log)).
 %% @hidden
@@ -3316,6 +4214,7 @@ close_log2(Log, {error, Reason}) ->
 		Events :: [term()],
 		Reason :: term().
 %% @doc Filter events by `Start' and `End'.
+%% @private
 query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	query_log(Continuation, Seconds * 1000, End, Log, MFA);
@@ -3350,506 +4249,6 @@ query_log1(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
 query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
--spec acct_query(Continuation, Protocol, Types, Matches) -> Result
-	when
-		Continuation :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
-		Protocol :: protocol() | [protocol()] | '_',
-		Types :: [Type] | '_',
-		Type :: start | interim | stop | event | on | off,
-		Matches :: [Match] | '_',
-		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
-		RadiusMatch :: {Attribute, AttributeMatch},
-		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
-		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
-		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
-		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
-		MatchConditions :: [tuple()],
-		Result :: {Continuation2, Events}.
-%% @doc Continue query of accounting log events.
-%% @private
-acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches)
-		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
-%% @hidden
-acct_query1(Events, Protocol, '_', Matches, _Acc) ->
-	acct_query2(Events, Protocol, Matches, []);
-acct_query1([H | T], Protocol, Types, Matches, Acc) ->
-	case lists:member(element(6, H), Types) of
-		true ->
-			acct_query1(T, Protocol, Types, Matches, [H | Acc]);
-		false ->
-			acct_query1(T, Protocol, Types, Matches, Acc)
-	end;
-acct_query1([], Protocol, _Types,  Matches, Acc) ->
-	acct_query2(lists:reverse(Acc), Protocol, Matches, []).
-%% @hidden
-acct_query2(Events, '_', Matches, _Acc) ->
-	acct_query3(Events, Matches);
-acct_query2([H | T], Protocol, Matches, Acc)
-		when element(3, H) == Protocol ->
-	acct_query2(T, Protocol, Matches, [H |Acc]);
-acct_query2([H | T], [Protocol | _] = Protocols, Matches, Acc)
-		when element(3, H) == Protocol ->
-	acct_query2(T, Protocols, Matches, [H |Acc]);
-acct_query2([H | T], [_, Protocol | _] = Protocols, Matches, Acc)
-		when element(3, H) == Protocol ->
-	acct_query2(T, Protocols, Matches, [H |Acc]);
-acct_query2([H | T], [_, _, Protocol | _] = Protocols, Matches, Acc)
-		when element(3, H) == Protocol ->
-	acct_query2(T, Protocols, Matches, [H |Acc]);
-acct_query2([_ | T], Protocol, Matches, Acc) ->
-	acct_query2(T, Protocol, Matches, Acc);
-acct_query2([], _Protocol, Matches, Acc) ->
-	acct_query3(lists:reverse(Acc), Matches).
-%% @hidden
-acct_query3(Events, Matches) when is_list(Matches) ->
-	Fradius = fun({Attribute, _Match}) when is_integer(Attribute) ->
-				true;
-			(_) ->
-				false
-	end,
-	Fdiameter = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_ro_RAR'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_gx_CCR'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_gx_RAR'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			(_) ->
-				false
-	end,
-	Fnrf = fun({MatchHead, MatchConds}) when is_map(MatchHead) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			(_) ->
-				false
-	end,
-	RadiusMatchSpec = lists:filtermap(Fradius, Matches),
-	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
-	NrfMatchSpec = lists:filtermap(Fnrf, Matches),
-	acct_query4(Events, Matches, RadiusMatchSpec,
-			DiameterMatchSpec, NrfMatchSpec, []);
-acct_query3(Events, '_') ->
-	Events.
-%% @hidden
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == radius,
-		length(RadiusMatchSpec) > 0 ->
-	case acct_query5(element(7, H), RadiusMatchSpec) of
-		true ->
-			acct_query4(T, Matches, RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
-		false ->
-			acct_query4(T, Matches, RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, Acc)
-	end;
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == radius,
-		((length(DiameterMatchSpec) > 0)
-				orelse (length(NrfMatchSpec) > 0)) ->
-	acct_query4(T, Matches, RadiusMatchSpec,
-			DiameterMatchSpec, NrfMatchSpec, Acc);
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == diameter,
-		length(DiameterMatchSpec) > 0 ->
-	case erlang:match_spec_test(element(7, H), DiameterMatchSpec, table) of
-		{ok, Event, [], []} when is_tuple(Event) ->
-			acct_query4(T,  Matches,RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
-		{ok, false , [], []}->
-			acct_query4(T,  Matches,RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, Acc);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == diameter,
-		((length(RadiusMatchSpec) > 0)
-				orelse (length(NrfMatchSpec) > 0)) ->
-	acct_query4(T, Matches, RadiusMatchSpec,
-			DiameterMatchSpec, NrfMatchSpec, Acc);
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == nrf,
-		length(NrfMatchSpec) > 0 ->
-	case erlang:match_spec_test(element(7, H), NrfMatchSpec, table) of
-		{ok, #{}, [], []} ->
-			acct_query4(T, Matches, RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
-		{ok, false , [], []}->
-			acct_query4(T, Matches, RadiusMatchSpec,
-					DiameterMatchSpec, NrfMatchSpec, Acc);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-acct_query4([H | T] = _Events, Matches,
-		RadiusMatchSpec, DiameterMatchSpec, NrfMatchSpec, Acc)
-		when element(3, H) == nrf,
-		((length(RadiusMatchSpec) > 0)
-				orelse (length(DiameterMatchSpec) > 0)) ->
-	acct_query4(T, Matches, RadiusMatchSpec,
-			DiameterMatchSpec, NrfMatchSpec, Acc);
-acct_query4([H | T], Matches, RadiusMatchSpec,
-		DiameterMatchSpec, NrfMatchSpec, Acc) ->
-	acct_query4(T, Matches, RadiusMatchSpec,
-			DiameterMatchSpec, NrfMatchSpec, [H | Acc]);
-acct_query4([], Matches, _, _, _, Acc) ->
-	acct_query6(lists:reverse(Acc), Matches).
-%% @hidden
-acct_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Match1} when
-				(Match1 == Match) or (Match == '_') ->
-			acct_query5(Attributes, T);
-		_ ->
-			false
-	end;
-acct_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2])
-		when is_list(H) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Value} ->
-			case lists:prefix(H, Value) of
-				true ->
-					acct_query5(Attributes, [{Attribute, {like, T1}} | T2]);
-				false ->
-					false
-			end;
-		_ ->
-			false
-	end;
-acct_query5(Attributes, [{_, {like, []}} | T]) ->
-	acct_query5(Attributes, T);
-acct_query5(Attributes, [_ | T]) ->
-	acct_query5(Attributes, T);
-acct_query5(_Attributes, []) ->
-	true.
-%% @hidden
-acct_query6(Events, Matches) when is_list(Matches) ->
-	Fdiameter = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_ro_RAA'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_gx_CCA'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			({#'3gpp_gx_RAA'{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			(_) ->
-				false
-	end,
-	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
-	acct_query7(Events, Matches, DiameterMatchSpec, []).
-%% @hidden
-acct_query7([H | T] = _Events, Matches, DiameterMatchSpec, Acc)
-		when element(3, H) == diameter, length(DiameterMatchSpec) > 0 ->
-	case erlang:match_spec_test(element(8, H), DiameterMatchSpec, table) of
-		{ok, Event, [], []} when is_tuple(Event) ->
-			acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
-		{ok, false , [], []}->
-			acct_query7(T, Matches, DiameterMatchSpec, Acc);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-acct_query7([H | T], Matches, DiameterMatchSpec, Acc) ->
-	acct_query7(T, Matches, DiameterMatchSpec, [H | Acc]);
-acct_query7([], Matches, _, Acc) ->
-	acct_query8(lists:reverse(Acc), Matches).
-%% @hidden
-acct_query8(Events, Matches) ->
-	Frated = fun({#rated{} = MatchHead, MatchConds}) ->
-				{true, {MatchHead, MatchConds, ['$_']}};
-			(_) ->
-				false
-	end,
-	RatedMatchSpec = lists:filtermap(Frated, Matches),
-	acct_query9(Events, Matches, RatedMatchSpec, []).
-%% @hidden
-acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
-		when is_list(element(9, H)), length(RatedMatchSpec) > 0 ->
-	F = fun(#rated{} = Rated) ->
-				case erlang:match_spec_test(Rated, RatedMatchSpec, table) of
-					{ok, #rated{}, [], []} ->
-						true;
-					{ok, false , [], []}->
-						false;
-					{error, _Reason} ->
-						false
-				end
-	end,
-	case lists:any(F, element(9, H)) of
-		true ->
-			acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
-		false ->
-			acct_query9(T, Matches, RatedMatchSpec, Acc)
-	end;
-acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
-		when length(RatedMatchSpec) > 0 ->
-	acct_query9(T, Matches, RatedMatchSpec, Acc);
-acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
-	acct_query9(T, Matches, RatedMatchSpec, [H | Acc]);
-acct_query9([], _, _, Acc) ->
-	lists:reverse(Acc).
-
--spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
-	when
-		Continuation :: {Continuation2, Events},
-		Protocol :: radius | diameter | '_',
-		Types :: [Type] | '_',
-		Type :: atom(),
-		ReqAttrsMatch :: [tuple()] | '_',
-		RespAttrsMatch :: [tuple()] | '_',
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-
-		Events :: [acct_event()].
-%% @doc Continue query of authentication log events.
-%% @private
-auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
-		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
-%% @hidden
-auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch, []).
-%% @hidden
-auth_query1(Events, Protocol, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
-	auth_query2(Events, Protocol, ReqAttrsMatch, RespAttrsMatch, []);
-auth_query1([{_, _, _, _, _, _, Type, _, _} = H | T],
-		Protocol, Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	case lists:member(Type, Types) of
-		true ->
-			auth_query1(T, Protocol, Types,
-				ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
-		false ->
-			auth_query1(T, Protocol, Types,
-				ReqAttrsMatch, RespAttrsMatch, Acc)
-	end;
-auth_query1([], Protocol, _Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(lists:reverse(Acc), Protocol, ReqAttrsMatch, RespAttrsMatch, []).
-%% @hidden
-auth_query2(Events, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
-	auth_query3(Events, ReqAttrsMatch, RespAttrsMatch, []);
-auth_query2([{_, _, Protocol, _, _, _, _, _, _} = H | T],
-		Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
-auth_query2([_ | T], Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, Acc);
-auth_query2([], _Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query3(lists:reverse(Acc), ReqAttrsMatch, RespAttrsMatch, []).
-%% @hidden
-auth_query3(Events, '_', RespAttrsMatch, []) ->
-	auth_query4(Events, RespAttrsMatch, []);
-auth_query3([{_, _, _, _, _, _, _, ReqAttr, _} = H | T],
-		ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	case auth_query5(ReqAttr, ReqAttrsMatch) of
-		true ->
-			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
-		false ->
-			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, Acc)
-	end;
-auth_query3([], _ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query4(lists:reverse(Acc), RespAttrsMatch, []).
-%% @hidden
-auth_query4(Events, '_', []) ->
-	Events;
-auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
-		RespAttrsMatch, Acc) ->
-	case auth_query5(RespAttr, RespAttrsMatch) of
-		true ->
-			auth_query4(T, RespAttrsMatch, [H | Acc]);
-		false ->
-			auth_query4(T, RespAttrsMatch, Acc)
-	end;
-auth_query4([], _RespAttrsMatch, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-auth_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Match1} when
-				(Match == Match1) or (Match == '_') ->
-			auth_query5(Attributes, T);
-		_ ->
-			false
-	end;
-auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Value} ->
-			case lists:prefix(H, Value) of
-				true ->
-					auth_query5(Attributes, [{Attribute, {like, T1}} | T2]);
-				false ->
-					false
-			end;
-		_ ->
-			false
-	end;
-auth_query5(Attributes, [{_, {like, []}} | T]) ->
-	auth_query5(Attributes, T);
-auth_query5(Attributes, [_H | T]) ->
-	auth_query5(Attributes, T);
-auth_query5(_Attributes, []) ->
-	true.
-
--spec abmf_query(Continuation, Type, Subscriber, Bucket,
-		Units, Product) -> Result
-	when
-		Continuation :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [abmf_event()],
-		Type :: [{type, {MatchType, TypeValue}}] | '_',
-		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
-		Subscriber :: [{subscriber, {MatchType, SubscriberValue}}] | '_',
-		SubscriberValue :: binary() | '_',
-		Bucket :: [{bucket, {MatchType, BucketValue}}] | '_',
-		BucketValue :: string() | '_',
-		Units :: [{units, {MatchType, UnitsValue}}] | '_',
-		UnitsValue :: cents | seconds | octets | messages | '_',
-		Product :: [{product, {MatchType, ProductValue}}] | '_',
-		ProductValue :: string() | '_',
-		MatchType :: exact | like,
-		Result :: {Continuation2, Events}.
-%% @doc Continue query of balance activity log events.
-%% @private
-abmf_query({Cont, Events}, Type, Subscriber, Bucket, Units, Product)
-		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product, [])}.
-%% @hidden
-abmf_query1(Events, '_', Subscriber, Bucket, Units, Product, []) ->
-	abmf_query2(Events, Subscriber, Bucket, Units, Product, []);
-abmf_query1([H | T] = _Events, Type, Subscriber, Bucket, Units, Product, Acc) ->
-	case abmf_query6(H, Type) of
-		true ->
-			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, [H | Acc]);
-		false ->
-			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, Acc)
-	end;
-abmf_query1([], _Type, Subscriber, Bucket, Units, Product, Acc) ->
-	abmf_query2(lists:reverse(Acc), Subscriber, Bucket, Units, Product, []).
-%% @hidden
-abmf_query2(Events, '_', Bucket, Units, Product, []) ->
-	abmf_query3(Events, Bucket, Units, Product, []);
-abmf_query2([H | T], Subscriber, Bucket, Units, Product, Acc) ->
-	case abmf_query6(H, Subscriber) of
-		true ->
-			abmf_query2(T, Subscriber, Bucket, Units, Product, [H | Acc]);
-		false ->
-			abmf_query2(T, Subscriber, Bucket, Units, Product, Acc)
-	end;
-abmf_query2([], _Subscriber, Bucket, Units, Product, Acc) ->
-	abmf_query3(lists:reverse(Acc), Bucket, Units, Product, []).
-%% @hidden
-abmf_query3(Events, '_', Units, Product, []) ->
-	abmf_query4(Events, Units, Product, []);
-abmf_query3([H | T], Bucket, Units, Product, Acc) ->
-	case abmf_query6(H, Bucket) of
-		true ->
-			abmf_query3(T, Bucket, Units, Product, [H | Acc]);
-		false ->
-			abmf_query3(T, Bucket, Units, Product, Acc)
-	end;
-abmf_query3([], _Bucket, Units, Product, Acc) ->
-	abmf_query4(lists:reverse(Acc), Units, Product, []).
-%% @hidden
-abmf_query4(Events, '_', Product, []) ->
-	abmf_query5(Events, Product, []);
-abmf_query4([H | T], Units, Product, Acc) ->
-	case abmf_query6(H, Units) of
-		true ->
-			abmf_query4(T, Units, Product, [H | Acc]);
-		false ->
-			abmf_query4(T, Units, Product, Acc)
-	end;
-abmf_query4([], _Units, Product, Acc) ->
-	abmf_query5(lists:reverse(Acc), Product, []).
-%% @hidden
-abmf_query5(Events, '_', []) ->
-	Events;
-abmf_query5([H | T], Product, Acc) ->
-	case abmf_query6(H, Product) of
-		true ->
-			abmf_query5(T, Product, [H | Acc]);
-		false ->
-			abmf_query5(T, Product, Acc)
-	end;
-abmf_query5([], _Product, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(4, Attributes) ->
-	true;
-abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(5, Attributes) ->
-	true;
-abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(6, Attributes) ->
-	true;
-abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(7, Attributes) ->
-	true;
-abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(8, Attributes) ->
-	true;
-abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
-		when is_atom(element(4, Attributes)) ->
-		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
-			true ->
-				true;
-			false ->
-				false
-		end;
-abmf_query6(Attributes, [{subscriber, {like, [H | _T1]}} | _])
-		when is_list(element(5, Attributes))->
-		case lists:prefix(H, element(5, Attributes)) of
-			true ->
-				true;
-			false ->
-				false
-		end;
-abmf_query6(Attributes, [{bucket, {like, [H | _T1]}} | _])
-		when is_list(element(6, Attributes))->
-		case lists:prefix(H, element(6, Attributes)) of
-			true ->
-				true;
-			false ->
-				false
-		end;
-abmf_query6(Attributes, [{units, {like, [H | _T1]}} | _])
-		when is_atom(element(7, Attributes))->
-		case lists:prefix(H, atom_to_list(element(7, Attributes))) of
-			true ->
-				true;
-			false ->
-				false
-		end;
-abmf_query6(Attributes, [{product, {like, [H | _T1]}} | _])
-		when is_list(element(8, Attributes))->
-		case lists:prefix(H, element(8, Attributes)) of
-			true ->
-				true;
-			false ->
-				false
-		end;
-abmf_query6(Attributes, [_H | T]) ->
-	false;
-abmf_query6(_Attributes, []) ->
-	false.
-
 %% @hidden
 nf_identification(PDUSessionChargingInformation)
 		when is_list(PDUSessionChargingInformation) ->
@@ -3872,7 +4271,7 @@ nf_identification2(_) ->
 %% @hidden
 nf_identification3({_, {struct, NFIdentification}}) ->
 	nf_identification4(NFIdentification,
-			lists:keyfind("nFIPv4Address", 1, NFIdentification)); 
+			lists:keyfind("nFIPv4Address", 1, NFIdentification));
 nf_identification3(_) ->
 	undefined.
 %% @hidden
@@ -3907,7 +4306,7 @@ nf_name2(_) ->
 	undefined.
 %% @hidden
 nf_name3({_, {struct, NFIdentification}}) ->
-	nf_name4(lists:keyfind("nFName", 1, NFIdentification)); 
+	nf_name4(lists:keyfind("nFName", 1, NFIdentification));
 nf_name3(_) ->
 	undefined.
 %% @hidden
@@ -3915,4 +4314,852 @@ nf_name4({_, NFInstanceId}) ->
 	NFInstanceId;
 nf_name4(_) ->
 	undefined.
+
+-type involved_party() :: {'sIP-URI', binary()}
+		| {'tEL-URI', binary()}
+		| {uRN, binary()}
+		| {'iSDN-E164', binary()}
+		| {externalId , binary()}.
+%% Involved party.
+
+-type subscriber_equipment_number() :: #{
+		subscriberEquipmentNumberType := iMEISV | mAC | eUI64 | modifiedEUI64,
+		subscriberEquipmentNumberData := binary()}.
+%% Subscriber equipmennt number.
+%%
+%% See 3GPP TS 32.298 5.1.1.7 Subscriber Equipment Number.
+
+-type cell_global_id() :: #{
+		plmnId := binary(),
+		lac := binary(),
+		cellId := binary()}.
+%% Cell Global ID (CGI)
+
+-type service_area_id() :: #{
+		plmnId := binary(),
+		lac := binary(),
+		sac := binary()}.
+%% Service Area ID (SAI)
+
+-type location_area_id() :: #{
+		plmnId := binary(),
+		lac := binary()}.
+%% Location Area ID
+
+-type routing_area_id() :: #{
+		plmnId := binary(),
+		lac := binary(),
+		rac := binary()}.
+%% Routing Area ID (SAI)
+
+-type tai() :: #{
+		plmnId := binary(),
+		tac := binary()}.
+%% Routing Area ID (RAI)
+
+-type ecgi() :: #{
+		plmnId := binary(),
+		eutraCellId := binary(),
+		nid => binary()}.
+%% EUTRAN Cell Global ID (ECGI)
+
+-type ncgi() :: #{
+		plmnId := binary(),
+		nrCellId := binary(),
+		nid => binary()}.
+%% 5G NR Cell Global ID (NCGI)
+
+-type gnb_id() :: #{
+		bitLength => pos_integer(),
+		gNbValue => binary()}.
+%% 5G NR gNodeB ID
+
+-type global_ran_node_id() :: #{
+		pLMNId => binary(),
+		n3IwfId => binary(),
+		gNbId => gnb_id(),
+		ngeNbId => binary(),
+		wagfId => binary(),
+		tngfId => binary(),
+		nid => binary(),
+		eNbId => binary()}.
+%% Global RAN node ID
+
+-type nr_location() :: #{
+		tai => tai(),
+		ncgi => ncgi(),
+		ageOfLocationInformation => non_neg_integer(),
+		ueLocationTimestamp => timestamp(),
+		geographicalInformation => binary(),
+		geodeticInformation => binary(),
+		globalNgenbId => global_ran_node_id(),
+		globalGnbId => global_ran_node_id()}.
+%% 5G NR UE Location
+
+-type eutra_location() :: #{
+		tai => tai(),
+		ecgi => ecgi(),
+		ageOfLocationInformation => non_neg_integer(),
+		ueLocationTimestamp => timestamp(),
+		geographicalInformation => binary(),
+		geodeticInformation => binary(),
+		globalNgenbId => global_ran_node_id(),
+		globalENbId => global_ran_node_id()}.
+%% EUTRAN UE Location
+
+-type utra_location() :: #{
+		cgi => cell_global_id(),
+		sai => service_area_id(),
+		lai => location_area_id(),
+		rai => routing_area_id(),
+		ageOfLocationInformation => non_neg_integer(),
+		ueLocationTimestamp => timestamp(),
+		geographicalInformation => binary(),
+		geodeticInformation => binary()}.
+%% UTRAN UE Location
+
+-type gera_location() :: #{
+		locationNumber => binary(),
+		cgi => cell_global_id(),
+		sai => service_area_id(),
+		lai => location_area_id(),
+		rai => routing_area_id(),
+		vlrNumber => binary(),
+		mscNumber => binary(),
+		ageOfLocationInformation => non_neg_integer(),
+		ueLocationTimestamp => timestamp(),
+		geographicalInformation => binary(),
+		geodeticInformation => binary()}.
+%% GERAN UE Location
+
+-type n3ga_location() :: #{
+		n3gppTai => tai(),
+		n3IwfId => binary(),
+		ueIpv4Addr => inet:ip4_address(),
+		ueIpv6Addr => inet:ip6_address(),
+		portNumber => 0..65535,
+		tnapId => binary(),
+		twapId => binary(),
+		hfcNodeId => binary(),
+		w5gbanLineType => dSL | pON,
+		gli => binary(),
+		gci => binary()}.
+%% non-3GPP UE Location
+
+-type structured_location_info() :: #{
+		eutraLocation => eutra_location(),
+		nrLocation => nr_location(),
+		n3gaLocation => n3ga_location(),
+		utraLocation => utra_location(),
+		geraLocation => gera_location()}.
+%% UE location information.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.75 User Location Information.
+
+-type single_nssai() :: #{
+		sST := 0..255,
+		sD := binary()}.
+%% S-NSSAI (Single Network Slice Selection Assistance Information).
+
+-type serving_nf_id() :: #{
+		servingNetworkFunctionInformation := nf_info(),
+		aMFIdentifier := binary()}.
+%% Serving network function (NF) identifier.
+
+-type pdu_address() :: #{
+		pDUIPv4Address => inet:ip4_address(),
+		pDUIPv6AddresswithPrefix => inet:ip6_address(),
+		iPV4dynamicAddressFlag => boolean(),
+		iPV6dynamicPrefixFlag => boolean(),
+		additionalPDUIPv6Prefixes => [inet:ip6_address()]}.
+%% PDU address.
+
+-type allocation_retension_priority() :: #{
+		priorityLevel := 1..15,
+		preemptionCapability := 'nOT-PREEMPT' | 'mAY-PREEMPT',
+		preemptionVulnerability := 'nOT-PREEMPTABLE' | 'pREEMPTABLE'}.
+%% Allocation retension priority.
+
+-type authorized_qos_info() :: #{
+		fiveQi => 0..255,
+		aRP => allocation_retension_priority(),
+		priorityLevel => 1..15,
+		averWindow => 1..4095,
+		maxDataBurstVol => 1..4095}.
+%% Authorized QoS Information.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.46 QoS Requested/QoS Negotiated.
+
+-type diagnostics() :: {gsm0408Cause, 0..127}
+		| {gsm0902MapErrorValue, 0..1
+				| 3 | 5..22 | 25..39 | 42..54 | 58..62 | 71..72}
+		| {'itu-tQ767Cause', 1..5 | 16..19 | 21..22 | 27..29 | 31 | 34
+				| 38 | 41..42 | 44 | 47 | 50 | 55 | 57..58 | 63 | 65
+				| 69..70 | 79 | 87..88 | 91 | 95 | 97 | 99 | 102..103
+				| 111 | 127}
+		| {diameterResultCodeAndExperimentalResult, 2000..5999}.
+%% Diagnostics.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.11 Diagnostics.
+
+-type subscribed_qos_info() :: #{
+		fiveQi => 0..255,
+		aRP => allocation_retension_priority(),
+		priorityLevel => 1..15}.
+%% Subscribed QoS Information.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.46 QoS Requested/QoS Negotiated.
+
+-type session_ambr() :: #{
+		ambrUL := binary(),
+		ambrDL := binary()}.
+%% EPC QoS information.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.13B EPC QoS Information.
+
+-type rat_type() :: uTRAN | gERAN | wLAN | eUTRAN | virtual | nr.
+%% RAT Type.
+%%
+%% See 3GPP TS 32.298 5.1.2.2.47 RAT Type.
+
+-type pdu_session_charging_info() :: #{
+		pDUSessionChargingID := 0..4294967295,
+		userIdentifier => involved_party(),
+		userEquipmentInfo =>  subscriber_equipment_number(),
+		userLocationInformation => structured_location_info() | binary(),
+		userRoamerInOut => roamerInBound | roamerOutBound,
+		pDUSessionId := 0..255,
+		networkSliceInstanceID => single_nssai(),
+		pDUType =>  iPv4v6 | iPv4 | iPv6 | unstructured | ethernet,
+		sSCMode => 1..3,
+		sUPIPLMNIdentifier => binary(),
+		servingNetworkFunctionID => [serving_nf_id()],
+		rATType => rat_type(),
+		dataNetworkNameIdentifier => binary(),
+		pDUAddress => pdu_address(),
+		authorizedQoSInformation => authorized_qos_info(),
+		uETimeZone => binary(),
+		pDUSessionstartTime => timestamp(),
+		pDUSessionstopTime => timestamp(),
+		diagnostics => diagnostics(),
+		chargingCharacteristics => binary(),
+		chChSelectionMode => servingNodeSupplied | subscriptionSpecific
+				| aPNSpecific | homeDefault | roamingDefault
+				| visitingDefault | fixedDefault,
+		threeGPPPSDataOffStatus => active | inactive,
+%		rANSecondaryRATUsageReport => [NGRANSecondaryRATUsageReport],
+		subscribedQoSInformation => subscribed_qos_info(),
+		authorizedSessionAMBR => session_ambr(),
+		subscribedSessionAMBR => session_ambr(),
+		servingCNPLMNID => binary(),
+		sUPIunauthenticatedFlag => boolean(),
+		dnnSelectionMode => uEorNetworkProvidedSubscriptionVerified
+				| uEProvidedSubscriptionNotVerified
+				| networkProvidedSubscriptionNotVerified,
+		homeProvidedChargingID => 0..4294967295,
+		mAPDUNonThreeGPPUserLocationInfo => structured_location_info() | binary(),
+		mAPDUNonThreeGPPRATType => rat_type(),
+%		mAPDUSessionInformation => MAPDUSessionInformation,
+%		enhancedDiagnostics => EnhancedDiagnostics5G,
+		userLocationInformationASN1 => structured_location_info(),
+		mAPDUNonThreeGPPUserLocationInfoASN1 => structured_location_info(),
+		mAPDUNonThreeGPPUserLocationTime => timestamp(),
+%		listOfPresenceReportingAreaInformation => [PresenceReportingAreaInfo],
+		redundantTransmissionType => nonTransmission
+				| endToEndUserPlanePaths | n3N9 | transportLayer,
+		pDUSessionPairID => 0..4294967295,
+%		fiveGLANTypeService => FiveGLANTypeService,
+		cpCIoTOptimisationIndicator => timestamp(),
+%		fiveGSControlPlaneOnlyIndicator => QosMonitoringReport,
+		smfChargingID => binary(),
+		smfHomeProvidedChargingID => binary()}.
+%% PS charging information.
+%%
+%% See 3GPP TS 32.298 5.1.2.2 PS domain CDR parameters.
+
+-type sip_event_type() :: #{
+		sIPMethod => binary(),
+		eventHeader => integer(),
+      expiresHeader => binary()}.
+%% SIP event type.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.15 Event.
+
+-type isup_cause() :: #{
+		iSUPCauseLocation => 0..10,
+      iSUPCauseValue => 1..127,
+      iSUPCauseDiagnostics => binary()}.
+%% ISUP cause.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.21C ISUP Cause.
+
+-type called_id_change() :: #{
+		calledIdentity => involved_party(),
+		changeTime => timestamp()}.
+%% Terminating identity address change.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.23A List of Called Identity Changes.
+
+-type inter_operator_identifier() :: #{
+		originatingIOI => binary(),
+		terminatingIOI => binary()}.
+%% Inter Operator Identifier (IOI).
+%%
+%% See 3GPP TS 32.298 5.1.3.1.26 List of Inter Operator Identifiers.
+
+-type app_server_info() :: #{
+		applicationServersInvolved => inet:ip_address() | binary(),
+		applicationProvidedCalledParties => [involved_party()],
+		sTatus => fourxx | fivexx | 'time-out'}.
+%% Application Server (AS) information.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.5 Application Servers Information.
+
+-type sdp_media_component() :: #{
+		'sDP-Media-Name' => binary(),
+		'sDP-Media-Descriptions' => [binary()],
+		accessCorrelationID => {'gPRS-Charging-Id', 0..4294967295}
+				| {accessNetworkChargingIdentifier, binary()},
+		localGWInsertedIndication => boolean(),
+		iPRealmDefaultIndication => boolean(),
+		transcoderInsertedIndication => boolean()}.
+%% Early SDP media component.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.25 List of Early SDP Media Components.
+
+-type early_media_components() :: #{
+		'sDP-Offer-Timestamp' => timestamp(),
+		'sDP-Answer-Timestamp' => timestamp(),
+		'sDP-Media-Components' => [sdp_media_component()],
+		mediaInitiatorFlag => boolean(),
+		'sDP-Session-Description' => [binary()],
+		'sDP-Type' => 'sDP-offer' | 'sDP-answer'}.
+%% Early SDP media components.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.25 List of Early SDP Media Components.
+
+-type scscf_info() :: #{
+		mandatoryCapabilities => [binary()],
+		optionalCapabilities => [binary()],
+		serverName => binary()}.
+%% Serving-CSCF information.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.66 S-CSCF Information
+
+-type transmission_medium() :: #{
+		tMR => binary(),
+		tMU => binary()}.
+%% Bearer service.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.8 Bearer Service.
+
+-type message_body() :: #{
+		'content-Type' := binary(),
+		'content-Disposition' => binary(),
+		'content-Length' := pos_integer(),
+		originator => involved_party()}.
+%% Message body.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.27 List of Message Bodies.
+
+-type access_transfer_info() :: #{
+		accessTransferType => pSToCS | cSToPS | pSToPS | cSToCS,
+		accessNetworkInformation => binary(),
+		additionalAccessNetworkInformation => binary(),
+		'inter-UE-Transfer' => boolean(),
+		relatedICID => binary(),
+		relatedICIDGenerationNode => inet:ip_address() | binary(),
+		accessTransferTime => timestamp(),
+		subscriberEquipmentNumber => subscriber_equipment_number(),
+		instanceId => binary(),
+		cellularNetworkInformation => binary()}.
+%% Access transfer information.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.21D List of Access Transfer Information.
+
+-type access_network_info_change() :: #{
+		accessNetworkInformation => binary(),
+		additionalAccessNetworkInformation => binary(),
+		accessChangeTime => timestamp(),
+		cellularNetworkInformation => binary()}.
+%% Access network info change.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.21Ca List of Access Network Info Change.
+
+-type nni_info() :: #{
+		sessionDirection => inbound | outbound,
+		nNIType => 'non-roaming' | 'roaming-without-loopback'
+				| 'roaming-with-loopback',
+		relationshipMode => trusted | 'non-trusted',
+		neighbourNodeAddress => inet:ip_address() | binary()}.
+%% NNI Information.
+%%
+%% See 3GPP TS 32.298 5.1.3.1.27A List of NNI Information.
+
+-type ims_charging_info() :: #{
+		eventType => sip_event_type(),
+		iMSNodeFunctionality => 'iMS-GWF' | aS | mRFC,
+		roleOfNode => originating | terminating,
+		userIdentifier => involved_party(),
+		userEquipmentInfo => subscriber_equipment_number(),
+		userLocationInformation => structured_location_info() | binary(),
+		ueTimeZone => binary(),
+		threeGPPPSDataOffStatus => active | inactive,
+		iSUPCause => isup_cause(),
+		controlPlaneAddress => inet:ip_address() | binary(),
+		vlrNumber => binary(),
+		mscAddress => binary(),
+		userSessionID => binary(),
+		outgoingSessionID => binary(),
+		sessionPriority => 0..4,
+		callingPartyAddresses => [involved_party()],
+		calledPartyAddress => involved_party(),
+		numberPortabilityRouting => binary(),
+		carrierSelectRoutingInformation => binary(),
+		alternateChargedPartyAddress => binary(),
+		requestedPartyAddresses => [involved_party()],
+		calledAssertedIdentities => [involved_party()],
+		calledIdentityChanges => [called_id_change()],
+		associatedURIs => [involved_party()],
+		timeStamps => timestamp(),
+		applicationServerInformation => [app_server_info()],
+		interOperatorIdentifiers => [inter_operator_identifier()],
+		imsChargingIdentifier => binary(),
+		relatedICID => binary(),
+		relatedICIDGenerationNode => inet:ip_address() | binary(),
+		transitIOIList => [binary()],
+		earlyMediaDescription => [early_media_components()],
+		sdpSessionDescription => [binary()],
+		sdpMediaComponent => [sdp_media_component()],
+		servedPartyIPAddress => inet:ip_address() | binary(),
+		serverCapabilities => scscf_info(),
+		trunkGroupID => {incoming, binary()} | {outgoing, binary()},
+		bearerService => transmission_medium(),
+		imsServiceId => binary(),
+		messageBodies => [message_body()],
+		accessNetworkInformation => [binary()],
+		additionalAccessNetworkInformation => binary(),
+		cellularNetworkInformation => binary(),
+		accessTransferInformation => [access_transfer_info()],
+		accessNetworkInfoChange => [access_network_info_change()],
+		imsCommunicationServiceID => binary(),
+		imsApplicationReferenceID => binary(),
+		causeCode => 1..127,
+		reasonHeaders => [binary()],
+		initialIMSChargingIdentifier => binary(),
+		nniInformation => [nni_info()],
+		fromAddress => binary(),
+		imsEmergencyIndicator => boolean(),
+		imsVisitedNetworkIdentifier => binary(),
+		sipRouteHeaderReceived => binary(),
+		sipRouteHeaderTransmitted => binary(),
+		tadIdentifier => cS | pS,
+		feIdentifierList => [binary()]}.
+%% IMS charging information.
+%%
+%% See 3GPP TS 32.298 5.1.3.1 IMS CDR parameters.
+
+-type sms_address_domain() :: #{
+		sMDomainName => binary(),
+		'threeGPPIMSI-MCC-MNC' => binary()}.
+%% SM address domain.
+%%
+%% See 3GPP TS 32.298 5.1.4.6.8 Originator Info.
+
+-type sms_address_info() :: #{
+		sMAddressType => emailAddress | mSISDN
+				| iPv4Address | iPv6Address
+				| numericShortCode | alphanumericShortCode
+				| other | iMSI | nAI | externalId,
+		sMAddressData => binary(),
+		sMAddressDomain  => sms_address_domain()}.
+%% SM address info.
+%%
+%% See 3GPP TS 32.298 5.1.4.6.8 Originator Info.
+
+-type sm_interface() :: #{
+		interfaceId => binary(),
+		interfaceText => binary(),
+		interfacePort => binary(),
+		interfaceType => unkown
+				| mobileOriginating | mobileTerminating
+				| applicationOriginating | applicationTerminating
+				| deviceTrigger}.
+%% SM originator interface.
+%%
+%% See 3GPP TS 32.298 5.1.4.6.8 Originator Info.
+
+-type originator_info() :: #{
+		originatorIMSI => binary(),
+		originatorMSISDN => binary(),
+		originatorOtherAddress => sms_address_info(),
+		originatorSCCPAddress => binary(),
+		originatorReceivedAddress => sms_address_info(),
+		sMOriginatorInterface => sm_interface(),
+		sMOriginatorProtocolID => binary(),
+		originatorOtherAddresses => [sms_address_info()]}.
+%% Set of information on the originator of the Short Message (SM).
+%%
+%% See 3GPP TS 32.298 5.1.4.6.8 Originator Info.
+
+-type recipient_info() :: #{
+		recipientIMSI => binary(),
+		recipientMSISDN => binary(),
+		recipientOtherAddress => sms_address_info(),
+		recipientSCCPAddress => binary(),
+		recipientReceivedAddress => sms_address_info(),
+		sMDestinationInterface => sm_interface(),
+		sMRecipientProtocolID => binary(),
+		recipientOtherAddresses => [sms_address_info()]}.
+%% Set of information on a recipient of the Short Message (SM).
+%%
+%% See 3GPP TS 32.298 5.1.4.6.15 Recipient Info.
+
+-type sms_charging_info() :: #{
+		originatorInfo => originator_info(),
+		recipientInfos => [recipient_info()],
+		userEquipmentInfo => subscriber_equipment_number(),
+		userLocationInformation => structured_location_info() | binary(),
+		uETimeZone => binary(),
+		rATType => rat_type(),
+		sMSCAddress => binary(),
+		eventtimestamp := timestamp(),
+		sMDataCodingScheme => byte(),
+		sMMessageType => submission | deliveryReport | sMServiceRequest
+				| delivery | t4DeviceTrigger | sMDeviceTrigger ,
+		sMReplyPathRequested => noReplyPathSet | replyPathSet,
+		sMUserDataHeader => binary(),
+		sMSStatus => binary(),
+		sMDischargeTime => timestamp(),
+		sMTotalNumber => 0..255,
+		sMServiceType => 0..199,
+		sMSequenceNumber => 0..255,
+		sMSResult => diagnostics(),
+		submissionTime => timestamp(),
+		sMPriority => low | normal | high,
+		messageReference => binary(),
+		messageSize => non_neg_integer(),
+		messageClass => personal | advertisement
+				| 'information-service' | auto,
+		sMdeliveryReportRequested => yes | no,
+		messageClassTokenText => binary(),
+		userRoamerInOut => roamerInBound | roamerOutBound,
+		userLocationInformationASN1 => structured_location_info()}.
+%% SMS charging information.
+%%
+%% See 3GPP TS 32.298 5.1.4.6 SMS CDR parameters.
+
+-type nf_info() :: #{
+		networkFunctionality := byte(),
+		networkFunctionName => binary(),
+		networkFunctionIPv4Address => inet:ip4_address(),
+		networkFunctionPLMNIdentifier => binary(),
+		networkFunctionIPv6Address => inet:ip6_address(),
+		networkFunctionFQDN => binary()}.
+%% Information about the network function (NF) that used the charging service.
+%%
+%% See 3GPP TS 32.298 5.1.5.1.6 NF Consumer Information.
+
+-type chargingFunctionRecord() :: #{
+		recordType := chargingFunctionRecord,
+		recordingNetworkFunctionID := binary(),
+		subscriberIdentifier => [binary()],
+		nFunctionConsumerInformation := nf_info(),
+%		triggers => [Trigger],
+%		listOfMultipleUnitUsage => [MultipleUnitUsage],
+		recordOpeningTime := timestamp(),
+		duration := non_neg_integer(),
+		recordSequenceNumber => non_neg_integer(),
+		causeForRecClosing := normalRelease
+				| abnormalRelease | volumeLimit | timeLimit,
+		diagnostics => diagnostics(),
+		localRecordSequenceNumber => 0..4294967295,
+%		recordExtensions => ManagementExtensions,
+		pDUSessionChargingInformation => pdu_session_charging_info(),
+%		roamingQBCInformation => RoamingQBCInformation,
+		sMSChargingInformation => sms_charging_info(),
+		chargingSessionIdentifier => binary(),
+		serviceSpecificationInformation => binary(),
+%		exposureFunctionAPIInformation => ExposureFunctionAPIInformation,
+%		registrationChargingInformation => RegistrationChargingInformation,
+%		n2ConnectionChargingInformation => N2ConnectionChargingInformation,
+%		locationReportingChargingInformation => LocationReportingChargingInformation,
+%		incompleteCDRIndication => IncompleteCDRIndication,
+		tenantIdentifier => binary(),
+		mnSConsumerIdentifier => binary(),
+%		nSMChargingInformation => NSMChargingInformation,
+%		nSPAChargingInformation => NSPAChargingInformation,
+		chargingID := 0..4294967295,
+		iMSChargingInformation => ims_charging_info(),
+%		mMTelChargingInformation => MMTelChargingInformation,
+%		edgeInfrastructureUsageChargingInformation => EdgeInfrastructureUsageChargingInformation,
+%		eASDeploymentChargingInformation => EASDeploymentChargingInformation,
+%		directEdgeEnablingServiceChargingInformation => ExposureFunctionAPIInformation,
+%		exposedEdgeEnablingServiceChargingInformation => ExposureFunctionAPIInformation,
+%		proseChargingInformation => ProseChargingInformation,
+		eASID => binary(),
+		eDNID => binary(),
+		eASProviderIdentifier => binary(),
+		aMFIdentifier => binary()}.
+%% CHF record (CHF-CDR).
+%%
+%% See 3GPP TS 32.298 5.1.5.0.
+
+-type cdr() :: {TimeStamp :: timestamp(),
+		Unique :: unique(),
+		Protocol :: radius | diameter | nrf,
+		ChargingRecord :: chargingFunctionRecord(),
+		Rated :: #rated{} | undefined}.
+%% A charging detail record in a CDR archive log.
+
+-spec cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+	when
+		TimeStamp :: timestamp(),
+		Unique :: unique(),
+		Protocol :: radius | diameter | nrf,
+		ReqType :: acct_type(),
+		Req :: [tuple()] | #'3gpp_ro_CCR'{} | map() | undefined,
+		Res :: [tuple()] | #'3gpp_ro_CCA'{} | map() | undefined,
+		Rated :: acct_rated() | undefined,
+		CDRs :: [CDR],
+		CDR :: cdr().
+%% @doc CODEC for PS CDR.
+%% @private
+cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CHR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CHR1 = chr_ps1(Protocol, ReqType, Req, Res, CHR),
+	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+%% @hidden
+chr_ps1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
+	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chr_ps2(Protocol, ReqType, Req, Res, CHR1);
+chr_ps1(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CHR) ->
+	CHR1 = CHR#{chargingSessionIdentifier => SessionId},
+	chr_ps2(Protocol, ReqType, Req, Res, CHR1);
+chr_ps1(radius = Protocol, ReqType, Req, Res, CHR)
+		when is_list(Req) ->
+	SessionId = proplists:get_value(?AcctSessionId, Req),
+	CHR1 = CHR#{chargingSessionIdentifier => SessionId},
+	chr_ps2(Protocol, ReqType, Req, Res, CHR1).
+%% @hidden
+chr_ps2(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Res, CHR) ->
+	case nf_identification(ServiceInfo) of
+		NfAddress when is_list(NfAddress) ->
+			case inet:parse_address(NfAddress) of
+				{ok, IPAddress} when size(IPAddress) == 4 ->
+					NFI = #{networkFunctionIPv4Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_ps3(Protocol, ReqType, Req, Res, CHR1);
+				{ok, IPAddress} when size(IPAddress) == 8 ->
+					NFI = #{networkFunctionIPv6Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_ps3(Protocol, ReqType, Req, Res, CHR1);
+				{error, _} ->
+					chr_ps3(Protocol, ReqType, Req, Res, CHR)
+			end;
+		undefined ->
+			chr_ps3(Protocol, ReqType, Req, Res, CHR)
+	end;
+chr_ps2(Protocol, ReqType, Req, Res, CHR) ->
+	chr_ps3(Protocol, ReqType, Req, Res, CHR).
+%% @hidden
+chr_ps3(Protocol, ReqType, Req, Res, CHR) ->
+	CHR.
+
+-spec cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+	when
+		TimeStamp :: timestamp(),
+		Unique :: unique(),
+		Protocol :: diameter | nrf,
+		ReqType :: acct_type(),
+		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
+		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
+		Rated :: acct_rated() | undefined,
+		CDRs :: [CDR],
+		CDR :: cdr().
+%% @doc CODEC for IMS CDR.
+%% @private
+cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CHR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CHR1 = chr_ims1(Protocol, ReqType, Req, Res, CHR),
+	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+%% @hidden
+chr_ims1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
+	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chr_ims2(Protocol, ReqType, Req, Res, CHR1).
+%% @hidden
+chr_ims2(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Res, CHR) ->
+	case nf_identification(ServiceInfo) of
+		NfAddress when is_list(NfAddress) ->
+			case inet:parse_address(NfAddress) of
+				{ok, IPAddress} when size(IPAddress) == 4 ->
+					NFI = #{networkFunctionIPv4Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_ims3(Protocol, ReqType, Req, Res, CHR1);
+				{ok, IPAddress} when size(IPAddress) == 8 ->
+					NFI = #{networkFunctionIPv6Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_ims3(Protocol, ReqType, Req, Res, CHR1);
+				{error, _} ->
+					chr_ims3(Protocol, ReqType, Req, Res, CHR)
+			end;
+		undefined ->
+			chr_ims3(Protocol, ReqType, Req, Res, CHR)
+	end;
+chr_ims2(Protocol, ReqType, Req, Res, CHR) ->
+	chr_ims3(Protocol, ReqType, Req, Res, CHR).
+%% @hidden
+chr_ims3(Protocol, ReqType, Req, Res, CHR) ->
+	CHR.
+
+-spec cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+	when
+		TimeStamp :: timestamp(),
+		Unique :: unique(),
+		Protocol :: diameter | nrf,
+		ReqType :: acct_type(),
+		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
+		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
+		Rated :: acct_rated() | undefined,
+		CDRs :: [CDR],
+		CDR :: cdr().
+%% @doc CODEC for PS CDR.
+%% @private
+cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CHR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CHR1 = chr_sms1(Protocol, ReqType, Req, Res, CHR),
+	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+%% @hidden
+chr_sms1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
+	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chr_sms2(Protocol, ReqType, Req, Res, CHR1).
+%% @hidden
+chr_sms2(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Res, CHR) ->
+	case nf_identification(ServiceInfo) of
+		NfAddress when is_list(NfAddress) ->
+			case inet:parse_address(NfAddress) of
+				{ok, IPAddress} when size(IPAddress) == 4 ->
+					NFI = #{networkFunctionIPv4Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_sms3(Protocol, ReqType, Req, Res, CHR1);
+				{ok, IPAddress} when size(IPAddress) == 8 ->
+					NFI = #{networkFunctionIPv6Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_sms3(Protocol, ReqType, Req, Res, CHR1);
+				{error, _} ->
+					chr_sms3(Protocol, ReqType, Req, Res, CHR)
+			end;
+		undefined ->
+			chr_sms3(Protocol, ReqType, Req, Res, CHR)
+	end;
+chr_sms2(Protocol, ReqType, Req, Res, CHR) ->
+	chr_sms3(Protocol, ReqType, Req, Res, CHR).
+%% @hidden
+chr_sms3(Protocol, ReqType, Req, Res, CHR) ->
+	CHR.
+
+-spec cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+	when
+		TimeStamp :: timestamp(),
+		Unique :: unique(),
+		Protocol :: diameter | nrf,
+		ReqType :: acct_type(),
+		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
+		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
+		Rated :: acct_rated() | undefined,
+		CDRs :: [CDR],
+		CDR :: cdr().
+%% @doc CODEC for PS CDR.
+%% @private
+cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CHR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CHR1 = chr_vcs1(Protocol, ReqType, Req, Res, CHR),
+	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+%% @hidden
+chr_vcs1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
+	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chr_vcs2(Protocol, ReqType, Req, Res, CHR1).
+%% @hidden
+chr_vcs2(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		Res, CHR) ->
+	case nf_identification(ServiceInfo) of
+		NfAddress when is_list(NfAddress) ->
+			case inet:parse_address(NfAddress) of
+				{ok, IPAddress} when size(IPAddress) == 4 ->
+					NFI = #{networkFunctionIPv4Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_vcs3(Protocol, ReqType, Req, Res, CHR1);
+				{ok, IPAddress} when size(IPAddress) == 8 ->
+					NFI = #{networkFunctionIPv6Address => IPAddress},
+					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
+					chr_vcs3(Protocol, ReqType, Req, Res, CHR1);
+				{error, _} ->
+					chr_vcs3(Protocol, ReqType, Req, Res, CHR)
+			end;
+		undefined ->
+			chr_vcs3(Protocol, ReqType, Req, Res, CHR)
+	end;
+chr_vcs2(Protocol, ReqType, Req, Res, CHR) ->
+	chr_vcs3(Protocol, ReqType, Req, Res, CHR).
+%% @hidden
+chr_vcs3(Protocol, ReqType, Req, Res, CHR) ->
+	CHR.
+
+% @hidden
+cdr_csv(Log, IoDevice, Seperator,
+		{Cont, [#{recordType := chargingFunctionRecord} | _] = T}) ->
+	Columns = [<<"Invocation Timestamp">>,
+			<<"Charging Session Identifier">>,
+			<<"NF Name">>, <<"NF Address">>,
+			<<"Subscriber Identifier">>,
+			<<"Multiple Unit Usage">>],
+	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Header, $\r, $\n]) of
+		ok ->
+			cdr_csv1(Log, IoDevice, Seperator, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end.
+% @hidden
+cdr_csv1(Log, IoDevice, Seperator, Cont,
+		[{TS, _, _, CHR, Rated} | T]) ->
+	Timestamp = ocs_rest:iso8601(TS),
+	Columns = [Timestamp],
+	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
+	case file:write(IoDevice, [Row, $\r, $\n]) of
+		ok ->
+			cdr_csv1(Log, IoDevice, Seperator, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+cdr_csv1(Log, IoDevice, _Seperator, Cont, []) ->
+	cdr_file3(Log, IoDevice, csv, {Cont, []}).
 

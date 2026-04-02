@@ -17,30 +17,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
-%% Authorization event
--type auth_event() :: diameter_auth_event() | radius_auth_event().
-
--type diameter_auth_event() :: {
-		Timestamp :: ocs_log:timestamp(),
-		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
-		Node :: atom(),
-		Server :: ocs_log:server(),
-		Client :: ocs_log:server(),
-		RequestAttributes :: ocs_log:auth_request(),
-		ResponseAttributes :: ocs_log:auth_response()}.
-
--type radius_auth_event() :: {
-		Timestamp :: ocs_log:timestamp(),
-		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
-		Node :: atom(),
-		Server :: ocs_log:server(),
-		Client :: ocs_log:server(),
-		Type :: ocs_log:auth_type(),
-		RequestAttributes :: ocs_log:auth_request(),
-		ResponseAttributes :: ocs_log:auth_response()}.
-
 -record(rated,
 		{bucket_value :: non_neg_integer() | undefined | '_',
 		bucket_type :: cents | octets | seconds | messages | undefined | '_',
@@ -57,51 +33,6 @@
 		tax_rate :: integer() | undefined | '_',
 		usage_rating_tag :: usage | included | non_included | undefined | '_'}).
 
-%% Accounting event
--type acct_event() :: {
-		Timestamp :: ocs_log:timestamp(),
-		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
-		Node :: atom(),
-		Server :: ocs_log:server(),
-		Type :: ocs_log:acct_type(),
-		RequestAttributes :: ocs_log:acct_request(),
-		ResponseAttributes :: ocs_log:acct_response(),
-		Rated :: [#rated{}]}.
-
-%% REST API event
--type http_event() :: {
-		Host :: string(),
-		User :: string(),
-		DateTime :: string(),
-		Method :: string(),
-		URI :: string(),
-		HttpStatus :: string()}.
-
-%% Account Balance event
--type abmf_event() :: {
-		Timestamp :: ocs_log:timestamp(),
-		N :: ocs_log:unique(),
-		Node :: atom(),
-		Type :: topup | adjustment | delete | deduct | reserve | unreserve | transfer,
-		Subscriber :: binary(),
-		Bucket :: undefined | string(),
-		Units :: cents | seconds | octets | messages,
-		Product :: string(),
-		Amount :: integer(),
-		AmountBefore :: integer() | undefined,
-		AmountAfter :: integer() | undefined,
-		Validity :: undefined | pos_integer(),
-		Channel :: undefined | string(),
-		Requestor :: undefined | [{Id :: string(),
-				Role :: string(), Name :: string()}],
-		RelatedParty :: undefined | [{Id :: string(),
-				Role :: string(), Name :: string()}],
-		PaymentMeans :: undefined | string(),
-		Action :: undefined | string(),
-		Status :: undefined | term()}.
-
-%% IPDR WLAN Document
 -record(ipdrDocWLAN,
 		{docId :: string() | undefined,
 		version = "3.1" :: string(),
@@ -116,7 +47,6 @@
 		{count :: non_neg_integer() | undefined,
 		endTime :: string() | undefined}).
 
-%% IPDR Public WLAN Access - WISP Use Case
 -record(ipdr_wlan,
 		{ipdrCreationTime :: string() | undefined,
 		seqNum :: non_neg_integer() | undefined,
