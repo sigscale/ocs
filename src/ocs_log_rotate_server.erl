@@ -1,7 +1,7 @@
 %%% ocs_log_rotate_server.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2025 SigScale Global Inc.
+%%% @copyright 2016 - 2026 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_log_rotate_server).
--copyright('Copyright (c) 2016 - 2025 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
@@ -25,13 +25,13 @@
 -export([]).
 
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-			terminate/2, code_change/3]).
+-export([init/1, handle_continue/2, handle_call/3, handle_cast/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -record(state,
 			{interval :: pos_integer(),
 			schedule :: calendar:time(),
-			dir :: string(),
+			dir :: string() | undefined,
 			type :: voip | wlan}).
 -type state() :: #state{}.
 
@@ -46,66 +46,84 @@
 -spec init(Args) -> Result
 	when
 		Args :: [term()],
-		Result :: {ok, State}
-			| {ok, State, Timeout}
-			| {stop, Reason} | ignore,
+		Result :: {ok, State} | {ok, State, Action}
+				| {stop, Reason} | ignore | {error, Reason},
 		State :: state(),
-		Timeout :: timeout(),
+		Action :: gen_server:action(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
 %% @private
 %% @todo Allow intervals shorter than one day.
 init([Type, ScheduledTime, Interval] = _Args) when
-		is_tuple(ScheduledTime), size(ScheduledTime) =:= 3,
+		((Type == wlan) or (Type == voip)),
+		tuple_size(ScheduledTime) =:= 3,
 		is_integer(Interval), Interval > 0 ->
-	process_flag(trap_exit, true),
 	NewInterval = case round_up(Interval) of
 		Interval ->
 			Interval;
-		I ->
+		Interval1 ->
 			error_logger:warning_report(["Using sane log rotation interval",
-					{rotate, Interval}, {interval, I}]),
-			I
+					{rotate, Interval}, {interval, Interval1}]),
+			Interval1
 	end,
+	process_flag(trap_exit, true),
+	State = #state{interval = NewInterval,
+			schedule = ScheduledTime, type = Type},
+	Action = {continue, init},
+	{ok, State, Action};
+init(_Args) ->
+	ignore.
+
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State :: state(),
+		Result :: {noreply, NewState} | {noreply, NewState, Action}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Action :: gen_server:action(),
+		Reason :: term().
+%% @doc Handle a callback conntinuation.
+%% @see //stdlib/gen_server:handle_continue/2
+%% @private
+%%
+handle_continue(init = _Info, State) ->
 	{ok, Directory} = application:get_env(ipdr_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			init1(Directory, NewInterval, ScheduledTime, Type);
+			handle_continue1(Directory, State);
 		{error, eexist} ->
-			init1(Directory, NewInterval, ScheduledTime, Type);
+			handle_continue1(Directory, State);
 		{error, Reason} ->
 			{stop, Reason}
 	end.
 %% @hidden
-init1(Directory, NewInterval, ScheduledTime, Type) ->
+handle_continue1(Directory, #state{type = Type,
+		interval = Interval, schedule = ScheduledTime} = State) ->
 	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
-	State = #state{interval = NewInterval,
-			schedule = ScheduledTime, dir = Directory1,
-			type = Type},
+	Timeout = wait(ScheduledTime, Interval),
+	Action = {timeout, Timeout, timeout},
 	case file:make_dir(Directory1) of
 		ok ->
-			{ok, State, wait(ScheduledTime, NewInterval)};
+			{noreply, State, Action};
 		{error, eexist} ->
-			{ok, State, wait(ScheduledTime, NewInterval)};
+			{noreply, State, Action};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
 
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
-		From :: {pid(), Tag},
-		Tag :: any(),
+		Request :: term(),
+		From :: gen_server:from(),
 		State :: state(),
-		Result :: {reply, Reply, NewState}
-			| {reply, Reply, NewState, timeout() | hibernate}
-			| {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, Reply, NewState}
-			| {stop, Reason, NewState},
+		Result :: {reply, Reply, NewState} | {reply, Reply, NewState, Action}
+				| {noreply, NewState} | {noreply, NewState, Action}
+				| {stop, Reason, Reply, NewState} | {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
+		Action :: gen_server:action(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
@@ -118,12 +136,12 @@ handle_call(_Request, _From, State) ->
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: state(),
-		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, NewState},
+		Result :: {noreply, NewState} | {noreply, NewState, Action}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Action :: gen_server:action(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
@@ -136,12 +154,12 @@ handle_cast(stop, State) ->
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
+		Info :: timeout | term(),
 		State::state(),
-		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, NewState},
+		Result :: {noreply, NewState} | {noreply, NewState, Action}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Action :: gen_server:action(),
 		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
@@ -172,9 +190,9 @@ handle_info(timeout, #state{interval = Interval,
 terminate(_Reason, _State) ->
 	ok.
 
--spec code_change(OldVsn, State, Extra) -> Result 
+-spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: term() | {down, term()}, 
+		OldVsn :: term() | {down, term()},
 		State :: state(),
 		Extra :: term(),
 		Result :: {ok, NewState} | {error, Reason},
