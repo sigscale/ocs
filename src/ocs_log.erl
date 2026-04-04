@@ -47,7 +47,7 @@
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([cdr_log/3, cdr_file/3]).
+-export([cdr_log/4, cdr_file/3]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
@@ -576,8 +576,9 @@ http_query8(Chunks) ->
 	end,
 	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
 
--spec cdr_log(File, Start, End) -> Result
+-spec cdr_log(Type, File, Start, End) -> Result
 	when
+		Type :: chf,
 		File :: file:filename(),
 		Start :: calendar:datetime() | timestamp(),
 		End :: calendar:datetime() | timestamp(),
@@ -589,18 +590,18 @@ http_query8(Chunks) ->
 %% 	or overwrites an existing, with filename `File'.
 %%
 %% 	The `ocs_acct' log is searched for events created between
-%% 	`Start' and `End' of type `Type'.
+%% 	`Start' and `End'.
 %%
-cdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+cdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	cdr_log(File, Seconds * 1000, End);
-cdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	cdr_log(Type, File, Seconds * 1000, End);
+cdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	cdr_log(File, Start, Seconds * 1000 + 999);
-cdr_log(File, Start, End) when is_list(File),
+	cdr_log(Type, File, Start, Seconds * 1000 + 999);
+cdr_log(Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 		{ok, Directory} = application:get_env(ocs, cdr_log_dir),
-		FileName = Directory ++ "/" ++ File,
+		FileName = filename:join([Directory, Type, File]),
 	case disk_log:open([{name, File},
 			{file, FileName}, {repair, truncate}]) of
 		{ok, CdrLog} ->
@@ -710,7 +711,7 @@ cdr_log4(CdrLog) ->
 cdr_file(LogFile, Type, Format) when is_list(LogFile),
 		((Format == xml) or (Format == json) or (Format == csv)) ->
 	{ok, Directory} = application:get_env(ocs, cdr_log_dir),
-	FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ LogFile,
+	FileName = filename:join([Directory, Type, LogFile]),
 	case disk_log:open([{name, make_ref()},
 			{file, FileName}, {repair, true}]) of
 		{ok, Log} ->
@@ -744,7 +745,7 @@ cdr_file1(FileName, Log, Format) ->
 	end.
 %% @hidden
 cdr_file2(FileName, Log, Format, ExportDir) ->
-	CsvFile = ExportDir ++ "/" ++ FileName ++ "." ++ atom_to_list(Format),
+	CsvFile = filename:join([ExportDir, FileName ++ "." ++ atom_to_list(Format)]),
 	case file:open(CsvFile, [raw, write, delayed_write]) of
 		{ok, IoDevice} ->
 			cdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
@@ -817,7 +818,7 @@ ipdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 ipdr_log(Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 		{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-		FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ File,
+		FileName = filename:join([Directory, Type, File]),
 	case disk_log:open([{name, File}, {file, FileName}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
 			IpdrDoc = case Type of
@@ -978,7 +979,7 @@ ipdr_log5(IpdrLog, SeqNum) ->
 ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 		((Format == xml) or (Format == xdr) or (Format == csv)) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ LogFile,
+	FileName = filename:join([Directory, Type, LogFile]),
 	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
 		{ok, Log} ->
 			ipdr_file1(LogFile, Log, Format);
@@ -1010,7 +1011,7 @@ ipdr_file1(FileName, Log, Format) ->
 	end.
 %% @hidden
 ipdr_file2(FileName, Log, Format, ExportDir) ->
-	CsvFile = ExportDir ++ "/" ++ FileName ++ "." ++ atom_to_list(Format),
+	CsvFile = filename:join([ExportDir, FileName ++ "." ++ atom_to_list(Format)]),
 	case file:open(CsvFile, [raw, write, delayed_write]) of
 		{ok, IoDevice} ->
 			ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
@@ -4104,7 +4105,7 @@ open_log(Directory, Log, LogSize, LogFiles) ->
 	end.
 %% @hidden
 open_log1(Directory, Log, LogSize, LogFiles) ->
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	FileName = filename:join([Directory, Log]),
 	case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}}]) of
 		{ok, _} ->
