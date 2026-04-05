@@ -149,12 +149,14 @@ sequences() ->
 %%
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
-			radius_log_acct_event, diameter_log_acct_event, nrf_log_acct_event,
-			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
+			radius_log_acct_event, diameter_log_acct_event,
+			nrf_log_acct_event, ipdr_log, get_range,
+			get_last, auth_query, acct_query_radius,
 			acct_query_diameter, acct_query_nrf,
 			abmf_log_event, abmf_query, binary_tree_before,
-			binary_tree_after, binary_tree_backward, binary_tree_forward,
-			binary_tree_last, binary_tree_first, binary_tree_half,
+			binary_tree_after, binary_tree_backward,
+			binary_tree_forward, binary_tree_last,
+			binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
 			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs,
 			dia_acct_to_ecs, radius_acct_to_ecs].
@@ -387,7 +389,7 @@ nrf_log_acct_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
 ipdr_log() ->
-   [{userdata, [{doc, "Log IPDR reords for date/time range"}]}].
+   [{userdata, [{doc, "Log IPDR records for date/time range"}]}].
 
 ipdr_log(_Config) ->
 	Node = node(),
@@ -415,9 +417,9 @@ ipdr_log(_Config) ->
 	Weight = [7,8] ++ lists:duplicate(32, 1) ++ lists:duplicate(32, 2)
 			++ lists:duplicate(33, 3),
 	NumItems = (FileSize div EventSize) * 5,
-	Fill = fun(_F, 0) ->
+	Fill = fun F(0) ->
 				ok;
-			(F, N) ->
+			F(N) ->
 				Random = rand:uniform(99),
 				{Type, AcctType} = case lists:nth(Random, Weight) of
 					1 -> {start, 1};
@@ -430,9 +432,9 @@ ipdr_log(_Config) ->
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
 				ok = ocs_log:acct_log(radius, Server,
 						Type, Attrs2, undefined, undefined),
-				F(F, N - 1)
+				F(N - 1)
 	end,
-	ok = Fill(Fill, NumItems),
+	ok = Fill(NumItems),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
@@ -446,17 +448,19 @@ ipdr_log(_Config) ->
 			(_, Acc) ->
 				Acc
 	end,
-	lists:foldl(Fstop, 0, GetRangeResult),
-	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Filename}]),
-	Fchunk = fun(_F, {error, Reason}, _Acc) ->
+	StopCount = lists:foldl(Fstop, 0, GetRangeResult),
+	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
+	Path = filename:join([IpdrLogDir, wlan, Filename]),
+	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Path}]),
+	Fchunk = fun F({error, Reason}, _Acc) ->
 				ct:fail(Reason);
-			(F, {Cont, Chunk}, Acc) ->
-				F(F, disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
-			(_, eof, Acc) ->
+			F({Cont, Chunk}, Acc) ->
+				F(disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
+			F(eof, Acc) ->
 				disk_log:close(IpdrLog),
 				Acc
 	end,
-	Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
+	StopCount = Fchunk(disk_log:chunk(IpdrLog, start), 0) - 2.
 
 get_range() ->
    [{userdata, [{doc, "Get date/time range from log"}]}].
