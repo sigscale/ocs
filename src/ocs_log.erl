@@ -605,7 +605,9 @@ cdr_log(chf = Type, File, Start, End) when is_list(File),
 	case disk_log:open([{name, File},
 			{file, FileName}, {repair, truncate}]) of
 		{ok, CdrLog} ->
-			cdr_log1(CdrLog, Start, End, btree_search(CdrLog, Start));
+			{ok, AcctLog} = application:get_env(ocs, acct_log_name),
+			cdr_log1(CdrLog, Start, End,
+					AcctLog, btree_search(AcctLog, Start));
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -615,58 +617,62 @@ cdr_log(chf = Type, File, Start, End) when is_list(File),
 			{error, Reason}
 	end.
 %% @hidden
-cdr_log1(CdrLog, _Start, _End, {error, Reason}) ->
+cdr_log1(CdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc,
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
-			{log, CdrLog}, {error, Reason}]),
+			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
-cdr_log1(CdrLog, Start, End, Cont) ->
-	cdr_log2(CdrLog, Start, End, [], disk_log:chunk(CdrLog, Cont)).
+cdr_log1(CdrLog, Start, End, AcctLog, Cont) ->
+	cdr_log2(CdrLog, Start, End, AcctLog, [],
+			disk_log:chunk(AcctLog, Cont)).
 %% @hidden
-cdr_log2(CdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
+cdr_log2(CdrLog, _Start, _End, AcctLog,
+		_PrevChunk, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc,
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
-			{log, CdrLog}, {error, Reason}]),
+			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
-cdr_log2(CdrLog, _Start, _End, [], eof) ->
+cdr_log2(CdrLog, _Start, _End, _AcctLog, [], eof) ->
 	cdr_log4(CdrLog);
-cdr_log2(CdrLog, Start, End, PrevChunk, eof) ->
+cdr_log2(CdrLog, Start, End, AcctLog, PrevChunk, eof) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	cdr_log3(CdrLog, Start, End,
+	cdr_log3(CdrLog, Start, End, AcctLog,
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
-cdr_log2(CdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+cdr_log2(CdrLog, Start, End, AcctLog,
+		_PrevChunk, {Cont, [H | T]})
 		when element(1, H) < Start ->
-	cdr_log2(CdrLog, Start, End, T, disk_log:chunk(CdrLog, Cont));
-cdr_log2(CdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	cdr_log2(CdrLog, Start, End,
+			AcctLog, T, disk_log:chunk(AcctLog, Cont));
+cdr_log2(CdrLog, Start, End, AcctLog, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	cdr_log3(CdrLog, Start, End,
+	cdr_log3(CdrLog, Start, End, AcctLog,
 			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
 %% @hidden
-cdr_log3(CdrLog, _Start, _End, eof) ->
+cdr_log3(CdrLog, _Start, _End, _AcctLog, eof) ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, _Start, _End, {error, _Reason}) ->
+cdr_log3(CdrLog, _Start, _End, _AcctLog, {error, _Reason}) ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, _Start, _End, {eof, []}) ->
+cdr_log3(CdrLog, _Start, _End, _AcctLog, {eof, []}) ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, _Start, End, {_Cont, [H | _]})
+cdr_log3(CdrLog, _Start, End, _AcctLog, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, Start, End, {Cont, [H | T]}) ->
-	case disk_log:log(CdrLog, cdr_chf_codec(H)) of
+cdr_log3(CdrLog, Start, End, AcctLog, {Cont, [H | T]}) ->
+	case disk_log:log_terms(CdrLog, cdr_chf_codec(H)) of
 		ok ->
-			cdr_log3(CdrLog, Start, End, {Cont, T});
+			cdr_log3(CdrLog, Start, End, AcctLog, {Cont, T});
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -676,8 +682,9 @@ cdr_log3(CdrLog, Start, End, {Cont, [H | T]}) ->
 			disk_log:close(CdrLog),
 			{error, Reason}
 	end;
-cdr_log3(CdrLog, Start, End, {Cont, []}) ->
-	cdr_log3(CdrLog, Start, End, disk_log:chunk(CdrLog, Cont)).
+cdr_log3(CdrLog, Start, End, AcctLog, {Cont, []}) ->
+	cdr_log3(CdrLog, Start, End,
+			AcctLog, disk_log:chunk(AcctLog, Cont)).
 %% @hidden
 cdr_log4(CdrLog) ->
 	case disk_log:close(CdrLog) of
@@ -830,9 +837,9 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			end,
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
+					{ok, AcctLog} = application:get_env(ocs, acct_log_name),
 					ipdr_log1(IpdrLog, Start, End,
-%							btree_search(log_name(acct_log_name), Start, End));
-							btree_search(log_name(acct_log_name), Start));
+							AcctLog, btree_search(AcctLog, Start));
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -849,67 +856,73 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
+ipdr_log1(IpdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, log_name(acct_log_name)}, {error, Reason}]),
+			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
-%ipdr_log1(IpdrLog, _Start, _End, eof) ->
+%ipdr_log1(IpdrLog, _Start, _End, _AcctLog, eof) ->
 %	ipdr_log5(IpdrLog, 0);
-ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(log_name(acct_log_name), Cont)).
+ipdr_log1(IpdrLog, Start, End, AcctLog, Cont) ->
+	ipdr_log2(IpdrLog, Start, End, AcctLog,
+			[], disk_log:chunk(AcctLog, Cont)).
 %% @hidden
-ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
+ipdr_log2(IpdrLog, _Start, _End,
+		AcctLog, _PrevChunk, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, log_name(acct_log_name)}, {error, Reason}]),
+			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
-ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
+ipdr_log2(IpdrLog, _Start, _End, _AcctLog, [], eof) ->
 	ipdr_log5(IpdrLog, 0);
-ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
+ipdr_log2(IpdrLog, Start, End, AcctLog, PrevChunk, eof) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	ipdr_log3(IpdrLog, Start, End, 0,
+	ipdr_log3(IpdrLog, Start, End, AcctLog, 0,
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
-ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+ipdr_log2(IpdrLog, Start, End, AcctLog, _PrevChunk, {Cont, [H | T]})
 		when element(1, H) < Start ->
-	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(log_name(acct_log_name), Cont));
-ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	ipdr_log2(IpdrLog, Start, End,
+			AcctLog, T, disk_log:chunk(log_name(acct_log_name), Cont));
+ipdr_log2(IpdrLog, Start, End, AcctLog, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	ipdr_log3(IpdrLog, Start, End, 0,
+	ipdr_log3(IpdrLog, Start, End, AcctLog, 0,
 			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
 %% @hidden
-ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
+ipdr_log3(IpdrLog, _Start, _End, _AcctLog, SeqNum, eof) ->
 	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
+ipdr_log3(IpdrLog, _Start, _End, _AcctLog, SeqNum, {error, _Reason}) ->
 	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
+ipdr_log3(IpdrLog, _Start, _End, _AcctLog, SeqNum, {eof, []}) ->
 	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(log_name(acct_log_name), Cont));
-ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
+ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, {Cont, []}) ->
+	ipdr_log3(IpdrLog, Start,
+			End, AcctLog, SeqNum, disk_log:chunk(AcctLog, Cont));
+ipdr_log3(IpdrLog, _Start, End, _AcctLog, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [H | T]})
+ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
-	ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, T}, ipdr_codec(H));
-ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
+	ipdr_log4(IpdrLog, Start, End,
+			AcctLog, SeqNum, {Cont, T}, ipdr_codec(H));
+ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, {Cont, [_ | T]}) ->
+	ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, {Cont, T}).
 %% @hidden
-ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_wlan{} = IPDR | T]) ->
+ipdr_log4(IpdrLog, Start, End,
+		AcctLog, SeqNum, Cont, [#ipdr_wlan{} = IPDR | T]) ->
 	NewSeqNum = SeqNum + 1,
 	case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
 		ok ->
-			ipdr_log4(IpdrLog, Start, End, NewSeqNum, Cont, T);
+			ipdr_log4(IpdrLog, Start, End, AcctLog, NewSeqNum, Cont, T);
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -918,11 +931,12 @@ ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_wlan{} = IPDR | T]) ->
 			disk_log:close(IpdrLog),
 			{error, Reason}
 	end;
-ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_voip{} = IPDR | T]) ->
+ipdr_log4(IpdrLog, Start, End,
+		AcctLog, SeqNum, Cont, [#ipdr_voip{} = IPDR | T]) ->
 	NewSeqNum = SeqNum + 1,
 	case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
 		ok ->
-			ipdr_log4(IpdrLog, Start, End, NewSeqNum, Cont, T);
+			ipdr_log4(IpdrLog, Start, End, AcctLog, NewSeqNum, Cont, T);
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -931,8 +945,8 @@ ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, [#ipdr_voip{} = IPDR | T]) ->
 			disk_log:close(IpdrLog),
 			{error, Reason}
 	end;
-ipdr_log4(IpdrLog, Start, End, SeqNum, Cont, []) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, Cont).
+ipdr_log4(IpdrLog, Start, End, AcctLog, SeqNum, Cont, []) ->
+	ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, Cont).
 %% @hidden
 ipdr_log5(IpdrLog, SeqNum) ->
 	EndTime = iso8601(erlang:system_time(millisecond)),
@@ -3107,7 +3121,8 @@ cdr_chf_codec1(TimeStamp, Unique, radius, ReqType, Req, Res, Rated)
 	chf_ps(TimeStamp, Unique, radius, ReqType, Req, Res, Rated).
 %% @hidden
 cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
-		when ServiceType == <<"32251">>; ServiceType == "32251" ->
+		when ServiceType == <<"32251">>; ServiceType == "32251";
+		ServiceType == <<"32255">>; ServiceType == "32255" ->
 	chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
 cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated,  ServiceType)
 		when ServiceType == <<"32260">>; ServiceType == "32260" ->
@@ -4186,7 +4201,7 @@ close_log1(Log, ok) ->
 close_log1(Log, {error, Reason}) ->
 	close_log2(Log, {error, Reason}).
 %% @hidden
-close_log2(Log, ok) ->
+close_log2(_Log, ok) ->
 	ok;
 close_log2(Log, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
@@ -4922,12 +4937,20 @@ nf_name4(_) ->
 		CDR :: cdr().
 %% @doc CODEC for PS CHF-CDR.
 %% @private
-chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
+		when is_list(Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_ps1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
+chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res,
+		undefined = Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CFR1 = chf_ps1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
 %% @hidden
 chf_ps1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -4982,12 +5005,20 @@ chf_ps3(Protocol, ReqType, Req, Res, CFR) ->
 		CDR :: cdr().
 %% @doc CODEC for IMS CHF-CDR.
 %% @private
-chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
+		when is_list(Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_ims1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
+chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res,
+		undefined = Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CFR1 = chf_ims1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
 %% @hidden
 chf_ims1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5033,12 +5064,20 @@ chf_ims3(Protocol, ReqType, Req, Res, CFR) ->
 		CDR :: cdr().
 %% @doc CODEC for SMS CHF-CDR.
 %% @private
-chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
+		when is_list(Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_sms1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
+chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res,
+		undefined = Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CFR1 = chf_sms1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
 %% @hidden
 chf_sms1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5084,12 +5123,20 @@ chf_sms3(Protocol, ReqType, Req, Res, CFR) ->
 		CDR :: cdr().
 %% @doc CODEC for VCS CHF-CDR.
 %% @private
-chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
+		when is_list(Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_vcs1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
+chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res,
+		undefined = Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
+			recordingNetworkFunctionID => atom_to_binary(node()),
+			recordOpeningTime => TimeStamp},
+	CFR1 = chf_vcs1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
 %% @hidden
 chf_vcs1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
