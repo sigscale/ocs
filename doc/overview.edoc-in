@@ -309,15 +309,14 @@ ABMF in `abmf'.
 Events are read from FIFO logs and written to archive log files on a
 scheduled basis (default daily). These internally formatted archive
 logs may be exported on demand to a supported file format (e.g. CSV).
-Shell scripts are provided (`bin/export_[cdr|ipdr]') for this purpose.
+A shell script is provided (`bin/export_cdr') for this purpose.
 
 <img class="diagram" src="disk_logs.svg" alt="Disk Logs" />
 
-See `acct_log_dir', `acct_log_files', `acct_log_rotate',
-`acct_log_rotate_time', `acct_log_size', `auth_log_dir',
-`auth_log_files', `auth_log_size', `cdr_log_dir',
-`ipdr_log_dir' and `export_dir' in the
-<a href="#Configuration">Configuration</a> section below.
+See `acct_log_dir', `acct_log_files', `acct_log_size',
+`auth_log_dir', `auth_log_files', `auth_log_size', `cdr_log_dir',
+`cdr_logs' and `export_dir' in the
+<a href="#Log_Configuration">Log Configuration</a> section below.
 
 ====Elasstic Stack====
 Optionally OCF/AAA transactions may be shipped to
@@ -724,19 +723,19 @@ Rating configuration options:
 		<dd>5G data connectivity charging manages a quota for each UPF. (default: true)</dd>
 </dl>
 
-===Logging===
+===Log Configuration===
 Logging configuration options:
 <dl>
 	<dt>acct_log_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>acct_log_files</dt>
 		<dd>Number of accounting log files.</dd>
-	<dt>acct_log_rotate</dt>
-		<dd>Duration between IPDR logging.</dd>
-	<dt>acct_log_rotate_time</dt>
-		<dd>Time for IPDR log rotation: {H, M, S}.</dd>
 	<dt>acct_log_size</dt>
 		<dd>Size in bytes of accounting log files.</dd>
+	<dt><strike>acct_log_rotate</strike></dt>
+		<dd>Deprecated. Duration between IPDR logging.</dd>
+	<dt><strike>acct_log_rotate_time</strike></dt>
+		<dd>Deprecated. Time for IPDR log rotation: {H, M, S}.</dd>
 	<dt>auth_log_dir</dt>
 		<dd>Path of directory to store authorization logs.</dd>
 	<dt>auth_log_files</dt>
@@ -745,8 +744,20 @@ Logging configuration options:
 		<dd>Size in bytes of authorization log files.</dd>
 	<dt>cdr_log_dir</dt>
 		<dd>Path of directory to store CDR logs.</dd>
-	<dt>ipdr_log_dir</dt>
-		<dd>Path of directory to store IPDR logs.</dd>
+	<dt><strike>ipdr_log_dir</strike></dt>
+		<dd>Deprecated. Path of directory to store IPDR logs.</dd>
+	<dt>cdr_logs</dt>
+		<dd>Defines a list of CDR log specifications: [{Type, Time, Interval}].
+			<dl>
+				<dt>Type</dt>
+					<dd>CDR record type.</dd>
+				<dt>Time</dt>
+					<dd>Scheduled start time: {H, M, S}</dd>
+				<dt>Interval</dt>
+					<dd>Interval period in seconds.</dd>
+			</dl>
+			(default: [{chf, {4, 4, 4}, 1440}])
+		</dd>
 	<dt>export_dir</dt>
 		<dd>Path of directory to store exported files.</dd>
 	<dt>elastic_shipper</dt>
@@ -909,14 +920,13 @@ following environment variables:
       {min_reserve_octets, 5000000},
       {min_reserve_seconds, 60},
       {min_reserve_messages, 1},
-      {acct_log_rotate, 1440},
       {acct_log_dir, "log/acct"},
       {acct_log_files, 100},
       {auth_log_dir, "log/auth"},
       {auth_log_size, 10485760},
       {auth_log_files, 100},
       {cdr_log_dir, "log/cdr"},
-      {ipdr_log_dir, "log/ipdr"},
+      {cdr_logs, [{chf, {0, 4, 4}, 1440}]},
       {export_dir, "log/export"},
       {rest_page_size, 1000},
       {tls_key, "ssl/key.pem"},
