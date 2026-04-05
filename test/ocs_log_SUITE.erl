@@ -32,13 +32,14 @@
 
 -include("ocs.hrl").
 -include("ocs_log.hrl").
--include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("kernel/include/file.hrl").
+-include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
--include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
--include_lib("../include/diameter_gen_3gpp.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("../include/diameter_gen_3gpp_ro_application.hrl").
+-include("../include/diameter_gen_3gpp.hrl").
 
 -define(BASE_APPLICATION_ID, 0).
 -define(RO_APPLICATION_ID, 4).
@@ -159,7 +160,8 @@ all() ->
 			binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
 			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs,
-			dia_acct_to_ecs, radius_acct_to_ecs].
+			dia_acct_to_ecs, radius_acct_to_ecs,
+			cdr_chf_csv].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1594,6 +1596,22 @@ radius_acct_to_ecs(_Config) ->
 	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
 	{_, UserName} = lists:keyfind("name", 1, UserObj),
 	{_, UserName} = lists:keyfind("id", 1, UserObj).
+
+cdr_chf_csv() ->
+	[{userdata, [{doc, "Export CHF CDR to CSV"}]}].
+
+cdr_chf_csv(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
+	Start = erlang:system_time(millisecond),
+	ok = fill_acct(1000),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(AcctLog),
+	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	ok = ocs_log:cdr_log(chf, Filename, Start, End),
+	ok = ocs_log:cdr_file(chf, Filename, csv),
+	{ok, ExportDir} = application:get_env(ocs, export_dir),
+	Path = filename:join([ExportDir, Filename ++ ".csv"]),
+	{ok, #file_info{type = regular}} = file:read_file_info(Path).
 
 %%---------------------------------------------------------------------
 %% internal functions

@@ -12,6 +12,7 @@
       {abmf_log_dir, "log_abmf"},
       {ipdr_log_dir, "log_ipdr"},
       {cdr_log_dir, "log_cdr"},
+      {export_dir, "log_export"},
 		{cdr_logs,
 				[{wlan, {4, 4, 4}, 1440},
 				{voip, {4, 44, 44}, 1440},

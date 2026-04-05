@@ -699,10 +699,10 @@ cdr_log4(CdrLog) ->
 			{error, Reason}
 	end.
 
--spec cdr_file(LogFile, Type, Format) -> Result
+-spec cdr_file(Type, LogFile, Format) -> Result
 	when
+		Type :: chf,
 		LogFile :: file:filename(),
-		Type :: ps | cs | ims | sms | vcs,
 		Format :: xml | json | csv,
 		Result :: ok | {error, Reason},
 		Reason :: term().
@@ -710,12 +710,12 @@ cdr_log4(CdrLog) ->
 %%
 %% 	Creates a file named `LogFile.Format' with the details from the
 %% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
-%% 	created previously with {@link cdr_log/3}.
+%% 	created previously with {@link cdr_log/4}.
 %%
-cdr_file(LogFile, Type, Format) when is_list(LogFile),
+cdr_file(Type, LogFile, Format) when is_list(LogFile),
 		((Format == xml) or (Format == json) or (Format == csv)) ->
-	{ok, Directory} = application:get_env(ocs, cdr_log_dir),
-	FileName = filename:join([Directory, Type, LogFile]),
+	{ok, CdrLogDir} = application:get_env(ocs, cdr_log_dir),
+	FileName = filename:join([CdrLogDir, Type, LogFile]),
 	case disk_log:open([{name, make_ref()},
 			{file, FileName}, {repair, true}]) of
 		{ok, Log} ->
@@ -749,14 +749,17 @@ cdr_file1(FileName, Log, Format) ->
 	end.
 %% @hidden
 cdr_file2(FileName, Log, Format, ExportDir) ->
-	CsvFile = filename:join([ExportDir, FileName ++ "." ++ atom_to_list(Format)]),
-	case file:open(CsvFile, [raw, write, delayed_write]) of
+	ExportFile = FileName ++ "." ++ atom_to_list(Format),
+	ExportPath = filename:join([ExportDir, ExportFile]),
+	case file:open(ExportPath, [raw, write, delayed_write]) of
+		{ok, IoDevice} when Format == csv ->
+			chf_csv_header(Log, IoDevice, $,);
 		{ok, IoDevice} ->
 			cdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log},
-					{filename, CsvFile}, {error, Reason}]),
+					{filename, ExportFile}, {error, Reason}]),
 			disk_log:close(Log),
 			{error, Reason}
 	end.
@@ -1022,14 +1025,15 @@ ipdr_file1(FileName, Log, Format) ->
 	end.
 %% @hidden
 ipdr_file2(FileName, Log, Format, ExportDir) ->
-	CsvFile = filename:join([ExportDir, FileName ++ "." ++ atom_to_list(Format)]),
-	case file:open(CsvFile, [raw, write, delayed_write]) of
+	ExportFile = FileName ++ "." ++ atom_to_list(Format),
+	ExportPath = filename:join([ExportDir, ExportFile]),
+	case file:open(ExportPath, [raw, write, delayed_write]) of
 		{ok, IoDevice} ->
 			ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log},
-					{filename, CsvFile}, {error, Reason}]),
+					{filename, ExportFile}, {error, Reason}]),
 			disk_log:close(Log),
 			{error, Reason}
 	end.
@@ -5170,8 +5174,7 @@ chf_vcs3(Protocol, ReqType, Req, Res, CFR) ->
 	CFR.
 
 % @hidden
-chf_csv(Log, IoDevice, Seperator,
-		{Cont, [#{recordType := chargingFunctionRecord} | _] = T}) ->
+chf_csv_header(Log, IoDevice, Seperator) ->
 	Columns = [<<"Invocation Timestamp">>,
 			<<"Charging Session Identifier">>,
 			<<"NF Name">>, <<"NF Address">>,
@@ -5180,7 +5183,7 @@ chf_csv(Log, IoDevice, Seperator,
 	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
-			chf_csv1(Log, IoDevice, Seperator, Cont, T);
+			cdr_file3(Log, IoDevice, csv, disk_log:chunk(Log, start));
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -5188,15 +5191,16 @@ chf_csv(Log, IoDevice, Seperator,
 			disk_log:close(Log),
 			{error, Reason}
 	end.
+
 % @hidden
-chf_csv1(Log, IoDevice, Seperator, Cont,
-		[{TS, _, _, CFR, Rated} | T]) ->
+chf_csv(Log, IoDevice, Seperator,
+		{Cont, [{TS, _, _, CFR, Rated} | T]}) ->
 	Timestamp = ocs_rest:iso8601(TS),
 	Columns = [Timestamp],
 	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Row, $\r, $\n]) of
 		ok ->
-			chf_csv1(Log, IoDevice, Seperator, Cont, T);
+			chf_csv(Log, IoDevice, Seperator, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -5204,6 +5208,6 @@ chf_csv1(Log, IoDevice, Seperator, Cont,
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-chf_csv1(Log, IoDevice, _Seperator, Cont, []) ->
+chf_csv(Log, IoDevice, _Seperator, {Cont, []}) ->
 	cdr_file3(Log, IoDevice, csv, {Cont, []}).
 
