@@ -392,7 +392,7 @@ ipdr_log() ->
    [{userdata, [{doc, "Log IPDR records for date/time range"}]}].
 
 ipdr_log(_Config) ->
-	{ok, AcctLog} = application:get_env(ocs, acct_log_dir),
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
