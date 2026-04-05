@@ -32,7 +32,7 @@
 			{interval :: pos_integer(),
 			schedule :: calendar:time(),
 			dir :: string() | undefined,
-			type :: voip | wlan}).
+			type :: chf | voip | wlan}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -56,7 +56,7 @@
 %% @private
 %% @todo Allow intervals shorter than one day.
 init([Type, ScheduledTime, Interval] = _Args) when
-		((Type == wlan) or (Type == voip)),
+		((Type == chf) or (Type == wlan) or (Type == voip)),
 		tuple_size(ScheduledTime) =:= 3,
 		is_integer(Interval), Interval > 0 ->
 	NewInterval = case round_up(Interval) of
@@ -72,7 +72,9 @@ init([Type, ScheduledTime, Interval] = _Args) when
 			schedule = ScheduledTime, type = Type},
 	Action = {continue, init},
 	{ok, State, Action};
-init(_Args) ->
+init([Type, ScheduledTime, Interval] = _Args) ->
+	error_logger:warning_report(["Ignored archive log specification",
+			{type, Type}, {time, ScheduledTime}, {interval, Interval}]),
 	ignore.
 
 -spec handle_continue(Info, State) -> Result
@@ -88,7 +90,19 @@ init(_Args) ->
 %% @see //stdlib/gen_server:handle_continue/2
 %% @private
 %%
-handle_continue(init = _Info, State) ->
+handle_continue(init = _Info, #state{type = chf} = State) ->
+	{ok, Directory} = application:get_env(cdr_log_dir),
+	case file:make_dir(Directory) of
+		ok ->
+			handle_continue1(Directory, State);
+		{error, eexist} ->
+			handle_continue1(Directory, State);
+		{error, Reason} ->
+			{stop, Reason}
+	end;
+%% deprecated
+handle_continue(init = _Info, #state{type = Type} = State)
+		when Type == wlan; Type == voip ->
 	{ok, Directory} = application:get_env(ipdr_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
@@ -227,7 +241,6 @@ wait(ScheduledTime, Interval) ->
 
 -spec round_up(Interval) -> Interval
 	when
-		Interval :: pos_integer(),
 		Interval :: pos_integer().
 %% @doc Interval must be a divisor of one day.
 %% @hidden
