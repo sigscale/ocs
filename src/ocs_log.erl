@@ -598,7 +598,7 @@ cdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 cdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	cdr_log(Type, File, Start, Seconds * 1000 + 999);
-cdr_log(Type, File, Start, End) when is_list(File),
+cdr_log(chf = Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 		{ok, Directory} = application:get_env(ocs, cdr_log_dir),
 		FileName = filename:join([Directory, Type, File]),
@@ -660,14 +660,11 @@ cdr_log3(CdrLog, _Start, _End, {error, _Reason}) ->
 	cdr_log4(CdrLog);
 cdr_log3(CdrLog, _Start, _End, {eof, []}) ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, Start, End, {Cont, []}) ->
-	cdr_log3(CdrLog, Start, End, disk_log:chunk(CdrLog, Cont));
 cdr_log3(CdrLog, _Start, End, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	cdr_log4(CdrLog);
-cdr_log3(CdrLog, Start, End, {Cont, [H | T]})
-		when element(6, H) == stop ->
-	case disk_log:log(CdrLog, cdr_codec(H)) of
+cdr_log3(CdrLog, Start, End, {Cont, [H | T]}) ->
+	case disk_log:log(CdrLog, cdr_chf_codec(H)) of
 		ok ->
 			cdr_log3(CdrLog, Start, End, {Cont, T});
 		{error, Reason} ->
@@ -679,8 +676,8 @@ cdr_log3(CdrLog, Start, End, {Cont, [H | T]})
 			disk_log:close(CdrLog),
 			{error, Reason}
 	end;
-cdr_log3(CdrLog, Start, End, {Cont, [_ | T]}) ->
-	cdr_log3(CdrLog, Start, End, {Cont, T}).
+cdr_log3(CdrLog, Start, End, {Cont, []}) ->
+	cdr_log3(CdrLog, Start, End, disk_log:chunk(CdrLog, Cont)).
 %% @hidden
 cdr_log4(CdrLog) ->
 	case disk_log:close(CdrLog) of
@@ -784,7 +781,7 @@ cdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
 cdr_file3(_Log, _IoDevice, json, {_Cont,_Events}) ->
 	 {error, unimplemented};
 cdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
-	cdr_csv(Log, IoDevice, $,, {Cont, Events}).
+	chf_csv(Log, IoDevice, $,, {Cont, Events}).
 
 -spec ipdr_log(Type, File, Start, End) -> Result
 	when
@@ -3043,18 +3040,17 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
--spec cdr_codec(Event) -> CDRs
+-spec cdr_chf_codec(Event) -> CDRs
 	when
 		Event :: acct_event(),
 		CDRs :: [CDR],
 		CDR :: cdr().
 %% @doc Convert `ocs_acct' log event to rated CDR log events.
 %% @private
-cdr_codec(Event) when size(Event) > 6,
+cdr_chf_codec(Event) when size(Event) > 6,
 		((element(3, Event) == radius)
 		orelse (element(3, Event) == diameter)
-		orelse (element(3, Event) == nrf)),
-		element(6, Event) == stop ->
+		orelse (element(3, Event) == nrf)) ->
 	TimeStamp = element(1, Event),
 	Unique = element(2, Event),
 	Protocol = element(3, Event),
@@ -3072,56 +3068,56 @@ cdr_codec(Event) when size(Event) > 6,
 		false ->
 			undefined
 	end,
-	cdr_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
+	cdr_chf_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
 %% @hidden
-cdr_codec1(TimeStamp, Unique, diameter = Protocol, ReqType,
+cdr_chf_codec1(TimeStamp, Unique, diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Service-Context-Id' = Id} = Req, Res, Rated) ->
 	case binary:part(Id, size(Id), -8) of
 		<<"3gpp.org">> ->
 			ServiceType = binary:part(Id, byte_size(Id) - 14, 5),
-			cdr_codec2(TimeStamp, Unique, Protocol,
+			cdr_chf_codec2(TimeStamp, Unique, Protocol,
 					ReqType, Req, Res, Rated, ServiceType);
 		_ ->
 			exit(missing_service_context_id)
 	end;
-cdr_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
+cdr_chf_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
 		#{"serviceContextId" := Id} = Req, Res, Rated) ->
 	case lists:sublist(Id, length(Id) - 7, 8) of
 		"3gpp.org" ->
 			ServiceType = lists:sublist(Id, length(Id) - 13, 5),
-			cdr_codec2(TimeStamp, Unique, Protocol,
+			cdr_chf_codec2(TimeStamp, Unique, Protocol,
 					ReqType, Req, Res, Rated, ServiceType);
 		_ ->
 			exit(missing_service_context_id)
 	end;
-cdr_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
+cdr_chf_codec1(TimeStamp, Unique, nrf = Protocol, ReqType,
 		#{"serviceRating" := [#{"serviceContextId" := Id} | _]} = Req,
 		Res, Rated) ->
 	% deprecated in Nrf_Rating v1.2.0
 	case lists:sublist(Id, length(Id) - 7, 8) of
 		"3gpp.org" ->
 			ServiceType = lists:sublist(Id, length(Id) - 13, 5),
-			cdr_codec2(TimeStamp, Unique, Protocol,
+			cdr_chf_codec2(TimeStamp, Unique, Protocol,
 					ReqType, Req, Res, Rated, ServiceType);
 		_ ->
 			exit(missing_service_context_id)
 	end;
-cdr_codec1(TimeStamp, Unique, radius, ReqType, Req, Res, Rated)
+cdr_chf_codec1(TimeStamp, Unique, radius, ReqType, Req, Res, Rated)
 		when is_list(Req) ->
-	cdr_ps(TimeStamp, Unique, radius, ReqType, Req, Res, Rated).
+	chf_ps(TimeStamp, Unique, radius, ReqType, Req, Res, Rated).
 %% @hidden
-cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
 		when ServiceType == <<"32251">>; ServiceType == "32251" ->
-	cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
-cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated,  ServiceType)
+	chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated,  ServiceType)
 		when ServiceType == <<"32260">>; ServiceType == "32260" ->
-	cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
-cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+	chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
 		when ServiceType == <<"32276">>; ServiceType == "32276" ->
-	cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
-cdr_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
+	chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated);
+cdr_chf_codec2(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated, ServiceType)
 		when ServiceType == <<"32274">>; ServiceType == "32274" ->
-	cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
+	chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
 
 -spec ipdr_codec(Event) -> IPDRs
 	when
@@ -4913,7 +4909,7 @@ nf_name4(_) ->
 		Rated :: #rated{} | undefined}.
 %% A charging detail record in a CDR archive log.
 
--spec cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
@@ -4924,56 +4920,56 @@ nf_name4(_) ->
 		Rated :: acct_rated() | undefined,
 		CDRs :: [CDR],
 		CDR :: cdr().
-%% @doc CODEC for PS CDR.
+%% @doc CODEC for PS CHF-CDR.
 %% @private
-cdr_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
-	CHR = #{recordType => chargingFunctionRecord,
+chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
-	CHR1 = chr_ps1(Protocol, ReqType, Req, Res, CHR),
-	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+	CFR1 = chf_ps1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
 %% @hidden
-chr_ps1(nrf = Protocol, ReqType,
-		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
-	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
-	chr_ps2(Protocol, ReqType, Req, Res, CHR1);
-chr_ps1(diameter = Protocol, ReqType,
-		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CHR) ->
-	CHR1 = CHR#{chargingSessionIdentifier => SessionId},
-	chr_ps2(Protocol, ReqType, Req, Res, CHR1);
-chr_ps1(radius = Protocol, ReqType, Req, Res, CHR)
+chf_ps1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_ps2(Protocol, ReqType, Req, Res, CFR1);
+chf_ps1(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
+	chf_ps2(Protocol, ReqType, Req, Res, CFR1);
+chf_ps1(radius = Protocol, ReqType, Req, Res, CFR)
 		when is_list(Req) ->
 	SessionId = proplists:get_value(?AcctSessionId, Req),
-	CHR1 = CHR#{chargingSessionIdentifier => SessionId},
-	chr_ps2(Protocol, ReqType, Req, Res, CHR1).
+	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
+	chf_ps2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
-chr_ps2(nrf = Protocol, ReqType,
+chf_ps2(nrf = Protocol, ReqType,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
-		Res, CHR) ->
+		Res, CFR) ->
 	case nf_identification(ServiceInfo) of
 		NfAddress when is_list(NfAddress) ->
 			case inet:parse_address(NfAddress) of
 				{ok, IPAddress} when size(IPAddress) == 4 ->
 					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_ps3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_ps3(Protocol, ReqType, Req, Res, CFR1);
 				{ok, IPAddress} when size(IPAddress) == 8 ->
 					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_ps3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_ps3(Protocol, ReqType, Req, Res, CFR1);
 				{error, _} ->
-					chr_ps3(Protocol, ReqType, Req, Res, CHR)
+					chf_ps3(Protocol, ReqType, Req, Res, CFR)
 			end;
 		undefined ->
-			chr_ps3(Protocol, ReqType, Req, Res, CHR)
+			chf_ps3(Protocol, ReqType, Req, Res, CFR)
 	end;
-chr_ps2(Protocol, ReqType, Req, Res, CHR) ->
-	chr_ps3(Protocol, ReqType, Req, Res, CHR).
+chf_ps2(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ps3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chr_ps3(Protocol, ReqType, Req, Res, CHR) ->
-	CHR.
+chf_ps3(Protocol, ReqType, Req, Res, CFR) ->
+	CFR.
 
--spec cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
@@ -4984,47 +4980,47 @@ chr_ps3(Protocol, ReqType, Req, Res, CHR) ->
 		Rated :: acct_rated() | undefined,
 		CDRs :: [CDR],
 		CDR :: cdr().
-%% @doc CODEC for IMS CDR.
+%% @doc CODEC for IMS CHF-CDR.
 %% @private
-cdr_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
-	CHR = #{recordType => chargingFunctionRecord,
+chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
-	CHR1 = chr_ims1(Protocol, ReqType, Req, Res, CHR),
-	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+	CFR1 = chf_ims1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
 %% @hidden
-chr_ims1(nrf = Protocol, ReqType,
-		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
-	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
-	chr_ims2(Protocol, ReqType, Req, Res, CHR1).
+chf_ims1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_ims2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
-chr_ims2(nrf = Protocol, ReqType,
+chf_ims2(nrf = Protocol, ReqType,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
-		Res, CHR) ->
+		Res, CFR) ->
 	case nf_identification(ServiceInfo) of
 		NfAddress when is_list(NfAddress) ->
 			case inet:parse_address(NfAddress) of
 				{ok, IPAddress} when size(IPAddress) == 4 ->
 					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_ims3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_ims3(Protocol, ReqType, Req, Res, CFR1);
 				{ok, IPAddress} when size(IPAddress) == 8 ->
 					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_ims3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_ims3(Protocol, ReqType, Req, Res, CFR1);
 				{error, _} ->
-					chr_ims3(Protocol, ReqType, Req, Res, CHR)
+					chf_ims3(Protocol, ReqType, Req, Res, CFR)
 			end;
 		undefined ->
-			chr_ims3(Protocol, ReqType, Req, Res, CHR)
+			chf_ims3(Protocol, ReqType, Req, Res, CFR)
 	end;
-chr_ims2(Protocol, ReqType, Req, Res, CHR) ->
-	chr_ims3(Protocol, ReqType, Req, Res, CHR).
+chf_ims2(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ims3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chr_ims3(Protocol, ReqType, Req, Res, CHR) ->
-	CHR.
+chf_ims3(Protocol, ReqType, Req, Res, CFR) ->
+	CFR.
 
--spec cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
@@ -5035,47 +5031,47 @@ chr_ims3(Protocol, ReqType, Req, Res, CHR) ->
 		Rated :: acct_rated() | undefined,
 		CDRs :: [CDR],
 		CDR :: cdr().
-%% @doc CODEC for PS CDR.
+%% @doc CODEC for SMS CHF-CDR.
 %% @private
-cdr_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
-	CHR = #{recordType => chargingFunctionRecord,
+chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
-	CHR1 = chr_sms1(Protocol, ReqType, Req, Res, CHR),
-	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+	CFR1 = chf_sms1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
 %% @hidden
-chr_sms1(nrf = Protocol, ReqType,
-		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
-	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
-	chr_sms2(Protocol, ReqType, Req, Res, CHR1).
+chf_sms1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_sms2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
-chr_sms2(nrf = Protocol, ReqType,
+chf_sms2(nrf = Protocol, ReqType,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
-		Res, CHR) ->
+		Res, CFR) ->
 	case nf_identification(ServiceInfo) of
 		NfAddress when is_list(NfAddress) ->
 			case inet:parse_address(NfAddress) of
 				{ok, IPAddress} when size(IPAddress) == 4 ->
 					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_sms3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_sms3(Protocol, ReqType, Req, Res, CFR1);
 				{ok, IPAddress} when size(IPAddress) == 8 ->
 					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_sms3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_sms3(Protocol, ReqType, Req, Res, CFR1);
 				{error, _} ->
-					chr_sms3(Protocol, ReqType, Req, Res, CHR)
+					chf_sms3(Protocol, ReqType, Req, Res, CFR)
 			end;
 		undefined ->
-			chr_sms3(Protocol, ReqType, Req, Res, CHR)
+			chf_sms3(Protocol, ReqType, Req, Res, CFR)
 	end;
-chr_sms2(Protocol, ReqType, Req, Res, CHR) ->
-	chr_sms3(Protocol, ReqType, Req, Res, CHR).
+chf_sms2(Protocol, ReqType, Req, Res, CFR) ->
+	chf_sms3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chr_sms3(Protocol, ReqType, Req, Res, CHR) ->
-	CHR.
+chf_sms3(Protocol, ReqType, Req, Res, CFR) ->
+	CFR.
 
--spec cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
@@ -5086,48 +5082,48 @@ chr_sms3(Protocol, ReqType, Req, Res, CHR) ->
 		Rated :: acct_rated() | undefined,
 		CDRs :: [CDR],
 		CDR :: cdr().
-%% @doc CODEC for PS CDR.
+%% @doc CODEC for VCS CHF-CDR.
 %% @private
-cdr_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
-	CHR = #{recordType => chargingFunctionRecord,
+chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
+	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
-	CHR1 = chr_vcs1(Protocol, ReqType, Req, Res, CHR),
-	[{TimeStamp, Unique, Protocol, CHR1, R} || R <- Rated].
+	CFR1 = chf_vcs1(Protocol, ReqType, Req, Res, CFR),
+	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated].
 %% @hidden
-chr_vcs1(nrf = Protocol, ReqType,
-		#{"ratingSessionId" := SessionId} = Req, Res, CHR) ->
-	CHR1 = CHR#{chargingSessionIdentifier => list_to_binary(SessionId)},
-	chr_vcs2(Protocol, ReqType, Req, Res, CHR1).
+chf_vcs1(nrf = Protocol, ReqType,
+		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_vcs2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
-chr_vcs2(nrf = Protocol, ReqType,
+chf_vcs2(nrf = Protocol, ReqType,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
-		Res, CHR) ->
+		Res, CFR) ->
 	case nf_identification(ServiceInfo) of
 		NfAddress when is_list(NfAddress) ->
 			case inet:parse_address(NfAddress) of
 				{ok, IPAddress} when size(IPAddress) == 4 ->
 					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_vcs3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
 				{ok, IPAddress} when size(IPAddress) == 8 ->
 					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CHR1 = CHR#{nFunctionConsumerInformation => NFI},
-					chr_vcs3(Protocol, ReqType, Req, Res, CHR1);
+					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+					chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
 				{error, _} ->
-					chr_vcs3(Protocol, ReqType, Req, Res, CHR)
+					chf_vcs3(Protocol, ReqType, Req, Res, CFR)
 			end;
 		undefined ->
-			chr_vcs3(Protocol, ReqType, Req, Res, CHR)
+			chf_vcs3(Protocol, ReqType, Req, Res, CFR)
 	end;
-chr_vcs2(Protocol, ReqType, Req, Res, CHR) ->
-	chr_vcs3(Protocol, ReqType, Req, Res, CHR).
+chf_vcs2(Protocol, ReqType, Req, Res, CFR) ->
+	chf_vcs3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chr_vcs3(Protocol, ReqType, Req, Res, CHR) ->
-	CHR.
+chf_vcs3(Protocol, ReqType, Req, Res, CFR) ->
+	CFR.
 
 % @hidden
-cdr_csv(Log, IoDevice, Seperator,
+chf_csv(Log, IoDevice, Seperator,
 		{Cont, [#{recordType := chargingFunctionRecord} | _] = T}) ->
 	Columns = [<<"Invocation Timestamp">>,
 			<<"Charging Session Identifier">>,
@@ -5137,7 +5133,7 @@ cdr_csv(Log, IoDevice, Seperator,
 	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
-			cdr_csv1(Log, IoDevice, Seperator, Cont, T);
+			chf_csv1(Log, IoDevice, Seperator, Cont, T);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -5146,14 +5142,14 @@ cdr_csv(Log, IoDevice, Seperator,
 			{error, Reason}
 	end.
 % @hidden
-cdr_csv1(Log, IoDevice, Seperator, Cont,
-		[{TS, _, _, CHR, Rated} | T]) ->
+chf_csv1(Log, IoDevice, Seperator, Cont,
+		[{TS, _, _, CFR, Rated} | T]) ->
 	Timestamp = ocs_rest:iso8601(TS),
 	Columns = [Timestamp],
 	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Row, $\r, $\n]) of
 		ok ->
-			cdr_csv1(Log, IoDevice, Seperator, Cont, T);
+			chf_csv1(Log, IoDevice, Seperator, Cont, T);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -5161,6 +5157,6 @@ cdr_csv1(Log, IoDevice, Seperator, Cont,
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-cdr_csv1(Log, IoDevice, _Seperator, Cont, []) ->
+chf_csv1(Log, IoDevice, _Seperator, Cont, []) ->
 	cdr_file3(Log, IoDevice, csv, {Cont, []}).
 
