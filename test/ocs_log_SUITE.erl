@@ -150,7 +150,7 @@ sequences() ->
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
-			nrf_log_acct_event, ipdr_log, get_range,
+			nrf_log_acct_event, ipdr_log, cdr_log, get_range,
 			get_last, auth_query, acct_query_radius,
 			acct_query_diameter, acct_query_nrf,
 			abmf_log_event, abmf_query, binary_tree_before,
@@ -392,6 +392,7 @@ ipdr_log() ->
    [{userdata, [{doc, "Log IPDR records for date/time range"}]}].
 
 ipdr_log(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_dir),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
@@ -411,7 +412,7 @@ ipdr_log(_Config) ->
 			{?AcctInputGigawords, 1}, {?AcctOutputGigawords, 0}],
 	Event = {Start, Node, Server, Client, start,
 			[{?AcctSessionId, "1234567890"} | Attrs]},
-	LogInfo = disk_log:info(ocs_acct),
+	LogInfo = disk_log:info(AcctLog),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
 	Weight = [7,8] ++ lists:duplicate(32, 1) ++ lists:duplicate(32, 2)
@@ -436,13 +437,13 @@ ipdr_log(_Config) ->
 	end,
 	ok = Fill(NumItems),
 	End = erlang:system_time(millisecond),
-	ok = disk_log:sync(ocs_acct),
+	ok = disk_log:sync(AcctLog),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
 	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(wlan, Filename, StartRange, EndRange),
-	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
+	GetRangeResult = ocs_log:get_range(AcctLog, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(6, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->
@@ -461,6 +462,48 @@ ipdr_log(_Config) ->
 				Acc
 	end,
 	StopCount = Fchunk(disk_log:chunk(IpdrLog, start), 0) - 2.
+
+cdr_log() ->
+   [{userdata, [{doc, "Log CDR records for date/time range"}]}].
+
+cdr_log(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
+	ok = fill_acct(1000),
+	LogInfo = disk_log:info(AcctLog),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	FileEvents = FileSize div EventSize,
+	Start = erlang:system_time(millisecond),
+	NumItems = FileEvents * 4,
+	ok = fill_acct(NumItems),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(AcctLog),
+	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	ok = ocs_log:cdr_log(chf, Filename, Start, End),
+	{ok, CdrLogDir} = application:get_env(ocs, cdr_log_dir),
+	Path = filename:join([CdrLogDir, chf, Filename]),
+	{ok, CdrLog} = disk_log:open([{name, make_ref()}, {file, Path}]),
+	Fvalid = fun({TS, N, P, CHR, Rated})
+					when is_integer(TS), TS >= Start,
+					is_integer(TS), TS =< End, is_integer(N),
+					((P == nrf) orelse (P == diameter) orelse (P == radius)),
+					map_get(recordType, CHR) == chargingFunctionRecord,
+					(is_record(Rated, rated) orelse (Rated == undefined)) ->
+				true;
+			(_) ->
+				false
+	end,
+	Fchunk = fun F({error, Reason}) ->
+				ct:fail(Reason);
+			F({Cont, Chunk}) ->
+				true = lists:all(Fvalid, Chunk),
+				F(disk_log:chunk(CdrLog, Cont));
+			F(eof) ->
+				disk_log:close(CdrLog)
+	end,
+	ok = Fchunk(disk_log:chunk(CdrLog, start)).
 
 get_range() ->
    [{userdata, [{doc, "Get date/time range from log"}]}].
@@ -1696,6 +1739,7 @@ fill_acct(N, Protocol) ->
 			{CCR, CCA}
 	end,
 	Fnrf = fun() ->
+			RatingDataRef = unique(),
 			ServiceContextId = "10.32255@3gpp.org",
 			Sub1 = lists:concat(["imsi-", IMSI]),
 			Sub2 = lists:concat(["msisdn-", MSISDN]),
@@ -1734,7 +1778,8 @@ fill_acct(N, Protocol) ->
 							"serviceInformation" => PSInfo}],
 					[]}
 			end,
-			RatingDataRequest = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+			RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+					"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 					"invocationSequenceNumber" => SeqNo,
 					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
 					"subscriptionId" => [Sub1, Sub2],
@@ -1984,4 +2029,10 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 	[{transport_module, Trans}, {transport_config,
 			[{raddr, RemAddr}, {rport, RemPort},
 			{reuseaddr, true}, {ip, LocalAddr}]}].
+
+%% @hidden
+unique() ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ integer_to_list(N).
 
