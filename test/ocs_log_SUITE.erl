@@ -1696,13 +1696,21 @@ fill_acct(N, Protocol) ->
 		3 -> interim
 	end,
 	Fradius = fun() ->
-			ACR = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
-			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
-			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
-			{?AcctStatusType, rand:uniform(3)}, {?AcctSessionTime, AcctSessionTime},
-			{?AcctInputOctets, AcctInputOctets}, {?AcctOutputOctets, AcctOutputOctets}],
-			{ACR, undefined}
+			SessionId = integer_to_list(erlang:unique_integer([positive])),
+			ACR = [{?ServiceType, 2},
+					{?NasPortId, "wlan1"},
+					{?NasPortType, 19},
+					{?UserName, UserName},
+					{?CallingStationId, ocs_test_lib:mac()},
+					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+					{?NasIdentifier, NasIdentifier},
+					{?NasIpAddress, ClientAddress},
+					{?AcctStatusType, rand:uniform(3)},
+					{?AcctSessionTime, AcctSessionTime},
+					{?AcctSessionId, SessionId},
+					{?AcctInputOctets, AcctInputOctets},
+					{?AcctOutputOctets, AcctOutputOctets}],
+					{ACR, undefined}
 	end,
 	Fdiameter = fun() ->
 			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
@@ -1756,56 +1764,111 @@ fill_acct(N, Protocol) ->
 					'Multiple-Services-Credit-Control' = [MSCCResponse]},
 			{CCR, CCA}
 	end,
-	Fnrf = fun() ->
-			RatingDataRef = unique(),
-			ServiceContextId = "10.32255@3gpp.org",
-			Sub1 = lists:concat(["imsi-", IMSI]),
-			Sub2 = lists:concat(["msisdn-", MSISDN]),
-			PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
-			{SRRequest, SRResponse} = case Type of
-				start ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "RESERVE",
-							"requestedUnit" => #{},
-							"serviceInformation" => PSInfo}],
-					[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"resultCode" => "SUCCESS",
-							"grantedUnit" => #{"totalVolume" => 5000000}}]};
-				interim ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType" => "RESERVE",
-							"requestedUnit" => #{},
-							"serviceInformation" => PSInfo},
-					#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "DEBIT",
-							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-							"serviceInformation" => PSInfo}],
-					[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"resultCode" => "SUCCESS",
-							"grantedUnit" => #{"totalVolume" => 5000000}}]};
-				stop ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "DEBIT",
-							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-							"serviceInformation" => PSInfo}],
-					[]}
-			end,
-			RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
-					"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
-					"invocationSequenceNumber" => SeqNo,
-					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
-					"subscriptionId" => [Sub1, Sub2],
-					"serviceRating" => SRRequest},
-			RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
-					"invocationSequenceNumber" => SeqNo,
-					"serviceRating" => SRResponse},
-			{RatingDataRequest, RatingDataResponse}
+	Fnrf = fun(chf) ->
+				RatingDataRef = unique(),
+				NfConsumer = #{"nFName" => "e38bbe87-ffcf-438e-afa9-9c643556edc6",
+						"nFIPv4Address" => inet:ntoa(ClientAddress),
+						"nodeFunctionality" => "CHF"},
+				ServiceContextId = "10.32255@3gpp.org",
+				Sub1 = lists:concat(["imsi-", IMSI]),
+				Sub2 = lists:concat(["msisdn-", MSISDN]),
+				PSInfo = #{},
+				{SRRequest, SRResponse} = case Type of
+					start ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					interim ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo},
+						#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					stop ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[]}
+				end,
+				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"nfConsumerIdentification" => NfConsumer,
+						"subscriptionId" => [Sub1, Sub2],
+						"serviceRating" => SRRequest},
+				RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"serviceRating" => SRResponse},
+				{RatingDataRequest, RatingDataResponse};
+			(ocf) ->
+				RatingDataRef = unique(),
+				NfConsumer = #{"nFIPv4Address" => inet:ntoa(ClientAddress),
+						"nodeFunctionality" => "OCF"},
+				ServiceContextId = "20.32251@3gpp.org",
+				Sub1 = lists:concat(["imsi-", IMSI]),
+				Sub2 = lists:concat(["msisdn-", MSISDN]),
+				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
+				{SRRequest, SRResponse} = case Type of
+					start ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					interim ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo},
+						#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					stop ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[]}
+				end,
+				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"nfConsumerIdentification" => NfConsumer,
+						"subscriptionId" => [Sub1, Sub2],
+						"serviceRating" => SRRequest},
+				RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"serviceRating" => SRResponse},
+				{RatingDataRequest, RatingDataResponse}
 	end,
 	Protocol1 = case Protocol of
 		undefined ->
@@ -1819,7 +1882,12 @@ fill_acct(N, Protocol) ->
 		diameter ->
 			Fdiameter();
 		nrf ->
-			Fnrf()
+			case rand:uniform(100) of
+				W when W =< 20 ->
+					Fnrf(chf);
+				_W ->
+					Fnrf(ocf)
+			end
 	end,
 	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
 	fill_acct(N - 1, Protocol).
