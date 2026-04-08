@@ -1680,7 +1680,6 @@ fill_acct(N, Protocol) ->
 	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
 	AcctInputOctets = rand:uniform(100000000),
-	AcctSessionTime = rand:uniform(3600) + 100,
 	UserName = ocs_test_lib:rand_name(),
 	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
 	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
@@ -1690,6 +1689,9 @@ fill_acct(N, Protocol) ->
 	ClientAddress = ocs_test_lib:ipv4(),
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	StopTime = Timestamp - rand:uniform(1500),
+	StartTime = StopTime - rand:uniform(3600000),
+	Duration = (StopTime - StartTime) div 1000,
 	Type = case rand:uniform(3) of
 		1 -> start;
 		2 -> stop;
@@ -1705,15 +1707,38 @@ fill_acct(N, Protocol) ->
 					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
 					{?NasIdentifier, NasIdentifier},
 					{?NasIpAddress, ClientAddress},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-IMSI', IMSI}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-RAT-Type', 6}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-PDP-Type', 0}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-Charging-ID', rand:uniform(16#ffffffff)}}},
+					{?FramedIpAddress, ocs_test_lib:ipv4()},
 					{?AcctStatusType, rand:uniform(3)},
-					{?AcctSessionTime, AcctSessionTime},
 					{?AcctSessionId, SessionId},
 					{?AcctInputOctets, AcctInputOctets},
 					{?AcctOutputOctets, AcctOutputOctets}],
-					{ACR, undefined}
+			ACR1 = case Type of
+				start ->
+					ACR;
+				interim ->
+					ACR;
+				stop ->
+					radius_attributes:store(?AcctSessionTime, Duration, ACR)
+			end,
+			{ACR1, undefined}
 	end,
 	Fdiameter = fun() ->
 			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
+			ServiceContextId = <<"10.32251@3gpp.org">>,
+			ChargingId = rand:uniform(4294967295),
+			PdpAddress = ocs_test_lib:ipv4(),
+			{StartTime1, StopTime1} = case Type of
+				start ->
+					{[ocs_log:date(StartTime)], []};
+				interim ->
+					{[ocs_log:date(StartTime)], []};
+				stop ->
+					{[ocs_log:date(StartTime)], [ocs_log:date(StopTime)]}
+			end,
 			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
 					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
@@ -1741,12 +1766,21 @@ fill_acct(N, Protocol) ->
 											'CC-Output-Octets' = [AcctOutputOctets]}]},
 							#'3gpp_ro_Multiple-Services-Credit-Control'{}}
 			end,
-			ServiceContextId = <<"10.32251@3gpp.org">>,
 			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
 			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
-			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
+			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-User-Location-Info' = [<<130, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4,
+							$a, $b, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4, 0:4,
+							$f:4, $a:4, $c:4, $e:4, $0:4, $0:4, $1:4>>],
+					% 'PDN-Connection-Charging-ID' = [ChargingId],
+					'3GPP-Charging-Id' = [<<ChargingId:32>>],
+					'3GPP-PDP-Type' = [0],
+					'PDP-Address' = [PdpAddress],
+					'3GPP-RAT-Type' = [6],
+					'Start-Time' = StartTime1,
+					'Stop-Time' = StopTime1},
 			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
 			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
 					'Origin-Host' = Hostname,
@@ -1772,7 +1806,25 @@ fill_acct(N, Protocol) ->
 				ServiceContextId = "10.32255@3gpp.org",
 				Sub1 = lists:concat(["imsi-", IMSI]),
 				Sub2 = lists:concat(["msisdn-", MSISDN]),
-				PSInfo = #{},
+				PLMNId = #{"mcc" => "001", "mnc" => "001"},
+				TAI = #{"plmnId" => PLMNId, "tac" => "cafe42"},
+				NCGI = #{"plmnId" => PLMNId, "nrCellId" => "1deadbeef"},
+				Location = #{"nrLocation" => #{"tai" => TAI, "ncgi" => NCGI}},
+				PduAddress = #{"pduIPv4Address" => inet:ntoa(ocs_test_lib:ipv4())},
+				PduSessionInfo = #{"dnnId" => "apn1.mnc001.mcc001.gprs",
+						"pduSessionID" => 0, "ratType" => "NR",
+						"pduType" => "IPV4", "pduAddress" => PduAddress,
+						"startTime" => ocs_log:iso8601(StartTime)},
+				PduSessionInfo1 = case Type of
+					start ->
+						PduSessionInfo;
+					interim ->
+						PduSessionInfo;
+					stop ->
+						PduSessionInfo#{"stopTime" => ocs_log:iso8601(StopTime)}
+				end,
+				PSInfo = #{"userLocationinfo" => Location,
+						"pduSessionInformation" => PduSessionInfo1},
 				{SRRequest, SRResponse} = case Type of
 					start ->
 						{[#{"serviceContextId" => ServiceContextId,
@@ -1824,7 +1876,14 @@ fill_acct(N, Protocol) ->
 				ServiceContextId = "20.32251@3gpp.org",
 				Sub1 = lists:concat(["imsi-", IMSI]),
 				Sub2 = lists:concat(["msisdn-", MSISDN]),
-				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
+				PLMNId = #{"mcc" => "001", "mnc" => "001"},
+				TAI = #{"plmnId" => PLMNId, "tac" => "cafe42"},
+				ECGI = #{"plmnId" => PLMNId, "eutraCellId" => "feeded1"},
+				Location = #{"eutraLocation" => #{"tai" => TAI, "ecgi" => ECGI}},
+				PduAddress = inet:ntoa(ocs_test_lib:ipv4()),
+				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"},
+						"pdpAddress" => PduAddress, "ratType" => "EUTRA",
+						"apn" => "internet", "userLocationinfo" => Location},
 				{SRRequest, SRResponse} = case Type of
 					start ->
 						{[#{"serviceContextId" => ServiceContextId,

@@ -3571,7 +3571,7 @@ ipdr_wlan1([nasIpAddress | T], radius = Protocol, TimeStamp, stop, Req, Resp, Ra
 ipdr_wlan1([nasIpAddress | T], nrf = Protocol, TimeStamp, stop,
 		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
 		Resp, Rated, IPDR) ->
-	NewIPDR = case nf_identification(ServiceInfo) of
+	NewIPDR = case nrf_nf_address(ServiceInfo) of
 		NasIpAddress when is_list(NasIpAddress) ->
 			IPDR#ipdr_wlan{nasIpAddress = NasIpAddress};
 		undefined ->
@@ -3779,7 +3779,7 @@ ipdr_wlan1([_ | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
 	IPDR.
 
-% @hidden
+%% @hidden
 ipdr_csv(Log, IoDevice, Seperator, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	Columns = [<<"Creation Time">>, <<"Sequence Number">>,
 			<<"Username">>, <<"Accounting Session ID">>,
@@ -4266,39 +4266,39 @@ query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
 %% @hidden
-nf_identification(PDUSessionChargingInformation)
+nrf_nf_address(PDUSessionChargingInformation)
 		when is_list(PDUSessionChargingInformation) ->
-	nf_identification1(lists:keyfind("pduSessionInformation",
+	nrf_nf_address1(lists:keyfind("pduSessionInformation",
 			1, PDUSessionChargingInformation));
-nf_identification(_) ->
+nrf_nf_address(_) ->
 	undefined.
 %% @hidden
-nf_identification1({_, {struct, PduSessionInformation}}) ->
-	nf_identification2(lists:keyfind("servingNetworkFunctionID",
+nrf_nf_address1({_, {struct, PduSessionInformation}}) ->
+	nrf_nf_address2(lists:keyfind("servingNetworkFunctionID",
 			1, PduSessionInformation));
-nf_identification1(_) ->
+nrf_nf_address1(_) ->
 	undefined.
 %% @hidden
-nf_identification2({_, {struct, ServingNetworkFunctionID}}) ->
-	nf_identification3(lists:keyfind("servingNetworkFunctionInformation",
+nrf_nf_address2({_, {struct, ServingNetworkFunctionID}}) ->
+	nrf_nf_address3(lists:keyfind("servingNetworkFunctionInformation",
 			1, ServingNetworkFunctionID));
-nf_identification2(_) ->
+nrf_nf_address2(_) ->
 	undefined.
 %% @hidden
-nf_identification3({_, {struct, NFIdentification}}) ->
-	nf_identification4(NFIdentification,
+nrf_nf_address3({_, {struct, NFIdentification}}) ->
+	nrf_nf_address4(NFIdentification,
 			lists:keyfind("nFIPv4Address", 1, NFIdentification));
-nf_identification3(_) ->
+nrf_nf_address3(_) ->
 	undefined.
 %% @hidden
-nf_identification4(_NFIdentification, {_, Ipv4Addr}) ->
+nrf_nf_address4(_NFIdentification, {_, Ipv4Addr}) ->
 	Ipv4Addr;
-nf_identification4(NFIdentification, _) ->
-	nf_identification5(lists:keyfind("nFIPv6Address", 1, NFIdentification)).
+nrf_nf_address4(NFIdentification, _) ->
+	nrf_nf_address5(lists:keyfind("nFIPv6Address", 1, NFIdentification)).
 %% @hidden
-nf_identification5({_, Ipv6Addr}) ->
+nrf_nf_address5({_, Ipv6Addr}) ->
 	Ipv6Addr;
-nf_identification5(_) ->
+nrf_nf_address5(_) ->
 	undefined.
 
 %% @hidden
@@ -4366,12 +4366,12 @@ nf_name4(_) ->
 		plmnId := binary(),
 		lac := binary(),
 		rac := binary()}.
-%% Routing Area ID (SAI)
+%% Routing Area ID (RAI)
 
--type tai() :: #{
+-type tracking_area_id() :: #{
 		plmnId := binary(),
 		tac := binary()}.
-%% Routing Area ID (RAI)
+%% Tracking Area ID (TAI)
 
 -type ecgi() :: #{
 		plmnId := binary(),
@@ -4402,7 +4402,7 @@ nf_name4(_) ->
 %% Global RAN node ID
 
 -type nr_location() :: #{
-		tai => tai(),
+		tai => tracking_area_id(),
 		ncgi => ncgi(),
 		ageOfLocationInformation => non_neg_integer(),
 		ueLocationTimestamp => timestamp(),
@@ -4413,7 +4413,7 @@ nf_name4(_) ->
 %% 5G NR UE Location
 
 -type eutra_location() :: #{
-		tai => tai(),
+		tai => tracking_area_id(),
 		ecgi => ecgi(),
 		ageOfLocationInformation => non_neg_integer(),
 		ueLocationTimestamp => timestamp(),
@@ -4449,7 +4449,7 @@ nf_name4(_) ->
 %% GERAN UE Location
 
 -type n3ga_location() :: #{
-		n3gppTai => tai(),
+		n3gppTai => tracking_area_id(),
 		n3IwfId => binary(),
 		ueIpv4Addr => inet:ip4_address(),
 		ueIpv6Addr => inet:ip6_address(),
@@ -4533,8 +4533,38 @@ nf_name4(_) ->
 %%
 %% See 3GPP TS 32.298 5.1.2.2.13B EPC QoS Information.
 
--type rat_type() :: uTRAN | gERAN | wLAN | eUTRAN | virtual | nr.
+-type rat_type() :: byte().
 %% RAT Type.
+%%
+%% 	1   UTRAN
+%% 	2   GERAN
+%% 	3   WLAN
+%% 	4   GAN (UMA)
+%% 	5   HSPA Evolution
+%% 	6   EUTRAN
+%% 	7   Virtual
+%% 	8   EUTRAN NB-IoT
+%% 	9   LTE-M
+%% 	10  NR
+%% 	51  NR
+%% 	52  NR Unlicenced
+%% 	53  EUTRAN Unlicened
+%% 	54  LTE-M
+%% 	55  Wireline
+%% 	56  Wireline Cable
+%% 	57  Wireline BBF
+%% 	58  NR REDCAP
+%% 	59  NR LEO
+%% 	60  NR MEO
+%% 	61  NR GEO
+%% 	62  NR Other Satellite
+%% 	65  N3GA Trusted
+%% 	66  WLAN Trusted
+%% 	101 IEEE 802.16e
+%% 	102 3GPP2 eHRPD
+%% 	103 3GPP2 HRPD
+%% 	104 3GPP2 1xRTT
+%% 	105 3GPP2 UMB
 %%
 %% See 3GPP TS 32.298 5.1.2.2.47 RAT Type.
 
@@ -4866,7 +4896,11 @@ nf_name4(_) ->
 %% See 3GPP TS 32.298 5.1.4.6 SMS CDR parameters.
 
 -type nf_info() :: #{
-		networkFunctionality := byte(),
+		networkFunctionality := cHF | sMF | aMF | sMSF
+				| sGW | iSMF | ePDG | cEF | nEF | pGWCSMF
+				| 'mnS-Producer' | sGSN | fiveGDDNMF | vSMF
+				| 'iMS-Node' | eES | 'mMS-Node' | pCF | uDM
+				| uPF | 'tSN-AF' | tSNTSF | 'mB-SMF ',
 		networkFunctionName => binary(),
 		networkFunctionIPv4Address => inet:ip4_address(),
 		networkFunctionPLMNIdentifier => binary(),
@@ -4961,39 +4995,128 @@ chf_ps1(nrf = Protocol, ReqType,
 	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
 	chf_ps2(Protocol, ReqType, Req, Res, CFR1);
 chf_ps1(diameter = Protocol, ReqType,
-		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CFR) ->
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req,
+		Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
 	chf_ps2(Protocol, ReqType, Req, Res, CFR1);
 chf_ps1(radius = Protocol, ReqType, Req, Res, CFR)
 		when is_list(Req) ->
-	SessionId = proplists:get_value(?AcctSessionId, Req),
-	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
+	CFR1 = case radius_attributes:find(?AcctSessionId, Req) of
+		{ok, SessionId} ->
+			CFR#{chargingSessionIdentifier => list_to_binary(SessionId)};
+		{error, not_found} ->
+			CFR
+	end,
 	chf_ps2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
 chf_ps2(nrf = Protocol, ReqType,
-		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		#{"nfConsumerIdentification" := NfInfo} = Req,
 		Res, CFR) ->
-	case nf_identification(ServiceInfo) of
-		NfAddress when is_list(NfAddress) ->
-			case inet:parse_address(NfAddress) of
-				{ok, IPAddress} when size(IPAddress) == 4 ->
-					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_ps3(Protocol, ReqType, Req, Res, CFR1);
-				{ok, IPAddress} when size(IPAddress) == 8 ->
-					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_ps3(Protocol, ReqType, Req, Res, CFR1);
-				{error, _} ->
-					chf_ps3(Protocol, ReqType, Req, Res, CFR)
-			end;
-		undefined ->
-			chf_ps3(Protocol, ReqType, Req, Res, CFR)
-	end;
+	NFI = nrf_nf_info(NfInfo),
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_ps3(Protocol, ReqType, Req, Res, CFR1);
+chf_ps2(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Origin-Host' = OriginHost} = Req,
+		Res, CFR) ->
+	NFI = #{networkFunctionFQDN => OriginHost},
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_ps3(Protocol, ReqType, Req, Res, CFR1);
+chf_ps2(radius = Protocol, ReqType, Req, Res, CFR)
+		when is_list(Req) ->
+	NFI = case radius_attributes:find(?NasIdentifier, Req) of
+		{ok, Name} ->
+			#{networkFunctionName => list_to_binary(Name)};
+		{error, not_found} ->
+			#{}
+	end,
+	NFI1 = case radius_attributes:find(?NasIpAddress, Req) of
+		{ok, Address} ->
+			NFI#{networkFunctionIPv4Address => Address};
+		{error, not_found} ->
+			NFI
+	end,
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI1},
+	chf_ps3(Protocol, ReqType, Req, Res, CFR1);
 chf_ps2(Protocol, ReqType, Req, Res, CFR) ->
 	chf_ps3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
+chf_ps3(nrf = Protocol, ReqType,
+		#{"serviceContextId" := Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_ps4(Protocol, ReqType, Req, Res, CFR1);
+chf_ps3(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceContextId" := Context} | _]} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_ps4(Protocol, ReqType, Req, Res, CFR1);
+chf_ps3(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => Context},
+	chf_ps4(Protocol, ReqType, Req, Res, CFR1);
 chf_ps3(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ps4(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_ps4(nrf = Protocol, ReqType,
+		#{"subscriptionId" := SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = nrf_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_ps5(Protocol, ReqType, Req, Res, CFR1);
+chf_ps4(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_ps5(Protocol, ReqType, Req, Res, CFR1);
+chf_ps4(radius = Protocol, ReqType, Req, Res, CFR) ->
+	UserName = radius_attributes:fetch(?UserName, Req),
+	NAI = list_to_binary(["nai-", UserName]),
+	SubscriptionId1 = [#{subscriptionIDType => 'eND-USER-NAI',
+			subscriptionIDData => NAI}],
+	CFR1 = case radius_attributes:find(?'3GPP', ?'3GPP-IMSI', Req) of
+		{ok, IMSI} ->
+			SubscriptionId2 = [#{subscriptionIDType => 'eND-USER-IMSI',
+					subscriptionIDData => IMSI}],
+			CFR#{subscriberIdentifier => SubscriptionId2 ++ SubscriptionId1};
+		{error, not_found} ->
+			CFR#{subscriberIdentifier => SubscriptionId1}
+	end,
+	chf_ps5(Protocol, ReqType, Req, Res, CFR1).
+%% @hidden
+chf_ps5(nrf = Protocol, ReqType,
+		#{"serviceRating" := ServiceRating} = Req,
+		Res, CFR) ->
+	CFR1 = case nrf_pdu_session_charging_info(ServiceRating) of
+		undefined ->
+			CFR;
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
+	end,
+	chf_ps6(Protocol, ReqType, Req, Res, CFR1);
+chf_ps5(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req,
+		Res, CFR) ->
+	CFR1 = case diameter_pdu_session_charging_info(ServiceInfo) of
+		undefined ->
+			CFR;
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
+	end,
+	chf_ps6(Protocol, ReqType, Req, Res, CFR1);
+chf_ps5(radius = Protocol, ReqType, Req, Res, CFR) ->
+	CFR1 = case radius_pdu_session_charging_info(Req) of
+		undefined ->
+			CFR;
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
+	end,
+	chf_ps6(Protocol, ReqType, Req, Res, CFR1);
+chf_ps5(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ps6(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_ps6(Protocol, ReqType, Req, Res, CFR) ->
 	CFR.
 
 -spec chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
@@ -5027,32 +5150,60 @@ chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res,
 chf_ims1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_ims2(Protocol, ReqType, Req, Res, CFR1);
+chf_ims1(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
 	chf_ims2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
 chf_ims2(nrf = Protocol, ReqType,
-		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		#{"nfConsumerIdentification" := NfInfo} = Req,
 		Res, CFR) ->
-	case nf_identification(ServiceInfo) of
-		NfAddress when is_list(NfAddress) ->
-			case inet:parse_address(NfAddress) of
-				{ok, IPAddress} when size(IPAddress) == 4 ->
-					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_ims3(Protocol, ReqType, Req, Res, CFR1);
-				{ok, IPAddress} when size(IPAddress) == 8 ->
-					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_ims3(Protocol, ReqType, Req, Res, CFR1);
-				{error, _} ->
-					chf_ims3(Protocol, ReqType, Req, Res, CFR)
-			end;
-		undefined ->
-			chf_ims3(Protocol, ReqType, Req, Res, CFR)
-	end;
+	NFI = nrf_nf_info(NfInfo),
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_ims3(Protocol, ReqType, Req, Res, CFR1);
+chf_ims2(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Origin-Host' = OriginHost} = Req,
+		Res, CFR) ->
+	NFI = #{networkFunctionFQDN => OriginHost},
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_ims3(Protocol, ReqType, Req, Res, CFR1);
 chf_ims2(Protocol, ReqType, Req, Res, CFR) ->
 	chf_ims3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
+chf_ims3(nrf = Protocol, ReqType,
+		#{"serviceContextId" := Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_ims4(Protocol, ReqType, Req, Res, CFR1);
+chf_ims3(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceContextId" := Context} | _]} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_ims4(Protocol, ReqType, Req, Res, CFR1);
+chf_ims3(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => Context},
+	chf_ims4(Protocol, ReqType, Req, Res, CFR1);
 chf_ims3(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ims4(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_ims4(nrf = Protocol, ReqType,
+		#{"subscriptionId" := SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = nrf_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_ims5(Protocol, ReqType, Req, Res, CFR1);
+chf_ims4(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_ims5(Protocol, ReqType, Req, Res, CFR1).
+%% @hidden
+chf_ims5(Protocol, ReqType, Req, Res, CFR) ->
 	CFR.
 
 -spec chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
@@ -5086,32 +5237,60 @@ chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res,
 chf_sms1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_sms2(Protocol, ReqType, Req, Res, CFR1);
+chf_sms1(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
 	chf_sms2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
 chf_sms2(nrf = Protocol, ReqType,
-		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		#{"nfConsumerIdentification" := NfInfo} = Req,
 		Res, CFR) ->
-	case nf_identification(ServiceInfo) of
-		NfAddress when is_list(NfAddress) ->
-			case inet:parse_address(NfAddress) of
-				{ok, IPAddress} when size(IPAddress) == 4 ->
-					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_sms3(Protocol, ReqType, Req, Res, CFR1);
-				{ok, IPAddress} when size(IPAddress) == 8 ->
-					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_sms3(Protocol, ReqType, Req, Res, CFR1);
-				{error, _} ->
-					chf_sms3(Protocol, ReqType, Req, Res, CFR)
-			end;
-		undefined ->
-			chf_sms3(Protocol, ReqType, Req, Res, CFR)
-	end;
+	NFI = nrf_nf_info(NfInfo),
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_sms3(Protocol, ReqType, Req, Res, CFR1);
+chf_sms2(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Origin-Host' = OriginHost} = Req,
+		Res, CFR) ->
+	NFI = #{networkFunctionFQDN => OriginHost},
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_sms3(Protocol, ReqType, Req, Res, CFR1);
 chf_sms2(Protocol, ReqType, Req, Res, CFR) ->
 	chf_sms3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
+chf_sms3(nrf = Protocol, ReqType,
+		#{"serviceContextId" := Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_sms4(Protocol, ReqType, Req, Res, CFR1);
+chf_sms3(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceContextId" := Context} | _]} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_sms4(Protocol, ReqType, Req, Res, CFR1);
+chf_sms3(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => Context},
+	chf_sms4(Protocol, ReqType, Req, Res, CFR1);
 chf_sms3(Protocol, ReqType, Req, Res, CFR) ->
+	chf_sms4(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_sms4(nrf = Protocol, ReqType,
+		#{"subscriptionId" := SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = nrf_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_sms5(Protocol, ReqType, Req, Res, CFR1);
+chf_sms4(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_sms5(Protocol, ReqType, Req, Res, CFR1).
+%% @hidden
+chf_sms5(Protocol, ReqType, Req, Res, CFR) ->
 	CFR.
 
 -spec chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
@@ -5145,41 +5324,964 @@ chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res,
 chf_vcs1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => list_to_binary(SessionId)},
+	chf_vcs2(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs1(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CFR) ->
+	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
 	chf_vcs2(Protocol, ReqType, Req, Res, CFR1).
 %% @hidden
 chf_vcs2(nrf = Protocol, ReqType,
-		#{"serviceRating" := [#{"serviceInformation" := {struct, ServiceInfo}} | _]} = Req,
+		#{"nfConsumerIdentification" := NfInfo} = Req,
 		Res, CFR) ->
-	case nf_identification(ServiceInfo) of
-		NfAddress when is_list(NfAddress) ->
-			case inet:parse_address(NfAddress) of
-				{ok, IPAddress} when size(IPAddress) == 4 ->
-					NFI = #{networkFunctionIPv4Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
-				{ok, IPAddress} when size(IPAddress) == 8 ->
-					NFI = #{networkFunctionIPv6Address => IPAddress},
-					CFR1 = CFR#{nFunctionConsumerInformation => NFI},
-					chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
-				{error, _} ->
-					chf_vcs3(Protocol, ReqType, Req, Res, CFR)
-			end;
-		undefined ->
-			chf_vcs3(Protocol, ReqType, Req, Res, CFR)
-	end;
+	NFI = nrf_nf_info(NfInfo),
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs2(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Origin-Host' = OriginHost} = Req,
+		Res, CFR) ->
+	NFI = #{networkFunctionFQDN => OriginHost},
+	CFR1 = CFR#{nFunctionConsumerInformation => NFI},
+	chf_vcs3(Protocol, ReqType, Req, Res, CFR1);
 chf_vcs2(Protocol, ReqType, Req, Res, CFR) ->
 	chf_vcs3(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
+chf_vcs3(nrf = Protocol, ReqType,
+		#{"serviceContextId" := Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_vcs4(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs3(nrf = Protocol, ReqType,
+		#{"serviceRating" := [#{"serviceContextId" := Context} | _]} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => list_to_binary(Context)},
+	chf_vcs4(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs3(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = Req,
+		Res, CFR) ->
+	CFR1 = CFR#{serviceSpecificationInformation => Context},
+	chf_vcs4(Protocol, ReqType, Req, Res, CFR1);
 chf_vcs3(Protocol, ReqType, Req, Res, CFR) ->
+	chf_vcs4(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_vcs4(nrf = Protocol, ReqType,
+		#{"subscriptionId" := SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = nrf_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_vcs5(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs4(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionId} = Req,
+		Res, CFR) ->
+	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
+	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
+	chf_vcs5(Protocol, ReqType, Req, Res, CFR1).
+%% @hidden
+chf_vcs5(Protocol, ReqType, Req, Res, CFR) ->
 	CFR.
 
-% @hidden
+%% @hidden
+nrf_nf_info(NfInfo) ->
+	nrf_nf_info1(NfInfo, #{}).
+%% @hidden
+nrf_nf_info1(#{"nFIPv4Address" := Address} = NfInfo, Acc)
+		when is_list(Address) ->
+	case inet:parse_ipv4_address(Address) of
+		{ok, IPv4Address} ->
+			Acc1 = Acc#{networkFunctionIPv4Address => IPv4Address},
+			nrf_nf_info2(NfInfo, Acc1);
+		{error, einval} ->
+			nrf_nf_info2(NfInfo, Acc)
+	end;
+nrf_nf_info1(NfInfo, Acc) ->
+	nrf_nf_info2(NfInfo, Acc).
+%% @hidden
+nrf_nf_info2(#{"nFIPv6Address" := Address} = NfInfo, Acc)
+		when is_list(Address) ->
+	case inet:parse_ipv6_address(Address) of
+		{ok, IPv4Address} ->
+			Acc1 = Acc#{networkFunctionIPv6Address => IPv4Address},
+			nrf_nf_info3(NfInfo, Acc1);
+		{error, einval} ->
+			nrf_nf_info3(NfInfo, Acc)
+	end;
+nrf_nf_info2(NfInfo, Acc) ->
+	nrf_nf_info3(NfInfo, Acc).
+%% @hidden
+nrf_nf_info3(#{"nFPLMNID" := #{"mcc" := MCC, "mnc" := MNC}} = NfInfo, Acc)
+		when is_list(MCC), is_list(MNC) ->
+	PLMN = list_to_binary([MCC, MNC]),
+	Acc1 = Acc#{networkFunctionPLMNIdentifier => PLMN},
+	nrf_nf_info4(NfInfo, Acc1);
+nrf_nf_info3(NfInfo, Acc) ->
+	nrf_nf_info4(NfInfo, Acc).
+%% @hidden
+nrf_nf_info4(#{"nodeFunctionality" := "AMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => aMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" :=  "SMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => sMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "SMSF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => sMSF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "PGW_C_SMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => pGWCSMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "SGW"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => sGW},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "I_SMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => iSMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "ePDG"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => ePDG},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "CEF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => cEF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "NEF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => nEF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" :=  "MnS_Producer"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => 'mnS-Producer'},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "SGSN"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => sGSN},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "V_SMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => vSMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "5G_DDNMF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => fiveGDDNMF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" :=  "IMS_Node"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => 'iMS-Node'},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "EES"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => eES},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "PCF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => pCF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "UDM"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => uDM},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "UPF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => uPF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "CHF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => cHF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(#{"nodeFunctionality" := "OCF"} = NfInfo, Acc) ->
+	Acc1 = Acc#{networkFunctionality => cHF},
+	nrf_nf_info5(NfInfo, Acc1);
+nrf_nf_info4(NfInfo, Acc) ->
+	nrf_nf_info5(NfInfo, Acc).
+%% @hidden
+nrf_nf_info5(#{"nFName" := NfName} = NfInfo, Acc)
+		when is_list(NfName) ->
+	Acc1 = Acc#{networkFunctionName => list_to_binary(NfName)},
+	nrf_nf_info6(NfInfo, Acc1);
+nrf_nf_info5(NfInfo, Acc) ->
+	nrf_nf_info6(NfInfo, Acc).
+%% @hidden
+nrf_nf_info6(#{"nFFqdn" := FQDN}, Acc)
+		when is_list(FQDN) ->
+	Acc#{networkFunctionFQDN => list_to_binary(FQDN)};
+nrf_nf_info6(_NfInfo, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_subscription_id(SubscriptionId) ->
+	nrf_subscription_id(SubscriptionId, []).
+%% @hidden
+nrf_subscription_id(["msisdn-" ++ MSISDN | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-E164',
+			subscriptionIDData => list_to_binary(MSISDN)},
+	nrf_subscription_id(T, [SubscriptionId | Acc]);
+nrf_subscription_id(["imsi-" ++ IMSI | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-IMSI',
+			subscriptionIDData =>  list_to_binary(IMSI)},
+	nrf_subscription_id(T, [SubscriptionId | Acc]);
+nrf_subscription_id(["nai-" ++ NAI | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-NAI',
+			subscriptionIDData =>  list_to_binary(NAI)},
+	nrf_subscription_id(T, [SubscriptionId | Acc]);
+nrf_subscription_id(["iccid-" ++ ICCID | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-PRIVATE',
+			subscriptionIDData => list_to_binary(ICCID)},
+	nrf_subscription_id(T, [SubscriptionId | Acc]);
+nrf_subscription_id([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+nrf_pdu_session_charging_info([#{"serviceInformation" := SI} | _])
+	when is_map_key("pduSessionInformation", SI) ->
+	nrf_pdu_session_charging_info1(SI, #{});
+nrf_pdu_session_charging_info([#{"serviceInformation" := SI} | _])
+	when is_map_key("sgsnMccMnc", SI) ->
+	nrf_pdu_session_charging_info1(SI, #{});
+nrf_pdu_session_charging_info([_SR | T]) ->
+	nrf_pdu_session_charging_info(T);
+nrf_pdu_session_charging_info([]) ->
+	undefined.
+%% @hidden
+nrf_pdu_session_charging_info1(#{"chargingId" := CID} = SI, Acc) ->
+	Acc1 = Acc#{pDUSessionChargingID => CID},
+	nrf_pdu_session_charging_info2(SI, Acc1);
+nrf_pdu_session_charging_info1(SI, Acc) ->
+	nrf_pdu_session_charging_info2(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info2(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}} = SI, Acc) ->
+	SNFI = #{networkFunctionality => sGSN,
+			networkFunctionPLMNIdentifier => list_to_binary([MCC, MNC])}, 
+	Acc1 = Acc#{servingNetworkFunctionInformation => SNFI},
+	nrf_pdu_session_charging_info3(SI, Acc1);
+nrf_pdu_session_charging_info2(SI, Acc) ->
+	nrf_pdu_session_charging_info3(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info3(#{"pdpAddress" := Address} = SI, Acc) ->
+	Acc1 = case inet:parse_ipv4_address(Address) of
+		{ok, Address1} ->
+			Acc#{pDUAddress => #{pDUIPv4Address => Address1}};
+		{error, einval} ->
+			Acc
+	end,
+	nrf_pdu_session_charging_info4(SI, Acc1);
+nrf_pdu_session_charging_info3(SI, Acc) ->
+	nrf_pdu_session_charging_info4(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info4(#{"chargingCharacteristics" := Chars} = SI, Acc) ->
+	Acc1 = Acc#{chargingCharacteristics => list_to_binary(Chars)},
+	nrf_pdu_session_charging_info5(SI, Acc1);
+nrf_pdu_session_charging_info4(SI, Acc) ->
+	nrf_pdu_session_charging_info5(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info5(#{"ratType" := "NR"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 51},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "EUTRA"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 6},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "WLAN"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 3},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "VIRTUAL"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 7},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "NBIOT"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 8},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "UTRA"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 1},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(#{"ratType" := "GERA"} = SI, Acc) ->
+	Acc1 = Acc#{rATType => 2},
+	nrf_pdu_session_charging_info6(SI, Acc1);
+nrf_pdu_session_charging_info5(SI, Acc) ->
+	nrf_pdu_session_charging_info6(SI, Acc).
+%% @hidden
+%nrf_pdu_session_charging_info6(#{"userInformation" := UI} = SI, Acc) ->
+nrf_pdu_session_charging_info6(SI, Acc) ->
+	nrf_pdu_session_charging_info7(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info7(#{"userLocationinfo" := ULI} = SI, Acc) ->
+	Acc1 = Acc#{userLocationInformation => nrf_user_location_info(ULI)},
+	nrf_pdu_session_charging_info8(SI, Acc1);
+nrf_pdu_session_charging_info7(SI, Acc) ->
+	nrf_pdu_session_charging_info8(SI, Acc).
+%% @hidden
+nrf_pdu_session_charging_info8(#{"pduSessionInformation" := PSI}, Acc) ->
+	nrf_pdu_session_info(PSI, Acc);
+nrf_pdu_session_charging_info8(_SI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_user_location_info(ULI) ->
+	nrf_user_location_info1(ULI, #{}).
+%% @hidden
+nrf_user_location_info1(#{"nrLocation" := Location} = ULI, Acc) ->
+	Acc1 = Acc#{nrLocation => nrf_ran_location(Location)},
+	nrf_user_location_info2(ULI, Acc1);
+nrf_user_location_info1(ULI, Acc) ->
+	nrf_user_location_info2(ULI, Acc).
+%% @hidden
+nrf_user_location_info2(#{"eutraLocation" := Location} = ULI, Acc) ->
+	Acc1 = Acc#{eutraLocation => nrf_ran_location(Location)},
+	nrf_user_location_info3(ULI, Acc1);
+nrf_user_location_info2(ULI, Acc) ->
+	nrf_user_location_info3(ULI, Acc).
+%% @hidden
+nrf_user_location_info3(#{"utraLocation" := Location} = ULI, Acc) ->
+	Acc1 = Acc#{utraLocation => nrf_ran_location(Location)},
+	nrf_user_location_info4(ULI, Acc1);
+nrf_user_location_info3(ULI, Acc) ->
+	nrf_user_location_info4(ULI, Acc).
+%% @hidden
+nrf_user_location_info4(#{"n3gaLocation" := Location} = ULI, Acc) ->
+	Acc1 = Acc#{n3gaLocation => nrf_ran_location(Location)},
+	nrf_user_location_info5(ULI, Acc1);
+nrf_user_location_info4(ULI, Acc) ->
+	nrf_user_location_info5(ULI, Acc).
+%% @hidden
+nrf_user_location_info5(#{"geraLocation" := Location}, Acc) ->
+	Acc#{geraLocation => nrf_ran_location(Location)};
+nrf_user_location_info5(_ULI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_ran_location(Location) ->
+	nrf_ran_location1(Location, #{}).
+%% @hidden
+nrf_ran_location1(#{"tai" := TAI} = Location, Acc) ->
+	Acc1 = Acc#{tai => nrf_tai(TAI)},
+	nrf_ran_location2(Location, Acc1);
+nrf_ran_location1(Location, Acc) ->
+	nrf_ran_location2(Location, Acc).
+%% @hidden
+nrf_ran_location2(#{"sai" := SAI} = Location, Acc) ->
+	Acc1 = Acc#{sai => nrf_sai(SAI)},
+	nrf_ran_location3(Location, Acc1);
+nrf_ran_location2(Location, Acc) ->
+	nrf_ran_location3(Location, Acc).
+%% @hidden
+nrf_ran_location3(#{"rai" := RAI} = Location, Acc) ->
+	Acc1 = Acc#{rai => nrf_rai(RAI)},
+	nrf_ran_location4(Location, Acc1);
+nrf_ran_location3(Location, Acc) ->
+	nrf_ran_location4(Location, Acc).
+%% @hidden
+nrf_ran_location4(#{"ncgi" := NCGI} = Location, Acc) ->
+	Acc1 = Acc#{ncgi => nrf_ncgi(NCGI)},
+	nrf_ran_location5(Location, Acc1);
+nrf_ran_location4(Location, Acc) ->
+	nrf_ran_location5(Location, Acc).
+%% @hidden
+nrf_ran_location5(#{"ecgi" := ECGI} = Location, Acc) ->
+	Acc1 = Acc#{ecgi => nrf_ecgi(ECGI)},
+	nrf_ran_location6(Location, Acc1);
+nrf_ran_location5(Location, Acc) ->
+	nrf_ran_location6(Location, Acc).
+%% @hidden
+nrf_ran_location6(#{"cgi" := CGI} = Location, Acc) ->
+	Acc1 = Acc#{cgi => nrf_cgi(CGI)},
+	nrf_ran_location7(Location, Acc1);
+nrf_ran_location6(Location, Acc) ->
+	nrf_ran_location7(Location, Acc).
+%% @hidden
+nrf_ran_location7(#{"n3gppTai" := TAI}, Acc) ->
+	Acc#{n3gppTai => nrf_tai(TAI)};
+nrf_ran_location7(_Location, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_plmnid(#{"mcc" := MCC, "mnc" := MNC}) ->
+	list_to_binary([MCC, MNC]).
+
+%% @hidden
+nrf_tai(TAI) ->
+	nrf_tai1(TAI, #{}).
+%% @hidden
+nrf_tai1(#{"plmnId" := PLMN} = TAI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_tai2(TAI, Acc1).
+%% @hidden
+nrf_tai2(#{"tac" := TAC} = TAI, Acc) ->
+	Acc1 = Acc#{tac => list_to_binary(TAC)},
+	nrf_tai3(TAI, Acc1).
+%% @hidden
+nrf_tai3(#{"nid" := NID}, Acc) ->
+	Acc#{nid => list_to_binary(NID)};
+nrf_tai3(_TAI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_sai(SAI) ->
+	nrf_sai1(SAI, #{}).
+%% @hidden
+nrf_sai1(#{"plmnId" := PLMN} = SAI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_sai2(SAI, Acc1);
+nrf_sai1(SAI, Acc) ->
+	nrf_sai2(SAI, Acc).
+%% @hidden
+nrf_sai2(#{"lac" := LAC} = SAI, Acc) ->
+	Acc1 = Acc#{lac => list_to_binary(LAC)},
+	nrf_sai3(SAI, Acc1);
+nrf_sai2(SAI, Acc) ->
+	nrf_sai3(SAI, Acc).
+%% @hidden
+nrf_sai3(#{"sac" := SAC}, Acc) ->
+	Acc#{sac => list_to_binary(SAC)};
+nrf_sai3(_SAI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_rai(RAI) ->
+	nrf_rai1(RAI, #{}).
+%% @hidden
+nrf_rai1(#{"plmnId" := PLMN} = RAI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_rai2(RAI, Acc1);
+nrf_rai1(RAI, Acc) ->
+	nrf_rai2(RAI, Acc).
+%% @hidden
+nrf_rai2(#{"lac" := LAC} = RAI, Acc) ->
+	Acc1 = Acc#{lac => list_to_binary(LAC)},
+	nrf_rai3(RAI, Acc1);
+nrf_rai2(RAI, Acc) ->
+	nrf_rai3(RAI, Acc).
+%% @hidden
+nrf_rai3(#{"rac" := RAC}, Acc) ->
+	Acc#{rac => list_to_binary(RAC)};
+nrf_rai3(_RAI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_ncgi(NCGI) ->
+	nrf_ncgi1(NCGI, #{}).
+%% @hidden
+nrf_ncgi1(#{"plmnId" := PLMN} = NCGI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_ncgi2(NCGI, Acc1);
+nrf_ncgi1(NCGI, Acc) ->
+	nrf_ncgi2(NCGI, Acc).
+%% @hidden
+nrf_ncgi2(#{"nrCellId" := CID} = NCGI, Acc) ->
+	Acc1 = Acc#{nrCellId => CID},
+	nrf_ncgi3(NCGI, Acc1);
+nrf_ncgi2(NCGI, Acc) ->
+	nrf_ncgi3(NCGI, Acc).
+%% @hidden
+nrf_ncgi3(#{"nid" := NID}, Acc) ->
+	Acc#{nid => list_to_binary(NID)};
+nrf_ncgi3(_NCGI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_ecgi(ECGI) ->
+	nrf_ecgi1(ECGI, #{}).
+%% @hidden
+nrf_ecgi1(#{"plmnId" := PLMN} = ECGI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_ecgi2(ECGI, Acc1);
+nrf_ecgi1(ECGI, Acc) ->
+	nrf_ecgi2(ECGI, Acc).
+%% @hidden
+nrf_ecgi2(#{"eutraCellId" := CID} = ECGI, Acc) ->
+	Acc1 = Acc#{eutraCellId => CID},
+	nrf_ecgi3(ECGI, Acc1);
+nrf_ecgi2(ECGI, Acc) ->
+	nrf_ecgi3(ECGI, Acc).
+%% @hidden
+nrf_ecgi3(#{"nid" := NID}, Acc) ->
+	Acc#{nid => list_to_binary(NID)};
+nrf_ecgi3(_ECGI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_cgi(CGI) ->
+	nrf_cgi1(CGI, #{}).
+%% @hidden
+nrf_cgi1(#{"plmnId" := PLMN} = CGI, Acc) ->
+	Acc1 = Acc#{plmnId => nrf_plmnid(PLMN)},
+	nrf_cgi2(CGI, Acc1);
+nrf_cgi1(CGI, Acc) ->
+	nrf_cgi2(CGI, Acc).
+%% @hidden
+nrf_cgi2(#{"utraCellId" := CID} = CGI, Acc) ->
+	Acc1 = Acc#{utraCellId => CID},
+	nrf_cgi3(CGI, Acc1);
+nrf_cgi2(CGI, Acc) ->
+	nrf_cgi3(CGI, Acc).
+%% @hidden
+nrf_cgi3(#{"lac" := LAC}, Acc) ->
+	Acc#{lac => list_to_binary(LAC)};
+nrf_cgi3(_CGI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_pdu_session_info(#{"pduSessionID" := SessionId} = PSI, Acc)
+		when is_integer(SessionId) ->
+	Acc1 = Acc#{pDUSessionId => SessionId},
+	nrf_pdu_session_info1(PSI, Acc1).
+%% @hidden
+nrf_pdu_session_info1(#{"dnnId" := DNN} = PSI, Acc) ->
+	Acc1 = Acc#{dataNetworkNameIdentifier => list_to_binary(DNN)},
+	nrf_pdu_session_info2(PSI, Acc1).
+%% @hidden
+nrf_pdu_session_info2(#{"pduType" := "IPV4"} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv4},
+	nrf_pdu_session_info3(PSI, Acc1);
+nrf_pdu_session_info2(#{"pduType" := "IPV6"} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv6},
+	nrf_pdu_session_info3(PSI, Acc1);
+nrf_pdu_session_info2(#{"pduType" := "IPV4V6"} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv4v6},
+	nrf_pdu_session_info3(PSI, Acc1);
+nrf_pdu_session_info2(#{"pduType" := "UNSTRUCTURED"} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => unstructured},
+	nrf_pdu_session_info3(PSI, Acc1);
+nrf_pdu_session_info2(#{"pduType" := "ETHERNET"} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => ethernet},
+	nrf_pdu_session_info3(PSI, Acc1);
+nrf_pdu_session_info2(PSI, Acc) ->
+	nrf_pdu_session_info3(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info3(#{"networkSlicingInfo" := NSI} = PSI, Acc) ->
+	Acc1 = Acc#{networkSliceInstanceID => nrf_network_slice_info(NSI)},
+	nrf_pdu_session_info4(PSI, Acc1);
+nrf_pdu_session_info3(PSI, Acc) ->
+	nrf_pdu_session_info4(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info4(#{"servingNetworkFunctionID" := SNFI} = PSI, Acc) ->
+	Acc1 = Acc#{servingNetworkFunctionID => [nrf_serving_nf_id(SNFI)]},
+	nrf_pdu_session_info5(PSI, Acc1);
+nrf_pdu_session_info4(PSI, Acc) ->
+	nrf_pdu_session_info5(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info5(#{"ratType" := "NR"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 51},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "EUTRA"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 6},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "WLAN"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 3},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "VIRTUAL"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 7},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "NBIOT"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 8},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "UTRA"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 1},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(#{"ratType" := "GERA"} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => 2},
+	nrf_pdu_session_info6(PSI, Acc1);
+nrf_pdu_session_info5(PSI, Acc) ->
+	nrf_pdu_session_info6(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info6(#{"chargingCharacteristics" := Chars} = PSI, Acc) ->
+	Acc1 = Acc#{chargingCharacteristics => list_to_binary(Chars)},
+	nrf_pdu_session_info7(PSI, Acc1);
+nrf_pdu_session_info6(PSI, Acc) ->
+	nrf_pdu_session_info7(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info7(#{"startTime" := StartTime} = PSI, Acc)
+		when is_list(StartTime) ->
+	Acc1 = Acc#{pDUSessionstartTime => iso8601(StartTime)},
+	nrf_pdu_session_info8(PSI, Acc1);
+nrf_pdu_session_info7(PSI, Acc) ->
+	nrf_pdu_session_info8(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info8(#{"stopTime" := StopTime} = PSI, Acc)
+		when is_list(StopTime) ->
+	Acc1 = Acc#{pDUSessionstopTime => iso8601(StopTime)},
+	nrf_pdu_session_info9(PSI, Acc1);
+nrf_pdu_session_info8(PSI, Acc) ->
+	nrf_pdu_session_info9(PSI, Acc).
+%% @hidden
+nrf_pdu_session_info9(#{"pduAddress" := PduAddress} = PSI, Acc) ->
+	Acc1 = Acc#{pDUAddress => nrf_pdu_address(PduAddress)},
+	nrf_pdu_session_info10(PSI, Acc1);
+nrf_pdu_session_info9(PSI, Acc) ->
+	nrf_pdu_session_info10(PSI, Acc).
+%% @hidden
+%nrf_pdu_session_info10(#{"subscribedQoSInformation" := QoS} = PSI, Acc) ->
+nrf_pdu_session_info10(PSI, Acc) ->
+	nrf_pdu_session_info11(PSI, Acc).
+%% @hidden
+%nrf_pdu_session_info11(#{"authorizedSessionAMBR" := AMBR} = PSI, Acc) ->
+nrf_pdu_session_info11(PSI, Acc) ->
+	nrf_pdu_session_info12(PSI, Acc).
+%% @hidden
+%nrf_pdu_session_info12(#{"subscribedSessionAMBR" := AMBR} = PSI, Acc) ->
+nrf_pdu_session_info12(PSI, Acc) ->
+	nrf_pdu_session_info13(PSI, Acc).
+%% @hidden
+%nrf_pdu_session_info13(#{"servingCNPlmnId" := PLMN} = PSI, Acc) ->
+nrf_pdu_session_info13(_PSI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_network_slice_info(#{"sNSSAI" := SNSSAI}) ->
+	nrf_network_slice_info1(SNSSAI, #{}).
+%% @hidden
+nrf_network_slice_info1(#{"sst" := SST} = SNSSAI, Acc)
+		when is_integer(SST) ->
+	Acc1 = Acc#{sST => SST},
+	nrf_network_slice_info2(SNSSAI, Acc1).
+%% @hidden
+nrf_network_slice_info2(#{"sd" := SD}, Acc)
+		when is_list(SD) ->
+	Acc#{sD => list_to_binary(SD)};
+nrf_network_slice_info2(_SNSSAI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_serving_nf_id(#{"servingNetworkFunctionInformation" := SNFI} = SNFID) ->
+	Acc = #{servingNetworkFunctionInformation => nrf_nf_info(SNFI)},
+	nrf_serving_nf_id1(SNFID, Acc).
+%% @hidden
+nrf_serving_nf_id1(#{"aMFId" := AMFID} = _SNFID, Acc)
+		when is_list(AMFID) ->
+	Acc#{aMFIdentifier => list_to_binary(AMFID)};
+nrf_serving_nf_id1(_SNFID, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_pdu_address(PDUA) ->
+	nrf_pdu_address1(PDUA, #{}).
+%% @hidden
+nrf_pdu_address1(#{"pduIPv4Address" := Address} = PDUA, Acc) ->
+	Acc1 = case inet:parse_ipv4_address(Address) of
+		{ok, Address1} ->
+			Acc#{pDUIPv4Address => Address1};
+		{error, einval} ->
+			Acc
+	end,
+	nrf_pdu_address2(PDUA, Acc1);
+nrf_pdu_address1(PDUA, Acc) ->
+	nrf_pdu_address2(PDUA, Acc).
+%% @hidden
+nrf_pdu_address2(#{"pduIPv6AddresswithPrefix" := Address} = PDUA, Acc) ->
+	Acc1 = case inet:parse_ipv6_address(Address) of
+		{ok, Address1} ->
+			Acc#{pDUIPv6Address => Address1};
+		{error, einval} ->
+			Acc
+	end,
+	nrf_pdu_address3(PDUA, Acc1);
+nrf_pdu_address2(PDUA, Acc) ->
+	nrf_pdu_address3(PDUA, Acc).
+%% @hidden
+nrf_pdu_address3(#{"iPv4dynamicAddressFlag" := Flag} = PDUA, Acc) ->
+	Acc1 = Acc#{iPV4dynamicAddressFlag => Flag},
+	nrf_pdu_address4(PDUA, Acc1);
+nrf_pdu_address3(PDUA, Acc) ->
+	nrf_pdu_address4(PDUA, Acc).
+%% @hidden
+nrf_pdu_address4(#{"iPv6dynamicPrefixFlag" := Flag} = PDUA, Acc) ->
+	Acc1 = Acc#{iPV6dynamicPrefixFlag => Flag},
+	nrf_pdu_address5(PDUA, Acc1);
+nrf_pdu_address4(PDUA, Acc) ->
+	nrf_pdu_address5(PDUA, Acc).
+%% @hidden
+nrf_pdu_address5(#{"addIpv6AddrPrefixes" := Address} = PDUA, Acc) ->
+	Acc1 = case inet:parse_ipv6_address(Address) of
+		{ok, Address1} ->
+			Acc#{additionalPDUIPv6Prefixes => [Address1]};
+		{error, einval} ->
+			Acc
+	end,
+	nrf_pdu_address6(PDUA, Acc1);
+nrf_pdu_address5(PDUA, Acc) ->
+	nrf_pdu_address6(PDUA, Acc).
+%% @hidden
+nrf_pdu_address6(#{"addIpv6AddrPrefixList" := Addresses}, Acc) ->
+	F = fun({ok, Address}, Acc1) ->
+				[Address | Acc1];
+			({error, einval}, Acc1) ->
+				Acc1
+	end,
+	Addresses1 = lists:foldr(F, [], Addresses),
+	Acc#{additionalPDUIPv6Prefixes => Addresses1};
+nrf_pdu_address6(_PDUA, Acc) ->
+	Acc.
+
+%% @hidden
+diameter_subscription_id(SubscriptionId) ->
+	diameter_subscription_id(SubscriptionId, []).
+%% @hidden
+diameter_subscription_id([#'3gpp_ro_Subscription-Id'{
+		'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+		'Subscription-Id-Data' = MSISDN} | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-E164',
+			subscriptionIDData => MSISDN},
+	diameter_subscription_id(T, [SubscriptionId | Acc]);
+diameter_subscription_id([#'3gpp_ro_Subscription-Id'{
+		'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+		'Subscription-Id-Data' = IMSI} | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-IMSI',
+			subscriptionIDData => IMSI},
+	diameter_subscription_id(T, [SubscriptionId | Acc]);
+diameter_subscription_id([#'3gpp_ro_Subscription-Id'{
+		'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI',
+		'Subscription-Id-Data' = SIPURI} | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-SIP-URI',
+			subscriptionIDData => SIPURI},
+	diameter_subscription_id(T, [SubscriptionId | Acc]);
+diameter_subscription_id([#'3gpp_ro_Subscription-Id'{
+		'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_NAI',
+		'Subscription-Id-Data' = NAI}  | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-NAI',
+			subscriptionIDData => NAI},
+	diameter_subscription_id(T, [SubscriptionId | Acc]);
+diameter_subscription_id([#'3gpp_ro_Subscription-Id'{
+		'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE',
+		'Subscription-Id-Data' = PRIVATE}  | T], Acc) ->
+	SubscriptionId = #{subscriptionIDType => 'eND-USER-PRIVATE',
+			subscriptionIDData => PRIVATE},
+	diameter_subscription_id(T, [SubscriptionId | Acc]);
+diameter_subscription_id([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+diameter_pdu_session_charging_info(#'3gpp_ro_Service-Information'{
+		'PS-Information' = [PSI]}) ->
+	diameter_pdu_session_charging_info1(PSI, #{});
+diameter_pdu_session_charging_info(_) ->
+	undefined.
+%% @hidden
+diameter_pdu_session_charging_info1(#'3gpp_ro_PS-Information'{
+		'PDN-Connection-Charging-ID' = [ChargingId]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUSessionChargingID => ChargingId},
+	diameter_pdu_session_charging_info2(PSI, Acc1);
+diameter_pdu_session_charging_info1(#'3gpp_ro_PS-Information'{
+		'3GPP-Charging-Id' = [<<ChargingId:32>>]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUSessionChargingID => ChargingId},
+	diameter_pdu_session_charging_info2(PSI, Acc1);
+diameter_pdu_session_charging_info1(PSI, Acc) ->
+	diameter_pdu_session_charging_info2(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info2(#'3gpp_ro_PS-Information'{
+		'3GPP-SGSN-MCC-MNC' = [MccMnc]} = PSI, Acc) ->
+	SNFI = #{networkFunctionality => sGSN,
+			networkFunctionPLMNIdentifier => MccMnc}, 
+	Acc1 = Acc#{servingNetworkFunctionInformation => SNFI},
+	diameter_pdu_session_charging_info3(PSI, Acc1);
+diameter_pdu_session_charging_info2(PSI, Acc) ->
+	diameter_pdu_session_charging_info3(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info3(#'3gpp_ro_PS-Information'{
+		'3GPP-User-Location-Info' = [ULI]} = PSI, Acc) ->
+	Acc1 = Acc#{userLocationInformation => diameter_user_location_info(ULI)},
+	diameter_pdu_session_charging_info4(PSI, Acc1);
+diameter_pdu_session_charging_info3(PSI, Acc) ->
+	diameter_pdu_session_charging_info4(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info4(#'3gpp_ro_PS-Information'{
+		'3GPP-PDP-Type' = [0]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv4},
+	diameter_pdu_session_charging_info5(PSI, Acc1);
+diameter_pdu_session_charging_info4(#'3gpp_ro_PS-Information'{
+		'3GPP-PDP-Type' = [2]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv6},
+	diameter_pdu_session_charging_info5(PSI, Acc1);
+diameter_pdu_session_charging_info4(#'3gpp_ro_PS-Information'{
+		'3GPP-PDP-Type' = [3]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => iPv4v6},
+	diameter_pdu_session_charging_info5(PSI, Acc1);
+diameter_pdu_session_charging_info4(#'3gpp_ro_PS-Information'{
+		'3GPP-PDP-Type' = [5]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => unstructured},
+	diameter_pdu_session_charging_info5(PSI, Acc1);
+diameter_pdu_session_charging_info4(#'3gpp_ro_PS-Information'{
+		'3GPP-PDP-Type' = [6]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUType => ethernet},
+	diameter_pdu_session_charging_info5(PSI, Acc1);
+diameter_pdu_session_charging_info4(PSI, Acc) ->
+	diameter_pdu_session_charging_info5(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info5(#'3gpp_ro_PS-Information'{
+		'3GPP-RAT-Type' = [RAT]} = PSI, Acc) ->
+	Acc1 = Acc#{rATType => RAT},
+	diameter_pdu_session_charging_info6(PSI, Acc1);
+diameter_pdu_session_charging_info5(PSI, Acc) ->
+	diameter_pdu_session_charging_info6(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info6(#'3gpp_ro_PS-Information'{
+		'3GPP-Charging-Characteristics' = [Chars]} = PSI, Acc) ->
+	Acc1 = Acc#{chargingCharacteristics => Chars},
+	diameter_pdu_session_charging_info7(PSI, Acc1);
+diameter_pdu_session_charging_info6(PSI, Acc) ->
+	diameter_pdu_session_charging_info7(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info7(#'3gpp_ro_PS-Information'{
+		'Start-Time' = [StartTime]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUSessionstartTime => date(StartTime)},
+	diameter_pdu_session_charging_info8(PSI, Acc1);
+diameter_pdu_session_charging_info7(PSI, Acc) ->
+	diameter_pdu_session_charging_info8(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info8(#'3gpp_ro_PS-Information'{
+		'Stop-Time' = [StopTime]} = PSI, Acc) ->
+	Acc1 = Acc#{pDUSessionstopTime => date(StopTime)},
+	diameter_pdu_session_charging_info9(PSI, Acc1);
+diameter_pdu_session_charging_info8(PSI, Acc) ->
+	diameter_pdu_session_charging_info9(PSI, Acc).
+%% @hidden
+diameter_pdu_session_charging_info9(#'3gpp_ro_PS-Information'{
+		'PDP-Address' = [Address]} = _PSI, Acc) ->
+	Acc#{pDUAddress => #{pDUIPv4Address => Address}};
+diameter_pdu_session_charging_info9(_PSI, Acc) ->
+	Acc.
+
+%% @hidden
+% CGI (3GPP TS 29.274 8.21.1)
+diameter_user_location_info(<<0, MCCMNC:3/binary, LAC:16, CI:16>>) ->
+	CGI = #{plmnId => tbcd(MCCMNC),
+			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
+			utraCellId => list_to_binary(io_lib:fwrite("~4.16.0b", [CI]))},
+	#{utraLocation => #{cgi => CGI}};
+% SAI (3GPP TS 29.274 8.21.2)
+diameter_user_location_info(<<1, MCCMNC:3/binary, LAC:16, SAC:16>>) ->
+	SAI = #{plmnId => tbcd(MCCMNC),
+			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
+			sac => list_to_binary(io_lib:fwrite("~4.16.0b", [SAC]))},
+	#{utraLocation => #{sai => SAI}};
+% RAI (3GPP TS 29.274 8.21.3)
+diameter_user_location_info(<<2, MCCMNC:3/binary, LAC:16, RAC:16>>) ->
+	RAI = #{plmnId => tbcd(MCCMNC),
+			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
+			rac => list_to_binary(io_lib:fwrite("~4.16.0b", [RAC]))},
+	#{utraLocation => #{rai => RAI}};
+% TAI (3GPP TS 29.274 8.21.4)
+diameter_user_location_info(<<128, MCCMNC:3/binary, TAC:16>>) ->
+	TAI = #{plmnId => tbcd(MCCMNC),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	#{eutraLocation => #{tai => TAI}};
+% ECGI (3GPP TS 29.274 8.21.5)
+diameter_user_location_info(<<129, MCCMNC:3/binary, _:4, ECI:28>>) ->
+	ECGI = #{plmnId => tbcd(MCCMNC),
+			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% TAI and ECGI
+diameter_user_location_info(<<130, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+		_:4, ECI:28>>) ->
+	TAI = #{plmnId => tbcd(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => tbcd(MCCMNC2),
+			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% Macro eNodeB ID (3GPP TS 29.274 8.21.7)
+diameter_user_location_info(<<131, MCCMNC:3/binary, _:4, ENBID:20>>) ->
+	ECGI = #{plmnId => tbcd(MCCMNC),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% TAI and eNodeB ID
+diameter_user_location_info(<<132, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+		_:4, ENBID:20>>) ->
+	TAI = #{plmnId => tbcd(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => tbcd(MCCMNC2),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% Extended long macro eNodeB ID (3GPP TS 29.274 8.21.8)
+diameter_user_location_info(<<133, MCCMNC:3/binary, 0:1, _:2, ENBID:21>>) ->
+	ECGI = #{plmnId => tbcd(MCCMNC),
+			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% Extended short macro eNodeB ID (3GPP TS 29.274 8.21.8)
+diameter_user_location_info(<<133, MCCMNC:3/binary, 1:1, _:5, ENBID:18>>) ->
+	ECGI = #{plmnId => tbcd(MCCMNC),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% TAI and extended long macro eNodeB ID
+diameter_user_location_info(<<134, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+		0:1, _:2, ENBID:21>>) ->
+	TAI = #{plmnId => tbcd(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => tbcd(MCCMNC2),
+			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% TAI and extended short macro eNodeB ID
+diameter_user_location_info(<<134, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+		1:1, _:5, ENBID:18>>) ->
+	TAI = #{plmnId => tbcd(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => tbcd(MCCMNC2),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}}.
+
+%% @hidden
+tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4, MNC2:4, MNC1:4>>) ->
+	MCC = tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4>>, []),
+	MNC = tbcd(<<MNC2:4, MNC1:4>>, []),
+	list_to_binary([MCC, MNC]);
+tbcd(<<MCC2:4, MCC1:4, MNC3:4, MCC3:4, MNC2:4, MNC1:4>>) ->
+	MCC = tbcd(<<MCC2:4, MCC1:4, 15:4, MCC3:4>>, []),
+	MNC = tbcd(<<MNC2:4, MNC1:4, 15:4, MNC3:4>>, []),
+	list_to_binary([MCC, MNC]).
+%% @hidden
+tbcd(<<15:4, A:4>>, Acc) ->
+	lists:reverse([A + 48 | Acc]);
+tbcd(<<A2:4, A1:4, Rest/binary>>, Acc)
+		when A1 >= 0, A1 < 10, A2 >= 0, A2 < 10 ->
+	tbcd(Rest, [A2 + 48, A1 + 48 | Acc]);
+tbcd(<<>>, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+radius_pdu_session_charging_info(Attr) ->
+	case radius_attributes:find(?ServiceType, Attr) of
+		{ok, 2} ->
+			radius_pdu_session_charging_info1(Attr, #{});
+		{error, not_found} ->
+			undefined
+	end.
+%% @hidden
+radius_pdu_session_charging_info1(Attr, Acc) ->
+	case radius_attributes:find(?'3GPP', ?'3GPP-Charging-ID', Attr) of
+		{ok, ChargingId} ->
+			Acc1 = Acc#{pDUSessionChargingID => ChargingId},
+			radius_pdu_session_charging_info2(Attr, Acc1);
+		{error, not_found} ->
+			radius_pdu_session_charging_info2(Attr, Acc)
+	end.
+%% @hidden
+radius_pdu_session_charging_info2(Attr, Acc) ->
+	case radius_attributes:find(?'3GPP', ?'3GPP-PDP-Type', Attr) of
+		{ok, 0} ->
+			Acc1 = Acc#{pDUType => iPv4},
+			radius_pdu_session_charging_info3(Attr, Acc1);
+		{ok, 2} ->
+			Acc1 = Acc#{pDUType => iPv6},
+			radius_pdu_session_charging_info3(Attr, Acc1);
+		{ok, 3} ->
+			Acc1 = Acc#{pDUType => iPv4v6},
+			radius_pdu_session_charging_info3(Attr, Acc1);
+		{ok, 5} ->
+			Acc1 = Acc#{pDUType => unstructured},
+			radius_pdu_session_charging_info3(Attr, Acc1);
+		{ok, 6} ->
+			Acc1 = Acc#{pDUType => ethernet},
+			radius_pdu_session_charging_info3(Attr, Acc1);
+		{error, not_found} ->
+			radius_pdu_session_charging_info3(Attr, Acc)
+	end.
+%% @hidden
+radius_pdu_session_charging_info3(Attr, Acc) ->
+	case radius_attributes:find(?'3GPP', ?'3GPP-RAT-Type', Attr) of
+		{ok, RAT} ->
+			Acc1 = Acc#{rATType => RAT},
+			radius_pdu_session_charging_info4(Attr, Acc1);
+		{error, not_found} ->
+			radius_pdu_session_charging_info4(Attr, Acc)
+	end.
+%% @hidden
+radius_pdu_session_charging_info4(Attr, Acc) ->
+	case radius_attributes:find(?FramedIpAddress, Attr) of
+		{ok, Address} ->
+			Acc#{pDUAddress => #{pDUIPv4Address => Address}};
+		{error, not_found} ->
+			Acc
+	end.
+
+%% @hidden
 chf_csv_header(Log, IoDevice, Seperator) ->
 	Columns = [<<"Invocation Timestamp">>,
-			<<"Charging Session Identifier">>,
 			<<"NF Name">>, <<"NF Address">>,
-			<<"Subscriber Identifier">>,
-			<<"Multiple Unit Usage">>],
+			<<"Charging Session Identifier">>,
+			<<"Service Context Identifier">>,
+			<<"IMSI">>, <<"MSISDN">>, <<"NAI">>,
+			<<"Serving PLMN">>, <<"Cell Identifier">>,
+			<<"RAT">>, <<"PDU Address">>,
+			<<"Origin">>, <<"Destination">>,
+			<<"Duration">>, <<"Cause">>],
 	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
@@ -5192,11 +6294,13 @@ chf_csv_header(Log, IoDevice, Seperator) ->
 			{error, Reason}
 	end.
 
-% @hidden
+%% @hidden
 chf_csv(Log, IoDevice, Seperator,
 		{Cont, [{TS, _, _, CFR, Rated} | T]}) ->
 	Timestamp = ocs_rest:iso8601(TS),
-	Columns = [Timestamp],
+	Columns1 = chf_cfr_csv(CFR, [Timestamp]),
+	Columns2 = chf_rated_csv(Rated, []),
+	Columns = Columns1 ++ Columns2,
 	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Row, $\r, $\n]) of
 		ok ->
@@ -5210,4 +6314,255 @@ chf_csv(Log, IoDevice, Seperator,
 	end;
 chf_csv(Log, IoDevice, _Seperator, {Cont, []}) ->
 	cdr_file3(Log, IoDevice, csv, {Cont, []}).
+
+%% @hidden
+chf_cfr_csv(#{nFunctionConsumerInformation := NfInfo} = CFR, Acc) ->
+	NfName = nf_info_name(NfInfo),
+	NfAddress = nf_info_address(NfInfo),
+	chf_cfr_csv1(CFR, [NfAddress, NfName | Acc]);
+chf_cfr_csv(CFR, Acc) ->
+	chf_cfr_csv1(CFR, [<<>>, <<>> | Acc]).
+%% @hidden
+chf_cfr_csv1(#{chargingSessionIdentifier := SessionId} = CFR, Acc) ->
+	chf_cfr_csv2(CFR, [SessionId | Acc]);
+chf_cfr_csv1(CFR, Acc) ->
+	chf_cfr_csv2(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv2(#{serviceSpecificationInformation := Context} = CFR, Acc) ->
+	chf_cfr_csv3(CFR, [Context | Acc]);
+chf_cfr_csv2(CFR, Acc) ->
+	chf_cfr_csv3(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv3(#{subscriberIdentifier := SubscriberId} = CFR, Acc) ->
+	{IMSI, MSISDN, NAI} = csv_subscriber(SubscriberId),
+	chf_cfr_csv4(CFR, [NAI, MSISDN, IMSI| Acc]).
+%% @hidden
+chf_cfr_csv4(#{iMSChargingInformation := IMS} = CFR, Acc)
+		when is_map_key(accessNetworkInformation, IMS) ->
+	{PLMN, Cell} = csv_access_network_info(IMS),
+	chf_cfr_csv5(CFR, [Cell, PLMN | Acc]);
+chf_cfr_csv4(#{sMSChargingInformation := SMS} = CFR, Acc) ->
+	{PLMN, Cell} = csv_user_location(SMS),
+	chf_cfr_csv5(CFR, [Cell, PLMN | Acc]);
+chf_cfr_csv4(#{pDUSessionChargingInformation := PS} = CFR, Acc) ->
+	{PLMN, Cell} = csv_user_location(PS),
+	chf_cfr_csv5(CFR, [Cell, PLMN | Acc]);
+chf_cfr_csv4(#{iMSChargingInformation := IMS} = CFR, Acc) ->
+	{PLMN, Cell} = csv_user_location(IMS),
+	chf_cfr_csv5(CFR, [Cell, PLMN | Acc]);
+chf_cfr_csv4(CFR, Acc) ->
+	chf_cfr_csv5(CFR, [<<>>, <<>> | Acc]).
+%% @hidden
+chf_cfr_csv5(#{pDUSessionChargingInformation := #{rATType := RAT}} = CFR, Acc) ->
+	chf_cfr_csv6(CFR, [integer_to_binary(RAT) | Acc]);
+chf_cfr_csv5(#{sMSChargingInformation := #{rATType := RAT}} = CFR, Acc) ->
+	chf_cfr_csv6(CFR, [integer_to_binary(RAT) | Acc]);
+chf_cfr_csv5(CFR, Acc) ->
+	chf_cfr_csv6(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv6(#{pDUSessionChargingInformation := #{pDUAddress
+		:= #{pDUIPv4Address := Address}}} = CFR, Acc) ->
+	chf_cfr_csv7(CFR, [list_to_binary(inet:ntoa(Address)) | Acc]);
+chf_cfr_csv6(#{pDUSessionChargingInformation := #{pDUAddress
+		:= #{pDUIPv6AddresswithPrefix := Address}}} = CFR, Acc) ->
+	chf_cfr_csv7(CFR, [list_to_binary(inet:ntoa(Address)) | Acc]);
+chf_cfr_csv6(CFR, Acc) ->
+	chf_cfr_csv7(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv7(#{sMSChargingInformation := SMS} = CFR, Acc) ->
+	Origin = csv_sms_origin(SMS),
+	Destination = csv_sms_recipient(SMS),
+	chf_cfr_csv8(CFR, [Destination, Origin | Acc]);
+chf_cfr_csv7(#{iMSChargingInformation := IMS} = CFR, Acc) ->
+	Origin = csv_ims_calling(IMS),
+	Destination = csv_ims_called(IMS),
+	chf_cfr_csv8(CFR, [Destination, Origin | Acc]);
+chf_cfr_csv7(CFR, Acc) ->
+	chf_cfr_csv8(CFR, [<<>>, <<>> | Acc]).
+%% @hidden
+chf_cfr_csv8(#{duration := Duration} = CFR, Acc) ->
+	chf_cfr_csv9(CFR, [integer_to_binary(Duration) | Acc]);
+chf_cfr_csv8(CFR, Acc) ->
+	chf_cfr_csv9(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv9(#{cause := Cause} = CFR, Acc) ->
+	chf_cfr_csv10(CFR, [atom_to_binary(Cause) | Acc]);
+chf_cfr_csv9(CFR, Acc) ->
+	chf_cfr_csv10(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv10(CFR, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+chf_rated_csv(Rated, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+nf_info_name(#{networkFunctionName := Name}) ->
+	Name;
+nf_info_name(#{networkFunctionFQDN := FQDN}) ->
+	FQDN;
+nf_info_name(_) ->
+	<<>>.
+
+%% @hidden
+nf_info_address(#{networkFunctionIPv4Address := Address}) ->
+	list_to_binary(inet:ntoa(Address));
+nf_info_address(#{networkFunctionIPv6Address := Address}) ->
+	list_to_binary(inet:ntoa(Address));
+nf_info_address(_) ->
+	<<>>.
+
+%% @hidden
+csv_subscriber(L) ->
+	csv_subscriber(L, <<>>, <<>>, <<>>).
+%% @hidden
+csv_subscriber([#{subscriptionIDType := 'eND-USER-IMSI',
+		subscriptionIDData := IMSI} | T], <<>>, MSISDN, NAI) ->
+	csv_subscriber(T, IMSI, MSISDN, NAI);
+csv_subscriber([#{subscriptionIDType := 'eND-USER-E164',
+		subscriptionIDData := MSISDN} | T], IMSI, <<>>, NAI) ->
+	csv_subscriber(T, IMSI, MSISDN, NAI);
+csv_subscriber([#{subscriptionIDType := 'eND-USER-NAI',
+		subscriptionIDData := NAI} | T], IMSI, MSISDN, <<>>) ->
+	csv_subscriber(T, IMSI, MSISDN, NAI);
+csv_subscriber([_ | T], IMSI, MSISDN, NAI) ->
+	csv_subscriber(T, IMSI, MSISDN, NAI);
+csv_subscriber([], IMSI, MSISDN, NAI) ->
+	{IMSI, MSISDN, NAI}.
+
+%% @todo Implement csv_access_network_info/1
+%% @hidden
+csv_access_network_info(#{accessNetworkInformation := [H | _]}) ->
+	{<<>>, <<>>}.
+
+%% @hidden
+csv_user_location(#{userLocationInformation := LocationInfo})
+		when is_map(LocationInfo) ->
+	csv_location_info(LocationInfo);
+csv_user_location(#{userLocationInformation := LocationInfo})
+		when is_binary(LocationInfo) ->
+	csv_location_info(location_info(LocationInfo));
+csv_user_location(_ULI) ->
+	{<<>>, <<>>}.
+
+%% @hidden
+csv_location_info(#{eutraLocation := #{ecgi := ECGI}}) ->
+	csv_ecgi(ECGI);
+csv_location_info(#{eutraLocation := #{tai := TAI}}) ->
+	{csv_plmnid(TAI), <<>>};
+csv_location_info(#{nrLocation := #{ncgi := NCGI}}) ->
+	csv_ncgi(NCGI);
+csv_location_info(#{nrLocation := #{tai := TAI}}) ->
+	{csv_plmnid(TAI), <<>>};
+csv_location_info(#{n3gaLocation := #{n3gppTai := TAI, tnapId := AP}}) ->
+	{csv_plmnid(TAI), AP};
+csv_location_info(#{n3gaLocation := #{n3gppTai := TAI, twapId := AP}}) ->
+	{csv_plmnid(TAI), AP};
+csv_location_info(#{n3gaLocation := #{n3gppTai := TAI}}) ->
+	{csv_plmnid(TAI), <<>>};
+csv_location_info(#{utraLocation := #{cgi := CGI}}) ->
+	csv_cgi(CGI);
+csv_location_info(#{utraLocation := #{sai := SAI}}) ->
+	{csv_plmnid(SAI), <<>>};
+csv_location_info(#{utraLocation := #{lai := LAI}}) ->
+	{csv_plmnid(LAI), <<>>};
+csv_location_info(#{utraLocation := #{rai := RAI}}) ->
+	{csv_plmnid(RAI), <<>>};
+csv_location_info(#{geraLocation := #{cgi := CGI}}) ->
+	csv_cgi(CGI);
+csv_location_info(#{geraLocation := #{sai := SAI}}) ->
+	{csv_plmnid(SAI), <<>>};
+csv_location_info(#{geraLocation := #{lai := LAI}}) ->
+	{csv_plmnid(LAI), <<>>};
+csv_location_info(#{geraLocation := #{rai := RAI}}) ->
+	{csv_plmnid(RAI), <<>>};
+csv_location_info(#{geraLocation := #{vlrNumber := VLR}}) ->
+	{VLR, <<>>};
+csv_location_info(#{geraLocation := #{mscNumber := MSC}}) ->
+	{MSC, <<>>};
+csv_location_info(_) ->
+	{<<>>, <<>>}.
+
+%% @hidden
+csv_plmnid(#{plmnId := PLMN}) ->
+	PLMN.
+
+%% @hidden
+csv_ecgi(#{plmnId :=  PLMN, eutraCellId := Cell}) ->
+	{PLMN, Cell}.
+
+%% @hidden
+csv_ncgi(#{plmnId := PLMN, nrCellId := Cell}) ->
+	{PLMN, Cell}.
+
+%% @hidden
+csv_cgi(#{plmnId := PLMN, cellId := Cell}) ->
+	{PLMN, Cell}.
+
+-dialyzer([{nowarn_function, [location_info/1]}, no_underspecs]).
+-spec location_info(LocationInfo) -> LocationInfo
+	when
+		LocationInfo :: structured_location_info() | binary().
+%% @doc CODEC for user location information.
+%% @todo Implement location_info/1
+%% @hidden
+location_info(LocationInfo)
+		when is_map(LocationInfo) ->
+	<<>>;
+location_info(LocationInfo)
+		when is_binary(LocationInfo) ->
+	#{}.
+
+%% @hidden
+csv_ims_calling(#{callingPartyAddresses := [H | _]}) ->
+	csv_involved_party(H).
+
+%% @hidden
+csv_ims_called(#{calledPartyAddress := CalledParty}) ->
+	csv_involved_party(CalledParty).
+
+%% @hidden
+csv_involved_party({'iSDN-E164', E164}) ->
+	E164;
+csv_involved_party({'tEL-URI', TELURI}) ->
+	#{path := Path} = uri_string:parse(TELURI),
+	[DN | _Params] = string:lexemes(Path, [$;]),
+	DN;
+csv_involved_party({'sIP-URI', SIPURI}) ->
+	#{path := Path} = uri_string:parse(SIPURI),
+	[Party | _Params] = string:lexemes(Path, [$;]),
+	Party;
+csv_involved_party({uRN, URN}) ->
+	URN;
+csv_involved_party({externalId, ExternalId}) ->
+	ExternalId.
+
+%% @hidden
+csv_sms_origin(#{originatorInfo := OriginInfo}) ->
+	csv_originator_info(OriginInfo).
+
+%% @hidden
+csv_sms_recipient(#{recipientInfos := [H | _]}) ->
+	csv_recipient_info(H).
+
+%% @hidden
+csv_originator_info(#{originatorMSISDN := MSISDN}) ->
+	MSISDN;
+csv_originator_info(#{originatorIMSI := IMSI}) ->
+	IMSI;
+csv_originator_info(#{originatorOtherAddress := Other}) ->
+	Other;
+csv_originator_info(_) ->
+	<<>>.
+
+%% @hidden
+csv_recipient_info(#{recipientMSISDN := MSISDN}) ->
+	MSISDN;
+csv_recipient_info(#{recipientIMSI := IMSI}) ->
+	IMSI;
+csv_recipient_info(#{recipientOtherAddress := Other}) ->
+	Other;
+csv_recipient_info(_) ->
+	<<>>.
 
