@@ -121,7 +121,7 @@
 		Type :: ocs_log:acct_type(),
 		RequestAttributes :: ocs_log:acct_request(),
 		ResponseAttributes :: ocs_log:acct_response(),
-		Rated :: [#rated{}]}.
+		Rated :: [#rated{}] | undefined}.
 %% Event in the `acct' log.
 
 -type http_event() :: {
@@ -670,7 +670,7 @@ cdr_log3(CdrLog, _Start, End, _AcctLog, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	cdr_log4(CdrLog);
 cdr_log3(CdrLog, Start, End, AcctLog, {Cont, [H | T]}) ->
-	case disk_log:log_terms(CdrLog, cdr_chf_codec(H)) of
+	case disk_log:log(CdrLog, cdr_chf_codec(H)) of
 		ok ->
 			cdr_log3(CdrLog, Start, End, AcctLog, {Cont, T});
 		{error, Reason} ->
@@ -3058,12 +3058,11 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
--spec cdr_chf_codec(Event) -> CDRs
+-spec cdr_chf_codec(Event) -> CDR
 	when
 		Event :: acct_event(),
-		CDRs :: [CDR],
 		CDR :: cdr().
-%% @doc Convert `ocs_acct' log event to rated CDR log events.
+%% @doc Convert `ocs_acct' log event to rated CDR log event.
 %% @private
 cdr_chf_codec(Event) when size(Event) > 6,
 		((element(3, Event) == radius)
@@ -3088,6 +3087,8 @@ cdr_chf_codec(Event) when size(Event) > 6,
 	end,
 	cdr_chf_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated).
 %% @hidden
+cdr_chf_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, undefined) ->
+	cdr_chf_codec1(TimeStamp, Unique, Protocol, ReqType, Req, Res, []);
 cdr_chf_codec1(TimeStamp, Unique, diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Service-Context-Id' = Id} = Req, Res, Rated) ->
 	case binary:part(Id, size(Id), -8) of
@@ -4338,10 +4339,18 @@ nf_name4(_) ->
 		| {externalId , binary()}.
 %% Involved party.
 
+-type subscription_id() :: #{
+		subscriptionIDType := 'eND-USER-E164' | 'eND-USER-IMSI'
+				| 'eND-USER-SIP-URI' | 'eND-USER-NAI' | 'eND-USER-PRIVATE',
+		subscriptionIDData := binary()}.
+%% Subscription identifier.
+%%
+%% See 3GPP TS 23.003.
+
 -type subscriber_equipment_number() :: #{
 		subscriberEquipmentNumberType := iMEISV | mAC | eUI64 | modifiedEUI64,
 		subscriberEquipmentNumberData := binary()}.
-%% Subscriber equipmennt number.
+%% Subscriber equipment number.
 %%
 %% See 3GPP TS 32.298 5.1.1.7 Subscriber Equipment Number.
 
@@ -4896,7 +4905,7 @@ nf_name4(_) ->
 %% See 3GPP TS 32.298 5.1.4.6 SMS CDR parameters.
 
 -type nf_info() :: #{
-		networkFunctionality := cHF | sMF | aMF | sMSF
+		networkFunctionality => cHF | sMF | aMF | sMSF
 				| sGW | iSMF | ePDG | cEF | nEF | pGWCSMF
 				| 'mnS-Producer' | sGSN | fiveGDDNMF | vSMF
 				| 'iMS-Node' | eES | 'mMS-Node' | pCF | uDM
@@ -4913,14 +4922,14 @@ nf_name4(_) ->
 -type chargingFunctionRecord() :: #{
 		recordType := chargingFunctionRecord,
 		recordingNetworkFunctionID := binary(),
-		subscriberIdentifier => [binary()],
-		nFunctionConsumerInformation := nf_info(),
+		subscriberIdentifier => [subscription_id()],
+		nFunctionConsumerInformation => nf_info(),
 %		triggers => [Trigger],
 %		listOfMultipleUnitUsage => [MultipleUnitUsage],
 		recordOpeningTime := timestamp(),
-		duration := non_neg_integer(),
+		duration => non_neg_integer(),
 		recordSequenceNumber => non_neg_integer(),
-		causeForRecClosing := normalRelease
+		causeForRecClosing => normalRelease
 				| abnormalRelease | volumeLimit | timeLimit,
 		diagnostics => diagnostics(),
 		localRecordSequenceNumber => 0..4294967295,
@@ -4939,7 +4948,7 @@ nf_name4(_) ->
 		mnSConsumerIdentifier => binary(),
 %		nSMChargingInformation => NSMChargingInformation,
 %		nSPAChargingInformation => NSPAChargingInformation,
-		chargingID := 0..4294967295,
+		chargingID => 0..4294967295,
 		iMSChargingInformation => ims_charging_info(),
 %		mMTelChargingInformation => MMTelChargingInformation,
 %		edgeInfrastructureUsageChargingInformation => EdgeInfrastructureUsageChargingInformation,
@@ -4959,10 +4968,10 @@ nf_name4(_) ->
 		Unique :: unique(),
 		Protocol :: radius | diameter | nrf,
 		ChargingRecord :: chargingFunctionRecord(),
-		Rated :: #rated{} | undefined}.
+		Rated :: acct_rated()}.
 %% A charging detail record in a CDR archive log.
 
--spec chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
@@ -4970,25 +4979,16 @@ nf_name4(_) ->
 		ReqType :: acct_type(),
 		Req :: [tuple()] | #'3gpp_ro_CCR'{} | map() | undefined,
 		Res :: [tuple()] | #'3gpp_ro_CCA'{} | map() | undefined,
-		Rated :: acct_rated() | undefined,
-		CDRs :: [CDR],
+		Rated :: acct_rated(),
 		CDR :: cdr().
 %% @doc CODEC for PS CHF-CDR.
 %% @private
-chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
-		when is_list(Rated) ->
+chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_ps1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
-chf_ps(TimeStamp, Unique, Protocol, ReqType, Req, Res,
-		undefined = Rated) ->
-	CFR = #{recordType => chargingFunctionRecord,
-			recordingNetworkFunctionID => atom_to_binary(node()),
-			recordOpeningTime => TimeStamp},
-	CFR1 = chf_ps1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
+	{TimeStamp, Unique, Protocol, CFR1, Rated}.
 %% @hidden
 chf_ps1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5007,7 +5007,9 @@ chf_ps1(radius = Protocol, ReqType, Req, Res, CFR)
 		{error, not_found} ->
 			CFR
 	end,
-	chf_ps2(Protocol, ReqType, Req, Res, CFR1).
+	chf_ps2(Protocol, ReqType, Req, Res, CFR1);
+chf_ps1(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ps2(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
 chf_ps2(nrf = Protocol, ReqType,
 		#{"nfConsumerIdentification" := NfInfo} = Req,
@@ -5083,7 +5085,9 @@ chf_ps4(radius = Protocol, ReqType, Req, Res, CFR) ->
 		{error, not_found} ->
 			CFR#{subscriberIdentifier => SubscriptionId1}
 	end,
-	chf_ps5(Protocol, ReqType, Req, Res, CFR1).
+	chf_ps5(Protocol, ReqType, Req, Res, CFR1);
+chf_ps4(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ps5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
 chf_ps5(nrf = Protocol, ReqType,
 		#{"serviceRating" := ServiceRating} = Req,
@@ -5116,36 +5120,27 @@ chf_ps5(radius = Protocol, ReqType, Req, Res, CFR) ->
 chf_ps5(Protocol, ReqType, Req, Res, CFR) ->
 	chf_ps6(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_ps6(Protocol, ReqType, Req, Res, CFR) ->
+chf_ps6(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
--spec chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
-		Protocol :: diameter | nrf,
+		Protocol :: diameter | nrf | radius,
 		ReqType :: acct_type(),
 		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
 		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
-		Rated :: acct_rated() | undefined,
-		CDRs :: [CDR],
+		Rated :: acct_rated(),
 		CDR :: cdr().
 %% @doc CODEC for IMS CHF-CDR.
 %% @private
-chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
-		when is_list(Rated) ->
+chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_ims1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
-chf_ims(TimeStamp, Unique, Protocol, ReqType, Req, Res,
-		undefined = Rated) ->
-	CFR = #{recordType => chargingFunctionRecord,
-			recordingNetworkFunctionID => atom_to_binary(node()),
-			recordOpeningTime => TimeStamp},
-	CFR1 = chf_ims1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
+	{TimeStamp, Unique, Protocol, CFR1, Rated}.
 %% @hidden
 chf_ims1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5155,7 +5150,9 @@ chf_ims1(diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req,
 		Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
-	chf_ims2(Protocol, ReqType, Req, Res, CFR1).
+	chf_ims2(Protocol, ReqType, Req, Res, CFR1);
+chf_ims1(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ims2(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
 chf_ims2(nrf = Protocol, ReqType,
 		#{"nfConsumerIdentification" := NfInfo} = Req,
@@ -5201,38 +5198,31 @@ chf_ims4(diameter = Protocol, ReqType,
 		Res, CFR) ->
 	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
 	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
-	chf_ims5(Protocol, ReqType, Req, Res, CFR1).
+	chf_ims5(Protocol, ReqType, Req, Res, CFR1);
+chf_ims4(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ims2(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_ims5(Protocol, ReqType, Req, Res, CFR) ->
+chf_ims5(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
--spec chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
-		Protocol :: diameter | nrf,
+		Protocol :: diameter | nrf | radius,
 		ReqType :: acct_type(),
 		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
 		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
-		Rated :: acct_rated() | undefined,
-		CDRs :: [CDR],
+		Rated :: acct_rated(),
 		CDR :: cdr().
 %% @doc CODEC for SMS CHF-CDR.
 %% @private
-chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
-		when is_list(Rated) ->
+chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_sms1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
-chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res,
-		undefined = Rated) ->
-	CFR = #{recordType => chargingFunctionRecord,
-			recordingNetworkFunctionID => atom_to_binary(node()),
-			recordOpeningTime => TimeStamp},
-	CFR1 = chf_sms1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
+	{TimeStamp, Unique, Protocol, CFR1, Rated}.
 %% @hidden
 chf_sms1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5242,7 +5232,9 @@ chf_sms1(diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req,
 		Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
-	chf_sms2(Protocol, ReqType, Req, Res, CFR1).
+	chf_sms2(Protocol, ReqType, Req, Res, CFR1);
+chf_sms1(Protocol, ReqType, Req, Res, CFR) ->
+	chf_sms2(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
 chf_sms2(nrf = Protocol, ReqType,
 		#{"nfConsumerIdentification" := NfInfo} = Req,
@@ -5288,38 +5280,31 @@ chf_sms4(diameter = Protocol, ReqType,
 		Res, CFR) ->
 	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
 	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
-	chf_sms5(Protocol, ReqType, Req, Res, CFR1).
+	chf_sms5(Protocol, ReqType, Req, Res, CFR1);
+chf_sms4(Protocol, ReqType, Req, Res, CFR) ->
+	chf_sms5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_sms5(Protocol, ReqType, Req, Res, CFR) ->
+chf_sms5(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
--spec chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDRs
+-spec chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
 	when
 		TimeStamp :: timestamp(),
 		Unique :: unique(),
-		Protocol :: diameter | nrf,
+		Protocol :: diameter | nrf | radius,
 		ReqType :: acct_type(),
 		Req :: #'3gpp_ro_CCR'{} | map() | undefined,
 		Res :: #'3gpp_ro_CCA'{} | map() | undefined,
-		Rated :: acct_rated() | undefined,
-		CDRs :: [CDR],
+		Rated :: acct_rated(),
 		CDR :: cdr().
 %% @doc CODEC for VCS CHF-CDR.
 %% @private
-chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated)
-		when is_list(Rated) ->
+chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) ->
 	CFR = #{recordType => chargingFunctionRecord,
 			recordingNetworkFunctionID => atom_to_binary(node()),
 			recordOpeningTime => TimeStamp},
 	CFR1 = chf_vcs1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, R} || R <- Rated];
-chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res,
-		undefined = Rated) ->
-	CFR = #{recordType => chargingFunctionRecord,
-			recordingNetworkFunctionID => atom_to_binary(node()),
-			recordOpeningTime => TimeStamp},
-	CFR1 = chf_vcs1(Protocol, ReqType, Req, Res, CFR),
-	[{TimeStamp, Unique, Protocol, CFR1, Rated}].
+	{TimeStamp, Unique, Protocol, CFR1, Rated}.
 %% @hidden
 chf_vcs1(nrf = Protocol, ReqType,
 		#{"ratingSessionId" := SessionId} = Req, Res, CFR) ->
@@ -5328,7 +5313,9 @@ chf_vcs1(nrf = Protocol, ReqType,
 chf_vcs1(diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Session-Id' = SessionId} = Req, Res, CFR) ->
 	CFR1 = CFR#{chargingSessionIdentifier => SessionId},
-	chf_vcs2(Protocol, ReqType, Req, Res, CFR1).
+	chf_vcs2(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs1(Protocol, ReqType, Req, Res, CFR) ->
+	chf_vcs2(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
 chf_vcs2(nrf = Protocol, ReqType,
 		#{"nfConsumerIdentification" := NfInfo} = Req,
@@ -5374,9 +5361,11 @@ chf_vcs4(diameter = Protocol, ReqType,
 		Res, CFR) ->
 	SubscriptionId1 = diameter_subscription_id(SubscriptionId),
 	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
-	chf_vcs5(Protocol, ReqType, Req, Res, CFR1).
+	chf_vcs5(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs4(Protocol, ReqType, Req, Res, CFR) ->
+	chf_vcs5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_vcs5(Protocol, ReqType, Req, Res, CFR) ->
+chf_vcs5(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
 %% @hidden
@@ -5533,8 +5522,7 @@ nrf_pdu_session_charging_info1(SI, Acc) ->
 	nrf_pdu_session_charging_info2(SI, Acc).
 %% @hidden
 nrf_pdu_session_charging_info2(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}} = SI, Acc) ->
-	SNFI = #{networkFunctionality => sGSN,
-			networkFunctionPLMNIdentifier => list_to_binary([MCC, MNC])}, 
+	SNFI = #{networkFunctionPLMNIdentifier => list_to_binary([MCC, MNC])}, 
 	Acc1 = Acc#{servingNetworkFunctionInformation => SNFI},
 	nrf_pdu_session_charging_info3(SI, Acc1);
 nrf_pdu_session_charging_info2(SI, Acc) ->
@@ -6101,14 +6089,16 @@ diameter_pdu_session_charging_info6(PSI, Acc) ->
 	diameter_pdu_session_charging_info7(PSI, Acc).
 %% @hidden
 diameter_pdu_session_charging_info7(#'3gpp_ro_PS-Information'{
-		'Start-Time' = [StartTime]} = PSI, Acc) ->
+		'Start-Time' = [StartTime]} = PSI, Acc)
+		when is_tuple(StartTime) ->
 	Acc1 = Acc#{pDUSessionstartTime => date(StartTime)},
 	diameter_pdu_session_charging_info8(PSI, Acc1);
 diameter_pdu_session_charging_info7(PSI, Acc) ->
 	diameter_pdu_session_charging_info8(PSI, Acc).
 %% @hidden
 diameter_pdu_session_charging_info8(#'3gpp_ro_PS-Information'{
-		'Stop-Time' = [StopTime]} = PSI, Acc) ->
+		'Stop-Time' = [StopTime]} = PSI, Acc)
+		when is_tuple(StopTime) ->
 	Acc1 = Acc#{pDUSessionstopTime => date(StopTime)},
 	diameter_pdu_session_charging_info9(PSI, Acc1);
 diameter_pdu_session_charging_info8(PSI, Acc) ->
@@ -6281,7 +6271,11 @@ chf_csv_header(Log, IoDevice, Seperator) ->
 			<<"Serving PLMN">>, <<"Cell Identifier">>,
 			<<"RAT">>, <<"PDU Address">>,
 			<<"Origin">>, <<"Destination">>,
-			<<"Duration">>, <<"Cause">>],
+			<<"Duration">>, <<"Cause">>,
+			<<"Rated Units">>, <<"Rated Amount">>,
+			<<"Rated Cost">>, <<"Included">>,
+			<<"Offer Name">>, <<"Price Name">>,
+			<<"Price Type">>], 
 	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
@@ -6299,7 +6293,7 @@ chf_csv(Log, IoDevice, Seperator,
 		{Cont, [{TS, _, _, CFR, Rated} | T]}) ->
 	Timestamp = ocs_rest:iso8601(TS),
 	Columns1 = chf_cfr_csv(CFR, [Timestamp]),
-	Columns2 = chf_rated_csv(Rated, []),
+	Columns2 = chf_rated_csv(Rated),
 	Columns = Columns1 ++ Columns2,
 	Row = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Row, $\r, $\n]) of
@@ -6390,12 +6384,79 @@ chf_cfr_csv9(#{cause := Cause} = CFR, Acc) ->
 chf_cfr_csv9(CFR, Acc) ->
 	chf_cfr_csv10(CFR, [<<>> | Acc]).
 %% @hidden
-chf_cfr_csv10(CFR, Acc) ->
+chf_cfr_csv10(_CFR, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-chf_rated_csv(Rated, Acc) ->
+chf_rated_csv(Rated) ->
+	chf_rated_csv(Rated, []).
+%% @hidden
+chf_rated_csv([H | T], Acc) ->
+	chf_rated_csv(T, chf_rated_csv1(H, Acc));
+chf_rated_csv([], Acc) ->
 	lists:reverse(Acc).
+%% @hidden
+chf_rated_csv1(#rated{bucket_type = Type} = Rated, Acc)
+		when Type /= undefined ->
+	Units = atom_to_binary(Type),
+	chf_rated_csv2(Rated, [Units | Acc]);
+chf_rated_csv1(Rated, Acc) ->
+	chf_rated_csv2(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv2(#rated{bucket_type = cents, bucket_value = N} = Rated,
+		Acc) when is_integer(N) ->
+	chf_rated_csv3(Rated, [<<>> | Acc]);
+chf_rated_csv2(#rated{bucket_value = N} = Rated, Acc)
+		when is_integer(N) ->
+	Amount = integer_to_binary(N),
+	chf_rated_csv3(Rated, [Amount | Acc]);
+chf_rated_csv2(Rated, Acc) ->
+	chf_rated_csv3(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv3(#rated{tax_excluded_amount = N} = Rated,
+		Acc) when is_integer(N) ->
+	Cost = case {N div 1000000, N rem 1000000} of
+		{Cents, 0} ->
+			integer_to_binary(Cents);
+		{Cents, Decimal} ->
+			S1 = io_lib:fwrite("~b.~6.10.0b", [Cents, Decimal]),
+			S2 = string:trim(S1, trailing, [$0]),
+			list_to_binary(S2)
+	end,
+	chf_rated_csv4(Rated, [Cost | Acc]);
+chf_rated_csv3(Rated, Acc) ->
+	chf_rated_csv4(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv4(#rated{usage_rating_tag = included} = Rated, Acc) ->
+	chf_rated_csv5(Rated, [<<"true">> | Acc]);
+chf_rated_csv4(#rated{usage_rating_tag = non_included} = Rated, Acc) ->
+	chf_rated_csv5(Rated, [<<"false">> | Acc]);
+chf_rated_csv4(Rated, Acc) ->
+	chf_rated_csv5(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv5(#rated{product = Offer} = Rated, Acc)
+		when is_list(Offer) ->
+	chf_rated_csv6(Rated, [list_to_binary(Offer) | Acc]);
+chf_rated_csv5(Rated, Acc) ->
+	chf_rated_csv6(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv6(#rated{price_name = Price} = Rated, Acc)
+		when is_list(Price) ->
+	chf_rated_csv7(Rated, [list_to_binary(Price) | Acc]);
+chf_rated_csv6(Rated, Acc) ->
+	chf_rated_csv7(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv7(#rated{price_type = usage} = Rated, Acc) ->
+	chf_rated_csv8(Rated, [<<"usage">> | Acc]);
+chf_rated_csv7(#rated{price_type = tariff} = Rated, Acc) ->
+	chf_rated_csv8(Rated, [<<"tariff">> | Acc]);
+chf_rated_csv7(#rated{price_type = event} = Rated, Acc) ->
+	chf_rated_csv8(Rated, [<<"event">> | Acc]);
+chf_rated_csv7(Rated, Acc) ->
+	chf_rated_csv8(Rated, [<<>> | Acc]).
+%% @hidden
+chf_rated_csv8(_Rated, Acc) ->
+	Acc.
 
 %% @hidden
 nf_info_name(#{networkFunctionName := Name}) ->

@@ -1948,8 +1948,64 @@ fill_acct(N, Protocol) ->
 					Fnrf(ocf)
 			end
 	end,
-	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
+	RatedRecords = case Type of
+		stop ->
+			rated(rand:uniform(6));
+		_ ->
+			undefined
+	end,
+	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, RatedRecords),
 	fill_acct(N - 1, Protocol).
+
+rated(N) ->
+	rated(N, []).
+rated(0, Acc) ->
+	Acc;
+rated(N, Acc) ->
+	rated(N, rand:uniform(100), Acc).
+rated(N, W, Acc) when W =< 20 ->
+	Rated = #rated{bucket_type = messages, bucket_value = 1,
+			product = "Messaging", price_name = "Overage",
+			price_type = usage, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, W, Acc) when W =< 40 ->
+	Rated = #rated{bucket_type = seconds,
+			bucket_value = rand:uniform(100),
+			product = "Calling", price_name = "National",
+			price_type = tariff, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, W, Acc) when W =< 75 ->
+	Rated = #rated{bucket_type = octets,
+			bucket_value = rand:uniform(100000000),
+			product = "Surfing", price_name = "Overage",
+			price_type = tariff, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, _W, Acc) ->
+	{Product, Price, Type} = case rand:uniform(100) of
+		W1 when W1 =< 20 ->
+			{"Messaging", "Overage", usage};
+		W1 when W1 =< 30 ->
+			{"Calling", "International", tariff};
+		W1 when W1 =< 35 ->
+			{"Calling", "National", tariff};
+		W1 when W1 =< 40 ->
+			{"Calling", "Offnet", tariff};
+		W1 when W1 =< 40 ->
+			{"Calling", "Offnet", tariff};
+		_ ->
+			{"Surfing", "Overage", tariff}
+	end,
+	Amount = rand:uniform(1000000000),
+	Rated = #rated{bucket_type = cents,
+			bucket_value = Amount,
+			tax_excluded_amount = Amount,
+			product = Product, price_name = Price,
+			price_type = Type, currency = "CAD",
+			usage_rating_tag = non_included, is_billed = true},
+	rated(N - 1, [Rated | Acc]).
 
 fill_abmf(0) ->
 	ok;
@@ -1996,6 +2052,7 @@ fill_abmf(N) ->
 					undefined, undefined, undefined, undefined, undefined)
 	end,
 	fill_abmf(N - 1).
+
 
 resp_attr() ->
 	resp_attr(rand:uniform(100)).
