@@ -6270,8 +6270,7 @@ chf_csv_header(Log, IoDevice, Seperator) ->
 			<<"IMSI">>, <<"MSISDN">>, <<"NAI">>,
 			<<"Serving PLMN">>, <<"Cell Identifier">>,
 			<<"RAT">>, <<"PDU Address">>,
-			<<"Origin">>, <<"Destination">>,
-			<<"Duration">>, <<"Cause">>,
+			<<"Origin">>, <<"Destination">>, <<"Cause">>,
 			<<"Rated Units">>, <<"Rated Amount">>,
 			<<"Rated Cost">>, <<"Included">>,
 			<<"Offer Name">>, <<"Price Name">>,
@@ -6374,17 +6373,12 @@ chf_cfr_csv7(#{iMSChargingInformation := IMS} = CFR, Acc) ->
 chf_cfr_csv7(CFR, Acc) ->
 	chf_cfr_csv8(CFR, [<<>>, <<>> | Acc]).
 %% @hidden
-chf_cfr_csv8(#{duration := Duration} = CFR, Acc) ->
-	chf_cfr_csv9(CFR, [integer_to_binary(Duration) | Acc]);
+chf_cfr_csv8(#{cause := Cause} = CFR, Acc) ->
+	chf_cfr_csv9(CFR, [atom_to_binary(Cause) | Acc]);
 chf_cfr_csv8(CFR, Acc) ->
 	chf_cfr_csv9(CFR, [<<>> | Acc]).
 %% @hidden
-chf_cfr_csv9(#{cause := Cause} = CFR, Acc) ->
-	chf_cfr_csv10(CFR, [atom_to_binary(Cause) | Acc]);
-chf_cfr_csv9(CFR, Acc) ->
-	chf_cfr_csv10(CFR, [<<>> | Acc]).
-%% @hidden
-chf_cfr_csv10(_CFR, Acc) ->
+chf_cfr_csv9(_CFR, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
