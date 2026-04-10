@@ -76,7 +76,7 @@ install-data-hook: $(RELEASE_NAME).tar.gz
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/export
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/http
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/ipdr
-	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/cdr
+	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/cdr/chf
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/log/sasl
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/snmp/conf
 	$(MKDIR_P) $(DESTDIR)/$(otpdir)/snmp/db
