@@ -1,3 +1,11 @@
+April 10, 2026
+--------------
+	- Introduce CDR logging framework
+		- Preview version, formats may change!
+	- Announce future deprecation of IPDR logging
+		- Continues to work for now
+	- New archive log schedule configuration
+
 March 17, 2026
 --------------
 	- support RPM packages

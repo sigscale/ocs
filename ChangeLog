@@ -1,3 +1,27 @@
+2026-04-10   Vance Shipley <vances@sigscale.org>
+
+	* install cdr archive log dir
+	* strip quotes and newline from disk_log error description
+	* add iso8601/0 to ocs_log api to get current time
+	* remove duration column from csv export
+	* expect rated as list in cdr test suite
+	* cdr export to csv includes rated columns
+	* cdr coverage for data on nrf/diameter/radius
+	* log test suite: fill acct log with more info
+	* cdr_file/3 corrections and test case
+	* test case for cdr_log/4
+	* refactor ocs_log to avoid unnecessary app env var lookups
+	* correct ipdr_log test case (was skipped)
+	* supervisor for log rotate servers
+	* deprecate ipdr app env vars, default undefined
+	* rename chf functions to prepare for other recording entity types
+	* handle cdr logs in rotate server
+	* recording entity type (chf) in cdr_log/4 arguments
+	* modernize log rotate gen_server
+	* deprecate ipdr; implement cdr
+	* document new cdr archive logs
+	* remove redundant clause head
+
 2026-03-17   Vance Shipley <vances@sigscale.org>
 
 	* substitute reldir for systemd
