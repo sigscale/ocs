@@ -82,6 +82,7 @@ modhtml = ocs.html \
 			ocs_server.html \
 			ocs_log.html \
 			ocs_gtt.html \
+			ocs_log_rotate_sup.html \
 			ocs_log_rotate_server.html \
 			ocs_eap_codec.html \
 			ocs_eap_pwd.html \

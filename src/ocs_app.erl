@@ -237,10 +237,27 @@ start14() ->
 	end.
 %% @hidden
 start15() ->
+	{ok, CdrLogs} = application:get_env(cdr_logs),
+	CdrLogs1 = case {application:get_env(acct_log_rotate_time),
+			application:get_env(acct_log_rotate)} of
+		% IPDR is deprecated, use CDR
+		{undefined, undefined} ->
+			CdrLogs;
+		{{ok, Time}, {ok, Interval}} ->
+			[{wlan, Time, Interval},
+					{voip, Time, Interval} | CdrLogs];
+		{{ok, Time}, undefined} ->
+			[{wlan, Time, 1440},
+					{voip, Time, 1440} | CdrLogs];
+		{undefined, {ok, Interval}} ->
+			[{wlan, {4, 4, 4}, Interval},
+					{voip, {4, 4, 4}, Interval} | CdrLogs]
+	end,
+	start16(CdrLogs1).
+%% @hidden
+start16(CdrLogs) ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
-	{ok, RotateInterval} = application:get_env(acct_log_rotate),
-	{ok, RotateTime} = application:get_env(acct_log_rotate_time),
 	RadAuthInstances = case lists:keyfind(auth, 1, RadiusConfig) of
 		{auth, I1} ->
 			I1;
@@ -265,7 +282,16 @@ start15() ->
 		false ->
 			[]
 	end,
-	F1 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
+	F1 = fun({Type, Time, Interval} = _CdrLog) ->
+		case supervisor:start_child(ocs_log_rotate_sup,
+				[[Type, Time, Interval], []]) of
+			{ok, _Child} ->
+				ok;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	end,
+	F2 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
 		case ocs:start(radius, acct, AcctAddr, AcctPort, Options) of
 			{ok, _AcctSup} ->
 				ok;
@@ -273,7 +299,7 @@ start15() ->
 				throw(Reason)
 		end
 	end,
-	F2 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
+	F3 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
 		case ocs:start(radius, auth, AuthAddr, AuthPort, Options) of
 			{ok, _AuthSup} ->
 				ok;
@@ -281,7 +307,7 @@ start15() ->
 				throw(Reason)
 		end
 	end,
-	F3 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
+	F4 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
 		case ocs:start(diameter, auth, AuthAddr, AuthPort, Options) of
 			{ok, _AuthSup} ->
 				ok;
@@ -289,7 +315,7 @@ start15() ->
 				throw(Reason)
 		end
 	end,
-	F4 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
+	F5 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
 		case ocs:start(diameter, acct, AcctAddr, AcctPort, Options) of
 			{ok, _AcctSup} ->
 				ok;
@@ -298,39 +324,39 @@ start15() ->
 		end
 	end,
 	try
-		TopSup = case supervisor:start_link(ocs_sup,
-				[RotateTime, RotateInterval]) of
+		TopSup = case supervisor:start_link(ocs_sup, []) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->
 				throw(Reason1)
 		end,
-		lists:foreach(F1, RadAcctInstances),
-		lists:foreach(F2, RadAuthInstances),
-		lists:foreach(F3, DiamAuthInstances),
-		lists:foreach(F4, DiamAcctInstances),
+		lists:foreach(F1, CdrLogs),
+		lists:foreach(F2, RadAcctInstances),
+		lists:foreach(F3, RadAuthInstances),
+		lists:foreach(F4, DiamAuthInstances),
+		lists:foreach(F5, DiamAcctInstances),
 		TopSup
 	of
 		Sup ->
-			start16(Sup)
+			start17(Sup)
 	catch
 		Reason ->
 			{error, Reason}
 	end.
 %% @hidden
-start16(Sup) ->
-	catch ocs_mib:load(),
-	start17(Sup).
-%% @hidden
 start17(Sup) ->
+	catch ocs_mib:load(),
+	start18(Sup).
+%% @hidden
+start18(Sup) ->
 	case ocs_scheduler:start() of
 		ok ->
-			start18(Sup);
+			start19(Sup);
 		{error, Reason2} ->
 			{error, Reason2}
 	end.
 %% @hidden
-start18(Sup) ->
+start19(Sup) ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			case application:get_env(elastic_shipper) of
@@ -351,7 +377,7 @@ start18(Sup) ->
 					case supervisor:start_child(ocs_event_log_sup,
 							[Url, Profile, Options -- SetOptions]) of
 						{ok, _EventLogSup, _Id} ->
-							start19(Sup, Profile, ServicesInfo, SetOptions);
+							start20(Sup, Profile, ServicesInfo, SetOptions);
 						{error, Reason} ->
 							{error, Reason}
 					end
@@ -360,16 +386,16 @@ start18(Sup) ->
 			{error, Reason}
 	end.
 %% @hidden
-start19(Sup, Profile, [{httpc, _Pid, Info} | T], SetOptions) ->
+start20(Sup, Profile, [{httpc, _Pid, Info} | T], SetOptions) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			start20(Sup, Profile, SetOptions);
+			start21(Sup, Profile, SetOptions);
 		_ ->
-			start19(Sup, Profile, T, SetOptions)
+			start20(Sup, Profile, T, SetOptions)
 	end;
-start19(Sup, Profile, [_ | T], SetOptions) ->
-	start19(Sup, Profile, T, SetOptions);
-start19(Sup, Profile, [], _SetOptions) ->
+start20(Sup, Profile, [_ | T], SetOptions) ->
+	start20(Sup, Profile, T, SetOptions);
+start20(Sup, Profile, [], _SetOptions) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
 			{ok, Sup};
@@ -377,7 +403,7 @@ start19(Sup, Profile, [], _SetOptions) ->
 			{error, Reason}
 	end.
 %% @hidden
-start20(Sup, Profile, SetOptions) ->
+start21(Sup, Profile, SetOptions) ->
 	case httpc:set_options(SetOptions, Profile) of
 		ok ->
 			{ok, Sup};

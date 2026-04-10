@@ -51,15 +51,13 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([LogRotateTime, LogRotateInterval] = _Args) ->
+init(_Args) ->
 	ChildSpecs = pg() ++ [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
-			log_server(ocs_log_rotate_server,
-					[voip, LogRotateTime, LogRotateInterval]),
-			log_server(ocs_log_rotate_server,
-					[wlan, LogRotateTime, LogRotateInterval]),
+			supervisor(ocs_log_rotate_sup,
+					ocs_log_rotate_sup, []),
 			supervisor(ocs_statistics_sup,
 					ocs_statistics_sup, []),
 			supervisor(ocs_rest_pagination_sup,
@@ -124,12 +122,6 @@ server(StartMod, Args) ->
 	StartArgs = [{local, ocs}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
-
-%% @hidden
-log_server(StartMod, [Type | _] = Args) ->
-	StartArgs = [StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{{StartMod, Type},  StartFunc, permanent, 4000, worker, [StartMod]}.
 
 -spec event(StartMod) -> Result
 	when

@@ -32,13 +32,14 @@
 
 -include("ocs.hrl").
 -include("ocs_log.hrl").
--include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("kernel/include/file.hrl").
+-include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
--include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
--include_lib("../include/diameter_gen_3gpp.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("../include/diameter_gen_3gpp_ro_application.hrl").
+-include("../include/diameter_gen_3gpp.hrl").
 
 -define(BASE_APPLICATION_ID, 0).
 -define(RO_APPLICATION_ID, 4).
@@ -149,15 +150,18 @@ sequences() ->
 %%
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
-			radius_log_acct_event, diameter_log_acct_event, nrf_log_acct_event,
-			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
+			radius_log_acct_event, diameter_log_acct_event,
+			nrf_log_acct_event, ipdr_log, cdr_log, get_range,
+			get_last, auth_query, acct_query_radius,
 			acct_query_diameter, acct_query_nrf,
 			abmf_log_event, abmf_query, binary_tree_before,
-			binary_tree_after, binary_tree_backward, binary_tree_forward,
-			binary_tree_last, binary_tree_first, binary_tree_half,
+			binary_tree_after, binary_tree_backward,
+			binary_tree_forward, binary_tree_last,
+			binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
 			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs,
-			dia_acct_to_ecs, radius_acct_to_ecs].
+			dia_acct_to_ecs, radius_acct_to_ecs,
+			cdr_chf_csv].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -387,9 +391,10 @@ nrf_log_acct_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
 ipdr_log() ->
-   [{userdata, [{doc, "Log IPDR reords for date/time range"}]}].
+   [{userdata, [{doc, "Log IPDR records for date/time range"}]}].
 
 ipdr_log(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
@@ -409,15 +414,15 @@ ipdr_log(_Config) ->
 			{?AcctInputGigawords, 1}, {?AcctOutputGigawords, 0}],
 	Event = {Start, Node, Server, Client, start,
 			[{?AcctSessionId, "1234567890"} | Attrs]},
-	LogInfo = disk_log:info(ocs_acct),
+	LogInfo = disk_log:info(AcctLog),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
 	Weight = [7,8] ++ lists:duplicate(32, 1) ++ lists:duplicate(32, 2)
 			++ lists:duplicate(33, 3),
 	NumItems = (FileSize div EventSize) * 5,
-	Fill = fun(_F, 0) ->
+	Fill = fun F(0) ->
 				ok;
-			(F, N) ->
+			F(N) ->
 				Random = rand:uniform(99),
 				{Type, AcctType} = case lists:nth(Random, Weight) of
 					1 -> {start, 1};
@@ -430,33 +435,77 @@ ipdr_log(_Config) ->
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
 				ok = ocs_log:acct_log(radius, Server,
 						Type, Attrs2, undefined, undefined),
-				F(F, N - 1)
+				F(N - 1)
 	end,
-	ok = Fill(Fill, NumItems),
+	ok = Fill(NumItems),
 	End = erlang:system_time(millisecond),
-	ok = disk_log:sync(ocs_acct),
+	ok = disk_log:sync(AcctLog),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
 	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(wlan, Filename, StartRange, EndRange),
-	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
+	GetRangeResult = ocs_log:get_range(AcctLog, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(6, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->
 				Acc
 	end,
-	lists:foldl(Fstop, 0, GetRangeResult),
-	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Filename}]),
-	Fchunk = fun(_F, {error, Reason}, _Acc) ->
+	StopCount = lists:foldl(Fstop, 0, GetRangeResult),
+	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
+	Path = filename:join([IpdrLogDir, wlan, Filename]),
+	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Path}]),
+	Fchunk = fun F({error, Reason}, _Acc) ->
 				ct:fail(Reason);
-			(F, {Cont, Chunk}, Acc) ->
-				F(F, disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
-			(_, eof, Acc) ->
+			F({Cont, Chunk}, Acc) ->
+				F(disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
+			F(eof, Acc) ->
 				disk_log:close(IpdrLog),
 				Acc
 	end,
-	Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
+	StopCount = Fchunk(disk_log:chunk(IpdrLog, start), 0) - 2.
+
+cdr_log() ->
+   [{userdata, [{doc, "Log CDR records for date/time range"}]}].
+
+cdr_log(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
+	ok = fill_acct(1000),
+	LogInfo = disk_log:info(AcctLog),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	FileEvents = FileSize div EventSize,
+	Start = erlang:system_time(millisecond),
+	NumItems = FileEvents * 4,
+	ok = fill_acct(NumItems),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(AcctLog),
+	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	ok = ocs_log:cdr_log(chf, Filename, Start, End),
+	{ok, CdrLogDir} = application:get_env(ocs, cdr_log_dir),
+	Path = filename:join([CdrLogDir, chf, Filename]),
+	{ok, CdrLog} = disk_log:open([{name, make_ref()}, {file, Path}]),
+	Fvalid = fun({TS, N, P, CHR, Rated})
+					when is_integer(TS), TS >= Start,
+					is_integer(TS), TS =< End, is_integer(N),
+					((P == nrf) orelse (P == diameter) orelse (P == radius)),
+					map_get(recordType, CHR) == chargingFunctionRecord,
+					is_list(Rated) ->
+				true;
+			(_) ->
+				false
+	end,
+	Fchunk = fun F({error, Reason}) ->
+				ct:fail(Reason);
+			F({Cont, Chunk}) ->
+				true = lists:all(Fvalid, Chunk),
+				F(disk_log:chunk(CdrLog, Cont));
+			F(eof) ->
+				disk_log:close(CdrLog)
+	end,
+	ok = Fchunk(disk_log:chunk(CdrLog, start)).
 
 get_range() ->
    [{userdata, [{doc, "Get date/time range from log"}]}].
@@ -1548,6 +1597,22 @@ radius_acct_to_ecs(_Config) ->
 	{_, UserName} = lists:keyfind("name", 1, UserObj),
 	{_, UserName} = lists:keyfind("id", 1, UserObj).
 
+cdr_chf_csv() ->
+	[{userdata, [{doc, "Export CHF CDR to CSV"}]}].
+
+cdr_chf_csv(_Config) ->
+	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
+	Start = erlang:system_time(millisecond),
+	ok = fill_acct(1000),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(AcctLog),
+	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	ok = ocs_log:cdr_log(chf, Filename, Start, End),
+	ok = ocs_log:cdr_file(chf, Filename, csv),
+	{ok, ExportDir} = application:get_env(ocs, export_dir),
+	Path = filename:join([ExportDir, Filename ++ ".csv"]),
+	{ok, #file_info{type = regular}} = file:read_file_info(Path).
+
 %%---------------------------------------------------------------------
 %% internal functions
 %%---------------------------------------------------------------------
@@ -1615,7 +1680,6 @@ fill_acct(N, Protocol) ->
 	SeqNo = rand:uniform(1000000) + N,
 	AcctOutputOctets = rand:uniform(100000),
 	AcctInputOctets = rand:uniform(100000000),
-	AcctSessionTime = rand:uniform(3600) + 100,
 	UserName = ocs_test_lib:rand_name(),
 	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
 	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
@@ -1625,22 +1689,56 @@ fill_acct(N, Protocol) ->
 	ClientAddress = ocs_test_lib:ipv4(),
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	StopTime = Timestamp - rand:uniform(1500),
+	StartTime = StopTime - rand:uniform(3600000),
+	Duration = (StopTime - StartTime) div 1000,
 	Type = case rand:uniform(3) of
 		1 -> start;
 		2 -> stop;
 		3 -> interim
 	end,
 	Fradius = fun() ->
-			ACR = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
-			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
-			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
-			{?AcctStatusType, rand:uniform(3)}, {?AcctSessionTime, AcctSessionTime},
-			{?AcctInputOctets, AcctInputOctets}, {?AcctOutputOctets, AcctOutputOctets}],
-			{ACR, undefined}
+			SessionId = integer_to_list(erlang:unique_integer([positive])),
+			ACR = [{?ServiceType, 2},
+					{?NasPortId, "wlan1"},
+					{?NasPortType, 19},
+					{?UserName, UserName},
+					{?CallingStationId, ocs_test_lib:mac()},
+					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+					{?NasIdentifier, NasIdentifier},
+					{?NasIpAddress, ClientAddress},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-IMSI', IMSI}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-RAT-Type', 6}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-PDP-Type', 0}}},
+					{?VendorSpecific, {?'3GPP', {?'3GPP-Charging-ID', rand:uniform(16#ffffffff)}}},
+					{?FramedIpAddress, ocs_test_lib:ipv4()},
+					{?AcctStatusType, rand:uniform(3)},
+					{?AcctSessionId, SessionId},
+					{?AcctInputOctets, AcctInputOctets},
+					{?AcctOutputOctets, AcctOutputOctets}],
+			ACR1 = case Type of
+				start ->
+					ACR;
+				interim ->
+					ACR;
+				stop ->
+					radius_attributes:store(?AcctSessionTime, Duration, ACR)
+			end,
+			{ACR1, undefined}
 	end,
 	Fdiameter = fun() ->
 			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
+			ServiceContextId = <<"10.32251@3gpp.org">>,
+			ChargingId = rand:uniform(4294967295),
+			PdpAddress = ocs_test_lib:ipv4(),
+			{StartTime1, StopTime1} = case Type of
+				start ->
+					{[ocs_log:date(StartTime)], []};
+				interim ->
+					{[ocs_log:date(StartTime)], []};
+				stop ->
+					{[ocs_log:date(StartTime)], [ocs_log:date(StopTime)]}
+			end,
 			{CCRequestType, CCRequestNum, MSCCRequest, MSCCResponse} = case Type of
 				start ->
 					{?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST', 1,
@@ -1668,12 +1766,21 @@ fill_acct(N, Protocol) ->
 											'CC-Output-Octets' = [AcctOutputOctets]}]},
 							#'3gpp_ro_Multiple-Services-Credit-Control'{}}
 			end,
-			ServiceContextId = <<"10.32251@3gpp.org">>,
 			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
 			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
-			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>]},
+			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-User-Location-Info' = [<<130, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4,
+							$a, $b, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4, 0:4,
+							$f:4, $a:4, $c:4, $e:4, $0:4, $0:4, $1:4>>],
+					% 'PDN-Connection-Charging-ID' = [ChargingId],
+					'3GPP-Charging-Id' = [<<ChargingId:32>>],
+					'3GPP-PDP-Type' = [0],
+					'PDP-Address' = [PdpAddress],
+					'3GPP-RAT-Type' = [6],
+					'Start-Time' = StartTime1,
+					'Stop-Time' = StopTime1},
 			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
 			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
 					'Origin-Host' = Hostname,
@@ -1691,54 +1798,136 @@ fill_acct(N, Protocol) ->
 					'Multiple-Services-Credit-Control' = [MSCCResponse]},
 			{CCR, CCA}
 	end,
-	Fnrf = fun() ->
-			ServiceContextId = "10.32255@3gpp.org",
-			Sub1 = lists:concat(["imsi-", IMSI]),
-			Sub2 = lists:concat(["msisdn-", MSISDN]),
-			PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"}},
-			{SRRequest, SRResponse} = case Type of
-				start ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "RESERVE",
-							"requestedUnit" => #{},
-							"serviceInformation" => PSInfo}],
-					[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"resultCode" => "SUCCESS",
-							"grantedUnit" => #{"totalVolume" => 5000000}}]};
-				interim ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType" => "RESERVE",
-							"requestedUnit" => #{},
-							"serviceInformation" => PSInfo},
-					#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "DEBIT",
-							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-							"serviceInformation" => PSInfo}],
-					[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"resultCode" => "SUCCESS",
-							"grantedUnit" => #{"totalVolume" => 5000000}}]};
-				stop ->
-					{[#{"serviceContextId" => ServiceContextId,
-							"ratingGroup" => 32,
-							"requestSubType*" => "DEBIT",
-							"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-							"serviceInformation" => PSInfo}],
-					[]}
-			end,
-			RatingDataRequest = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
-					"invocationSequenceNumber" => SeqNo,
-					"nfConsumerIdentification" => #{"nodeFunctionality" => "CHF"},
-					"subscriptionId" => [Sub1, Sub2],
-					"serviceRating" => SRRequest},
-			RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
-					"invocationSequenceNumber" => SeqNo,
-					"serviceRating" => SRResponse},
-			{RatingDataRequest, RatingDataResponse}
+	Fnrf = fun(chf) ->
+				RatingDataRef = unique(),
+				NfConsumer = #{"nFName" => "e38bbe87-ffcf-438e-afa9-9c643556edc6",
+						"nFIPv4Address" => inet:ntoa(ClientAddress),
+						"nodeFunctionality" => "CHF"},
+				ServiceContextId = "10.32255@3gpp.org",
+				Sub1 = lists:concat(["imsi-", IMSI]),
+				Sub2 = lists:concat(["msisdn-", MSISDN]),
+				PLMNId = #{"mcc" => "001", "mnc" => "001"},
+				TAI = #{"plmnId" => PLMNId, "tac" => "cafe42"},
+				NCGI = #{"plmnId" => PLMNId, "nrCellId" => "1deadbeef"},
+				Location = #{"nrLocation" => #{"tai" => TAI, "ncgi" => NCGI}},
+				PduAddress = #{"pduIPv4Address" => inet:ntoa(ocs_test_lib:ipv4())},
+				PduSessionInfo = #{"dnnId" => "apn1.mnc001.mcc001.gprs",
+						"pduSessionID" => 0, "ratType" => "NR",
+						"pduType" => "IPV4", "pduAddress" => PduAddress,
+						"startTime" => ocs_log:iso8601(StartTime)},
+				PduSessionInfo1 = case Type of
+					start ->
+						PduSessionInfo;
+					interim ->
+						PduSessionInfo;
+					stop ->
+						PduSessionInfo#{"stopTime" => ocs_log:iso8601(StopTime)}
+				end,
+				PSInfo = #{"userLocationinfo" => Location,
+						"pduSessionInformation" => PduSessionInfo1},
+				{SRRequest, SRResponse} = case Type of
+					start ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					interim ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo},
+						#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					stop ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[]}
+				end,
+				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"nfConsumerIdentification" => NfConsumer,
+						"subscriptionId" => [Sub1, Sub2],
+						"serviceRating" => SRRequest},
+				RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"serviceRating" => SRResponse},
+				{RatingDataRequest, RatingDataResponse};
+			(ocf) ->
+				RatingDataRef = unique(),
+				NfConsumer = #{"nFIPv4Address" => inet:ntoa(ClientAddress),
+						"nodeFunctionality" => "OCF"},
+				ServiceContextId = "20.32251@3gpp.org",
+				Sub1 = lists:concat(["imsi-", IMSI]),
+				Sub2 = lists:concat(["msisdn-", MSISDN]),
+				PLMNId = #{"mcc" => "001", "mnc" => "001"},
+				TAI = #{"plmnId" => PLMNId, "tac" => "cafe42"},
+				ECGI = #{"plmnId" => PLMNId, "eutraCellId" => "feeded1"},
+				Location = #{"eutraLocation" => #{"tai" => TAI, "ecgi" => ECGI}},
+				PduAddress = inet:ntoa(ocs_test_lib:ipv4()),
+				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"},
+						"pdpAddress" => PduAddress, "ratType" => "EUTRA",
+						"apn" => "internet", "userLocationinfo" => Location},
+				{SRRequest, SRResponse} = case Type of
+					start ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					interim ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => PSInfo},
+						#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					stop ->
+						{[#{"serviceContextId" => ServiceContextId,
+								"ratingGroup" => 32,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => PSInfo}],
+						[]}
+				end,
+				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"nfConsumerIdentification" => NfConsumer,
+						"subscriptionId" => [Sub1, Sub2],
+						"serviceRating" => SRRequest},
+				RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+						"invocationSequenceNumber" => SeqNo,
+						"serviceRating" => SRResponse},
+				{RatingDataRequest, RatingDataResponse}
 	end,
 	Protocol1 = case Protocol of
 		undefined ->
@@ -1752,10 +1941,71 @@ fill_acct(N, Protocol) ->
 		diameter ->
 			Fdiameter();
 		nrf ->
-			Fnrf()
+			case rand:uniform(100) of
+				W when W =< 20 ->
+					Fnrf(chf);
+				_W ->
+					Fnrf(ocf)
+			end
 	end,
-	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
+	RatedRecords = case Type of
+		stop ->
+			rated(rand:uniform(6));
+		_ ->
+			undefined
+	end,
+	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, RatedRecords),
 	fill_acct(N - 1, Protocol).
+
+rated(N) ->
+	rated(N, []).
+rated(0, Acc) ->
+	Acc;
+rated(N, Acc) ->
+	rated(N, rand:uniform(100), Acc).
+rated(N, W, Acc) when W =< 20 ->
+	Rated = #rated{bucket_type = messages, bucket_value = 1,
+			product = "Messaging", price_name = "Overage",
+			price_type = usage, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, W, Acc) when W =< 40 ->
+	Rated = #rated{bucket_type = seconds,
+			bucket_value = rand:uniform(100),
+			product = "Calling", price_name = "National",
+			price_type = tariff, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, W, Acc) when W =< 75 ->
+	Rated = #rated{bucket_type = octets,
+			bucket_value = rand:uniform(100000000),
+			product = "Surfing", price_name = "Overage",
+			price_type = tariff, currency = "CAD",
+			usage_rating_tag = included, is_billed = true},
+	rated(N - 1, [Rated | Acc]);
+rated(N, _W, Acc) ->
+	{Product, Price, Type} = case rand:uniform(100) of
+		W1 when W1 =< 20 ->
+			{"Messaging", "Overage", usage};
+		W1 when W1 =< 30 ->
+			{"Calling", "International", tariff};
+		W1 when W1 =< 35 ->
+			{"Calling", "National", tariff};
+		W1 when W1 =< 40 ->
+			{"Calling", "Offnet", tariff};
+		W1 when W1 =< 40 ->
+			{"Calling", "Offnet", tariff};
+		_ ->
+			{"Surfing", "Overage", tariff}
+	end,
+	Amount = rand:uniform(1000000000),
+	Rated = #rated{bucket_type = cents,
+			bucket_value = Amount,
+			tax_excluded_amount = Amount,
+			product = Product, price_name = Price,
+			price_type = Type, currency = "CAD",
+			usage_rating_tag = non_included, is_billed = true},
+	rated(N - 1, [Rated | Acc]).
 
 fill_abmf(0) ->
 	ok;
@@ -1802,6 +2052,7 @@ fill_abmf(N) ->
 					undefined, undefined, undefined, undefined, undefined)
 	end,
 	fill_abmf(N - 1).
+
 
 resp_attr() ->
 	resp_attr(rand:uniform(100)).
@@ -1980,4 +2231,10 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 	[{transport_module, Trans}, {transport_config,
 			[{raddr, RemAddr}, {rport, RemPort},
 			{reuseaddr, true}, {ip, LocalAddr}]}].
+
+%% @hidden
+unique() ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ integer_to_list(N).
 
