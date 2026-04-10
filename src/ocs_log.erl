@@ -51,7 +51,7 @@
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
-			http_file/2, date/1, iso8601/1]).
+			http_file/2, date/1, iso8601/0, iso8601/1]).
 -export([http_query/8]).
 -export([log_name/1]).
 -export([auth_to_ecs/1, acct_to_ecs/1]).
@@ -1230,6 +1230,13 @@ date(DateTime) when is_integer(DateTime) ->
 date(DateTime) when is_tuple(DateTime) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
 	Seconds * 1000.
+
+-spec iso8601() -> DateTime
+	when
+		DateTime :: string().
+%% @doc Convert system time to ISO 8601.
+iso8601() ->
+	iso8601(erlang:system_time(millisecond)).
 
 -spec iso8601(DateTime) -> DateTime
 	when
