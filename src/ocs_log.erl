@@ -609,18 +609,16 @@ cdr_log(chf = Type, File, Start, End) when is_list(File),
 			cdr_log1(CdrLog, Start, End,
 					AcctLog, btree_search(AcctLog, Start));
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc,
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc,
 					{module, ?MODULE}, {function, ?FUNCTION_NAME},
 					{file, File}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
 cdr_log1(CdrLog, _Start, _End, AcctLog, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc,
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc,
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
 			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
@@ -630,9 +628,8 @@ cdr_log1(CdrLog, Start, End, AcctLog, Cont) ->
 %% @hidden
 cdr_log2(CdrLog, _Start, _End, AcctLog,
 		_PrevChunk, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc,
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc,
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
 			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
@@ -674,9 +671,8 @@ cdr_log3(CdrLog, Start, End, AcctLog, {Cont, [H | T]}) ->
 		ok ->
 			cdr_log3(CdrLog, Start, End, AcctLog, {Cont, T});
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc,
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc,
 					{module, ?MODULE}, {function, ?FUNCTION_NAME},
 					{log, CdrLog}, {error, Reason}]),
 			disk_log:close(CdrLog),
@@ -691,9 +687,8 @@ cdr_log4(CdrLog) ->
 		ok ->
 			ok;
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc,
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc,
 					{module, ?MODULE}, {function, ?FUNCTION_NAME},
 					{log, CdrLog}, {error, Reason}]),
 			{error, Reason}
@@ -725,9 +720,8 @@ cdr_file(Type, LogFile, Format) when is_list(LogFile),
 					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			cdr_file1(LogFile, Log, Format);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc,
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc,
 					{module, ?MODULE}, {function, ?FUNCTION_NAME},
 					{file, FileName}, {error, Reason}]),
 			{error, Reason}
@@ -769,17 +763,15 @@ cdr_file3(Log, IoDevice, _Format, eof) ->
 		ok ->
 			file:close(IoDevice);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason}
 	end;
 cdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, Log}, {error, Reason}]),
 	disk_log:close(Log),
 	file:close(IoDevice),
@@ -844,25 +836,22 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 					ipdr_log1(IpdrLog, Start, End,
 							AcctLog, btree_search(AcctLog, Start));
 				{error, Reason} ->
-					Descr = lists:flatten(disk_log:format_error(Reason)),
-					Trunc = lists:sublist(Descr, length(Descr) - 1),
-					error_logger:error_report([Trunc, {module, ?MODULE},
+					Desc = format_error(Reason),
+					error_logger:error_report([Desc, {module, ?MODULE},
 							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
 			end;
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{file, File}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
 ipdr_log1(IpdrLog, _Start, _End, AcctLog, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
 %ipdr_log1(IpdrLog, _Start, _End, _AcctLog, eof) ->
@@ -873,9 +862,8 @@ ipdr_log1(IpdrLog, Start, End, AcctLog, Cont) ->
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End,
 		AcctLog, _PrevChunk, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, _AcctLog, [], eof) ->
@@ -927,9 +915,8 @@ ipdr_log4(IpdrLog, Start, End,
 		ok ->
 			ipdr_log4(IpdrLog, Start, End, AcctLog, NewSeqNum, Cont, T);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, IpdrLog}, {error, Reason}]),
 			disk_log:close(IpdrLog),
 			{error, Reason}
@@ -941,9 +928,8 @@ ipdr_log4(IpdrLog, Start, End,
 		ok ->
 			ipdr_log4(IpdrLog, Start, End, AcctLog, NewSeqNum, Cont, T);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, IpdrLog}, {error, Reason}]),
 			disk_log:close(IpdrLog),
 			{error, Reason}
@@ -960,16 +946,14 @@ ipdr_log5(IpdrLog, SeqNum) ->
 				ok ->
 					ok;
 				{error, Reason} ->
-					Descr = lists:flatten(disk_log:format_error(Reason)),
-					Trunc = lists:sublist(Descr, length(Descr) - 1),
-					error_logger:error_report([Trunc, {module, ?MODULE},
+					Desc = format_error(Reason),
+					error_logger:error_report([Desc, {module, ?MODULE},
 							{log, IpdrLog}, {error, Reason}]),
 					{error, Reason}
 			end;
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, IpdrLog}, {error, Reason}]),
 			disk_log:close(IpdrLog),
 			{error, Reason}
@@ -1002,9 +986,8 @@ ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			ipdr_file1(LogFile, Log, Format);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{file, FileName}, {error, Reason}]),
 			{error, Reason}
 	end.
@@ -1043,17 +1026,15 @@ ipdr_file3(Log, IoDevice, _Format, eof) ->
 		ok ->
 			file:close(IoDevice);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason}
 	end;
 ipdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, Log}, {error, Reason}]),
 	disk_log:close(Log),
 	file:close(IoDevice),
@@ -2892,9 +2873,8 @@ file_chunk(Log, IoDevice, Type, Cont) when Type == binary; Type == tuple ->
 		eof ->
 			file:close(IoDevice);
 		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
+			Desc = format_error(Reason),
+			error_logger:error_report([Desc, {module, ?MODULE},
 					{log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason};
@@ -4168,9 +4148,8 @@ open_log2(Log, FileName, LogSize, LogFiles) ->
 	end.
 %% @hidden
 open_log3(Log, Reason) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc,
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc,
 			{module, ?MODULE}, {log, Log}, {error, Reason}]),
 	{error, Reason}.
 
@@ -4216,9 +4195,8 @@ close_log1(Log, {error, Reason}) ->
 close_log2(_Log, ok) ->
 	ok;
 close_log2(Log, {error, Reason}) ->
-	Descr = lists:flatten(disk_log:format_error(Reason)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, Log}, {error, Reason}]),
 	{error, Reason}.
 
@@ -6627,4 +6605,16 @@ csv_recipient_info(#{recipientOtherAddress := Other}) ->
 	Other;
 csv_recipient_info(_) ->
 	<<>>.
+
+%% @hidden
+format_error(Error) ->
+	Desc = disk_log:format_error(Error),
+	F = fun(34) ->
+				false;
+			(10) ->
+				false;
+			(_) ->
+				true
+	end,
+	lists:filter(F, lists:flatten(Desc)).
 
