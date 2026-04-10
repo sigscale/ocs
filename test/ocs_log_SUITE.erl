@@ -492,7 +492,7 @@ cdr_log(_Config) ->
 					is_integer(TS), TS =< End, is_integer(N),
 					((P == nrf) orelse (P == diameter) orelse (P == radius)),
 					map_get(recordType, CHR) == chargingFunctionRecord,
-					(is_record(Rated, rated) orelse (Rated == undefined)) ->
+					is_list(Rated) ->
 				true;
 			(_) ->
 				false
