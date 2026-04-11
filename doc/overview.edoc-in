@@ -756,7 +756,7 @@ Logging configuration options:
 				<dt>Interval</dt>
 					<dd>Interval period in seconds.</dd>
 			</dl>
-			(default: [{chf, {4, 4, 4}, 1440}])
+			(default: [])
 		</dd>
 	<dt>export_dir</dt>
 		<dd>Path of directory to store exported files.</dd>
