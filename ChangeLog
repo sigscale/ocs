@@ -1,5 +1,8 @@
 2026-04-10   Vance Shipley <vances@sigscale.org>
 
+	* correct handle_continue/2 return in log rotation server
+	* correct documented default for cdr_logs app env var
+	* install export_cdr escript
 	* install cdr archive log dir
 	* strip quotes and newline from disk_log error description
 	* add iso8601/0 to ocs_log api to get current time
