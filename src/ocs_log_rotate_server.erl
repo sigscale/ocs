@@ -81,10 +81,10 @@ init([Type, ScheduledTime, Interval] = _Args) ->
 	when
 		Info :: term(),
 		State :: state(),
-		Result :: {noreply, NewState} | {noreply, NewState, Action}
+		Result :: {noreply, NewState}
+				| {noreply, NewState, timeout() | hibernate | {continue, term()}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Action :: gen_server:action(),
 		Reason :: term().
 %% @doc Handle a callback conntinuation.
 %% @see //stdlib/gen_server:handle_continue/2
@@ -117,12 +117,11 @@ handle_continue1(Directory, #state{type = Type,
 		interval = Interval, schedule = ScheduledTime} = State) ->
 	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
 	Timeout = wait(ScheduledTime, Interval),
-	Action = {timeout, Timeout, timeout},
 	case file:make_dir(Directory1) of
 		ok ->
-			{noreply, State, Action};
+			{noreply, State, Timeout};
 		{error, eexist} ->
-			{noreply, State, Action};
+			{noreply, State, Timeout};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
