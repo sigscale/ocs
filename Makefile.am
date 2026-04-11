@@ -15,6 +15,7 @@ script_SCRIPTS = scripts/install_tables.escript \
 		scripts/install_certs.sh \
 		scripts/install_release.sh \
 		scripts/snapshot.escript \
+		scripts/export_cdr.escript \
 		scripts/export_ipdr.escript \
 		scripts/send_sms.escript \
 		scripts/voice_call.escript \
