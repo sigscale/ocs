@@ -4739,7 +4739,7 @@ nf_name4(_) ->
 -type ims_charging_info() :: #{
 		eventType => sip_event_type(),
 		iMSNodeFunctionality => 'iMS-GWF' | aS | mRFC,
-		roleOfNode => originating | terminating,
+		roleOfNode => originating | terminating | forwarding,
 		userIdentifier => involved_party(),
 		userEquipmentInfo => subscriber_equipment_number(),
 		userLocationInformation => structured_location_info() | binary(),
@@ -5185,9 +5185,21 @@ chf_ims4(diameter = Protocol, ReqType,
 	CFR1 = CFR#{subscriberIdentifier => SubscriptionId1},
 	chf_ims5(Protocol, ReqType, Req, Res, CFR1);
 chf_ims4(Protocol, ReqType, Req, Res, CFR) ->
-	chf_ims2(Protocol, ReqType, Req, Res, CFR).
+	chf_ims5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_ims5(_Protocol, _ReqType, _Req, _Res, CFR) ->
+chf_ims5(nrf = Protocol, ReqType, Req, Res, CFR) ->
+		#{"serviceRating" := ServiceRating} = Req,
+	CFR1 = case nrf_ims_charging_info(ServiceRating) of
+		undefined ->
+			CFR;
+		ImsInfo ->
+			CFR#{iMSChargingInformation => ImsInfo}
+	end,
+	chf_ims6(Protocol, ReqType, Req, Res, CFR1);
+chf_ims5(Protocol, ReqType, Req, Res, CFR) ->
+	chf_ims6(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_ims6(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
 -spec chf_sms(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
@@ -5966,6 +5978,105 @@ nrf_pdu_address6(_PDUA, Acc) ->
 	Acc.
 
 %% @hidden
+nrf_ims_charging_info([#{"serviceInformation" := SI} = SR | _])
+	when is_map_key("nodeFunctionality", SI) ->
+	nrf_ims_charging_info1(SR, #{});
+nrf_ims_charging_info([_SR | T]) ->
+	nrf_ims_charging_info(T);
+nrf_ims_charging_info([]) ->
+	undefined.
+%% @hidden
+nrf_ims_charging_info1(#{"originationId" := Origin} = SR, Acc) ->
+	CallingPartyAddresses = [nrf_involved_party(P) || P <- Origin],
+	Acc1 = Acc#{callingPartyAddresses => CallingPartyAddresses},
+	nrf_ims_charging_info2(SR, Acc1);
+nrf_ims_charging_info1(SR, Acc) ->
+	nrf_ims_charging_info2(SR, Acc).
+%% @hidden
+nrf_ims_charging_info2(#{"destinationId" := Destination} = SR, Acc) ->
+	CalledPartyAddress = nrf_involved_party(hd(Destination)),
+	Acc1 = Acc#{calledPartyAddress => CalledPartyAddress},
+	nrf_ims_charging_info3(SR, Acc1);
+nrf_ims_charging_info2(SR, Acc) ->
+	nrf_ims_charging_info3(SR, Acc).
+%% @hidden
+nrf_ims_charging_info3(#{"serviceInformation" := SI} = _SR, Acc) ->
+	nrf_ims_charging_info4(SI, Acc);
+nrf_ims_charging_info3(_SR, Acc) ->
+	Acc.
+%% @hidden
+nrf_ims_charging_info4(#{"nodeFunctionality" := "AS"} = SI, Acc) ->
+	Acc1 = Acc#{iMSNodeFunctionality => aS},
+	nrf_ims_charging_info5(SI, Acc1);
+nrf_ims_charging_info4(SI, Acc) ->
+	nrf_ims_charging_info5(SI, Acc).
+%% @hidden
+nrf_ims_charging_info5(#{"roleOfNode" := "ORIGINATING"} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => originating},
+	nrf_ims_charging_info6(SI, Acc1);
+nrf_ims_charging_info5(#{"roleOfNode" := "TERMINATING"} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => terminating},
+	nrf_ims_charging_info6(SI, Acc1);
+nrf_ims_charging_info5(#{"roleOfNode" := "FORWARDING"} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => forwarding},
+	nrf_ims_charging_info6(SI, Acc1);
+nrf_ims_charging_info5(SI, Acc) ->
+	nrf_ims_charging_info6(SI, Acc).
+%% @hidden
+nrf_ims_charging_info6(#{"visitedNetworkIdentifier" := VNI} = SI, Acc) ->
+	Acc1 = Acc#{imsVisitedNetworkIdentifier => list_to_binary(VNI)},
+	nrf_ims_charging_info7(SI, Acc1);
+nrf_ims_charging_info6(SI, Acc) ->
+	nrf_ims_charging_info7(SI, Acc).
+%% @hidden
+nrf_ims_charging_info7(#{"userLocationinfo" := ULI} = SI, Acc) ->
+	Acc1 = Acc#{userLocationInformation => nrf_user_location_info(ULI)},
+	nrf_ims_charging_info8(SI, Acc1);
+nrf_ims_charging_info7(SI, Acc) ->
+	nrf_ims_charging_info8(SI, Acc).
+%% @hidden
+nrf_ims_charging_info8(_SI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_involved_party(#{"originationIdType" := "DN",
+		"originationIdData" := DN}) ->
+	#{'iSDN-E164' => list_to_binary(DN)};
+nrf_involved_party(#{"originationIdType" := "NAI",
+		"originationIdData" := NAI}) ->
+	#{externalId => list_to_binary(NAI)};
+nrf_involved_party(#{"originationIdType" := "URL",
+		"originationIdData" := "tel:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"tel:">>, Rest])};
+nrf_involved_party(#{"originationIdType" := "URL",
+		"originationIdData" := "sip:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"sip:">>, Rest])};
+nrf_involved_party(#{"originationIdType" := "URL",
+		"originationIdData" := "sips:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"sips:">>, Rest])};
+nrf_involved_party(#{"originationIdType" := "APN",
+		"originationIdData" := APN}) ->
+	#{externalId => list_to_binary(APN)};
+nrf_involved_party(#{"destinationIdType" := "DN",
+		"destinationIdData" := DN}) ->
+	#{'iSDN-E164' => list_to_binary(DN)};
+nrf_involved_party(#{"destinationIdType" := "NAI",
+		"destinationIdData" := NAI}) ->
+	#{externalId => list_to_binary(NAI)};
+nrf_involved_party(#{"destinationIdType" := "URL",
+		"destinationIdData" := "tel:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"tel:">>, Rest])};
+nrf_involved_party(#{"destinationIdType" := "URL",
+		"destinationIdData" := "sip:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"sip:">>, Rest])};
+nrf_involved_party(#{"destinationIdType" := "URL",
+		"destinationIdData" := "sips:" ++ Rest}) ->
+	#{externalId => list_to_binary([<<"sips:">>, Rest])};
+nrf_involved_party(#{"destinationIdType" := "APN",
+		"destinationIdData" := APN}) ->
+	#{externalId => list_to_binary(APN)}.
+
+%% @hidden
 diameter_subscription_id(SubscriptionId) ->
 	diameter_subscription_id(SubscriptionId, []).
 %% @hidden
@@ -6563,19 +6674,19 @@ csv_ims_called(#{calledPartyAddress := CalledParty}) ->
 	csv_involved_party(CalledParty).
 
 %% @hidden
-csv_involved_party({'iSDN-E164', E164}) ->
+csv_involved_party(#{'iSDN-E164' := E164}) ->
 	E164;
-csv_involved_party({'tEL-URI', TELURI}) ->
+csv_involved_party(#{'tEL-URI' := TELURI}) ->
 	#{path := Path} = uri_string:parse(TELURI),
 	[DN | _Params] = string:lexemes(Path, [$;]),
 	DN;
-csv_involved_party({'sIP-URI', SIPURI}) ->
+csv_involved_party(#{'sIP-URI' := SIPURI}) ->
 	#{path := Path} = uri_string:parse(SIPURI),
 	[Party | _Params] = string:lexemes(Path, [$;]),
 	Party;
-csv_involved_party({uRN, URN}) ->
+csv_involved_party(#{uRN := URN}) ->
 	URN;
-csv_involved_party({externalId, ExternalId}) ->
+csv_involved_party(#{externalId := ExternalId}) ->
 	ExternalId.
 
 %% @hidden
