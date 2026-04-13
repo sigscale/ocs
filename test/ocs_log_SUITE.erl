@@ -1230,8 +1230,12 @@ diameter_ecur(_Config) ->
 			'CC-Service-Specific-Units' = [1]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{
 			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Originator-Received-Address' = [#'3gpp_ro_Originator-Received-Address'{
+			'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
+			'Address-Data' = [CallingParty]}],
 			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
 			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
 			'Address-Data' = [CalledParty]}]}]}]},
 	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RSU]},
@@ -1728,9 +1732,29 @@ fill_acct(N, Protocol) ->
 	end,
 	Fdiameter = fun() ->
 			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
-			ServiceContextId = <<"10.32251@3gpp.org">>,
+			PSContext = <<"10.32251@3gpp.org">>,
+			IMSContext = <<"15.32260@3gpp.org">>,
+			SMSContext = <<"11.32274@3gpp.org">>,
+			ServiceContextId = case rand:uniform(100) of
+				Wc when Wc =< 20 ->
+					SMSContext;
+				Wc when Wc =< 40 ->
+					IMSContext;
+				_Wc ->
+					PSContext
+			end,
+			RoleOfNode = case rand:uniform(100) of
+				Wr when Wr < 50 ->
+					?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE';
+				Wr when Wr < 98 ->
+					?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE';
+				_Wr ->
+					?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE'
+			end,
 			ChargingId = rand:uniform(4294967295),
 			PdpAddress = ocs_test_lib:ipv4(),
+			CallingPartyAddress = ocs_test_lib:rand_dn(),
+			CalledPartyAddress = ocs_test_lib:rand_dn(),
 			{StartTime1, StopTime1} = case Type of
 				start ->
 					{[ocs_log:date(StartTime)], []};
@@ -1770,7 +1794,7 @@ fill_acct(N, Protocol) ->
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
 			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
-			PSInfo = #'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>],
+			PSInfo = [#'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [<<"001001">>],
 					'3GPP-User-Location-Info' = [<<130, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4,
 							$a, $b, 0:4, 0:4, 1:4, 1:4, 0:4, 0:4, 0:4,
 							$f:4, $a:4, $c:4, $e:4, $0:4, $0:4, $1:4>>],
@@ -1780,8 +1804,31 @@ fill_acct(N, Protocol) ->
 					'PDP-Address' = [PdpAddress],
 					'3GPP-RAT-Type' = [6],
 					'Start-Time' = StartTime1,
-					'Stop-Time' = StopTime1},
-			ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' = [PSInfo]},
+					'Stop-Time' = StopTime1}],
+			IMSInfo = [#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [RoleOfNode],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}],
+			SMSInfo = [#'3gpp_ro_SMS-Information'{
+					'SMS-Node' = ['3GPP_RO_SMS-NODE_SMS-SC'],
+					'Originator-Received-Address' = [#'3gpp_ro_Originator-Address'{
+					'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
+					'Address-Data' = [CallingPartyAddress]}],
+					'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+					'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+					'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
+					'Address-Data' = [CalledPartyAddress]}]}]}],
+			ServiceInformation = case ServiceContextId of
+				PSContext ->
+					#'3gpp_ro_Service-Information'{'PS-Information' = PSInfo};
+				IMSContext ->
+					#'3gpp_ro_Service-Information'{'IMS-Information' = IMSInfo,
+							'PS-Information' = PSInfo};
+				SMSContext ->
+					#'3gpp_ro_Service-Information'{'SMS-Information' = SMSInfo,
+							'PS-Information' = PSInfo}
+			end,
 			CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId,
 					'Origin-Host' = Hostname,
 					'CC-Request-Type' = CCRequestType,
@@ -1823,43 +1870,38 @@ fill_acct(N, Protocol) ->
 					stop ->
 						PduSessionInfo#{"stopTime" => ocs_log:iso8601(StopTime)}
 				end,
-				PSInfo = #{"userLocationinfo" => Location,
+				PDUInfo = #{"userLocationinfo" => Location,
 						"pduSessionInformation" => PduSessionInfo1},
 				{SRRequest, SRResponse} = case Type of
 					start ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						{[#{"ratingGroup" => 32,
 								"requestSubType*" => "RESERVE",
 								"requestedUnit" => #{},
-								"serviceInformation" => PSInfo}],
-						[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+								"serviceInformation" => PDUInfo}],
+						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
 					interim ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						{[#{"ratingGroup" => 32,
 								"requestSubType" => "RESERVE",
 								"requestedUnit" => #{},
-								"serviceInformation" => PSInfo},
-						#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+								"serviceInformation" => PDUInfo},
+						#{"ratingGroup" => 32,
 								"requestSubType*" => "DEBIT",
 								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-								"serviceInformation" => PSInfo}],
-						[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+								"serviceInformation" => PDUInfo}],
+						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
 					stop ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						{[#{"ratingGroup" => 32,
 								"requestSubType*" => "DEBIT",
 								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-								"serviceInformation" => PSInfo}],
+								"serviceInformation" => PDUInfo}],
 						[]}
 				end,
 				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"serviceContextId" => ServiceContextId,
 						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 						"invocationSequenceNumber" => SeqNo,
 						"nfConsumerIdentification" => NfConsumer,
@@ -1873,7 +1915,25 @@ fill_acct(N, Protocol) ->
 				RatingDataRef = unique(),
 				NfConsumer = #{"nFIPv4Address" => inet:ntoa(ClientAddress),
 						"nodeFunctionality" => "OCF"},
-				ServiceContextId = "20.32251@3gpp.org",
+				PSContext = "67.32251@3gpp.org",
+				IMSContext = "88.32260@3gpp.org",
+				SMSContext = "34.32274@3gpp.org",
+				ServiceContextId = case rand:uniform(100) of
+					SCI when SCI =< 20 ->
+						SMSContext;
+					SCI when SCI =< 40 ->
+						IMSContext;
+					_ ->
+						PSContext
+				end,
+				{RoleOfNode, MessageType} = case rand:uniform(100) of
+					Wr when Wr < 50 ->
+						{"ORIGINATING", "SUBMISSION"};
+					Wr when Wr < 98 ->
+						{"TERMINATING", "DELIVERY"};
+					_Wr ->
+						{"FORWARDING", "SUBMISSION"}
+				end,
 				Sub1 = lists:concat(["imsi-", IMSI]),
 				Sub2 = lists:concat(["msisdn-", MSISDN]),
 				PLMNId = #{"mcc" => "001", "mnc" => "001"},
@@ -1881,44 +1941,103 @@ fill_acct(N, Protocol) ->
 				ECGI = #{"plmnId" => PLMNId, "eutraCellId" => "feeded1"},
 				Location = #{"eutraLocation" => #{"tai" => TAI, "ecgi" => ECGI}},
 				PduAddress = inet:ntoa(ocs_test_lib:ipv4()),
+				CallingPartyAddress = ocs_test_lib:rand_dn(),
+				CalledPartyAddress = ocs_test_lib:rand_dn(),
+				OriginationId = [#{"originationIdType" => "DN",
+						"originationIdData" => CallingPartyAddress}],
+				DestinationId = [#{"destinationIdType" => "DN",
+						"destinationIdData" => CalledPartyAddress}],
 				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"},
-						"pdpAddress" => PduAddress, "ratType" => "EUTRA",
-						"apn" => "internet", "userLocationinfo" => Location},
+						"pdpAddress" => PduAddress,
+						"ratType" => "EUTRA",
+						"apn" => "internet",
+						"userLocationinfo" => Location},
+				IMSInfo = #{"nodeFunctionality" => "AS",
+						"roleOfNode" => RoleOfNode,
+						"pdpAddress" => PduAddress,
+						"ratType" => "EUTRA",
+						"apn" => "ims",
+						"userLocationinfo" => Location},
+				SMSInfo = #{"smsNode" => "SMS-SC",
+						"messageType" => MessageType,
+						"pdpAddress" => PduAddress,
+						"ratType" => "EUTRA",
+						"apn" => "internet",
+						"userLocationinfo" => Location},
+				ServiceInformation = case ServiceContextId of
+					PSContext ->
+						PSInfo;
+					IMSContext ->
+						IMSInfo;
+					SMSContext ->
+						SMSInfo
+				end,
 				{SRRequest, SRResponse} = case Type of
-					start ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+					start when ServiceContextId == PSContext ->
+						{[#{"ratingGroup" => 32,
 								"requestSubType*" => "RESERVE",
 								"requestedUnit" => #{},
+								"serviceInformation" => ServiceInformation}],
+						[#{"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					start ->
+						{[#{"ratingGroup" => 32,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => ServiceInformation}],
+						[#{"ratingGroup" => 32,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+					interim when ServiceContextId == PSContext ->
+						{[#{"ratingGroup" => 32,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => ServiceInformation},
+						#{"ratingGroup" => 32,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
 								"serviceInformation" => PSInfo}],
-						[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
 					interim ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						{[#{"ratingGroup" => 32,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
 								"requestSubType" => "RESERVE",
 								"requestedUnit" => #{},
-								"serviceInformation" => PSInfo},
-						#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+								"serviceInformation" => ServiceInformation},
+						#{"ratingGroup" => 32,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
 								"requestSubType*" => "DEBIT",
 								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
 								"serviceInformation" => PSInfo}],
-						[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
-					stop ->
-						{[#{"serviceContextId" => ServiceContextId,
-								"ratingGroup" => 32,
+					stop when ServiceContextId == PSContext ->
+						{[#{"ratingGroup" => 32,
 								"requestSubType*" => "DEBIT",
 								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-								"serviceInformation" => PSInfo}],
+								"serviceInformation" => ServiceInformation}],
+						[]};
+					stop ->
+						{[#{"ratingGroup" => 32,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"serviceInformation" => ServiceInformation}],
 						[]}
 				end,
 				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
+						"serviceContextId" => ServiceContextId,
 						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 						"invocationSequenceNumber" => SeqNo,
 						"nfConsumerIdentification" => NfConsumer,
