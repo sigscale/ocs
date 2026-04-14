@@ -1,3 +1,10 @@
+2026-04-14   Vance Shipley <vances@sigscale.org>
+
+	* sms charging info in cdr archive log
+	* calling/called parties in ims cdr
+	* cdr archive log includes ims charging info from nrf
+	* test suite: fill acct log with ps, ims and sms
+
 2026-04-10   Vance Shipley <vances@sigscale.org>
 
 	* correct handle_continue/2 return in log rotation server

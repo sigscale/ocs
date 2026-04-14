@@ -1,3 +1,8 @@
+April 14, 2026
+--------------
+	- SMS charging info in cdr archive log
+	- IMS charging info in cdr archive log
+
 April 10, 2026
 --------------
 	- Introduce CDR logging framework
