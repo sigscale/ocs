@@ -5298,7 +5298,36 @@ chf_sms4(diameter = Protocol, ReqType,
 chf_sms4(Protocol, ReqType, Req, Res, CFR) ->
 	chf_sms5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_sms5(_Protocol, _ReqType, _Req, _Res, CFR) ->
+chf_sms5(nrf = Protocol, ReqType,
+		#{"serviceRating" := ServiceRating} = Req,
+		Res, CFR) ->
+	CFR1 = case nrf_sms_charging_info(ServiceRating) of
+		undefined ->
+			CFR;
+		SmsInfo ->
+			CFR#{sMSChargingInformation => SmsInfo}
+	end,
+	chf_sms6(Protocol, ReqType, Req, Res, CFR1);
+chf_sms5(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req,
+		Res, CFR) ->
+	CFR1 = case diameter_pdu_session_charging_info(ServiceInfo) of
+		undefined ->
+			CFR;
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
+	end,
+	CFR2 = case diameter_sms_charging_info(ServiceInfo) of
+		undefined ->
+			CFR1;
+		SmsInfo ->
+			CFR1#{sMSChargingInformation => SmsInfo}
+	end,
+	chf_sms6(Protocol, ReqType, Req, Res, CFR2);
+chf_sms5(Protocol, ReqType, Req, Res, CFR) ->
+	chf_sms6(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_sms6(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
 -spec chf_vcs(TimeStamp, Unique, Protocol, ReqType, Req, Res, Rated) -> CDR
@@ -6094,6 +6123,112 @@ nrf_involved_party(#{"destinationIdType" := "APN",
 	#{externalId => list_to_binary(APN)}.
 
 %% @hidden
+nrf_sms_charging_info([#{"serviceInformation" := SI} = SR | _])
+	when is_map_key("smsNode", SI); is_map_key("smsResult", SI);
+	is_map_key("messageType", SI); is_map_key("serviceType", SI) ->
+	nrf_sms_charging_info1(SR, #{});
+nrf_sms_charging_info([_SR | T]) ->
+	nrf_sms_charging_info(T);
+nrf_sms_charging_info([]) ->
+	undefined.
+%% @hidden
+nrf_sms_charging_info1(#{"originationId" := [H | _]} = SR, Acc) ->
+	OriginatorInfo = nrf_originator_info(H),
+	Acc1 = Acc#{originatorInfo => OriginatorInfo},
+	nrf_sms_charging_info2(SR, Acc1);
+nrf_sms_charging_info1(SR, Acc) ->
+	nrf_sms_charging_info2(SR, Acc).
+%% @hidden
+nrf_sms_charging_info2(#{"destinationId" := RI} = SR, Acc) ->
+	RecipientInfos = nrf_recipient_info(RI),
+	Acc1 = Acc#{recipientInfos => RecipientInfos},
+	nrf_sms_charging_info3(SR, Acc1);
+nrf_sms_charging_info2(SR, Acc) ->
+	nrf_sms_charging_info3(SR, Acc).
+%% @hidden
+nrf_sms_charging_info3(#{"serviceInformation" := SI} = _SR, Acc) ->
+	nrf_sms_charging_info4(SI, Acc);
+nrf_sms_charging_info3(_SR, Acc) ->
+	Acc.
+%% @hidden
+nrf_sms_charging_info4(#{"messageType" := MT} = SI, Acc) ->
+	SMMessageType = nrf_sm_message_type(MT),
+	Acc1 = Acc#{sMMessageType => SMMessageType},
+	nrf_sms_charging_info5(SI, Acc1);
+nrf_sms_charging_info4(SI, Acc) ->
+	nrf_sms_charging_info5(SI, Acc).
+%% @hidden
+nrf_sms_charging_info5(#{"serviceType" := ST} = SI, Acc) ->
+	SMServiceType = nrf_sm_service_type(ST),
+	Acc1 = Acc#{sMServiceType => SMServiceType},
+	nrf_sms_charging_info6(SI, Acc1);
+nrf_sms_charging_info5(SI, Acc) ->
+	nrf_sms_charging_info6(SI, Acc).
+%% @hidden
+nrf_sms_charging_info6(#{"userLocationinfo" := ULI} = SI, Acc) ->
+	Acc1 = Acc#{userLocationInformation => nrf_user_location_info(ULI)},
+	nrf_sms_charging_info7(SI, Acc1);
+nrf_sms_charging_info6(SI, Acc) ->
+	nrf_sms_charging_info7(SI, Acc).
+%% @hidden
+nrf_sms_charging_info7(_SI, Acc) ->
+	Acc.
+
+%% @hidden
+nrf_originator_info(#{"originationIdType" := "DN",
+		"originationIdData" := DN}) ->
+	#{originatorMSISDN => list_to_binary(DN)}.
+
+%% @hidden
+nrf_recipient_info(RI) ->
+	nrf_recipient_info(RI, []).
+%% @hidden
+nrf_recipient_info([#{"destinationIdType" := "DN",
+		"destinationIdData" := DN} | T], Acc) ->
+	Acc1 = [#{recipientMSISDN => list_to_binary(DN)} | Acc],
+	nrf_recipient_info(T, Acc1);
+nrf_recipient_info([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+nrf_sm_message_type("SUBMISSION") ->
+	submission;
+nrf_sm_message_type("DELIVERY") ->
+	delivery;
+nrf_sm_message_type("DELIVERY_REPORT") ->
+	deliveryReport;
+nrf_sm_message_type("SM Service Request") ->
+	sMServiceRequest;
+nrf_sm_message_type("T4 Device Trigger") ->
+	t4DeviceTrigger;
+nrf_sm_message_type("SM Device Trigger") ->
+	sMDeviceTrigger.
+
+%% @hidden
+nrf_sm_service_type("VAS4SMS Short Message content processing") ->
+	0;
+nrf_sm_service_type("VAS4SMS Short Message forwarding") ->
+	1;
+nrf_sm_service_type("VAS4SMS Short Message Forwarding multiple subscriptions") ->
+	2;
+nrf_sm_service_type("VAS4SMS Short Message filtering") ->
+	3;
+nrf_sm_service_type("VAS4SMS Short Message receipt") ->
+	4;
+nrf_sm_service_type("VAS4SMS Short Message Network Storage") ->
+	5;
+nrf_sm_service_type("VAS4SMS Short Message to multiple destinations") ->
+	6;
+nrf_sm_service_type("VAS4SMS Short Message Virtual Private Network (VPN)") ->
+	7;
+nrf_sm_service_type("VAS4SMS Short Message Auto Reply") ->
+	8;
+nrf_sm_service_type("VAS4SMS Short Message Personal Signature") ->
+	9;
+nrf_sm_service_type("VAS4SMS Short Message Deferred Delivery") ->
+	10.
+
+%% @hidden
 diameter_subscription_id(SubscriptionId) ->
 	diameter_subscription_id(SubscriptionId, []).
 %% @hidden
@@ -6388,6 +6523,121 @@ diameter_involved_party([<<"sips:", _/binary>> = H | T], Acc) ->
 	diameter_involved_party(T, [Party | Acc]);
 diameter_involved_party([], Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+diameter_sms_charging_info(#'3gpp_ro_Service-Information'{
+		'SMS-Information' = [SI]}) ->
+	diameter_sms_charging_info1(SI, #{});
+diameter_sms_charging_info(_) ->
+	undefined.
+%% @hidden
+diameter_sms_charging_info1(#'3gpp_ro_SMS-Information'{
+		'Originator-Received-Address' = [ORA]} = SI, Acc) ->
+	OriginatorInfo = diameter_originator_info(ORA),
+	Acc1 = Acc#{originatorInfo => OriginatorInfo},
+	diameter_sms_charging_info2(SI, Acc1);
+diameter_sms_charging_info1(SI, Acc) ->
+	diameter_sms_charging_info2(SI, Acc).
+%% @hidden
+diameter_sms_charging_info2(#'3gpp_ro_SMS-Information'{
+		'Recipient-Info' = RI} = SI, Acc) ->
+	RecipientInfos = diameter_recipient_info(RI),
+	Acc1 = Acc#{recipientInfos => RecipientInfos},
+	diameter_sms_charging_info3(SI, Acc1);
+diameter_sms_charging_info2(SI, Acc) ->
+	diameter_sms_charging_info3(SI, Acc).
+%% @hidden
+diameter_sms_charging_info3(#'3gpp_ro_SMS-Information'{
+		'SMSC-Address' = [SMSCAddress]} = SI, Acc) ->
+	Acc1 = Acc#{sMSCAddress => SMSCAddress},
+	diameter_sms_charging_info4(SI, Acc1);
+diameter_sms_charging_info3(SI, Acc) ->
+	diameter_sms_charging_info4(SI, Acc).
+%% @hidden
+diameter_sms_charging_info4(#'3gpp_ro_SMS-Information'{
+		'SM-Message-Type' = [SMT]} = SI, Acc) ->
+	SMMessageType = diameter_sm_message_type(SMT),
+	Acc1 = Acc#{sMMessageType => SMMessageType},
+	diameter_sms_charging_info5(SI, Acc1);
+diameter_sms_charging_info4(SI, Acc) ->
+	diameter_sms_charging_info5(SI, Acc).
+%% @hidden
+diameter_sms_charging_info5(#'3gpp_ro_SMS-Information'{
+		'SM-Service-Type' = [SST]} = SI, Acc) ->
+	SMServiceType = diameter_sm_service_type(SST),
+	Acc1 = Acc#{sMServiceType => SMServiceType},
+	diameter_sms_charging_info6(SI, Acc1);
+diameter_sms_charging_info5(SI, Acc) ->
+	diameter_sms_charging_info6(SI, Acc).
+%% @hidden
+diameter_sms_charging_info6(_SI, Acc) ->
+	Acc.
+
+%% @hidden
+diameter_originator_info(#'3gpp_ro_Originator-Received-Address'{
+		'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_IMSI'],
+		'Address-Data' = [IMSI]}) ->
+	#{originatorIMSI => IMSI};
+diameter_originator_info(#'3gpp_ro_Originator-Received-Address'{
+		'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
+		'Address-Data' = [MSISDN]}) ->
+	#{originatorMSISDN => MSISDN}.
+
+%% @hidden
+diameter_recipient_info(RI) ->
+	diameter_recipient_info(RI, []).
+%% @hidden
+diameter_recipient_info([#'3gpp_ro_Recipient-Info'{
+		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+				'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_IMSI'],
+				'Address-Data' = [IMSI]}]} | T], Acc) ->
+	Acc1 = [#{recipientIMSI => IMSI} | Acc],
+	diameter_recipient_info(T, Acc1);
+%% @hidden
+diameter_recipient_info([#'3gpp_ro_Recipient-Info'{
+		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+				'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
+				'Address-Data' = [MSISDN]}]} | T], Acc) ->
+	Acc1 = [#{recipientMSISDN => MSISDN} | Acc],
+	diameter_recipient_info(T, Acc1);
+diameter_recipient_info([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+diameter_sm_message_type(?'3GPP_RO_SM-MESSAGE-TYPE_SUBMISSION') ->
+	submission;
+diameter_sm_message_type(?'3GPP_RO_SM-MESSAGE-TYPE_DELIVERY_REPORT') ->
+	deliveryReport;
+diameter_sm_message_type(?'3GPP_RO_SM-MESSAGE-TYPE_SM_SERVICE_REQUEST') ->
+	sMServiceRequest;
+diameter_sm_message_type(?'3GPP_RO_SM-MESSAGE-TYPE_T4_DEVICE_TRIGGER') ->
+	t4DeviceTrigger;
+diameter_sm_message_type(?'3GPP_RO_SM-MESSAGE-TYPE_SM_DEVICE_TRIGGER') ->
+	sMDeviceTrigger.
+
+%% @hidden
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSCONTENTPROCESSING') ->
+	0;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSFORWARDING') ->
+	1;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSFORWARDINGMULTIPLESUBSCRIPTIONS') ->
+	2;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSFILTERING') ->
+	3;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSRECEIPT') ->
+	4;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSNETWORKSTORAGE') ->
+	5;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSMULTIPLEDESTINATIONS') ->
+	6;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSVIRTUALPRIVATENETWORK') ->
+	7;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSAUTOREPLY') ->
+	8;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSPERSONALSIGNATURE') ->
+	9;
+diameter_sm_service_type(?'3GPP_RO_SM-SERVICE-TYPE_VAS4SMSDEFERREDDELIVERY') ->
+	10.
 
 %% @hidden
 radius_pdu_session_charging_info(Attr) ->

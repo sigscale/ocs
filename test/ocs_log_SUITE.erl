@@ -1847,8 +1847,9 @@ fill_acct(N, Protocol) ->
 					'Calling-Party-Address' = CallingPartyAddress,
 					'Called-Party-Address' = CalledPartyAddress}],
 			SMSInfo = [#'3gpp_ro_SMS-Information'{
-					'SMS-Node' = ['3GPP_RO_SMS-NODE_SMS-SC'],
-					'Originator-Received-Address' = [#'3gpp_ro_Originator-Address'{
+					'SMS-Node' = [?'3GPP_RO_SMS-NODE_SMS-SC'],
+					'SM-Message-Type' = [?'3GPP_RO_SM-MESSAGE-TYPE_SUBMISSION'],
+					'Originator-Received-Address' = [#'3gpp_ro_Originator-Received-Address'{
 					'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
 					'Address-Data' = [OtherDN]}],
 					'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
@@ -1979,60 +1980,100 @@ fill_acct(N, Protocol) ->
 				PduAddress = inet:ntoa(ocs_test_lib:ipv4()),
 				OtherDN = ocs_test_lib:rand_dn(),
 				OriginationId = case rand:uniform(100) of
-					Wp3 when Wp3 =< 25, RoleOfNode == "TERMINATING" ->
+					_Wp3 when
+							ServiceContextId == SMSContext,
+							MessageType == "DELIVERY" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => OtherDN}];
+					_Wp3 when
+							ServiceContextId == SMSContext ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => MSISDN}];
+					Wp3 when Wp3 =< 25,
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "sip:+" ++ OtherDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"},
 						#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ OtherDN}];
-					Wp3 when Wp3 =< 25 ->
+					Wp3 when Wp3 =< 25,
+							ServiceContextId == IMSContext ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "sip:+" ++ MSISDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"},
 						#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ MSISDN}];
-					Wp3 when Wp3 =< 50, RoleOfNode == "TERMINATING" ->
+					Wp3 when Wp3 =< 50,
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ OtherDN},
 						#{"originationIdType" => "DN",
 								"originationIdData" => "sip:+" ++ OtherDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
-					Wp3 when Wp3 =< 50 ->
+					Wp3 when Wp3 =< 50,
+							ServiceContextId == IMSContext ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ MSISDN},
 						#{"originationIdType" => "DN",
 								"originationIdData" => "sip:+" ++ MSISDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
-					Wp3 when Wp3 =< 75, RoleOfNode == "TERMINATING" ->
+					Wp3 when Wp3 =< 75,
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ OtherDN}];
-					Wp3 when Wp3 =< 75 ->
+					Wp3 when Wp3 =< 75,
+							ServiceContextId == IMSContext ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "tel:+" ++ MSISDN}];
-					_Wp3 when RoleOfNode == "TERMINATING" ->
+					_Wp3 when
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
 						[#{"originationIdType" => "DN",
 								"originationIdData" => "sip:+" ++ OtherDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					_Wp3 when
+							ServiceContextId == IMSContext ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ MSISDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
 					_Wp3 ->
-						[#{"originationIdType" => "DN",
-								"originationIdData" => "sip:+" ++ MSISDN
-										++ "@ims.mnc001.mcc001.3gppnetwork.org"}]
+						[]
 				end,
 				DestinationId = case rand:uniform(100) of
-					Wp4 when Wp4 =< 50, RoleOfNode == "TERMINATING" ->
-						[#{"originationIdType" => "DN",
-								"originationIdData" => "sip:+" ++ MSISDN
+					_Wp4 when
+							ServiceContextId == SMSContext,
+							MessageType == "DELIVERY" ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => MSISDN}];
+					_Wp4 when
+							ServiceContextId == SMSContext ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => OtherDN}];
+					Wp4 when Wp4 =< 50,
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => "sip:+" ++ MSISDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
-					Wp4 when Wp4 =< 50 ->
-						[#{"originationIdType" => "DN",
-								"originationIdData" => "sip:+" ++ OtherDN
+					Wp4 when Wp4 =< 50,
+							ServiceContextId == IMSContext ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => "sip:+" ++ OtherDN
 										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
-					_Wp4 when RoleOfNode == "TERMINATING" ->
-						[#{"originationIdType" => "DN",
-								"originationIdData" => "tel:+" ++ MSISDN}];
+					_Wp4 when
+							ServiceContextId == IMSContext,
+							RoleOfNode == "TERMINATING" ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => "tel:+" ++ MSISDN}];
+					_Wp4 when
+							ServiceContextId == IMSContext ->
+						[#{"destinationIdType" => "DN",
+								"destinationIdData" => "tel:+" ++ OtherDN}];
 					_Wp4 ->
-						[#{"originationIdType" => "DN",
-								"originationIdData" => "tel:+" ++ OtherDN}]
+						[]
 				end,
 				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"},
 						"pdpAddress" => PduAddress,
@@ -2068,16 +2109,26 @@ fill_acct(N, Protocol) ->
 						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
-					start ->
-						{[#{"ratingGroup" => 32,
+					start when ServiceContextId == IMSContext ->
+						{[#{"ratingGroup" => 64,
 								"originationId" => OriginationId,
 								"destinationId" => DestinationId,
 								"requestSubType*" => "RESERVE",
 								"requestedUnit" => #{},
 								"serviceInformation" => ServiceInformation}],
-						[#{"ratingGroup" => 32,
+						[#{"ratingGroup" => 64,
 								"resultCode" => "SUCCESS",
-								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+								"grantedUnit" => #{"time" => 300}}]};
+					start when ServiceContextId == SMSContext ->
+						{[#{"ratingGroup" => 96,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType*" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => ServiceInformation}],
+						[#{"ratingGroup" => 96,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"serviceSpecificUnit" => 1}}]};
 					interim when ServiceContextId == PSContext ->
 						{[#{"ratingGroup" => 32,
 								"requestSubType" => "RESERVE",
@@ -2092,44 +2143,75 @@ fill_acct(N, Protocol) ->
 						[#{"ratingGroup" => 32,
 								"resultCode" => "SUCCESS",
 								"grantedUnit" => #{"totalVolume" => 5000000}}]};
-					interim ->
-						{[#{"ratingGroup" => 32,
+					interim when ServiceContextId == IMSContext ->
+						{[#{"ratingGroup" => 64,
 								"originationId" => OriginationId,
 								"destinationId" => DestinationId,
 								"requestSubType" => "RESERVE",
 								"requestedUnit" => #{},
 								"serviceInformation" => ServiceInformation},
-						#{"ratingGroup" => 32,
+						#{"ratingGroup" => 64,
 								"originationId" => OriginationId,
 								"destinationId" => DestinationId,
 								"requestSubType*" => "DEBIT",
-								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
-								"serviceInformation" => PSInfo}],
-						[#{"ratingGroup" => 32,
+								"consumedUnit" => #{"time" => rand:uniform(300)},
+								"serviceInformation" => ServiceInformation}],
+						[#{"ratingGroup" => 64,
 								"resultCode" => "SUCCESS",
-								"grantedUnit" => #{"totalVolume" => 5000000}}]};
+								"grantedUnit" => #{"time" => 300}}]};
+					interim when ServiceContextId == SMSContext ->
+						{[#{"ratingGroup" => 96,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType" => "RESERVE",
+								"requestedUnit" => #{},
+								"serviceInformation" => ServiceInformation}],
+						[#{"ratingGroup" => 96,
+								"resultCode" => "SUCCESS",
+								"grantedUnit" => #{"serviceSpecificUnit" => 1}}]};
 					stop when ServiceContextId == PSContext ->
 						{[#{"ratingGroup" => 32,
 								"requestSubType*" => "DEBIT",
 								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
 								"serviceInformation" => ServiceInformation}],
 						[]};
-					stop ->
-						{[#{"ratingGroup" => 32,
+					stop when ServiceContextId == IMSContext ->
+						{[#{"ratingGroup" => 64,
 								"originationId" => OriginationId,
 								"destinationId" => DestinationId,
 								"requestSubType*" => "DEBIT",
-								"consumedUnit" => #{"totalVolume" => rand:uniform(5000000)},
+								"consumedUnit" => #{"time" => rand:uniform(300)},
+								"serviceInformation" => ServiceInformation}],
+						[]};
+					stop when ServiceContextId == SMSContext ->
+						{[#{"ratingGroup" => 96,
+								"originationId" => OriginationId,
+								"destinationId" => DestinationId,
+								"requestSubType*" => "DEBIT",
+								"consumedUnit" => #{"serviceSpecificUnit" => 1},
 								"serviceInformation" => ServiceInformation}],
 						[]}
 				end,
-				RatingDataRequest = #{"ratingSessionId" => RatingDataRef,
-						"serviceContextId" => ServiceContextId,
-						"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
-						"invocationSequenceNumber" => SeqNo,
-						"nfConsumerIdentification" => NfConsumer,
-						"subscriptionId" => [Sub1, Sub2],
-						"serviceRating" => SRRequest},
+				RatingDataRequest = case {ServiceContextId, Type} of
+					{SMSContext, interim} -> % event type
+						#{"ratingSessionId" => RatingDataRef,
+								"serviceContextId" => ServiceContextId,
+								"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+								"invocationSequenceNumber" => SeqNo,
+								"nfConsumerIdentification" => NfConsumer,
+								"subscriptionId" => [Sub1, Sub2],
+								"oneTimeEvent" => true,
+								"oneTimeEventType" => "IEC",
+								"serviceRating" => SRRequest};
+					{_, _} ->
+						#{"ratingSessionId" => RatingDataRef,
+								"serviceContextId" => ServiceContextId,
+								"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
+								"invocationSequenceNumber" => SeqNo,
+								"nfConsumerIdentification" => NfConsumer,
+								"subscriptionId" => [Sub1, Sub2],
+								"serviceRating" => SRRequest}
+				end,
 				RatingDataResponse = #{"invocationTimeStamp" => ocs_log:iso8601(Timestamp),
 						"invocationSequenceNumber" => SeqNo,
 						"serviceRating" => SRResponse},
