@@ -1753,8 +1753,44 @@ fill_acct(N, Protocol) ->
 			end,
 			ChargingId = rand:uniform(4294967295),
 			PdpAddress = ocs_test_lib:ipv4(),
-			CallingPartyAddress = ocs_test_lib:rand_dn(),
-			CalledPartyAddress = ocs_test_lib:rand_dn(),
+			OtherDN = list_to_binary(ocs_test_lib:rand_dn()),
+			MSISDN1 = list_to_binary(MSISDN),
+			CallingPartyAddress = case rand:uniform(100) of
+				Wp1 when Wp1 =< 25,
+						RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"sip:+", OtherDN/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>,
+							<<"tel:+", OtherDN/binary>>];
+				Wp1 when Wp1 =< 25 ->
+					[<<"sip:+", MSISDN1/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>,
+							<<"tel:+", MSISDN1/binary>>];
+				Wp1 when Wp1 =< 50,
+						RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"tel:+", OtherDN/binary>>,
+							<<"sip:+", OtherDN/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>];
+				Wp1 when Wp1 =< 50 ->
+					[<<"tel:+", MSISDN1/binary>>,
+							<<"sip:+", MSISDN1/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>];
+				Wp1 when Wp1 =< 75,
+						RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"tel:+", OtherDN/binary>>];
+				Wp1 when Wp1 =< 75 ->
+					[<<"tel:+", MSISDN1/binary>>];
+				_Wp1 when RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"sip:+", OtherDN/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>];
+				_Wp1 ->
+					[<<"sip:+", MSISDN1/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>]
+			end,
+			CalledPartyAddress = case rand:uniform(100) of
+				Wp2 when Wp2 =< 50,
+						RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"sip:+", MSISDN1/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>];
+				Wp2 when Wp2 =< 50 ->
+					[<<"sip:+", OtherDN/binary, "@ims.mnc001.mcc001.3gppnetwork.org">>];
+				_Wp2 when RoleOfNode == ?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE' ->
+					[<<"tel:+", MSISDN1/binary>>];
+				_Wp2 ->
+					[<<"tel:+", OtherDN/binary>>]
+			end,
 			{StartTime1, StopTime1} = case Type of
 				start ->
 					{[ocs_log:date(StartTime)], []};
@@ -1808,17 +1844,17 @@ fill_acct(N, Protocol) ->
 			IMSInfo = [#'3gpp_ro_IMS-Information'{
 					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
 					'Role-Of-Node' = [RoleOfNode],
-					'Calling-Party-Address' = [CallingPartyAddress],
-					'Called-Party-Address' = [CalledPartyAddress]}],
+					'Calling-Party-Address' = CallingPartyAddress,
+					'Called-Party-Address' = CalledPartyAddress}],
 			SMSInfo = [#'3gpp_ro_SMS-Information'{
 					'SMS-Node' = ['3GPP_RO_SMS-NODE_SMS-SC'],
 					'Originator-Received-Address' = [#'3gpp_ro_Originator-Address'{
 					'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
-					'Address-Data' = [CallingPartyAddress]}],
+					'Address-Data' = [OtherDN]}],
 					'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
 					'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
 					'Address-Type' = [?'3GPP_RO_ADDRESS-TYPE_MSISDN'],
-					'Address-Data' = [CalledPartyAddress]}]}]}],
+					'Address-Data' = [MSISDN]}]}]}],
 			ServiceInformation = case ServiceContextId of
 				PSContext ->
 					#'3gpp_ro_Service-Information'{'PS-Information' = PSInfo};
@@ -1941,12 +1977,63 @@ fill_acct(N, Protocol) ->
 				ECGI = #{"plmnId" => PLMNId, "eutraCellId" => "feeded1"},
 				Location = #{"eutraLocation" => #{"tai" => TAI, "ecgi" => ECGI}},
 				PduAddress = inet:ntoa(ocs_test_lib:ipv4()),
-				CallingPartyAddress = ocs_test_lib:rand_dn(),
-				CalledPartyAddress = ocs_test_lib:rand_dn(),
-				OriginationId = [#{"originationIdType" => "DN",
-						"originationIdData" => CallingPartyAddress}],
-				DestinationId = [#{"destinationIdType" => "DN",
-						"destinationIdData" => CalledPartyAddress}],
+				OtherDN = ocs_test_lib:rand_dn(),
+				OriginationId = case rand:uniform(100) of
+					Wp3 when Wp3 =< 25, RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ OtherDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"},
+						#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ OtherDN}];
+					Wp3 when Wp3 =< 25 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ MSISDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"},
+						#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ MSISDN}];
+					Wp3 when Wp3 =< 50, RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ OtherDN},
+						#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ OtherDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					Wp3 when Wp3 =< 50 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ MSISDN},
+						#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ MSISDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					Wp3 when Wp3 =< 75, RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ OtherDN}];
+					Wp3 when Wp3 =< 75 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ MSISDN}];
+					_Wp3 when RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ OtherDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					_Wp3 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ MSISDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}]
+				end,
+				DestinationId = case rand:uniform(100) of
+					Wp4 when Wp4 =< 50, RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ MSISDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					Wp4 when Wp4 =< 50 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "sip:+" ++ OtherDN
+										++ "@ims.mnc001.mcc001.3gppnetwork.org"}];
+					_Wp4 when RoleOfNode == "TERMINATING" ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ MSISDN}];
+					_Wp4 ->
+						[#{"originationIdType" => "DN",
+								"originationIdData" => "tel:+" ++ OtherDN}]
+				end,
 				PSInfo = #{"sgsnMccMnc" => #{"mcc" => "001", "mnc" => "001"},
 						"pdpAddress" => PduAddress,
 						"ratType" => "EUTRA",

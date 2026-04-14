@@ -5187,8 +5187,9 @@ chf_ims4(diameter = Protocol, ReqType,
 chf_ims4(Protocol, ReqType, Req, Res, CFR) ->
 	chf_ims5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_ims5(nrf = Protocol, ReqType, Req, Res, CFR) ->
+chf_ims5(nrf = Protocol, ReqType,
 		#{"serviceRating" := ServiceRating} = Req,
+		Res, CFR) ->
 	CFR1 = case nrf_ims_charging_info(ServiceRating) of
 		undefined ->
 			CFR;
@@ -5196,6 +5197,22 @@ chf_ims5(nrf = Protocol, ReqType, Req, Res, CFR) ->
 			CFR#{iMSChargingInformation => ImsInfo}
 	end,
 	chf_ims6(Protocol, ReqType, Req, Res, CFR1);
+chf_ims5(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req,
+		Res, CFR) ->
+	CFR1 = case diameter_pdu_session_charging_info(ServiceInfo) of
+		undefined ->
+			CFR;
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
+	end,
+	CFR2 = case diameter_ims_charging_info(ServiceInfo) of
+		undefined ->
+			CFR1;
+		ImsInfo ->
+			CFR1#{iMSChargingInformation => ImsInfo}
+	end,
+	chf_ims6(Protocol, ReqType, Req, Res, CFR2);
 chf_ims5(Protocol, ReqType, Req, Res, CFR) ->
 	chf_ims6(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
@@ -5519,7 +5536,7 @@ nrf_pdu_session_charging_info1(SI, Acc) ->
 	nrf_pdu_session_charging_info2(SI, Acc).
 %% @hidden
 nrf_pdu_session_charging_info2(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}} = SI, Acc) ->
-	SNFI = #{networkFunctionPLMNIdentifier => list_to_binary([MCC, MNC])}, 
+	SNFI = #{networkFunctionPLMNIdentifier => list_to_binary([MCC, MNC])},
 	Acc1 = Acc#{servingNetworkFunctionInformation => SNFI},
 	nrf_pdu_session_charging_info3(SI, Acc1);
 nrf_pdu_session_charging_info2(SI, Acc) ->
@@ -6134,7 +6151,7 @@ diameter_pdu_session_charging_info1(PSI, Acc) ->
 diameter_pdu_session_charging_info2(#'3gpp_ro_PS-Information'{
 		'3GPP-SGSN-MCC-MNC' = [MccMnc]} = PSI, Acc) ->
 	SNFI = #{networkFunctionality => sGSN,
-			networkFunctionPLMNIdentifier => MccMnc}, 
+			networkFunctionPLMNIdentifier => MccMnc},
 	Acc1 = Acc#{servingNetworkFunctionInformation => SNFI},
 	diameter_pdu_session_charging_info3(PSI, Acc1);
 diameter_pdu_session_charging_info2(PSI, Acc) ->
@@ -6302,6 +6319,77 @@ tbcd(<<>>, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
+diameter_ims_charging_info(#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [SI]}) ->
+	diameter_ims_charging_info1(SI, #{});
+diameter_ims_charging_info(_) ->
+	undefined.
+%% @hidden
+diameter_ims_charging_info1(#'3gpp_ro_IMS-Information'{
+		'Calling-Party-Address' = CP} = SI, Acc) ->
+	CallingPartyAddresses = diameter_involved_party(CP),
+	Acc1 = Acc#{callingPartyAddresses => CallingPartyAddresses},
+	diameter_ims_charging_info2(SI, Acc1);
+diameter_ims_charging_info1(SI, Acc) ->
+	diameter_ims_charging_info2(SI, Acc).
+%% @hidden
+diameter_ims_charging_info2(#'3gpp_ro_IMS-Information'{
+		'Called-Party-Address' = CP} = SI, Acc) ->
+	[CalledPartyAddress] = diameter_involved_party(CP),
+	Acc1 = Acc#{calledPartyAddress => CalledPartyAddress},
+	diameter_ims_charging_info3(SI, Acc1);
+diameter_ims_charging_info2(SI, Acc) ->
+	diameter_ims_charging_info3(SI, Acc).
+%% @hidden
+diameter_ims_charging_info3(#'3gpp_ro_IMS-Information'{
+		'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS'} = SI, Acc) ->
+	Acc1 = Acc#{iMSNodeFunctionality => aS},
+	diameter_ims_charging_info4(SI, Acc1);
+diameter_ims_charging_info3(SI, Acc) ->
+	diameter_ims_charging_info4(SI, Acc).
+%% @hidden
+diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => originating},
+	diameter_ims_charging_info5(SI, Acc1);
+diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => terminating},
+	diameter_ims_charging_info5(SI, Acc1);
+diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => forwarding},
+	diameter_ims_charging_info5(SI, Acc1);
+diameter_ims_charging_info4(SI, Acc) ->
+	diameter_ims_charging_info5(SI, Acc).
+%% @hidden
+diameter_ims_charging_info5(#'3gpp_ro_IMS-Information'{
+		'IMS-Visited-Network-Identifier' = [VNI]} = SI, Acc) ->
+	Acc1 = Acc#{imsVisitedNetworkIdentifier => VNI},
+	diameter_ims_charging_info6(SI, Acc1);
+diameter_ims_charging_info5(SI, Acc) ->
+	diameter_ims_charging_info6(SI, Acc).
+%% @hidden
+diameter_ims_charging_info6(_SI, Acc) ->
+	Acc.
+
+%% @hidden
+diameter_involved_party(Parties) ->
+	diameter_involved_party(Parties, []).
+%% @hidden
+diameter_involved_party([<<"tel:", _/binary>> = H | T], Acc) ->
+	Party = #{'tEL-URI' => H},
+	diameter_involved_party(T, [Party | Acc]);
+diameter_involved_party([<<"sip:", _/binary>> = H | T], Acc) ->
+	Party = #{'sIP-URI' => H},
+	diameter_involved_party(T, [Party | Acc]);
+diameter_involved_party([<<"sips:", _/binary>> = H | T], Acc) ->
+	Party = #{'sIP-URI' => H},
+	diameter_involved_party(T, [Party | Acc]);
+diameter_involved_party([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
 radius_pdu_session_charging_info(Attr) ->
 	case radius_attributes:find(?ServiceType, Attr) of
 		{ok, 2} ->
@@ -6370,7 +6458,7 @@ chf_csv_header(Log, IoDevice, Seperator) ->
 			<<"Rated Units">>, <<"Rated Amount">>,
 			<<"Rated Cost">>, <<"Included">>,
 			<<"Offer Name">>, <<"Price Name">>,
-			<<"Price Type">>], 
+			<<"Price Type">>],
 	Header = [hd(Columns) | [[Seperator, C] || C <- tl(Columns)]],
 	case file:write(IoDevice, [Header, $\r, $\n]) of
 		ok ->
@@ -6458,23 +6546,34 @@ chf_cfr_csv6(#{pDUSessionChargingInformation := #{pDUAddress
 chf_cfr_csv6(CFR, Acc) ->
 	chf_cfr_csv7(CFR, [<<>> | Acc]).
 %% @hidden
-chf_cfr_csv7(#{sMSChargingInformation := SMS} = CFR, Acc) ->
-	Origin = csv_sms_origin(SMS),
-	Destination = csv_sms_recipient(SMS),
-	chf_cfr_csv8(CFR, [Destination, Origin | Acc]);
-chf_cfr_csv7(#{iMSChargingInformation := IMS} = CFR, Acc) ->
-	Origin = csv_ims_calling(IMS),
-	Destination = csv_ims_called(IMS),
-	chf_cfr_csv8(CFR, [Destination, Origin | Acc]);
+chf_cfr_csv7(#{sMSChargingInformation
+		:= #{originatorInfo := OriginInfo}} = CFR, Acc) ->
+	Origin = csv_originator_info(OriginInfo),
+	chf_cfr_csv8(CFR, [Origin | Acc]);
+chf_cfr_csv7(#{iMSChargingInformation
+		:= #{callingPartyAddresses := [H | _]}} = CFR, Acc) ->
+	Origin = csv_involved_party(H),
+	chf_cfr_csv8(CFR, [Origin | Acc]);
 chf_cfr_csv7(CFR, Acc) ->
-	chf_cfr_csv8(CFR, [<<>>, <<>> | Acc]).
+	chf_cfr_csv8(CFR, [<<>> | Acc]).
 %% @hidden
-chf_cfr_csv8(#{cause := Cause} = CFR, Acc) ->
-	chf_cfr_csv9(CFR, [atom_to_binary(Cause) | Acc]);
+chf_cfr_csv8(#{sMSChargingInformation
+		:= #{recipientInfos := [H | _]}} = CFR, Acc) ->
+	Destination = csv_recipient_info(H),
+	chf_cfr_csv9(CFR, [Destination | Acc]);
+chf_cfr_csv8(#{iMSChargingInformation
+		:= #{calledPartyAddress := CalledParty}} = CFR, Acc) ->
+	Destination = csv_involved_party(CalledParty),
+	chf_cfr_csv9(CFR, [Destination | Acc]);
 chf_cfr_csv8(CFR, Acc) ->
 	chf_cfr_csv9(CFR, [<<>> | Acc]).
 %% @hidden
-chf_cfr_csv9(_CFR, Acc) ->
+chf_cfr_csv9(#{cause := Cause} = CFR, Acc) ->
+	chf_cfr_csv10(CFR, [atom_to_binary(Cause) | Acc]);
+chf_cfr_csv9(CFR, Acc) ->
+	chf_cfr_csv10(CFR, [<<>> | Acc]).
+%% @hidden
+chf_cfr_csv10(_CFR, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
@@ -6666,36 +6765,16 @@ location_info(LocationInfo)
 	#{}.
 
 %% @hidden
-csv_ims_calling(#{callingPartyAddresses := [H | _]}) ->
-	csv_involved_party(H).
-
-%% @hidden
-csv_ims_called(#{calledPartyAddress := CalledParty}) ->
-	csv_involved_party(CalledParty).
-
-%% @hidden
 csv_involved_party(#{'iSDN-E164' := E164}) ->
 	E164;
 csv_involved_party(#{'tEL-URI' := TELURI}) ->
-	#{path := Path} = uri_string:parse(TELURI),
-	[DN | _Params] = string:lexemes(Path, [$;]),
-	DN;
+	TELURI;
 csv_involved_party(#{'sIP-URI' := SIPURI}) ->
-	#{path := Path} = uri_string:parse(SIPURI),
-	[Party | _Params] = string:lexemes(Path, [$;]),
-	Party;
+	SIPURI;
 csv_involved_party(#{uRN := URN}) ->
 	URN;
 csv_involved_party(#{externalId := ExternalId}) ->
 	ExternalId.
-
-%% @hidden
-csv_sms_origin(#{originatorInfo := OriginInfo}) ->
-	csv_originator_info(OriginInfo).
-
-%% @hidden
-csv_sms_recipient(#{recipientInfos := [H | _]}) ->
-	csv_recipient_info(H).
 
 %% @hidden
 csv_originator_info(#{originatorMSISDN := MSISDN}) ->
