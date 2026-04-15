@@ -46,10 +46,15 @@
 -spec init(Args) -> Result
 	when
 		Args :: [term()],
-		Result :: {ok, State} | {ok, State, Action}
-				| {stop, Reason} | ignore | {error, Reason},
+		Result :: {ok, State}
+				| {ok, State, Timeout}
+				| {ok, State, hibernate}
+				| {ok, State, {continue, Continue}}
+				| {stop, Reason}
+				| ignore,
 		State :: state(),
-		Action :: gen_server:action(),
+		Timeout :: timeout(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
@@ -70,8 +75,7 @@ init([Type, ScheduledTime, Interval] = _Args) when
 	process_flag(trap_exit, true),
 	State = #state{interval = NewInterval,
 			schedule = ScheduledTime, type = Type},
-	Action = {continue, init},
-	{ok, State, Action};
+	{ok, State, {continue, init}};
 init([Type, ScheduledTime, Interval] = _Args) ->
 	error_logger:warning_report(["Ignored archive log specification",
 			{type, Type}, {time, ScheduledTime}, {interval, Interval}]),
@@ -82,9 +86,13 @@ init([Type, ScheduledTime, Interval] = _Args) ->
 		Info :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
-				| {noreply, NewState, timeout() | hibernate | {continue, term()}}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
+		Timeout :: timeout(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a callback conntinuation.
 %% @see //stdlib/gen_server:handle_continue/2
@@ -132,12 +140,19 @@ handle_continue1(Directory, #state{type = Type,
 		Request :: term(),
 		From :: gen_server:from(),
 		State :: state(),
-		Result :: {reply, Reply, NewState} | {reply, Reply, NewState, Action}
-				| {noreply, NewState} | {noreply, NewState, Action}
-				| {stop, Reason, Reply, NewState} | {stop, Reason, NewState},
+		Result :: {reply, Reply, NewState}
+				| {reply, Reply, NewState, Timeout}
+				| {reply, Reply, NewState, hibernate}
+				| {reply, Reply, NewState, {continue, Continue}}
+				| {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, Reply, NewState}
+				| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
-		Action :: gen_server:action(),
+		Timeout :: timeout(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
@@ -152,10 +167,14 @@ handle_call(_Request, _From, State) ->
 	when
 		Request :: term(),
 		State :: state(),
-		Result :: {noreply, NewState} | {noreply, NewState, Action}
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Action :: gen_server:action(),
+		Timeout :: timeout(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
@@ -170,10 +189,14 @@ handle_cast(stop, State) ->
 	when
 		Info :: timeout | term(),
 		State::state(),
-		Result :: {noreply, NewState} | {noreply, NewState, Action}
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Action :: gen_server:action(),
+		Timeout :: timeout(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
