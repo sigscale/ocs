@@ -1,3 +1,8 @@
+April 15, 2026
+--------------
+	- CDR CHF scheduled log rotation
+	- Support short (< day) archive log rotation intervals
+
 April 14, 2026
 --------------
 	- SMS charging info in cdr archive log
