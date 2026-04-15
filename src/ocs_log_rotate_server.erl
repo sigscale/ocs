@@ -116,12 +116,13 @@ handle_continue(init = _Info, #state{type = Type} = State)
 handle_continue1(Directory, #state{type = Type,
 		interval = Interval, schedule = ScheduledTime} = State) ->
 	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
+	NewState = State#state{dir = Directory1},
 	Timeout = wait(ScheduledTime, Interval),
 	case file:make_dir(Directory1) of
 		ok ->
-			{noreply, State, Timeout};
+			{noreply, NewState, Timeout};
 		{error, eexist} ->
-			{noreply, State, Timeout};
+			{noreply, NewState, Timeout};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -179,11 +180,26 @@ handle_cast(stop, State) ->
 %% @private
 %%
 handle_info(timeout, #state{interval = Interval,
-		schedule = ScheduledTime, type = Type} = State) ->
+		schedule = ScheduledTime, type = Type} = State)
+		when Type == wlan; Type == voip ->
 	Time = erlang:system_time(millisecond),
 	FileName = ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
 	case ocs_log:ipdr_log(Type, FileName, Start, End) of
+		ok ->
+			{noreply, State, wait(ScheduledTime, Interval)};
+		{error, Reason} ->
+			error_logger:error_report("Failed to create log",
+					[{module, ?MODULE}, {file, FileName}, {reason, Reason}]),
+			{noreply, State, wait(ScheduledTime, Interval)}
+	end;
+handle_info(timeout, #state{interval = Interval,
+		schedule = ScheduledTime, type = Type} = State)
+		when Type == chf ->
+	Time = erlang:system_time(millisecond),
+	FileName = ocs_log:iso8601(Time),
+	{Start, End} = previous(Interval),
+	case ocs_log:cdr_log(Type, FileName, Start, End) of
 		ok ->
 			{noreply, State, wait(ScheduledTime, Interval)};
 		{error, Reason} ->
