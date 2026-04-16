@@ -267,22 +267,25 @@ code_change(_OldVsn, State, _Extra) ->
 		Timeout :: timeout().
 %% @doc Calculate time until next scheduled rotation.
 %% @hidden
-next(ScheduledTime, Interval)
-		when Interval >= 1440 ->
-	{Date, Time} = erlang:universaltime(),
-	Today = calendar:date_to_gregorian_days(Date),
-	Period = Interval div 1440,
-	ScheduleDay = calendar:gregorian_days_to_date(Today + Period),
-	Next = {ScheduleDay, ScheduledTime},
-	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
-	(calendar:datetime_to_gregorian_seconds(Next) - Now) * 1000;
 next(ScheduledTime, Interval) ->
 	{Date, Time} = erlang:universaltime(),
+	Today = calendar:date_to_gregorian_days(Date),
+	Days = Interval div 1440,
+	ScheduledDay = calendar:gregorian_days_to_date(Today + Days),
+	Next = {ScheduledDay, ScheduledTime},
 	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
-	case calendar:datetime_to_gregorian_seconds({Date, ScheduledTime}) of
+	Seconds = case calendar:datetime_to_gregorian_seconds(Next) of
+		Scheduled when Scheduled =:= Now ->
+			Interval;
 		Scheduled when Scheduled < Now ->
-			(Interval - ((Now - Scheduled) rem Interval)) * 1000;
-		Scheduled ->
-			((Scheduled - Now) rem Interval) * 1000
+			Interval - ((Now - Scheduled) rem Interval);
+		Scheduled when Scheduled > Now ->
+			(Scheduled - Now) rem Interval
+	end,
+	case Seconds of
+		0 ->
+			Interval * 1000;
+		N ->
+			N * 1000
 	end.
 
