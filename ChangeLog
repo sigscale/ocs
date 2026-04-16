@@ -1,3 +1,8 @@
+2026-04-16   Vance Shipley <vances@sigscale.org>
+
+	* conditionally modernize log rotation server timeout
+	* refactor and correct log rotation scheduler
+
 2026-04-15   Vance Shipley <vances@sigscale.org>
 
 	* support short (< day) archive log rotation intervals
