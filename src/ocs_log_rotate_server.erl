@@ -36,6 +36,16 @@
 			type :: chf | voip | wlan}).
 -type state() :: #state{}.
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 28).
+		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
+	-else.
+		-define(TIMEOUT(Timeout), Timeout).
+	-endif.
+-else.
+	-define(TIMEOUT(Timeout), Timeout).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotate_server API
 %%----------------------------------------------------------------------
@@ -121,9 +131,9 @@ handle_continue1(Directory, #state{type = Type,
 	Timeout = next(ScheduledTime, Interval),
 	case file:make_dir(Directory1) of
 		ok ->
-			{noreply, NewState, Timeout};
+			{noreply, NewState, ?TIMEOUT(Timeout)};
 		{error, eexist} ->
-			{noreply, NewState, Timeout};
+			{noreply, NewState, ?TIMEOUT(Timeout)};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -209,11 +219,13 @@ handle_info(timeout, #state{last = Last, interval = Interval,
 	case ocs_log:ipdr_log(Type, FileName, Last + 1, Now) of
 		ok ->
 			NewState = State#state{last = Now},
-			{noreply, NewState, next(ScheduledTime, Interval)};
+			Timeout = next(ScheduledTime, Interval),
+			{noreply, NewState, ?TIMEOUT(Timeout)};
 		{error, Reason} ->
 			error_logger:error_report("Failed to create log",
 					[{module, ?MODULE}, {file, FileName}, {reason, Reason}]),
-			{noreply, State, next(ScheduledTime, Interval)}
+			Timeout = next(ScheduledTime, Interval),
+			{noreply, State, ?TIMEOUT(Timeout)}
 	end;
 handle_info(timeout, #state{last = Last, interval = Interval,
 		schedule = ScheduledTime, type = Type} = State)
@@ -223,11 +235,13 @@ handle_info(timeout, #state{last = Last, interval = Interval,
 	case ocs_log:cdr_log(Type, FileName, Last + 1, Now) of
 		ok ->
 			NewState = State#state{last = Now},
-			{noreply, NewState, next(ScheduledTime, Interval)};
+			Timeout = next(ScheduledTime, Interval),
+			{noreply, NewState, ?TIMEOUT(Timeout)};
 		{error, Reason} ->
 			error_logger:error_report("Failed to create log",
 					[{module, ?MODULE}, {file, FileName}, {reason, Reason}]),
-			{noreply, State, next(ScheduledTime, Interval)}
+			Timeout = next(ScheduledTime, Interval),
+			{noreply, State, ?TIMEOUT(Timeout)}
 	end.
 
 -spec terminate(Reason, State) -> any()
