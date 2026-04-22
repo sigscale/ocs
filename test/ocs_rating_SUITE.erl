@@ -1900,7 +1900,7 @@ authorize_default_voice(_Config) ->
 	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_data_1() ->
-	[{userdata, [{doc, "Athorize data access when price rated on seconds"}]}].
+	[{userdata, [{doc, "Authorize data access when price rated on seconds"}]}].
 
 authorize_data_1(_Config) ->
 	PackagePrice = 1000000,
@@ -1926,7 +1926,7 @@ authorize_data_1(_Config) ->
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_2() ->
-	[{userdata, [{doc, "Athorize data access when price rated on octets"}]}].
+	[{userdata, [{doc, "Authorize data access when price rated on octets"}]}].
 
 authorize_data_2(_Config) ->
 	PackagePrice = 1000000,
@@ -1951,7 +1951,7 @@ authorize_data_2(_Config) ->
 	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_with_partial_reservation() ->
-	[{userdata, [{doc, "Athorize data access when price "
+	[{userdata, [{doc, "Authorize data access when price "
 			"rated on seconds with partial reservation"}]}].
 
 authorize_data_with_partial_reservation(_Config) ->
