@@ -6323,7 +6323,7 @@ diameter_pdu_session_charging_info4(PSI, Acc) ->
 	diameter_pdu_session_charging_info5(PSI, Acc).
 %% @hidden
 diameter_pdu_session_charging_info5(#'3gpp_ro_PS-Information'{
-		'3GPP-RAT-Type' = [RAT]} = PSI, Acc) ->
+		'3GPP-RAT-Type' = [<<RAT:8>>]} = PSI, Acc) ->
 	Acc1 = Acc#{rATType => RAT},
 	diameter_pdu_session_charging_info6(PSI, Acc1);
 diameter_pdu_session_charging_info5(PSI, Acc) ->
