@@ -109,7 +109,7 @@ handle_continue(init = _Info, #state{type = chf} = State) ->
 		{error, eexist} ->
 			handle_continue1(Directory, State);
 		{error, Reason} ->
-			{stop, Reason}
+			{stop, Reason, State}
 	end;
 %% deprecated
 handle_continue(init = _Info, #state{type = Type} = State)
@@ -121,7 +121,7 @@ handle_continue(init = _Info, #state{type = Type} = State)
 		{error, eexist} ->
 			handle_continue1(Directory, State);
 		{error, Reason} ->
-			{stop, Reason}
+			{stop, Reason, State}
 	end.
 %% @hidden
 handle_continue1(Directory, #state{type = Type,
@@ -135,7 +135,7 @@ handle_continue1(Directory, #state{type = Type,
 		{error, eexist} ->
 			{noreply, NewState, ?TIMEOUT(Timeout)};
 		{error, Reason} ->
-			{stop, Reason}
+			{stop, Reason, State}
 	end.
 
 -spec handle_call(Request, From, State) -> Result
@@ -198,7 +198,9 @@ handle_cast(stop, State) ->
 				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a received message.
