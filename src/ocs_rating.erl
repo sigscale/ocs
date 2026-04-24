@@ -1788,7 +1788,7 @@ charge4(event = _Flag, Service, _ServiceId, Product, Buckets,
 	{ok, Service, {Units, Charged}, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)};
 charge4(event = _Flag,
-		#service{session_attributes = SessionList} = Service1,
+		#service{session_attributes = SessionList} = _Service1,
 		_ServiceId, Product, Buckets, {Units, _Charge},
 			{Units, _Charged}, {Units, 0}, {Units, 0},
 		_SessionId, Rated, _ChargingKey, OldBuckets) ->
@@ -3263,7 +3263,7 @@ filter_prices_key(_, [], Acc1, Acc2) ->
 		RefundAmount :: non_neg_integer(),
 		Buckets :: [#bucket{}],
 		Result :: {Debits, NewBuckets},
-		Debits :: #{},
+		Debits :: map(),
 		NewBuckets :: [#bucket{}].
 %% @doc Get total debited and remaining amounts, refund and
 %% 	remove all reservations, for session.
