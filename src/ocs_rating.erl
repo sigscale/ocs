@@ -3306,7 +3306,7 @@ get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
 		{Debited, Reserved, Reservations2} when Reserved > 0,
 				map_size(Reservations2) == 0  ->
 			OtherBuckets2 = get_final1(Remain + Reserved,
-					Now, OtherBuckets1, From),
+					SessionId, Now, OtherBuckets1, From),
 			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
 					Debits#{Units => N + Debited}, T, OtherBuckets2, Acc);
 		{Debited, Reserved, Reservations2}
@@ -3354,7 +3354,7 @@ get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
 			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
 					Debits#{Units => N + Debited}, [], T, Acc);
 		{Debited, Reserved, Reservations2}
-				when Remain + Reserved >= 0,
+				when (Remain + Reserved) >= 0,
 				EndDate /= undefined, EndDate < Now,
 				map_size(Reservations2) == 0 ->
 			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
@@ -3379,10 +3379,10 @@ get_final(_, _, _, _, _, Debits, [], [], Acc) ->
 	{Debits, lists:reverse(Acc)}.
 
 %% @hidden
-get_final1(RefundUnits, Now, Buckets, From) ->
-	get_final2(RefundUnits, Now, Buckets, sort_from_bucket(From)).
+get_final1(RefundUnits, SessionId, Now, Buckets, From) ->
+	get_final2(RefundUnits, SessionId, Now, Buckets, sort_from_bucket(From)).
 %% @hidden
-get_final2(RefundUnits, Now, Buckets,
+get_final2(RefundUnits, SessionId, Now, Buckets,
 		[#{id := Id, amount := Amount, unit_size := UnitSize,
 		unit_price := UnitPrice} | T] = _From)
 		when RefundUnits >= UnitSize ->
@@ -3395,21 +3395,28 @@ get_final2(RefundUnits, Now, Buckets,
 			{RU * UnitPrice, RU * UnitSize}
 	end,
 	case lists:keyfind(Id, #bucket.id, Buckets) of
-		#bucket{remain_amount = Remain} = B1 ->
+		#bucket{attributes = #{reservations := #{SessionId
+				:= #{debit := Debit, reserve := Reserve} = Reservation}
+				= Reservations} = Attributes} = B1
+				when Debit >= RefundedAmount ->
+			Debit1 = Debit - RefundedAmount,
+			Reserve1 = Reserve + RefundedAmount,
+			Reservation1 = Reservation#{debit => Debit1, reserve => Reserve1},
+			Reservations1 = Reservations#{SessionId => Reservation1},
+			Attributes1 = Attributes#{reservations => Reservations1},
 			LM = {Now, erlang:unique_integer([positive])},
-			B2 = B1#bucket{remain_amount = Remain + RefundedAmount,
-					last_modified = LM},
+			B2 = B1#bucket{attributes = Attributes1, last_modified = LM},
 			NewBuckets = lists:keyreplace(Id, #bucket.id, Buckets, B2),
 			get_final2(RefundUnits - RefundedUnits,
-					Now, NewBuckets, T);
+					SessionId, Now, NewBuckets, T);
 		false ->
-			get_final2(RefundUnits, Now, Buckets, T)
+			get_final2(RefundUnits, SessionId, Now, Buckets, T)
 	end;
-get_final2(RefundUnits, Now, Buckets, [_H | T]) ->
-	get_final2(RefundUnits, Now, Buckets, T);
-get_final2(0, _, Buckets, _) ->
+get_final2(RefundUnits, SessionId, Now, Buckets, [_H | T]) ->
+	get_final2(RefundUnits, SessionId, Now, Buckets, T);
+get_final2(0, _, _, Buckets, _) ->
 	Buckets;
-get_final2(_, _, Buckets, []) ->
+get_final2(_, _, _, Buckets, []) ->
 	Buckets.
 
 %% @hidden
