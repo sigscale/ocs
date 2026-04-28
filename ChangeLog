@@ -1,3 +1,9 @@
+2026-04-29   Vance Shipley <vances@sigscale.org>
+
+	* test case for bundled offer rated records
+	* do not add zero size debits to rated record
+	* validate multiple buckets in rated test cases
+
 2026-04-28   Vance Shipley <vances@sigscale.org>
 
 	* vcs ims charging info in cdr archive log
