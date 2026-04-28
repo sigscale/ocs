@@ -3660,7 +3660,8 @@ add_offer(Prices, Spec) when is_integer(Spec) ->
 	add_offer(Prices, integer_to_list(Spec));
 add_offer(Prices, Spec) ->
 	Offer = #offer{name = ocs:generate_identity(),
-	price = Prices, specification = Spec},
+			price = Prices,
+			specification = Spec},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId.
 %% @hidden
@@ -3668,7 +3669,9 @@ add_offer(Prices, Spec, CharValueUse) when is_integer(Spec) ->
 	add_offer(Prices, integer_to_list(Spec), CharValueUse);
 add_offer(Prices, Spec, CharValueUse) ->
 	Offer = #offer{name = ocs:generate_identity(),
-	price = Prices, specification = Spec, char_value_use = CharValueUse},
+			price = Prices,
+			specification = Spec,
+			char_value_use = CharValueUse},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId.
 
