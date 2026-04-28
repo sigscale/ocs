@@ -1691,7 +1691,7 @@ add_offer1(Offer) ->
 		Result :: {ok, Offer} | {error, Reason},
 		Offer :: #offer{},
 		Reason :: term().
-%% @doc Find offer by product id
+%% @doc Find offer by offer id
 find_offer(OfferID) ->
 	F = fun() -> mnesia:read(offer, OfferID) end,
 	case mnesia:transaction(F) of
