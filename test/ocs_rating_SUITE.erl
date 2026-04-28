@@ -123,7 +123,8 @@ all() ->
 	tariff_bucket_iec, tariff_bucket_ecur,
 	scur_5g_data_initial,
 	rated_included_octets, rated_included_seconds, rated_included_messages,
-	rated_non_included_octets, rated_non_included_seconds, rated_non_included_messages].
+	rated_non_included_octets, rated_non_included_seconds, rated_non_included_messages,
+	rated_bundle_offer].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -3619,6 +3620,159 @@ rated_non_included_messages(_Config) ->
 			tax_excluded_amount = Amount,
 			usage_rating_tag = non_included, _ = undefined} = NonIncluded.
 
+rated_bundle_offer() ->
+	[{userdata, [{doc, "Rated records: Product Offering bundle"}]}].
+
+rated_bundle_offer(_Config) ->
+	{ok, PSMinReserve} = application:get_env(ocs, min_reserve_octets),
+	{ok, VCSMinReserve} = application:get_env(ocs, min_reserve_seconds),
+	{ok, SMSMinReserve} = application:get_env(ocs, min_reserve_messages),
+	PSUnitSize = PSMinReserve + rand:uniform(PSMinReserve - 1),
+	VCSUnitSize = VCSMinReserve + rand:uniform(VCSMinReserve - 1),
+	SMSUnitSize = SMSMinReserve,
+	PSUnitPrice = rand:uniform(1000000),
+	VCSUnitPrice = rand:uniform(1000000),
+	SMSUnitPrice = rand:uniform(1000000),
+	PSUnitType = octets,
+	VCSUnitType = seconds,
+	SMSUnitType = messages,
+	PriceType = usage,
+	PSPrice = price(PriceType, PSUnitType, PSUnitSize, PSUnitPrice),
+	VCSPrice = price(PriceType, VCSUnitType, VCSUnitSize, VCSUnitPrice),
+	SMSPrice = price(PriceType, SMSUnitType, SMSUnitSize, SMSUnitPrice),
+	PSPriceName = PSPrice#price.name,
+	VCSPriceName = VCSPrice#price.name,
+	SMSPriceName = SMSPrice#price.name,
+	PSOfferName = add_offer([PSPrice], 8),
+	VCSOfferName = add_offer([VCSPrice], 9),
+	SMSOfferName = add_offer([SMSPrice], 11),
+	BundleOffer = #offer{name = ocs:generate_identity(),
+			bundle = [#bundled_po{name = PSOfferName},
+					#bundled_po{name = VCSOfferName},
+					#bundled_po{name = SMSOfferName}]},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(BundleOffer),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	B1 = bucket(cents, rand:uniform(PSUnitPrice div 2)),
+	B2 = bucket(cents, rand:uniform(PSUnitPrice div 2)),
+	B3 = bucket(cents, (PSUnitPrice * 10)
+			+ (VCSUnitPrice * 10) + (SMSUnitPrice * 10)),
+	_BId1 = add_bucket(ProdRef, B1),
+	_BId2 = add_bucket(ProdRef, B2),
+	_BId3 = add_bucket(ProdRef, B3),
+	Protocol = diameter,
+	PSServiceType = 32251,
+	VCSServiceType = 32276,
+	SMSServiceType = 32274,
+	Timestamp = calendar:local_time(),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	PSSessionId = session_id(Protocol),
+	VCSSessionId = session_id(Protocol),
+	SMSSessionId = session_id(Protocol),
+	{ok, _, _} = ocs_rating:rate(Protocol, PSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS),
+			undefined, undefined, initial, [], [], PSSessionId),
+	{ok, _, _} = ocs_rating:rate(Protocol, VCSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 10),
+			undefined, undefined, initial, [], [], VCSSessionId),
+	{ok, _, _} = ocs_rating:rate(Protocol, SMSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 20),
+			undefined, undefined, initial, [], [], SMSSessionId),
+	PSUsedUnits1 = PSUnitSize + rand:uniform(PSUnitSize div 2),
+	{ok, _, _} = ocs_rating:rate(Protocol, PSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 120),
+			undefined, undefined, interim, [{PSUnitType, PSUsedUnits1}],
+			[], PSSessionId),
+	VCSUsedUnits1 = VCSUnitSize + rand:uniform(VCSUnitSize div 2),
+	{ok, _, _} = ocs_rating:rate(Protocol, VCSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 140),
+			undefined, undefined, interim, [{VCSUnitType, VCSUsedUnits1}],
+			[], VCSSessionId),
+	PSUsedUnits2 = PSUnitSize + rand:uniform(PSUnitSize div 2),
+	{ok, _, _} = ocs_rating:rate(Protocol, PSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 180),
+			undefined, undefined, interim, [{PSUnitType, PSUsedUnits2}],
+			[], PSSessionId),
+	VCSUsedUnits2 = VCSUnitSize + rand:uniform(VCSUnitSize div 2),
+	{ok, _, _} = ocs_rating:rate(Protocol, VCSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 200),
+			undefined, undefined, interim, [{VCSUnitType, VCSUsedUnits2}],
+			[], VCSSessionId),
+	PSUsedUnits3 = rand:uniform(PSUnitSize),
+	{ok, _, PSRated} = ocs_rating:rate(Protocol, PSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 240),
+			undefined, undefined, final,
+			[{PSUnitType, PSUsedUnits3}], undefined, PSSessionId),
+	VCSUsedUnits3 = rand:uniform(VCSUnitSize),
+	{ok, _, VCSRated} = ocs_rating:rate(Protocol, VCSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 260),
+			undefined, undefined, final,
+			[{VCSUnitType, VCSUsedUnits3}], undefined, VCSSessionId),
+	SMSUsedUnits = SMSUnitSize,
+	{ok, _, SMSRated} = ocs_rating:rate(Protocol, SMSServiceType,
+			undefined, undefined, undefined, [ServiceId],
+			calendar:gregorian_seconds_to_datetime(TS + 280),
+			undefined, undefined, final,
+			[{SMSUnitType, SMSUsedUnits}], undefined, SMSSessionId),
+	PSUsedUnits = PSUsedUnits1 + PSUsedUnits2 + PSUsedUnits3,
+	VCSUsedUnits = VCSUsedUnits1 + VCSUsedUnits2 + VCSUsedUnits3,
+	PSAmount = case PSUsedUnits rem PSUnitSize of
+		0 ->
+			(PSUsedUnits div PSUnitSize) * PSUnitPrice;
+		_ ->
+			((PSUsedUnits div PSUnitSize) + 1) * PSUnitPrice
+	end,
+	VCSAmount = case VCSUsedUnits rem VCSUnitSize of
+		0 ->
+			(VCSUsedUnits div VCSUnitSize) * VCSUnitPrice;
+		_ ->
+			((VCSUsedUnits div VCSUnitSize) + 1) * VCSUnitPrice
+	end,
+	SMSAmount = SMSUsedUnits * SMSUnitPrice,
+	RA = (B1#bucket.remain_amount + B2#bucket.remain_amount
+			+ B3#bucket.remain_amount) - PSAmount - VCSAmount - SMSAmount,
+	Buckets = ocs:get_buckets(ProdRef),
+	ok = validate_balance(RA, Buckets),
+	[PSIncluded, PSNonIncluded] = PSRated,
+	#rated{bucket_value = PSUsedUnits, bucket_type = PSUnitType,
+			product = PSOfferName, price_name = PSPriceName,
+			price_type = PSPriceType, is_billed = true,
+			usage_rating_tag = included, _ = undefined} = PSIncluded,
+	#rated{bucket_value = PSAmount, bucket_type = cents,
+			product = PSOfferName, price_name = PSPriceName,
+			price_type = PSPriceType, is_billed = true,
+			tax_excluded_amount = PSAmount,
+			usage_rating_tag = non_included, _ = undefined} = PSNonIncluded,
+	[VCSNonIncluded, VCSIncluded] = VCSRated,
+	#rated{bucket_value = VCSUsedUnits, bucket_type = VCSUnitType,
+			product = VCSOfferName, price_name = VCSPriceName,
+			price_type = VCSPriceType, is_billed = true,
+			usage_rating_tag = included, _ = undefined} = VCSIncluded,
+	#rated{bucket_value = VCSAmount, bucket_type = cents,
+			product = VCSOfferName, price_name = VCSPriceName,
+			price_type = VCSPriceType, is_billed = true,
+			tax_excluded_amount = VCSAmount,
+			usage_rating_tag = non_included, _ = undefined} = VCSNonIncluded,
+	[SMSNonIncluded, SMSIncluded] = SMSRated,
+	#rated{bucket_value = SMSUsedUnits, bucket_type = SMSUnitType,
+			product = SMSOfferName, price_name = SMSPriceName,
+			price_type = SMSPriceType, is_billed = true,
+			usage_rating_tag = included, _ = undefined} = SMSIncluded,
+	#rated{bucket_value = SMSAmount, bucket_type = cents,
+			product = SMSOfferName, price_name = SMSPriceName,
+			price_type = SMSPriceType, is_billed = true,
+			tax_excluded_amount = SMSAmount,
+			usage_rating_tag = non_included, _ = undefined} = SMSNonIncluded.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -3763,7 +3917,7 @@ validate_balance(Amount, Buckets) ->
 	validate_balance1(Amount, Buckets, lists:all(F, Buckets)).
 validate_balance1(Amount, Buckets, true) ->
 	validate_balance2(Amount, Buckets);
-validate_balance1(Amount, Buckets, false) ->
+validate_balance1(_Amount, _Buckets, false) ->
 	ct:fail(session_bucket).
 validate_balance2(Amount, [#bucket{remain_amount = Amount}]) ->
 	ok;
