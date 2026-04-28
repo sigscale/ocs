@@ -1,3 +1,13 @@
+2026-04-28   Vance Shipley <vances@sigscale.org>
+
+	* vcs ims charging info in cdr archive log
+	* test cases for rated records in ocs_rating:rate/13 results
+	* refund unused session bucket units to normal bucket reserved
+	* correct type specification
+	* test case: do not match unused variable value
+	* correct type specification of results in log rotation server
+	* encode diameter rat type as integer in cdr
+
 2026-04-16   Vance Shipley <vances@sigscale.org>
 
 	* conditionally modernize log rotation server timeout

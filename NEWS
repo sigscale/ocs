@@ -1,3 +1,9 @@
+April 28, 2026
+--------------
+	- Include IMS information in VCS CDR archive log 
+	- Reflect final refunds in rated record of CDR
+	- Correct encoding of RIAMETER RAT type in CDR
+
 April 16, 2026
 --------------
 	- Correct redundant log rotations
