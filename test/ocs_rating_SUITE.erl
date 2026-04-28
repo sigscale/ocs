@@ -3450,8 +3450,12 @@ rated_non_included_octets(_Config) ->
 	OfferName = add_offer([Price], 8),
 	ProdRef = add_product(OfferName),
 	ServiceId = add_service(ProdRef),
-	B1 = bucket(cents, UnitPrice * 10),
+	B1 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B2 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B3 = bucket(cents, UnitPrice * 10),
 	_BId1 = add_bucket(ProdRef, B1),
+	_BId2 = add_bucket(ProdRef, B2),
+	_BId3 = add_bucket(ProdRef, B3),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
 	Timestamp = calendar:local_time(),
@@ -3486,8 +3490,10 @@ rated_non_included_octets(_Config) ->
 		_ ->
 			((UsedUnits div UnitSize) + 1) * UnitPrice
 	end,
-	{ok, #bucket{remain_amount = RA}} = ocs:find_bucket(_BId1),
-	RA = ((UnitPrice * 10) - Amount),
+	RA = (B1#bucket.remain_amount + B2#bucket.remain_amount
+			+ B3#bucket.remain_amount) - Amount,
+	Buckets = ocs:get_buckets(ProdRef),
+	ok = validate_balance(RA, Buckets),
 	[Included, NonIncluded] = Rated,
 	#rated{bucket_value = UsedUnits, bucket_type = UnitType,
 			product = OfferName, price_name = PriceName,
@@ -3513,8 +3519,12 @@ rated_non_included_seconds(_Config) ->
 	OfferName = add_offer([Price], 9),
 	ProdRef = add_product(OfferName),
 	ServiceId = add_service(ProdRef),
-	B1 = bucket(cents, UnitPrice * 10),
+	B1 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B2 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B3 = bucket(cents, UnitPrice * 10),
 	_BId1 = add_bucket(ProdRef, B1),
+	_BId2 = add_bucket(ProdRef, B2),
+	_BId3 = add_bucket(ProdRef, B3),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, voice),
 	Timestamp = calendar:local_time(),
@@ -3549,8 +3559,10 @@ rated_non_included_seconds(_Config) ->
 		_ ->
 			((UsedUnits div UnitSize) + 1) * UnitPrice
 	end,
-	{ok, #bucket{remain_amount = RA}} = ocs:find_bucket(_BId1),
-	RA = ((UnitPrice * 10) - Amount),
+	RA = (B1#bucket.remain_amount + B2#bucket.remain_amount
+			+ B3#bucket.remain_amount) - Amount,
+	Buckets = ocs:get_buckets(ProdRef),
+	ok = validate_balance(RA, Buckets),
 	[NonIncluded, Included] = Rated,
 	#rated{bucket_value = UsedUnits, bucket_type = UnitType,
 			product = OfferName, price_name = PriceName,
@@ -3575,8 +3587,12 @@ rated_non_included_messages(_Config) ->
 	OfferName = add_offer([Price], 11),
 	ProdRef = add_product(OfferName),
 	ServiceId = add_service(ProdRef),
-	B1 = bucket(cents, UnitPrice * 10),
+	B1 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B2 = bucket(cents, rand:uniform(UnitPrice div 2)),
+	B3 = bucket(cents, UnitPrice * 10),
 	_BId1 = add_bucket(ProdRef, B1),
+	_BId2 = add_bucket(ProdRef, B2),
+	_BId3 = add_bucket(ProdRef, B3),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, message),
 	Timestamp = calendar:local_time(),
@@ -3588,8 +3604,10 @@ rated_non_included_messages(_Config) ->
 			undefined, undefined, event, [], [], SessionId),
 	{UnitType, UsedUnits} = GrantedAmount,
 	Amount = UsedUnits * UnitPrice,
-	{ok, #bucket{remain_amount = RA}} = ocs:find_bucket(_BId1),
-	RA = ((UnitPrice * 10) - Amount),
+	RA = (B1#bucket.remain_amount + B2#bucket.remain_amount
+			+ B3#bucket.remain_amount) - Amount,
+	Buckets = ocs:get_buckets(ProdRef),
+	ok = validate_balance(RA, Buckets),
 	[NonIncluded, Included] = Rated,
 	#rated{bucket_value = UsedUnits, bucket_type = UnitType,
 			product = OfferName, price_name = PriceName,
@@ -3732,4 +3750,22 @@ session_id(nrf) ->
 	N = erlang:unique_integer([positive]),
 	RatingDataRef = integer_to_list(TS) ++ integer_to_list(N),
 	[{nrf_ref, RatingDataRef}].
+
+validate_balance(Amount, Buckets) ->
+	F = fun(#bucket{attributes = #{bucket_type := normal}}) ->
+				true;
+			(#bucket{attributes = #{bucket_type := session}}) ->
+				false
+	end,
+	validate_balance1(Amount, Buckets, lists:all(F, Buckets)).
+validate_balance1(Amount, Buckets, true) ->
+	validate_balance2(Amount, Buckets);
+validate_balance1(Amount, Buckets, false) ->
+	ct:fail(session_bucket).
+validate_balance2(Amount, [#bucket{remain_amount = Amount}]) ->
+	ok;
+validate_balance2(Amount, [#bucket{remain_amount = RA} | T]) ->
+	validate_balance2(Amount - RA, T);
+validate_balance2(_Amount, []) ->
+	ct:fail(remain_amount).
 
