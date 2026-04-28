@@ -5408,7 +5408,30 @@ chf_vcs4(diameter = Protocol, ReqType,
 chf_vcs4(Protocol, ReqType, Req, Res, CFR) ->
 	chf_vcs5(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
-chf_vcs5(_Protocol, _ReqType, _Req, _Res, CFR) ->
+chf_vcs5(nrf = Protocol, ReqType,
+		#{"serviceRating" := ServiceRating} = Req,
+		Res, CFR) ->
+	CFR1 = case nrf_ims_charging_info(ServiceRating) of
+		undefined ->
+			CFR;
+		ImsInfo ->
+			CFR#{iMSChargingInformation => ImsInfo}
+	end,
+	chf_vcs6(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs5(diameter = Protocol, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req,
+		Res, CFR) ->
+	CFR1 = case diameter_ims_charging_info(ServiceInfo) of
+		undefined ->
+			CFR;
+		ImsInfo ->
+			CFR#{iMSChargingInformation => ImsInfo}
+	end,
+	chf_vcs6(Protocol, ReqType, Req, Res, CFR1);
+chf_vcs5(Protocol, ReqType, Req, Res, CFR) ->
+	chf_vcs6(Protocol, ReqType, Req, Res, CFR).
+%% @hidden
+chf_vcs6(_Protocol, _ReqType, _Req, _Res, CFR) ->
 	CFR.
 
 %% @hidden
