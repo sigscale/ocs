@@ -3006,7 +3006,6 @@ tariff_bucket_voice(_Config) ->
 		{error, not_found} ->
 			{Amount3, (Amount3 div Rate3) * UnitSize}
 	end,
-	DebitedUnits = DebitedUnits1 + DebitedUnits2 + DebitedUnits3,
 	DebitedCents = DebitedCents1 + DebitedCents2 + DebitedCents3.
 
 tariff_bucket_iec() ->
