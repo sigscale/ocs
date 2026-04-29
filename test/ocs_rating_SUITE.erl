@@ -385,7 +385,7 @@ initial_ignore_expired_buckets(_Config) ->
 	ServiceType = service_type(Protocol, data),
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(Protocol,
 			ServiceType, undefined, undefined, undefined, [ServiceId], Timestamp,
-			undefined, undefined, initial, [], [{PackageUnits, PackageSize}], SessionId2),
+			undefined, undefined, initial, [], [{PackageUnits, Reservation}], SessionId2),
 	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = RemAmount1}} = ocs:find_bucket(BId1).
 
@@ -778,7 +778,7 @@ interim_debit_remove_session(_Config) ->
 	DebitAmounts = [{PackageUnits, (PackageSize * 2) + rand:uniform(PackageSize)}],
 	{out_of_credit, _, _} = ocs_rating:rate(Protocol, ServiceType,
 			undefined, undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
-			interim, [{PackageUnits, PackageSize}], [], SessionAttributes1),
+			interim, DebitAmounts, [], SessionAttributes1),
 	{ok, #service{session_attributes = []}} = ocs:find_service(ServiceId).
 
 interim_debit_and_reserve_available() ->
