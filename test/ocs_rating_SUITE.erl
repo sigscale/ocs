@@ -197,7 +197,7 @@ initial_insufficient_multisession(_Config) ->
 	ServiceId = add_service(ProdRef),
 	RemAmount = PackagePrice,
 	B1 = bucket(cents, RemAmount),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
 	SessionId1 = session_id(Protocol),
@@ -976,10 +976,10 @@ interim_debit_and_reserve_charging_key(_Config) ->
 	Timestamp = calendar:local_time(),
 	TS1 = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = session_id(diameter),
-	{ok, _, {PackageUnits, G1}} = ocs_rating:rate(diameter,
+	{ok, _, {PackageUnits, _G1}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup1, undefined, [ServiceId],
 			Timestamp, undefined, undefined, initial, [], [], SessionId),
-	{ok, _, {PackageUnits, G2}} = ocs_rating:rate(diameter,
+	{ok, _, {PackageUnits, _G2}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup2, undefined, [ServiceId],
 			Timestamp, undefined, undefined, initial, [], [], SessionId),
 	RemAmount2 = RemAmount1 - (PackagePrice * 2),
@@ -995,12 +995,12 @@ interim_debit_and_reserve_charging_key(_Config) ->
 	2 = length(BucketList),
 	Debit1 = rand:uniform(PackageSize),
 	Debit2 = rand:uniform(PackageSize),
-	{ok, _, {PackageUnits, G3}} = ocs_rating:rate(diameter,
+	{ok, _, {PackageUnits, _G3}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup1, undefined, [ServiceId],
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, interim, [{PackageUnits, Debit1}],
 			[], SessionId),
-	{ok, _, {PackageUnits, G4}} = ocs_rating:rate(diameter,
+	{ok, _, {PackageUnits, _G4}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, RatingGroup2, undefined, [ServiceId],
 			calendar:gregorian_seconds_to_datetime(TS1 + 60),
 			undefined, undefined, interim, [{PackageUnits, Debit2}],
@@ -1051,7 +1051,7 @@ interim_out_of_credit_voice(_Config) ->
 	ServiceId = add_service(ProdRef),
 	StartingAmount = UnitPrice * 2,
 	B1 = bucket(cents, StartingAmount),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, voice),
 	Timestamp = calendar:local_time(),
@@ -1083,7 +1083,7 @@ interim_out_of_credit_negative(_Config) ->
 	ServiceId = add_service(ProdRef),
 	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
 	B1 = bucket(cents, StartingAmount),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
 	Timestamp = calendar:local_time(),
@@ -1128,7 +1128,7 @@ interim_out_of_credit_negative1(_Config) ->
 	ServiceId = add_service(ProdRef),
 	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
 	B1 = bucket(cents, StartingAmount),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
 	Timestamp = calendar:local_time(),
@@ -2094,9 +2094,9 @@ debit_sms(_Config) ->
 		SessionId),
 	ok = mnesia:sync_log(),
 	{ok, #bucket{remain_amount = R1,
-			attributes = #{reservations := Rs1}}} = ocs:find_bucket(BId),
+			attributes = #{reservations := _Rs}}} = ocs:find_bucket(BId),
 	R1 = RemAmount - NumEvents,
-	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
+	{ok, _, _Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
 			final, [{messages, NumEvents}], undefined,
 		SessionId),
@@ -2130,7 +2130,7 @@ iec_out_of_credit(_Config) ->
 roaming_table_data() ->
 	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
 
-roaming_table_data(Config) ->
+roaming_table_data(_Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	F = fun F(0) ->
@@ -2198,7 +2198,7 @@ roaming_table_data(Config) ->
 roaming_table_voice() ->
 	[{userdata, [{doc, "Voice rating for roaming with prefix table"}]}].
 
-roaming_table_voice(Config) ->
+roaming_table_voice(_Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
@@ -2292,7 +2292,7 @@ roaming_table_voice(Config) ->
 roaming_table_sms_ecur() ->
 	[{userdata, [{doc, "SMS ECUR rating for roaming with prefix table"}]}].
 
-roaming_table_sms_ecur(Config) ->
+roaming_table_sms_ecur(_Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
@@ -2384,7 +2384,7 @@ roaming_table_sms_ecur(Config) ->
 roaming_table_sms_iec() ->
 	[{userdata, [{doc, "SMS IEC rating for roaming with prefix table"}]}].
 
-roaming_table_sms_iec(Config) ->
+roaming_table_sms_iec(_Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
@@ -2458,7 +2458,7 @@ roaming_table_sms_iec(Config) ->
 roaming_table_sms_iec_rsu() ->
 	[{userdata, [{doc, "SMS IEC RSU rating for roaming with prefix table"}]}].
 
-roaming_table_sms_iec_rsu(Config) ->
+roaming_table_sms_iec_rsu(_Config) ->
 	RoamingTable = ocs:generate_identity(),
 	ok = ocs_gtt:new(RoamingTable, [{disc_copies, [node()]}]),
 	DestinationTable = ocs:generate_identity(),
@@ -2970,7 +2970,7 @@ tariff_bucket_voice(_Config) ->
 			Destination, originate, interim,
 			[{seconds, Debit3}], [{seconds, Reserve}], SessionId),
 	Debit4 = Reserve - UnitSize + rand:uniform(UnitSize),
-	{ok, _, Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
+	{ok, _, _Rated} = ocs_rating:rate(Protocol, ServiceType, undefined,
 			undefined, undefined, [ServiceId], calendar:local_time(),
 			Destination, originate, final,
 			[{seconds, Debit4}], undefined, SessionId),
