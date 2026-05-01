@@ -1,10 +1,10 @@
 April 29, 2026
 --------------
-	- No zero unit size rated records 
+	- No zero unit size rated records
 
 April 28, 2026
 --------------
-	- Include IMS information in VCS CDR archive log 
+	- Include IMS information in VCS CDR archive log
 	- Reflect final refunds in rated record of CDR
 	- Correct encoding of RIAMETER RAT type in CDR
 
@@ -57,12 +57,12 @@ December 8, 2025
 
 November 16, 2025
 -----------------
-	- Nrf (SMS) IEC Service Rating request type is RESERVE 
+	- Nrf (SMS) IEC Service Rating request type is RESERVE
 	- Nrf OAS version 1.2.1
 
 November 10, 2025
 -----------------
-	- Nrf HTTP Status Code 400 for RATING_FAILED problem cause 
+	- Nrf HTTP Status Code 400 for RATING_FAILED problem cause
 	- Nrf problem cause RATING_FAILED instead of CHARGING_FAILED
 
 October 31, 2025
@@ -101,7 +101,7 @@ October 5, 2025
 July 23, 2025
 -------------
 	- Disable Ro or Gx in DIAMETER acct service with Auth-Application-Id option
-	- Improvements in DevOps shell table commands 
+	- Improvements in DevOps shell table commands
 
 June 30, 2025
 -------------
@@ -135,7 +135,7 @@ April 11, 2025
 
 April 10, 2025
 --------------
-	- Handle DIAMETER base answer errors 
+	- Handle DIAMETER base answer errors
 	- Handle unexpected DIAMETER auth FSM exits
 
 March 18, 2025
@@ -152,7 +152,7 @@ February 28, 2025
 
 January 24, 2025
 ----------------
-	- Fix utility to refund and remove stale reservations 
+	- Fix utility to refund and remove stale reservations
 
 January 16, 2025
 ----------------
@@ -187,7 +187,7 @@ December, 11 2024
 December, 9 2024
 ----------------
 	- Configurable timeout for REST handlers calling pagination server
-	- Better RFC9457 problem details reporting in REST APIs 
+	- Better RFC9457 problem details reporting in REST APIs
 	- Web components accept rfc9457 problem details
 
 December, 6 2024
@@ -302,7 +302,7 @@ May 16, 2024
 
 May 12, 2024
 ------------
-	- Handle multiple mobility protocols in S6b AAR MIP6-Feature-Vector AVP 
+	- Handle multiple mobility protocols in S6b AAR MIP6-Feature-Vector AVP
 	- Skip EAP-TTLS test suite if OTP > 24 (SSL transport broken)
 
 April 4, 2024
@@ -405,7 +405,7 @@ March 1, 2023
 
 February 7, 2023
 ----------------
-	- Corrected handling of received RTR on SWx 
+	- Corrected handling of received RTR on SWx
 	- Dashboard CSS improvements
 	- Manage TWAN flag in client API and web components
 	- Utilities for cleaning tables
@@ -595,7 +595,7 @@ September 9, 2020
 
 September 7, 2020
 -----------------
-	- Configuration options supporting SCTP 
+	- Configuration options supporting SCTP
 	- Improvements to scheduled subscription charges
 	- Support Ericsson mode of Centralized Unit Determination
 	- Correct Product Price and Alteration validation
@@ -643,7 +643,7 @@ March 26, 2020
 
 June 13, 2019
 -------------
-	- Ignore unsupported DIAMETER AVPs  
+	- Ignore unsupported DIAMETER AVPs
 	- Delete product dialog
 	- Filters in ABMF view
 	- Apply balance adjustments (TMF654)
@@ -686,7 +686,7 @@ June 21, 2018
 
 June 7, 2018
 ------------
-	- Advanced query patterns in REST API 
+	- Advanced query patterns in REST API
 	- SMS service information in DIAMETER Ro
 	- Balance topup by Service Inventory ID
 	- Balance topup URI changed to match TMF
@@ -694,7 +694,7 @@ June 7, 2018
 
 May 5, 2018
 -----------
-	- UI views for Products, Services, Buckets 
+	- UI views for Products, Services, Buckets
 	- Support seperate UI and service nodes
 	- Distribute disk logs
 
