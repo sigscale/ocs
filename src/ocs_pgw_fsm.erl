@@ -300,6 +300,21 @@ register({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode1,
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	{stop, shutdown, StateData};
+register(timeout,
+		#statedata{from = Caller, session_id = SessionId,
+		hss_host = HssHost, hss_realm = HssRealm,
+		pgw_host = PgwHost, pgw_realm = PgwRealm,
+		pgw_id = PGW, pgw_plmn = VPLMN, apn_name = APN,
+		imsi = IMSI, identity = Identity} = StateData) ->
+	error_logger:error_report(["Timout on registration result",
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN}, {apn, APN},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}]),
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData}.
 
 -spec profile(Event, StateData) -> Result
@@ -392,6 +407,21 @@ profile({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode1,
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	{stop, shutdown, StateData};
+profile(timeout,
+		#statedata{from = Caller, session_id = SessionId,
+		hss_host = HssHost, hss_realm = HssRealm,
+		pgw_host = PgwHost, pgw_realm = PgwRealm,
+		pgw_id = PGW, pgw_plmn = VPLMN, apn_name = APN,
+		imsi = IMSI, identity = Identity} = StateData) ->
+	error_logger:error_report(["Timeout on get user profile result",
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN}, {apn, APN},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}]),
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
