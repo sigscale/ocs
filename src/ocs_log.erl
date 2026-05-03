@@ -6484,7 +6484,8 @@ diameter_ims_charging_info(_) ->
 	undefined.
 %% @hidden
 diameter_ims_charging_info1(#'3gpp_ro_IMS-Information'{
-		'Calling-Party-Address' = CP} = SI, Acc) ->
+		'Calling-Party-Address' = CP} = SI, Acc)
+		when length(CP) > 0 ->
 	CallingPartyAddresses = diameter_involved_party(CP),
 	Acc1 = Acc#{callingPartyAddresses => CallingPartyAddresses},
 	diameter_ims_charging_info2(SI, Acc1);
@@ -6492,7 +6493,8 @@ diameter_ims_charging_info1(SI, Acc) ->
 	diameter_ims_charging_info2(SI, Acc).
 %% @hidden
 diameter_ims_charging_info2(#'3gpp_ro_IMS-Information'{
-		'Called-Party-Address' = CP} = SI, Acc) ->
+		'Called-Party-Address' = CP} = SI, Acc)
+		when length(CP) == 1 ->
 	[CalledPartyAddress] = diameter_involved_party(CP),
 	Acc1 = Acc#{calledPartyAddress => CalledPartyAddress},
 	diameter_ims_charging_info3(SI, Acc1);
