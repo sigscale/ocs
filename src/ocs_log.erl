@@ -5844,7 +5844,7 @@ nrf_cgi1(CGI, Acc) ->
 	nrf_cgi2(CGI, Acc).
 %% @hidden
 nrf_cgi2(#{"utraCellId" := CID} = CGI, Acc) ->
-	Acc1 = Acc#{utraCellId => CID},
+	Acc1 = Acc#{cellId => CID},
 	nrf_cgi3(CGI, Acc1);
 nrf_cgi2(CGI, Acc) ->
 	nrf_cgi3(CGI, Acc).
@@ -6386,7 +6386,7 @@ diameter_pdu_session_charging_info9(_PSI, Acc) ->
 diameter_user_location_info(<<0, MCCMNC:3/binary, LAC:16, CI:16>>) ->
 	CGI = #{plmnId => tbcd(MCCMNC),
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
-			utraCellId => list_to_binary(io_lib:fwrite("~4.16.0b", [CI]))},
+			cellId => list_to_binary(io_lib:fwrite("~4.16.0b", [CI]))},
 	#{utraLocation => #{cgi => CGI}};
 % SAI (3GPP TS 29.274 8.21.2)
 diameter_user_location_info(<<1, MCCMNC:3/binary, LAC:16, SAC:16>>) ->
@@ -7023,6 +7023,9 @@ csv_ncgi(#{plmnId := PLMN, nrCellId := Cell}) ->
 
 %% @hidden
 csv_cgi(#{plmnId := PLMN, cellId := Cell}) ->
+	{PLMN, Cell};
+% to be removed; handle old nrf_cgi2/2 and diameter_user_location_info/1
+csv_cgi(#{plmnId := PLMN, utraCellId := Cell}) ->
 	{PLMN, Cell}.
 
 -dialyzer([{nowarn_function, [location_info/1]}, no_underspecs]).
