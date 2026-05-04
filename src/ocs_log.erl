@@ -5421,13 +5421,19 @@ chf_vcs5(nrf = Protocol, ReqType,
 chf_vcs5(diameter = Protocol, ReqType,
 		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req,
 		Res, CFR) ->
-	CFR1 = case diameter_ims_charging_info(ServiceInfo) of
+	CFR1 = case diameter_pdu_session_charging_info(ServiceInfo) of
 		undefined ->
 			CFR;
-		ImsInfo ->
-			CFR#{iMSChargingInformation => ImsInfo}
+		PduInfo ->
+			CFR#{pDUSessionChargingInformation => PduInfo}
 	end,
-	chf_vcs6(Protocol, ReqType, Req, Res, CFR1);
+	CFR2 = case diameter_ims_charging_info(ServiceInfo) of
+		undefined ->
+			CFR1;
+		ImsInfo ->
+			CFR1#{iMSChargingInformation => ImsInfo}
+	end,
+	chf_vcs6(Protocol, ReqType, Req, Res, CFR2);
 chf_vcs5(Protocol, ReqType, Req, Res, CFR) ->
 	chf_vcs6(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
