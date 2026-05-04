@@ -1,3 +1,18 @@
+2026-05-04   Vance Shipley <vances@sigscale.org>
+
+	* diameter vcs-information in cdr
+	* diameter requested-party-address in cdr; map to destination in csv
+	* include ps service information (i.e. user location) in vcs cdr
+	* correct utralocation cgi in cdr
+	* ignore missing called-party-address in ims-information
+	* handle timeout on swx saa
+	* wait 10s to allow fsm to close diameter service
+	* wait ten seconds for diameter service shutdown
+	* Revert "delete redundant variable assignment in test case"
+	* delete redundant variable assignment in test case
+	* use constructed random value in test case
+	* suppress unused variable warnings
+
 2026-04-29   Vance Shipley <vances@sigscale.org>
 
 	* test case for bundled offer rated records
