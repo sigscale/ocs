@@ -6490,53 +6490,62 @@ diameter_ims_charging_info(_) ->
 	undefined.
 %% @hidden
 diameter_ims_charging_info1(#'3gpp_ro_IMS-Information'{
-		'Calling-Party-Address' = CP} = SI, Acc)
-		when length(CP) > 0 ->
-	CallingPartyAddresses = diameter_involved_party(CP),
-	Acc1 = Acc#{callingPartyAddresses => CallingPartyAddresses},
+		'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS'} = SI, Acc) ->
+	Acc1 = Acc#{iMSNodeFunctionality => aS},
 	diameter_ims_charging_info2(SI, Acc1);
 diameter_ims_charging_info1(SI, Acc) ->
 	diameter_ims_charging_info2(SI, Acc).
 %% @hidden
 diameter_ims_charging_info2(#'3gpp_ro_IMS-Information'{
-		'Called-Party-Address' = CP} = SI, Acc)
-		when length(CP) == 1 ->
-	[CalledPartyAddress] = diameter_involved_party(CP),
-	Acc1 = Acc#{calledPartyAddress => CalledPartyAddress},
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => originating},
+	diameter_ims_charging_info3(SI, Acc1);
+diameter_ims_charging_info2(#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => terminating},
+	diameter_ims_charging_info3(SI, Acc1);
+diameter_ims_charging_info2(#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE']} = SI, Acc) ->
+	Acc1 = Acc#{roleOfNode => forwarding},
 	diameter_ims_charging_info3(SI, Acc1);
 diameter_ims_charging_info2(SI, Acc) ->
 	diameter_ims_charging_info3(SI, Acc).
 %% @hidden
 diameter_ims_charging_info3(#'3gpp_ro_IMS-Information'{
-		'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS'} = SI, Acc) ->
-	Acc1 = Acc#{iMSNodeFunctionality => aS},
+		'Calling-Party-Address' = CP} = SI, Acc)
+		when length(CP) > 0 ->
+	CallingPartyAddresses = diameter_involved_party(CP),
+	Acc1 = Acc#{callingPartyAddresses => CallingPartyAddresses},
 	diameter_ims_charging_info4(SI, Acc1);
 diameter_ims_charging_info3(SI, Acc) ->
 	diameter_ims_charging_info4(SI, Acc).
 %% @hidden
 diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
-		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE']} = SI, Acc) ->
-	Acc1 = Acc#{roleOfNode => originating},
-	diameter_ims_charging_info5(SI, Acc1);
-diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
-		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE']} = SI, Acc) ->
-	Acc1 = Acc#{roleOfNode => terminating},
-	diameter_ims_charging_info5(SI, Acc1);
-diameter_ims_charging_info4(#'3gpp_ro_IMS-Information'{
-		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE']} = SI, Acc) ->
-	Acc1 = Acc#{roleOfNode => forwarding},
+		'Called-Party-Address' = CP} = SI, Acc)
+		when length(CP) == 1 ->
+	[CalledPartyAddress] = diameter_involved_party(CP),
+	Acc1 = Acc#{calledPartyAddress => CalledPartyAddress},
 	diameter_ims_charging_info5(SI, Acc1);
 diameter_ims_charging_info4(SI, Acc) ->
 	diameter_ims_charging_info5(SI, Acc).
 %% @hidden
 diameter_ims_charging_info5(#'3gpp_ro_IMS-Information'{
-		'IMS-Visited-Network-Identifier' = [VNI]} = SI, Acc) ->
-	Acc1 = Acc#{imsVisitedNetworkIdentifier => VNI},
+		'Requested-Party-Address' = RP} = SI, Acc)
+		when length(RP) > 0 ->
+	RequestedPartyAddresses = diameter_involved_party(RP),
+	Acc1 = Acc#{requestedPartyAddresses => RequestedPartyAddresses},
 	diameter_ims_charging_info6(SI, Acc1);
 diameter_ims_charging_info5(SI, Acc) ->
 	diameter_ims_charging_info6(SI, Acc).
 %% @hidden
-diameter_ims_charging_info6(_SI, Acc) ->
+diameter_ims_charging_info6(#'3gpp_ro_IMS-Information'{
+		'IMS-Visited-Network-Identifier' = [VNI]} = SI, Acc) ->
+	Acc1 = Acc#{imsVisitedNetworkIdentifier => VNI},
+	diameter_ims_charging_info7(SI, Acc1);
+diameter_ims_charging_info6(SI, Acc) ->
+	diameter_ims_charging_info7(SI, Acc).
+%% @hidden
+diameter_ims_charging_info7(_SI, Acc) ->
 	Acc.
 
 %% @hidden
@@ -6845,6 +6854,10 @@ chf_cfr_csv8(#{sMSChargingInformation
 chf_cfr_csv8(#{iMSChargingInformation
 		:= #{calledPartyAddress := CalledParty}} = CFR, Acc) ->
 	Destination = csv_involved_party(CalledParty),
+	chf_cfr_csv9(CFR, [Destination | Acc]);
+chf_cfr_csv8(#{iMSChargingInformation
+		:= #{requestedPartyAddresses := [H | _]}} = CFR, Acc) ->
+	Destination = csv_involved_party(H),
 	chf_cfr_csv9(CFR, [Destination | Acc]);
 chf_cfr_csv8(CFR, Acc) ->
 	chf_cfr_csv9(CFR, [<<>> | Acc]).
