@@ -551,14 +551,20 @@ rest_error_response(httpd_directory_undefined, undefined) ->
 		ServiceRating :: [map()],
 		Rated :: ocs_log:acct_rated(),
 		Reason :: offer_not_found | product_not_found | service_not_found
-				| invalid_service_type | invalid_bundle_product | term().
+				| invalid_service_type | invalid_bundle_product
+				| no_subscription_id | term().
 %% @doc Rate Nrf `ServiceRatingRequest's.
 %% @hidden
 rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds,
 		"serviceRating" := ServiceRating} = RatingDataRequest,
 		Flag) when length(SubscriptionIds) > 0 ->
 	rate(list_to_binary(RatingDataRef), RatingDataRequest, Flag,
-			ServiceRating, []).
+			ServiceRating, []);
+rate(RatingDataRef, #{"subscriptionId" := SubscriptionIds} = RatingDataRequest,
+		Flag) when length(SubscriptionIds) > 0 ->
+	rate(list_to_binary(RatingDataRef), RatingDataRequest, Flag, [], []);
+rate(_RatingDataRef, _RatingDataRequest, _Flag) ->
+	{error, no_subscription_id}.
 %% @hidden
 rate(RatingDataRef,
 		#{"serviceContextId" := ServiceContextId} = RatingDataRequest,
