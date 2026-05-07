@@ -1,3 +1,7 @@
+2026-05-07   Vance Shipley <vances@sigscale.org>
+
+	* only percent decode query strings
+
 2026-05-04   Vance Shipley <vances@sigscale.org>
 
 	* diameter vcs-information in cdr
