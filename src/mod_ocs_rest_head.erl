@@ -163,8 +163,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 
 %% @hidden
 parse_query(Resource, ModData, Uri) ->
-	parse_query1(Resource, ModData,
-			uri_string:percent_decode(uri_string:parse(Uri))).
+	parse_query1(Resource, ModData, uri_string:parse(Uri)).
 %% @hidden
 parse_query1(Resource, ModData, #{path := Path, query := Query}) ->
 	do_head(Resource, ModData, string:lexemes(Path, [$/]),
