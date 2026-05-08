@@ -843,7 +843,8 @@ rating_data1([{"nfConsumerIdentification",
 			Acc
 	end,
 	rating_data1(T, Acc1);
-rating_data1([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
+rating_data1([{"serviceRating", {array, ServiceRating}} | T], Acc)
+		when length(ServiceRating) > 0 ->
 	rating_data1(T, Acc#{"serviceRating" => service_rating(ServiceRating)});
 rating_data1([_H | T], Acc) ->
 	rating_data1(T, Acc);
@@ -1041,8 +1042,14 @@ sr_in([{"requestedUnit", {struct, Units}} | T], Acc) ->
 	sr_in(T, Acc#{"requestedUnit" => maps:from_list(Units)});
 sr_in([{"consumedUnit", {struct, Units}} | T], Acc) ->
 	sr_in(T, Acc#{"consumedUnit" => maps:from_list(Units)});
-sr_in([{"serviceInformation", {struct, SI}} | T], Acc) ->
-	sr_in(T, Acc#{"serviceInformation" => service_information(SI)});
+sr_in([{"serviceInformation", {struct, SI}} | T], Acc)
+		when length(SI) > 0 ->
+	case service_information(SI) of
+		SImap when map_size(SImap) > 0 ->
+			sr_in(T, Acc#{"serviceInformation" => SImap});
+		_SImap ->
+			sr_in(T, Acc)
+	end;
 sr_in([_Other | T], Acc) ->
 	sr_in(T, Acc);
 sr_in([], Acc) ->
@@ -1104,8 +1111,13 @@ si_in([{"sgsnMccMnc", {struct, MccMnc}} | T], Acc)
 		when is_list(MccMnc) ->
 	si_in(T, Acc#{"sgsnMccMnc" => maps:from_list(MccMnc)});
 si_in([{"userLocationinfo", {struct, ULI}} | T], Acc)
-		when is_list(ULI) ->
-	si_in(T, Acc#{"userLocationinfo" => user_location_info(ULI)});
+		when length(ULI) > 0 ->
+	case user_location_info(ULI) of
+		ULImap when map_size(ULImap) > 0 ->
+			si_in(T, Acc#{"userLocationinfo" => ULI});
+		_ULImap ->
+			si_in(T, Acc)
+	end;
 si_in([{"visitedNetworkIdentifier", VNI} | T], Acc)
 		when is_list(VNI) ->
 	si_in(T, Acc#{"visitedNetworkIdentifier" => VNI});
@@ -1128,7 +1140,7 @@ user_location_info(ULI) ->
 	user_location_info(ULI, #{}).
 %% @hidden
 user_location_info([{"utraLocation", {struct, Location}} | T], Acc)
-		when is_list(Location) ->
+		when length(Location) > 0 ->
 	case user_location_info1(Location, #{}) of
 		ULI when map_size(ULI) > 0 ->
 			Acc#{"utraLocation" => ULI};
@@ -1136,7 +1148,7 @@ user_location_info([{"utraLocation", {struct, Location}} | T], Acc)
 			user_location_info(T, Acc)
 	end;
 user_location_info([{"eutraLocation", {struct, Location}} | T], Acc)
-		when is_list(Location) ->
+		when length(Location) > 0 ->
 	case user_location_info1(Location, #{}) of
 		ULI when map_size(ULI) > 0 ->
 			Acc#{"eutraLocation" => ULI};
@@ -1144,7 +1156,7 @@ user_location_info([{"eutraLocation", {struct, Location}} | T], Acc)
 			user_location_info(T, Acc)
 	end;
 user_location_info([{"nrLocation", {struct, Location}} | T], Acc)
-		when is_list(Location) ->
+		when length(Location) > 0 ->
 	case user_location_info1(Location, #{}) of
 		ULI when map_size(ULI) > 0 ->
 			Acc#{"nrLocation" => ULI};
@@ -1152,7 +1164,7 @@ user_location_info([{"nrLocation", {struct, Location}} | T], Acc)
 			user_location_info(T, Acc)
 	end;
 user_location_info([{"n3gaLocation", {struct, Location}} | T], Acc)
-		when is_list(Location) ->
+		when length(Location) > 0 ->
 	case user_location_info1(Location, #{}) of
 		ULI when map_size(ULI) > 0 ->
 			Acc#{"nrLocation" => ULI};
@@ -1166,7 +1178,7 @@ user_location_info([], Acc) ->
 
 %% @hidden
 user_location_info1([{"cgi", {struct, CGI}} | T], Acc)
-		when is_list(CGI) ->
+		when length(CGI) > 0 ->
 	case user_location_info2(CGI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"cgi" => PLMN};
@@ -1174,7 +1186,7 @@ user_location_info1([{"cgi", {struct, CGI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"ecgi", {struct, ECGI}} | T], Acc)
-		when is_list(ECGI) ->
+		when length(ECGI) > 0 ->
 	case user_location_info2(ECGI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"ecgi" => PLMN};
@@ -1182,7 +1194,7 @@ user_location_info1([{"ecgi", {struct, ECGI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"ncgi", {struct, NCGI}} | T], Acc)
-		when is_list(NCGI) ->
+		when length(NCGI) > 0 ->
 	case user_location_info2(NCGI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"ncgi" => PLMN};
@@ -1190,7 +1202,7 @@ user_location_info1([{"ncgi", {struct, NCGI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"tai", {struct, TAI}} | T], Acc)
-		when is_list(TAI) ->
+		when length(TAI) > 0 ->
 	case user_location_info2(TAI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"tai" => PLMN};
@@ -1198,7 +1210,7 @@ user_location_info1([{"tai", {struct, TAI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"sai", {struct, SAI}} | T], Acc)
-		when is_list(SAI) ->
+		when length(SAI) > 0 ->
 	case user_location_info2(SAI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"sai" => PLMN};
@@ -1206,7 +1218,7 @@ user_location_info1([{"sai", {struct, SAI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"rai", {struct, RAI}} | T], Acc)
-		when is_list(RAI) ->
+		when length(RAI) > 0 ->
 	case user_location_info2(RAI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"rai" => PLMN};
@@ -1214,7 +1226,7 @@ user_location_info1([{"rai", {struct, RAI}} | T], Acc)
 			user_location_info1(T, Acc)
 	end;
 user_location_info1([{"n3gppTai", {struct, TAI}} | T], Acc)
-		when is_list(TAI) ->
+		when length(TAI) > 0 ->
 	case user_location_info2(TAI, #{}) of
 		PLMN when map_size(PLMN) > 0 ->
 			Acc#{"n3gppTai" => PLMN};
@@ -1228,7 +1240,7 @@ user_location_info1([], Acc) ->
 
 %% @hidden
 user_location_info2([{"plmnId", {struct, PLMN}} | _T], Acc)
-		when is_list(PLMN) ->
+		when length(PLMN) > 0 ->
 	Acc#{"plmnId" => maps:from_list(PLMN)};
 user_location_info2([_ | T], Acc) ->
 	user_location_info2(T, Acc);
