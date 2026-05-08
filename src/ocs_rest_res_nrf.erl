@@ -1227,9 +1227,9 @@ user_location_info1([], Acc) ->
 	Acc.
 
 %% @hidden
-user_location_info2([{"plmnid", {struct, PLMN}} | _T], Acc)
+user_location_info2([{"plmnId", {struct, PLMN}} | _T], Acc)
 		when is_list(PLMN) ->
-	Acc#{"plmnid" => maps:from_list(PLMN)};
+	Acc#{"plmnId" => maps:from_list(PLMN)};
 user_location_info2([_ | T], Acc) ->
 	user_location_info2(T, Acc);
 user_location_info2([], Acc) ->
@@ -1352,28 +1352,28 @@ authorize_rating4(Username, Address, Port, Directory) ->
 service_network(#{"sgsnMccMnc" := #{"mcc" := MCC, "mnc" := MNC}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"utraLocation"
-		:= #{"cgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"cgi" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"utraLocation"
-		:= #{"sai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"sai" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"utraLocation"
-		:= #{"rai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"rai" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"eutraLocation"
-		:= #{"ecgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"ecgi" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"eutraLocation"
-		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"tai" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"nrLocation"
-		:= #{"ncgi" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"ncgi" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"nrLocation"
-		:= #{"tai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"tai" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(#{"userLocationinfo" := #{"n3gaLocation"
-		:= #{"n3gppTai" := #{"plmnid" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
+		:= #{"n3gppTai" := #{"plmnId" := #{"mcc" := MCC, "mnc" := MNC}}}}}) ->
 	MCC ++ MNC;
 service_network(_) ->
 	undefined.
