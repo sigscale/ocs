@@ -144,7 +144,7 @@ add_product(RequestBody) ->
 				{error, _Reason} ->
 					Problem = #{type => "about:blank",
 							title => "Internal Server Error",
-							detail => "Exception occurred adding Product inventory item"},
+							detail => "Exception occurred adding Product Inventory item"},
 					{error, 500, Problem}
 			end;
 		_ ->
@@ -230,7 +230,7 @@ get_product(ID) ->
 		_:_ ->
 			Problem1 = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred getting Product inventory item"},
+					detail => "Exception occurred getting Product Inventory item"},
 			{error, 500, Problem1}
 	end.
 
@@ -574,7 +574,7 @@ patch_offer(OfferId, Etag, RequestBody) ->
 				{aborted, {throw, bad_offer}} ->
 					Problem = #{type => "about:blank",
 							title => "Bad Request",
-							detail => "Exception occurred parsing Product Offering"},
+							detail => "Exception occurred parsing Product Offering object"},
 					{error, 400, Problem};
 				{aborted, {throw, bad_patch}} ->
 					Problem = #{type => "about:blank",
@@ -594,7 +594,7 @@ patch_offer(OfferId, Etag, RequestBody) ->
 				{aborted, _Reason} ->
 					Problem = #{type => "about:blank",
 							title => "Internal Server Error",
-							detail => "Exception occurred patching Product Offering"},
+							detail => "Exception occurred patching Product Offering item"},
 					{error, 500, Problem}
 			end
 	catch
@@ -651,7 +651,7 @@ get_pla_spec(_Id, _Query) ->
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
 %% @doc Respond to `PATCH /productInventoryManagement/v2/product/{id}'.
-%% 	Update a Product Offering using JSON patch method
+%% 	Update a Product using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_product(ProdId, Etag, RequestBody) ->
 	try
@@ -727,7 +727,7 @@ patch_product(ProdId, Etag, RequestBody) ->
 				{aborted, _Reason} ->
 					Problem = #{type => "about:blank",
 							title => "Internal Server Error",
-							detail => "Exception occurred patching Product Offering"},
+							detail => "Exception occurred patching Product Inventory item"},
 					{error, 500, Problem}
 			end
 	catch
@@ -768,7 +768,7 @@ delete_offer(Id) ->
 		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred deleting Product Offering"},
+					detail => "Exception occurred deleting Product Offering item"},
 			{error, 500, Problem}
 	end.
 
@@ -802,7 +802,7 @@ delete_product(Id) ->
 		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred deleting Product inventory item"},
+					detail => "Exception occurred deleting Product Inventory item"},
 			{error, 500, Problem}
 	end.
 
@@ -854,7 +854,7 @@ sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
 		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred adding Product Offering"},
+					detail => "Exception occurred adding Product Offering item"},
 			{error, 500, Problem}
 	end;
 sync_offer({_, "ProductOfferingRemoveNotification"}, #offer{name = Name}) ->
@@ -875,7 +875,7 @@ sync_offer({_, "ProductOfferingRemoveNotification"}, #offer{name = Name}) ->
 		_:_ ->
 			Problem = #{type => "about:blank",
 					title => "Internal Server Error",
-					detail => "Exception occurred deleting Product Offering"},
+					detail => "Exception occurred deleting Product Offering item"},
 			{error, 500, Problem}
 	end;
 sync_offer(false, _) ->
