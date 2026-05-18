@@ -669,7 +669,9 @@ dia_application(16777272) ->
 dia_application(4) ->
 	io:fwrite("    Ro: ~n");
 dia_application(16777238) ->
-	io:fwrite("    Gx: ~n").
+	io:fwrite("    Gx: ~n");
+dia_application(unknown) ->
+	io:fwrite("    Unknown: ~n").
 
 -spec dia_count(Command, Count) -> ok
 	when
