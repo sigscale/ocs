@@ -50,6 +50,12 @@
 %% @doc Extract MCC and MNC 
 plmn(String) when is_binary(String) ->
 	plmn(binary_to_list(String));
+%% Test network
+plmn("00101" ++ Rest) ->
+	{"001", "01", Rest};
+%% Test network
+plmn("001001" ++ Rest) ->
+	{"001", "001", Rest};
 %% COSMOTE
 plmn("20201" ++ Rest) ->
 	{"202", "01", Rest};
