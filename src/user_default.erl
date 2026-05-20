@@ -41,6 +41,8 @@
 -include("diameter_gen_ietf.hrl").
 -include("diameter_gen_3gpp_ro_application.hrl").
 -include("diameter_gen_3gpp_gx_application.hrl").
+-include("diameter_gen_nas_application_rfc7155.hrl").
+-include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swm_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
@@ -323,10 +325,8 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
+				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
 		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
@@ -357,10 +357,8 @@ ql(Log, Match) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
+				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
 		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
@@ -390,10 +388,8 @@ ql(Log, Match, Start) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
+				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
 		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
@@ -422,7 +418,37 @@ ql(acct = _Log, [{MatchHead, MatchConditions} | _] = Match, Start, End)
 		or is_map(MatchHead)
 		or is_record(MatchHead, rated)),
 		is_integer(Start), is_integer(End) ->
-	query_acct_log(Match, Start, End).
+	query_acct_log(Match, Start, End);
+ql(auth= _Log, [{MatchHead, MatchConditions} | _] = Match, Start, End)
+		when is_list(MatchConditions),
+		(is_record(MatchHead, diameter_nas_app_AAR)
+		or is_record(MatchHead, diameter_nas_app_AAA)
+		or is_record(MatchHead, diameter_eap_app_DER)
+		or is_record(MatchHead, diameter_eap_app_DEA)
+		or is_record(MatchHead, '3gpp_sta_DER')
+		or is_record(MatchHead, '3gpp_sta_DEA')
+		or is_record(MatchHead, '3gpp_swm_DER')
+		or is_record(MatchHead, '3gpp_swm_DEA')
+		or is_record(MatchHead, '3gpp_sta_STR')
+		or is_record(MatchHead, '3gpp_sta_STA')
+		or is_record(MatchHead, '3gpp_swm_STR')
+		or is_record(MatchHead, '3gpp_swm_STA')
+		or is_record(MatchHead, '3gpp_s6b_AAR')
+		or is_record(MatchHead, '3gpp_s6b_AAA')
+		or is_record(MatchHead, '3gpp_s6b_STR')
+		or is_record(MatchHead, '3gpp_s6b_STA')
+		or is_record(MatchHead, '3gpp_s6a_AIR')
+		or is_record(MatchHead, '3gpp_s6a_AIA')
+		or is_record(MatchHead, '3gpp_s6a_AIA')
+		or is_record(MatchHead, '3gpp_s6a_ULR')
+		or is_record(MatchHead, '3gpp_s6a_ULA')
+		or is_record(MatchHead, '3gpp_s6a_PUR')
+		or is_record(MatchHead, '3gpp_s6a_PUA')
+		or is_record(MatchHead, '3gpp_swx_RTR')
+		or is_record(MatchHead, '3gpp_swx_RTA')
+		or is_map(MatchHead)),
+		is_integer(Start), is_integer(End) ->
+	query_auth_log(Match, Start, End).
 
 %%----------------------------------------------------------------------
 %%  the user_default private api
@@ -461,7 +487,7 @@ diameter_service_info([], _Info, Acc) ->
 
 -spec query_acct_log(Match, Start, End) -> Events
 	when
-		Match :: [MatchFilter],
+		Match :: MatchFilter | [MatchFilter],
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
@@ -472,10 +498,7 @@ diameter_service_info([], _Info, Acc) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
 		NrfMatchHead :: map(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
@@ -485,7 +508,7 @@ diameter_service_info([], _Info, Acc) ->
 		End :: calendar:datetime() | pos_integer(),
 		Events :: [ocs_log:acct_event()].
 %% @hidden
-query_acct_log(Match, Start, End) when is_list(Match) ->
+query_acct_log(Match, Start, End) ->
 	set_max_heap(),
 	query_acct_log(start, Start, End, Match, []).
 %% @hidden
@@ -499,6 +522,41 @@ query_acct_log(Context1, Start, End, Match, Acc) ->
 			query_acct_log(Context2, Start, End, Match, Acc);
 		{Context2, Events} ->
 			query_acct_log(Context2, Start, End, Match, [Events | Acc])
+	end.
+
+-spec query_auth_log(Match, Start, End) -> Events
+	when
+		Match :: MatchFilter | [MatchFilter],
+		MatchFilter :: RadiusMatch | DiameterMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
+		MatchConditions :: [tuple()],
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Events :: [ocs_log:acct_event()].
+%% @hidden
+query_auth_log(Match, Start, End) ->
+	set_max_heap(),
+	query_auth_log(start, Start, End, Match, []).
+%% @hidden
+query_auth_log(eof, _, _, _, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+query_auth_log(Context1, Start, End, Match, Acc) ->
+	case ocs_log:auth_query(Context1, Start, End, '_', '_', Match) of
+		{error, Reason} ->
+			exit(Reason);
+		{Context2, []} ->
+			query_auth_log(Context2, Start, End, Match, Acc);
+		{Context2, Events} ->
+			query_auth_log(Context2, Start, End, Match, [Events | Acc])
 	end.
 
 %% @hidden
