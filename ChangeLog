@@ -1,5 +1,6 @@
 2026-05-20   Vance Shipley <vances@sigscale.org>
 
+   * put plmns for test networks back into plmn/1
 	* support all auth log events in query log shortcut command
 	* handle unknown application in diameter statistics
 	* clarify and correct problem detail text in product apis
