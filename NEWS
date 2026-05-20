@@ -1,3 +1,9 @@
+May 20, 2026
+------------
+	- Nrf CODEC improvements 
+	- Shortcut command fix for diameter statistics
+	- Shortcut command fix for auth log query
+
 May 07, 2026
 ------------
 	- Fix column filtering in grid views of PWA
