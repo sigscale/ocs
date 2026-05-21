@@ -286,7 +286,7 @@ code_change(_OldVsn, State, _Extra) ->
 next(ScheduledTime, Interval) ->
 	{Date, Time} = erlang:universaltime(),
 	Today = calendar:date_to_gregorian_days(Date),
-	Days = Interval div 1440,
+	Days = Interval div 86400,
 	ScheduledDay = calendar:gregorian_days_to_date(Today + Days),
 	Next = {ScheduledDay, ScheduledTime},
 	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
