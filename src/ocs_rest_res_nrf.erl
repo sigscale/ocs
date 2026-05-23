@@ -568,7 +568,7 @@ rate(_RatingDataRef, _RatingDataRequest, _Flag) ->
 %% @hidden
 rate(RatingDataRef,
 		#{"serviceContextId" := ServiceContextId} = RatingDataRequest,
-		Flag, [H | T], Acc) ->
+		Flag, [H | T] = _ServiceRating, Acc) ->
 	ChargingKey = case maps:find("ratingGroup", H) of
 		{ok, RG} ->
 			RG;
@@ -645,6 +645,14 @@ rate(RatingDataRef,
 	Args = {ServiceType, ChargingKey, ServiceId, ServiceNetwork,
 			Address, Direction, SessionAttributes, Debit, Reserve},
 	rate(RatingDataRef, RatingDataRequest, Flag, T, [Args | Acc]);
+rate(RatingDataRef,
+		#{"serviceContextId" := ServiceContextId} = RatingDataRequest,
+		final = Flag, [] = _ServiceRating, [] = Acc) ->
+	ServiceType = service_type(ServiceContextId),
+	SessionAttributes = session_id(RatingDataRef, undefined, undefined),
+	Args = {ServiceType, undefined, undefined, undefined,
+			undefined, undefined, SessionAttributes, undefined, []},
+	rate(RatingDataRef, RatingDataRequest, Flag, [], [Args | Acc]);
 rate(RatingDataRef,
 		#{"subscriptionId" := SubscriptionIds} = _RatingDataRequest,
 		Flag, [], Acc) ->
