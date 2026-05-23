@@ -1,4 +1,8 @@
-2026-05-20   Vance Shipley <vances@sigscale.org>
+2026-05-23   Vance Shipley <vances@sigscale.org>
+
+	* handle missing service rating in final nrf request
+
+2026-05-22   Vance Shipley <vances@sigscale.org>
 
 	* correct next log rotation timeout calculation
 

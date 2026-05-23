@@ -1,3 +1,7 @@
+May 23, 2026
+------------
+	- Handle missing ServiceRating in Nrf release
+
 May 22, 2026
 ------------
 	- Fix CDR log rotation schedule calculationn
