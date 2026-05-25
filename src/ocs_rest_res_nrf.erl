@@ -826,7 +826,11 @@ rating_data(#{"invocationTimeStamp" := TS,
 	{struct, [{"invocationTimeStamp", TS},
 			{"invocationSequenceNumber", SeqNum},
 			{"serviceRating",
-					{array, service_rating(ServiceRating)}}]}.
+					{array, service_rating(ServiceRating)}}]};
+rating_data(#{"invocationTimeStamp" := TS,
+		"invocationSequenceNumber" := SeqNum}) ->
+	{struct, [{"invocationTimeStamp", TS},
+			{"invocationSequenceNumber", SeqNum}]}.
 %% @hidden
 rating_data1([{"invocationTimeStamp", TS} | T], Acc)
 		when is_list(TS) ->
