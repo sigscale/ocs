@@ -651,7 +651,7 @@ rate(RatingDataRef,
 	ServiceType = service_type(ServiceContextId),
 	SessionAttributes = session_id(RatingDataRef, undefined, undefined),
 	Args = {ServiceType, undefined, undefined, undefined,
-			undefined, undefined, SessionAttributes, undefined, []},
+			undefined, undefined, SessionAttributes, [], undefined},
 	rate(RatingDataRef, RatingDataRequest, Flag, [], [Args | Acc]);
 rate(RatingDataRef,
 		#{"subscriptionId" := SubscriptionIds} = _RatingDataRequest,
