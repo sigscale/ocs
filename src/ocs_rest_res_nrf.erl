@@ -342,9 +342,13 @@ release_nrf2(ModData, RatingDataRef,
 		when is_list(NF), is_list(TS), is_integer(SN), is_list(Context) ->
 	try
 		case rate(RatingDataRef, RatingDataRequest, final) of
-			{ok, ServiceRating, Rated} ->
+			{ok, ServiceRating, Rated} when length(ServiceRating) > 0 ->
 				UpdatedMap = maps:update("serviceRating", ServiceRating, RatingDataRequest),
 				RatingDataResponse = rating_data(UpdatedMap),
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
+			{ok, ServiceRating, Rated} ->
+				RatingDataResponse = rating_data(RatingDataRequest),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
 			{out_of_credit, _ServiceRating, Rated} ->
