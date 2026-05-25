@@ -350,7 +350,7 @@ release_nrf2(ModData, RatingDataRef,
 			{ok, ServiceRating, Rated} ->
 				RatingDataResponse = rating_data(RatingDataRequest),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
-				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
+				{RatingDataResponse, LogRequest, RatingDataRequest, Rated};
 			{out_of_credit, _ServiceRating, Rated} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				Problem = rest_error_response(out_of_credit, undefined),
