@@ -1,3 +1,7 @@
+2026-05-25   Vance Shipley <vances@sigscale.org>
+
+	* correct arg order in rate final
+
 2026-05-23   Vance Shipley <vances@sigscale.org>
 
 	* handle missing service rating in final nrf request
