@@ -1130,7 +1130,7 @@ si_in([{"userLocationinfo", {struct, ULI}} | T], Acc)
 		when length(ULI) > 0 ->
 	case user_location_info(ULI) of
 		ULImap when map_size(ULImap) > 0 ->
-			si_in(T, Acc#{"userLocationinfo" => ULI});
+			si_in(T, Acc#{"userLocationinfo" => ULImap});
 		_ULImap ->
 			si_in(T, Acc)
 	end;
