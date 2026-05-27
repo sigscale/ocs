@@ -229,12 +229,7 @@ start14() ->
 	Options = [set, public, named_table, {write_concurrency, true}],
 	ets:new(nrf_session, Options),
    ets:new(counters, Options),
-   case catch ets:insert(counters, {nrf_seq, 0}) of
-		true ->
-			start15();
-		{'EXIT', Reason} ->
-			{error, Reason}
-	end.
+	start15().
 %% @hidden
 start15() ->
 	{ok, CdrLogs} = application:get_env(cdr_logs),
