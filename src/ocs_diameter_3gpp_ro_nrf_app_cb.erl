@@ -335,11 +335,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, URL, {initial, b});
+						SessionId, RequestNum, MSCC1, [],
+						Location, URL, {initial, b});
 			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, Destination,
-						URL, {initial, b})
+						SessionId, RequestNum, MSCC1, [],
+						Location, Destination, URL, {initial, b})
 		end,
 		case NrfResponse of
 			{ok, JSON} ->
@@ -404,12 +405,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			{{MSCC2, _, undefined}, PLA, Amounts1} when is_list(MSCC2), length(PLA) > 0 ->
 				case ServiceType of
 					32251 ->
-						{ok, JSON} = post_request_scur(Server, SubscriptionId, SvcContextId,
-								SessionId, PLA, Amounts1, [], URL, {initial, a}),
+						{ok, JSON} = post_request_scur(Server, SubscriptionId,
+								SvcContextId, SessionId, RequestNum, PLA, Amounts1,
+								[], URL, {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
-						{ok, JSON} = post_request_ecur(Server, SubscriptionId, SvcContextId,
-								SessionId, PLA, Amounts1, [], Destination, URL, {initial, a}),
+						{ok, JSON} = post_request_ecur(Server, SubscriptionId,
+								SvcContextId, SessionId, RequestNum, PLA, Amounts1,
+								[], Destination, URL, {initial, a}),
 						{ok, JSON, PLA, Amounts1, MSCC2}
 				end;
 			{error, Reason} ->
@@ -491,7 +494,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		Amounts = get_mscc(MSCC1),
 		case post_request_scur(Server, SubscriptionId, SvcContextId,
-				SessionId, MSCC1, [], Location, URL, interim) of
+				SessionId, RequestNum, MSCC1, [], Location, URL, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -559,12 +562,13 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					{error, missing_tariff} ->
 						{ok, JSON} = case ServiceType of
 							32251 ->
-								post_request_scur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], URL, {initial, a});
+								post_request_scur(Server, SubscriptionId,
+										SvcContextId, SessionId, RequestNum, PLA, Amounts1,
+										[], URL, {initial, a});
 							Id when Id == 32260; Id == 32274 ->
-								post_request_ecur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], Destination,
-										URL, {initial, a})
+								post_request_ecur(Server, SubscriptionId,
+										SvcContextId, SessionId, RequestNum, PLA, Amounts1,
+										[], Destination, URL, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -647,12 +651,13 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = get_destination(ServiceInformation),
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, URL, final);
+				post_request_scur(Server, SubscriptionId,
+						SvcContextId, SessionId, RequestNum, MSCC1,
+						[], Location, URL, final);
 			Id when Id == 32260; Id == 32274 ->
-				post_request_ecur(Server, SubscriptionId, SvcContextId,
-						SessionId, MSCC1, [], Location, Destination,
-						URL, final)
+				post_request_ecur(Server, SubscriptionId,
+						SvcContextId, SessionId, RequestNum, MSCC1,
+						[], Location, Destination, URL, final)
 		end,
 		Amounts = get_mscc(MSCC1),
 		case NrfResponse of
@@ -723,12 +728,13 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					{error, missing_tariff} ->
 						{ok, JSON} = case ServiceType of
 							32251 ->
-								post_request_scur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], URL, {initial, a});
+								post_request_scur(Server, SubscriptionId,
+										SvcContextId, SessionId, RequestNum,
+										PLA, Amounts1, [], URL, {initial, a});
 							Id when Id == 32260; Id == 32274 ->
-								post_request_ecur(Server, SubscriptionId, SvcContextId,
-										SessionId, PLA, Amounts1, [], Destination,
-										URL, {initial, a})
+								post_request_ecur(Server, SubscriptionId,
+										SvcContextId, SessionId, RequestNum,
+										PLA, Amounts1, [], Destination, URL, {initial, a})
 						end,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -812,7 +818,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		case post_request_iec(Server, SubscriptionId, SvcContextId,
-				SessionId, MSCC, Location, Destination, URL) of
+				SessionId, RequestNum, MSCC, Location, Destination, URL) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
 				case lists:keyfind("serviceRating", 1, RatedStruct) of
@@ -945,7 +951,7 @@ subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
 	{lists:reverse(Acc1), lists:reverse(Acc2)}.
 
 -spec post_request_ecur(ServiceName, SubscriptionId,
-		ServiceContextId, SessionId, ServiceRatingData,
+		ServiceContextId, SessionId, Sequence, ServiceRatingData,
 		Amounts, Location, Destination, URL, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
@@ -954,6 +960,7 @@ subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
 		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
+		Sequence :: non_neg_integer(),
 		ServiceRatingData :: [MSCC] | [PLA],
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		PLA :: map(),
@@ -972,31 +979,37 @@ subscriber_id(_SubscriptionIDs, [], Acc1, Acc2) ->
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
-%% @doc POST ECUR rating data to a Nrf Rating Server.
-post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, [#{price := #price{type = #pla_ref{href = Path}}}
-      | _], Amounts, Location, Destination, _URL, {initial, a}) ->
+%% @doc POST ECUR rating data to an Nrf Rating Server.
+post_request_ecur(_ServiceName, SubscriptionId,
+		SvcContextId, SessionId, Sequence,
+		[#{price := #price{type = #pla_ref{href = Path}}} | _],
+		Amounts, Location, Destination, _URL, {initial, a}) ->
 	ServiceRating = initial_service_rating(Amounts,
 			binary_to_list(SvcContextId), Location, a),
-	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, Destination, URL, {initial, b}) ->
+	post_request_ecur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path);
+post_request_ecur(_ServiceName, SubscriptionId,
+		SvcContextId, SessionId, Sequence, MSCC, _,
+		Location, Destination, URL, {initial, b}) ->
 	Path = URL ++ ?BASE_URI ++ "/ratingdata",
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
-	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path);
-post_request_ecur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, Destination, URL, final) ->
+	post_request_ecur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path);
+post_request_ecur(_ServiceName, SubscriptionId,
+		SvcContextId, SessionId, Sequence, MSCC, _,
+		Location, Destination, URL, final) ->
 	Path = URL ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
-	post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path).
+	post_request_ecur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path).
 %% @hidden
-post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
+post_request_ecur1(SubscriptionId,
+		SessionId, Sequence, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
-	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"oneTimeEvent", true},
@@ -1024,8 +1037,9 @@ post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec post_request_iec(ServiceName, SubscriptionId, ServiceContextId,
-		SessionId, MSCC, Location, Destination, URL) -> Result
+-spec post_request_iec(ServiceName, SubscriptionId,
+		ServiceContextId, SessionId, Sequence, MSCC,
+		Location, Destination, URL) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -1033,6 +1047,7 @@ post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
+		Sequence :: non_neg_integer(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [],
 		Location :: [tuple()],
 		Destination :: string(),
@@ -1040,28 +1055,28 @@ post_request_ecur1(SubscriptionId, SessionId, ServiceRating, Path) ->
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
-%% @doc POST IEC rating data to a Nrf Rating Server.
-post_request_iec(ServiceName, SubscriptionId, ServiceContextId, SessionId,
-		[], _Location, Destination, URL) ->
+%% @doc POST IEC rating data to an Nrf Rating Server.
+post_request_iec(ServiceName, SubscriptionId,
+		ServiceContextId, SessionId, Sequence, [],
+		_Location, Destination, URL) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
 	post_request_iec1(ServiceName, SubscriptionId,
-			SessionId, ServiceRating, URL);
+			SessionId, Sequence, ServiceRating, URL);
 post_request_iec(ServiceName, SubscriptionId, ServiceContextId,
-			SessionId, MSCC, Location, Destination, URL) ->
+			SessionId, Sequence, MSCC, Location, Destination, URL) ->
 	ServiceRating = iec_service_rating(MSCC,
 			binary_to_list(ServiceContextId), Location, Destination),
 	post_request_iec1(ServiceName, SubscriptionId,
-			SessionId, ServiceRating, URL).
+			SessionId, Sequence, ServiceRating, URL).
 %% @hidden
 post_request_iec1(_ServiceName, SubscriptionId,
-		SessionId, ServiceRating, URL) ->
+		SessionId, Sequence, ServiceRating, URL) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
-	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"oneTimeEvent", true},
@@ -1089,7 +1104,7 @@ post_request_iec1(_ServiceName, SubscriptionId,
 	end.
 
 -spec post_request_scur(ServiceName, SubscriptionId, ServiceContextId,
-		SessionId, ServiceRatingData, Amounts, Location, URL, Flag) -> Result
+		SessionId, Sequence, ServiceRatingData, Amounts, Location, URL, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -1097,6 +1112,7 @@ post_request_iec1(_ServiceName, SubscriptionId,
 		SubscriptionId :: [string()],
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
+		Sequence :: non_neg_integer(),
 		ServiceRatingData :: [MSCC] | [PLA] | undefined,
 		MSCC :: #'3gpp_ro_Multiple-Services-Credit-Control'{},
 		PLA :: map(),
@@ -1114,37 +1130,42 @@ post_request_iec1(_ServiceName, SubscriptionId,
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
-%% @doc POST SCUR rating data to a Nrf Rating Server.
-post_request_scur(_ServiceName, SubscriptionId, SvcContextId, SessionId,
+%% @doc POST SCUR rating data to an Nrf Rating Server.
+post_request_scur(_ServiceName,
+		SubscriptionId, SvcContextId, SessionId, Sequence,
 		[#{price := #price{type = #pla_ref{href = Path}}} | _] = _ServiceRatingData,
 		Amounts, Location, _URL, {initial, a}) ->
 	ServiceRating = initial_service_rating(Amounts,
 			binary_to_list(SvcContextId), Location, a),
-	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+	post_request_scur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path);
 post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, URL, {initial, b}) ->
+		SessionId, Sequence, MSCC, _, Location, URL, {initial, b}) ->
 	Path = URL ++ ?BASE_URI ++ "/ratingdata",
 	ServiceRating = initial_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location, b),
-	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+	post_request_scur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path);
 post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, URL, interim) ->
+		SessionId, Sequence, MSCC, _, Location, URL, interim) ->
 	Path = URL ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
-	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path);
+	post_request_scur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path);
 post_request_scur(_ServiceName, SubscriptionId, SvcContextId,
-		SessionId, MSCC, _, Location, URL, final) ->
+		SessionId, Sequence, MSCC, _, Location, URL, final) ->
 	Path = URL ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC,
 			binary_to_list(SvcContextId), Location),
-	post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path).
+	post_request_scur1(SubscriptionId,
+			SessionId, Sequence, ServiceRating, Path).
 %% @hidden
-post_request_scur1(SubscriptionId, SessionId, ServiceRating, Path) ->
+post_request_scur1(SubscriptionId,
+		SessionId, Sequence, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
-	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
