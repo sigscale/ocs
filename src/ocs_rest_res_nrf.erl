@@ -148,13 +148,13 @@ initial_nrf1(ModData,
 			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, LogResponse, Rated1),
-			ets:update_counter(counters, {nrf, "SUCCESS"}, 1),
+			ets:update_counter(counters, {nrf, "SUCCESS"}, 1, {{nrf, "SUCCESS"}, 0}),
 			{ok, Headers, ResponseBody};
 		{error, StatusCode, LogEventType1, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, Problem1, undefined),
 			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
-			ets:update_counter(counters, {nrf, Cause}, 1),
+			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
@@ -162,7 +162,8 @@ initial_nrf1(ModData,
 			error_logger:warning_report(["Unable to process Nrf request",
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, start}, {error, Reason1}, {stack, StackTrace}]),
-			ets:update_counter(counters, {nrf, "SYSTEM_FAILURE"}, 1),
+			ets:update_counter(counters,
+					{nrf, "SYSTEM_FAILURE"}, 1, {{nrf, "SYSTEM_FAILURE"}, 0}),
 			{error, 500}
 	end;
 initial_nrf1(_ModData, RatingDataRequest) ->
@@ -264,13 +265,13 @@ update_nrf2(ModData, RatingDataRef,
 			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, LogResponse, undefined),
-			ets:update_counter(counters, {nrf, "SUCCESS"}, 1),
+			ets:update_counter(counters, {nrf, "SUCCESS"}, 1, {{nrf, "SUCCESS"}, 0}),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, Problem1, undefined),
 			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
-			ets:update_counter(counters, {nrf, Cause}, 1),
+			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
@@ -278,7 +279,8 @@ update_nrf2(ModData, RatingDataRef,
 			error_logger:warning_report(["Unable to process Nrf request",
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, update}, {error, Reason1}, {stack, StackTrace}]),
-			ets:update_counter(counters, {nrf, "SYSTEM_FAILURE"}, 1),
+			ets:update_counter(counters,
+					{nrf, "SYSTEM_FAILURE"}, 1, {{nrf, "SYSTEM_FAILURE"}, 0}),
 			{error, 500}
 	end;
 update_nrf2(_ModData, _RatingDataRef, RatingDataRequest) ->
@@ -387,14 +389,14 @@ release_nrf2(ModData, RatingDataRef,
 			ResponseBody = mochijson:encode(RatingDataResponse1),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, LogResponse, Rated1),
-			ets:update_counter(counters, {nrf, "SUCCESS"}, 1),
+			ets:update_counter(counters, {nrf, "SUCCESS"}, 1, {{nrf, "SUCCESS"}, 0}),
 			{200, Headers, ResponseBody};
 		{error, StatusCode, LogRequest1, Problem1, Rated1} ->
 			ok = remove_ref(RatingDataRef),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, Problem1, Rated1),
 			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
-			ets:update_counter(counters, {nrf, Cause}, 1),
+			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
 		?CATCH_STACK ->
@@ -403,7 +405,8 @@ release_nrf2(ModData, RatingDataRef,
 			error_logger:warning_report(["Unable to process Nrf request",
 					{ratingDataRef, RatingDataRef}, {request, RatingDataRequest},
 					{operation, release}, {error, Reason1}, {stack, StackTrace}]),
-			ets:update_counter(counters, {nrf, "SYSTEM_FAILURE"}, 1),
+			ets:update_counter(counters,
+					{nrf, "SYSTEM_FAILURE"}, 1, {{nrf, "SYSTEM_FAILURE"}, 0}),
 			{error, 500}
 	end;
 release_nrf2(_ModData, _RatingDataRef, RatingDataRequest) ->
