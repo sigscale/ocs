@@ -347,7 +347,7 @@ release_nrf2(ModData, RatingDataRef,
 				RatingDataResponse = rating_data(UpdatedMap),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{RatingDataResponse, LogRequest, UpdatedMap, Rated};
-			{ok, ServiceRating, Rated} ->
+			{ok, _ServiceRating, Rated} ->
 				RatingDataResponse = rating_data(RatingDataRequest),
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				{RatingDataResponse, LogRequest, RatingDataRequest, Rated};
@@ -996,42 +996,37 @@ sr_out(#{"resultCode" := RC} = M, Acc) ->
 sr_out(M, Acc) ->
 	sr_out1(M, Acc).
 %% @hidden
-sr_out1(#{"serviceInformation" := SI} = M, Acc) ->
-	sr_out2(M, [{"serviceInformation", service_information(SI)} | Acc]);
+sr_out1(#{"uPFID" := UPFID} = M, Acc) ->
+	sr_out2(M, [{"uPFID", UPFID} | Acc]);
 sr_out1(M, Acc) ->
 	sr_out2(M, Acc).
 %% @hidden
-sr_out2(#{"uPFID" := UPFID} = M, Acc) ->
-	sr_out3(M, [{"uPFID", UPFID} | Acc]);
+sr_out2(#{"validUnits" := VU} = M, Acc) ->
+	sr_out3(M, [{"validUnits", VU} | Acc]);
 sr_out2(M, Acc) ->
 	sr_out3(M, Acc).
 %% @hidden
-sr_out3(#{"validUnits" := VU} = M, Acc) ->
-	sr_out4(M, [{"validUnits", VU} | Acc]);
+sr_out3(#{"grantedUnit" := Units} = M, Acc) ->
+	sr_out4(M, [{"grantedUnit", {struct, maps:to_list(Units)}} | Acc]);
 sr_out3(M, Acc) ->
 	sr_out4(M, Acc).
 %% @hidden
-sr_out4(#{"grantedUnit" := Units} = M, Acc) ->
-	sr_out5(M, [{"grantedUnit", {struct, maps:to_list(Units)}} | Acc]);
+sr_out4(#{"consumedUnit" := Units} = M, Acc) ->
+	sr_out5(M, [{"consumedUnit", {struct, maps:to_list(Units)}} | Acc]);
 sr_out4(M, Acc) ->
 	sr_out5(M, Acc).
 %% @hidden
-sr_out5(#{"consumedUnit" := Units} = M, Acc) ->
-	sr_out6(M, [{"consumedUnit", {struct, maps:to_list(Units)}} | Acc]);
+sr_out5(#{"ratingGroup" := RG} = M, Acc) ->
+	sr_out6(M, [{"ratingGroup", RG} | Acc]);
 sr_out5(M, Acc) ->
 	sr_out6(M, Acc).
 %% @hidden
-sr_out6(#{"ratingGroup" := RG} = M, Acc) ->
-	sr_out7(M, [{"ratingGroup", RG} | Acc]);
+sr_out6(#{"serviceId" := SI} = M, Acc) ->
+	sr_out7(M, [{"serviceId", SI} | Acc]);
 sr_out6(M, Acc) ->
 	sr_out7(M, Acc).
 %% @hidden
-sr_out7(#{"serviceId" := SI} = M, Acc) ->
-	sr_out8(M, [{"serviceId", SI} | Acc]);
-sr_out7(M, Acc) ->
-	sr_out8(M, Acc).
-%% @hidden
-sr_out8(_M, Acc) ->
+sr_out7(_M, Acc) ->
 	{struct, Acc}.
 
 %% @hidden
