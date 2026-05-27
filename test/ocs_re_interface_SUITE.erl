@@ -104,7 +104,7 @@ init_per_suite(Config) ->
 	RestUser = ct:get_config({rest, user}),
 	RestPass = ct:get_config({rest, password}),
 	UserData = [{locale, "en"}, {rating, true}],
-	{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
+	ocs:add_user(RestUser, RestPass, UserData),
 	Fport = fun FPort([{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
 					{_, "rest"} ->
@@ -147,6 +147,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(_Config) ->
+	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
