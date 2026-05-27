@@ -153,7 +153,7 @@ initial_nrf1(ModData,
 		{error, StatusCode, LogEventType1, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), LogEventType1,
 					LogRequest1, Problem1, undefined),
-			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
+			Cause = maps:get(cause, Problem1, "SYSTEM_FAILURE"),
 			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
@@ -270,7 +270,7 @@ update_nrf2(ModData, RatingDataRef,
 		{error, StatusCode, LogRequest1, Problem1} ->
 			ok = ocs_log:acct_log(nrf, server(ModData), update,
 					LogRequest1, Problem1, undefined),
-			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
+			Cause = maps:get(cause, Problem1, "SYSTEM_FAILURE"),
 			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
@@ -395,7 +395,7 @@ release_nrf2(ModData, RatingDataRef,
 			ok = remove_ref(RatingDataRef),
 			ok = ocs_log:acct_log(nrf, server(ModData), stop,
 					LogRequest1, Problem1, Rated1),
-			Cause = maps:get("cause", Problem1, "SYSTEM_FAILURE"),
+			Cause = maps:get(cause, Problem1, "SYSTEM_FAILURE"),
 			ets:update_counter(counters, {nrf, Cause}, 1, {{nrf, Cause}, 0}),
 			{error, StatusCode, Problem1}
 	catch
