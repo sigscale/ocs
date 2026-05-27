@@ -1,3 +1,10 @@
+May 27 2026
+------------
+	- Shortcut command for Nrf statistics
+	- Nrf service statistics counters
+	- Correct ServiceRating in Nrf response
+	- Correct user location info codec in nrf handler
+
 May 23, 2026
 ------------
 	- Handle missing ServiceRating in Nrf release

@@ -1,3 +1,14 @@
+2026-05-27   Vance Shipley <vances@sigscale.org>
+
+	* shell shortcut command for nrf statistics
+	* implement nrf service statistics counters
+	* derive nrf invocation sequence number from diameter ccr request number
+	* no service information in service rating of nrf response
+	* test suite: stop diameter to allow suite repeat
+	* refactor nrf test cases for literacy
+	* correct user location info codec in nrf handler
+	* refactor nrf test cases; add user location info
+
 2026-05-25   Vance Shipley <vances@sigscale.org>
 
 	* handle empty service data in nrf response
