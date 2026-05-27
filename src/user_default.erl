@@ -30,6 +30,7 @@
 %% export the user_default public API
 -export([help/0, ts/0, td/0, su/0, up/0]).
 -export([di/0, di/1, di/2, dc/0]).
+-export([nrf/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 -export([service_name/1]).
 
@@ -70,6 +71,7 @@ help() ->
 	io:fwrite("di(acct, Types) -- diameter accounting services info\n"),
 	io:fwrite("di(auth, Types) -- diameter authentication and authorization services info\n"),
 	io:fwrite("dc()            -- diameter capabilities values\n"),
+	io:fwrite("nrf()           -- Nrf service dtatistics\n"),
 	io:fwrite("ll(acct)        -- last accounting log events\n"),
 	io:fwrite("ll(acct, N)\n"),
 	io:fwrite("ll(auth)        -- last authentication and authorization log events\n"),
@@ -268,6 +270,38 @@ dc() ->
 			'Firmware-Revision'],
 	diameter_service_info(diameter:services(), Info).
 
+-spec nrf() -> ok.
+%% @doc Display Nrf_Rating service statistics counter values.
+nrf() ->
+	MatchHead = {{nrf, '$1'},'$2'},
+	MatchBody = [{{'$1', '$2'}}],
+	MatchFunction = {MatchHead, [], MatchBody},
+	Counters = ets:select(counters, [MatchFunction]),
+	io:fwrite("Nrf_Rating service statistics:\n"),
+	nrf(maps:from_list(Counters)).
+%% @hidden
+nrf(#{"SUCCESS" := Count} = Counters) ->
+	io:fwrite("    ~22s: ~b\n", ["SUCCESS", Count]),
+	nrf(maps:remove("SUCCESS", Counters));
+nrf(#{"QUOTA_LIMIT_REACHED" := Count} = Counters) ->
+	io:fwrite("    ~22s: ~b\n", ["QUOTA_LIMIT_REACHED", Count]),
+	nrf(maps:remove("QUOTA_LIMIT_REACHED", Counters));
+nrf(#{"SUBSCRIPTION_NOT_FOUND" := Count} = Counters) ->
+	io:fwrite("    ~22s: ~b\n", ["SUBSCRIPTION_NOT_FOUND", Count]),
+	nrf(maps:remove("SUBSCRIPTION_NOT_FOUND", Counters));
+nrf(#{"NOT_AUTHORIZED" := Count} = Counters) ->
+	io:fwrite("    ~22s: ~b\n", ["NOT_AUTHORIZED", Count]),
+	nrf(maps:remove("NOT_AUTHORIZED", Counters));
+nrf(#{"RATING_FAILED" := Count} = Counters) ->
+	io:fwrite("    ~22s: ~b\n", ["RATING_FAILED", Count]),
+	nrf(maps:remove("RATING_FAILED", Counters));
+nrf(Counters) ->
+	F = fun({Cause, Count}) ->
+			io:fwrite("    ~22s: ~b\n", [Cause, Count])
+	end,
+	maps:foreach(F, Counters).
+
+%% @hidden
 -spec ll(Log) -> Events
 	when
 		Log :: acct | auth,
