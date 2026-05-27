@@ -296,7 +296,7 @@ nrf(#{"RATING_FAILED" := Count} = Counters) ->
 	io:fwrite("    ~22s: ~b\n", ["RATING_FAILED", Count]),
 	nrf(maps:remove("RATING_FAILED", Counters));
 nrf(Counters) ->
-	F = fun({Cause, Count}) ->
+	F = fun(Cause, Count) ->
 			io:fwrite("    ~22s: ~b\n", [Cause, Count])
 	end,
 	maps:foreach(F, Counters).
