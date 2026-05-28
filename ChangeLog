@@ -1,3 +1,11 @@
+2026-05-28   Vance Shipley <vances@sigscale.org>
+
+	* add card for nrf statistics to dashboard
+	* map disabled service to end user service denied nrf response
+	* remove unused property in dashboard component
+	* include nrf statistics in health api
+	* write default nrf statistics counter values
+
 2026-05-27   Vance Shipley <vances@sigscale.org>
 
 	* shell shortcut command for nrf statistics
