@@ -130,6 +130,12 @@ initial_nrf1(ModData,
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				Problem = rest_error_response(Reason, InvalidParams),
 				{error, 404, LogEventType, LogRequest, Problem};
+			{error, service_rejected = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Service rejected for subscriber"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 403, LogEventType, LogRequest, Problem};
 			{error, invalid_service_type = Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				InvalidParams = [#{param => "/serviceContextId",
@@ -248,6 +254,12 @@ update_nrf2(ModData, RatingDataRef,
 						reason => "Unknown subscriber identifier"}],
 				Problem = rest_error_response(Reason, InvalidParams),
 				{error, 404, LogRequest, Problem};
+			{error, service_rejected = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Service rejected for subscriber"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 403, LogRequest, Problem};
 			{error, invalid_service_type = Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				InvalidParams = [#{param => "/serviceContextId",
@@ -371,6 +383,12 @@ release_nrf2(ModData, RatingDataRef,
 						reason => "Unknown subscriber identifier"}],
 				Problem = rest_error_response(Reason, InvalidParams),
 				{error, 404, LogRequest, Problem, []};
+			{error, service_rejected = Reason} ->
+				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
+				InvalidParams = [#{param => "/subscriptionId",
+						reason => "Service rejected for subscriber"}],
+				Problem = rest_error_response(Reason, InvalidParams),
+				{error, 403, LogRequest, Problem};
 			{error, invalid_service_type = Reason} ->
 				LogRequest = RatingDataRequest#{"ratingSessionId" => RatingDataRef},
 				InvalidParams = [#{param => "/serviceContextId",
@@ -503,6 +521,12 @@ rest_error_response(service_not_found, InvalidParams) ->
 			status => 404,
 			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
 			title => "Request denied because the subscriber identity is unrecognized",
+			invalidParams => InvalidParams};
+rest_error_response(service_rejected, InvalidParams) ->
+	#{cause => "END_USER REQUEST_DENIED",
+			status => 403,
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			title => "Request denied due to restrictions or limitations related to the subscriber",
 			invalidParams => InvalidParams};
 rest_error_response(rating_failed, undefined) ->
 	#{cause => "RATING_FAILED",
