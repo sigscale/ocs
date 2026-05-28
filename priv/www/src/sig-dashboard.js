@@ -212,11 +212,6 @@ class dashBoard extends PolymerElement {
 				notify: false,
 				value: 0
 			},
-			creditControl: {
-				type: Number,
-				notify: false,
-				value: 0
-			},
 			schedulerCoreHeader: {
 				type: String,
 				computed: 'computeCores(numSchedulers)'
