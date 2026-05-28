@@ -113,7 +113,7 @@ class dashBoard extends PolymerElement {
 			</paper-card>
 			<paper-card
 					id="creditCard"
-					heading="Credit Control Requests">
+					heading="DIAMETER Credit Control">
 				<div
 						class="card-content">
 					<svg
@@ -161,7 +161,7 @@ class dashBoard extends PolymerElement {
 			</paper-card>
 			<paper-card
 					id="staCard"
-					heading="AAA Requests">
+					heading="DIAMETER AAA">
 				<div
 						class="card-content">
 					<svg
@@ -181,6 +181,30 @@ class dashBoard extends PolymerElement {
 						class="hide-button"
 						icon="ocs-icons:clear"
 						on-click="_clearSta">
+				</paper-icon-button>
+			</paper-card>
+			<paper-card
+					id="nrfCard"
+					heading="Nrf Rating">
+				<div
+						class="card-content">
+					<svg
+							width="410"
+							height="188">
+					</svg>
+				</div>
+				<paper-icon-button
+						icon="ocs-icons:vleft"
+						on-click="_orderLeftNrf">
+				</paper-icon-button>
+				<paper-icon-button
+						icon="ocs-icons:vright"
+						on-click="_orderRightNrf">
+				</paper-icon-button>
+				<paper-icon-button
+						class="hide-button"
+						icon="ocs-icons:clear"
+						on-click="_clearNrf">
 				</paper-icon-button>
 			</paper-card>
 			<iron-ajax
@@ -282,7 +306,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -316,7 +344,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -371,7 +403,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -405,7 +441,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -446,7 +486,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -480,7 +524,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -521,7 +569,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -555,7 +607,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -596,7 +652,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -630,7 +690,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -671,7 +735,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -705,7 +773,11 @@ class dashBoard extends PolymerElement {
 		var staCard = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
-		var cards = [schedCard, diaCard, subsCard, creditCard, upCard, staCard];
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
 		cards.sort(function(a, b) {
 				var aOrder = parseInt(getComputedStyle(a).order, 10);
 				var bOrder = parseInt(getComputedStyle(b).order, 10);
@@ -724,6 +796,89 @@ class dashBoard extends PolymerElement {
 		var card = document.body.querySelector('sig-app')
 				.shadowRoot.querySelector('sig-dashboard').shadowRoot
 				.querySelector("#staCard");
+		card.style.display = "none";
+	}
+
+	_orderLeftNrf() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'nrfCard'});
+		if (index > 0) {
+			var rightOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var leftOrder = parseInt(getComputedStyle(cards[index - 1]).order, 10);
+			cards[index].style.order = (--rightOrder).toString();
+			cards[index - 1].style.order = (++leftOrder).toString();
+		}
+	}
+
+	_orderRightNrf() {
+		var schedCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var subsCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var creditCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var upCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var diaCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diaCard");
+		var staCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#staCard");
+		var nrfCard = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
+		var cards = [schedCard, diaCard, subsCard,
+				creditCard, upCard, staCard, nrfCard];
+		cards.sort(function(a, b) {
+				var aOrder = parseInt(getComputedStyle(a).order, 10);
+				var bOrder = parseInt(getComputedStyle(b).order, 10);
+				return aOrder - bOrder
+		});
+		var index = cards.findIndex(function(card) {return card.id == 'nrfCard'});
+		if (index < (cards.length - 1)) {
+			var leftOrder = parseInt(getComputedStyle(cards[index]).order, 10);
+			var rightOrder = parseInt(getComputedStyle(cards[index + 1]).order, 10);
+			cards[index].style.order = (++leftOrder).toString();
+			cards[index + 1].style.order = (--rightOrder).toString();
+		}
+	}
+
+	_clearNrf() {
+		var card = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#nrfCard");
 		card.style.display = "none";
 	}
 
@@ -968,7 +1123,6 @@ class dashBoard extends PolymerElement {
 					ocsHealth.draw_up(svgUp, ocsHealth.uptime);
 					var svgCredit = select(root).select("#creditCard div.card-content svg");
 					ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
-
 					if(request.response.checks["diameter-sta:counters"]) {
 						var staCounters = request.response.checks["diameter-sta:counters"];
 						for(var indexSta in staCounters) {
@@ -985,7 +1139,26 @@ class dashBoard extends PolymerElement {
 					}
 					var svgSta = select(root).select("#staCard div.card-content svg");
 					ocsHealth.draw_sta(svgSta, sta2001, sta1001, sta5001, sta5012);
-
+					if(request.response.checks["nrf:counters"]) {
+						var nrfCounters = request.response.checks["nrf:counters"];
+						for(var indexNrf in nrfCounters) {
+							if(nrfCounters[indexNrf].componentId == "SUCCESS") {
+								var nrfSuccess = nrfCounters[indexNrf].observedValue;
+							} else if(nrfCounters[indexNrf].componentId == "QUOTA_LIMIT_REACHED") {
+								var nrfQuota = nrfCounters[indexNrf].observedValue;
+							} else if(nrfCounters[indexNrf].componentId == "SUBSCRIPTION_NOT_FOUND") {
+								var nrfNoSub = nrfCounters[indexNrf].observedValue;
+							} else if(nrfCounters[indexNrf].componentId == "END_USER REQUEST_DENIED") {
+								var nrfDenied = nrfCounters[indexNrf].observedValue;
+							} else if(nrfCounters[indexNrf].componentId == "RATING_FAILED") {
+								var nrfRating = nrfCounters[indexNrf].observedValue;
+							} else if(nrfCounters[indexNrf].componentId == "SYSTEM_FAILURE") {
+								var nrfFail= nrfCounters[indexNrf].observedValue;
+							}
+						}
+					}
+					var svgNrf = select(root).select("#nrfCard div.card-content svg");
+					ocsHealth.draw_nrf(svgNrf, nrfSuccess, nrfQuota, nrfNoSub, nrfDenied, nrfRating, nrfFail);
 					if(maxAge > 0) {
 						ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 					} else {
@@ -1006,6 +1179,184 @@ class dashBoard extends PolymerElement {
 			ocsHealth.loading = true;
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	draw_nrf(svg, nrfSuccess, nrfQuota, nrfNoSub, nrfDenied, nrfRating, nrfFail) {
+		var g1 = svg.append('g');
+		var g2 = svg.append('g');
+		var g3 = svg.append('g');
+		var g4 = svg.append('g');
+		var g5 = svg.append('g');
+		var g6 = svg.append('g');
+		g1.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '140')
+			.attr('y', '22')
+			.attr("text-anchor", "end")
+			.text(nrfSuccess)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g1.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '285')
+			.attr('y', '22')
+			.attr("text-anchor", "middle")
+			.text('SUCCESS')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '140')
+			.attr('y', '54')
+			.attr("text-anchor", "end")
+			.text(nrfQuota)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '285')
+			.attr('y', '54')
+			.attr("text-anchor", "middle")
+			.text('CREDIT LIMIT REACHED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '140')
+			.attr('y', '86')
+			.attr("text-anchor", "end")
+			.text(nrfNoSub)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '285')
+			.attr('y', '86')
+			.attr("text-anchor", "middle")
+			.text('USER UNKNOWN')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 96)
+			.style('fill', '#ffb04c');
+		g4.append('text')
+			.attr('x', '140')
+			.attr('y', '118')
+			.attr("text-anchor", "end")
+			.text(nrfDenied)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 96)
+			.style('fill', '#ffb04c');
+		g4.append('text')
+			.attr('x', '285')
+			.attr('y', '118')
+			.attr("text-anchor", "middle")
+			.text('USER SERVICE DENIED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g5.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 128)
+			.style('fill', '#f05545');
+		g5.append('text')
+			.attr('x', '140')
+			.attr('y', '150')
+			.attr("text-anchor", "end")
+			.text(nrfRating)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g5.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 128)
+			.style('fill', '#f05545');
+		g5.append('text')
+			.attr('x', '285')
+			.attr('y', '150')
+			.attr("text-anchor", "middle")
+			.text('RATING FAILED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g6.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 160)
+			.style('fill', '#f05545');
+		g6.append('text')
+			.attr('x', '140')
+			.attr('y', '182')
+			.attr("text-anchor", "end")
+			.text(nrfFail)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g6.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 160)
+			.style('fill', '#f05545');
+		g6.append('text')
+			.attr('x', '285')
+			.attr('y', '182')
+			.attr("text-anchor", "middle")
+			.text('UNABLE TO COMPLY')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		return svg.node();
 	}
 
 	draw_sta(svg, sta2001, sta1001, sta5001, sta5012) {

@@ -315,13 +315,17 @@ styleElement.innerHTML = `<template>
 			flex-direction: row;
 			order: 4;
 		}
-		#upCard {
+		#staCard {
 			flex-direction: row;
 			order: 5;
 		}
-		#staCard {
+		#nrfCard {
 			flex-direction: row;
-			order: 4;
+			order: 6;
+		}
+		#upCard {
+			flex-direction: row;
+			order: 7;
 		}
 	</style>
 </template>`;
