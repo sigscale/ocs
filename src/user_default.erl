@@ -367,7 +367,7 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
 		Events :: [ocs_log:acct_event()].
-%% @doc Query diameter logs.
+%% @doc Query event logs.
 %%
 %% 	Start will be minus one hour from now.
 %%
@@ -400,7 +400,7 @@ ql(Log, Match) ->
 		MatchConditions :: [tuple()],
 		Start :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
-%% @doc Query diameter logs.
+%% @doc Query event logs.
 %%
 %% 	End time will be now.
 %%
@@ -432,7 +432,7 @@ ql(Log, Match, Start) ->
 		Start :: calendar:datetime() | ocs_log:timestamp(),
 		End :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
-%% @doc Query diameter logs.
+%% @doc Query event logs.
 ql(Log, Match, Start, End) when is_tuple(Match) ->
 	ql(Log, [Match], Start, End);
 ql(Log, Match, {{_, _, _}, {_, _, _}} = Start, End) ->
