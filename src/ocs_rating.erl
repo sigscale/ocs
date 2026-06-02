@@ -3268,6 +3268,26 @@ filter_prices_key(_, [], Acc1, Acc2) ->
 %% @doc Get total debited and remaining amounts, refund and
 %% 	remove all reservations, for session.
 %% @private
+get_final(ServiceId, ChargingKey,
+		[{RefType, SessionId} | _] = SessionAttributes,
+		Refund, Buckets)
+		when RefType == 'Session-Id'; RefType == nrf_ref ->
+	F1 = fun([{RT, SID} | _])
+					when RT == RefType; SID == SessionId ->
+				true;
+			(_) ->
+				false
+	end,
+	F2 = fun(#bucket{attributes = #{bucket_type := session,
+					reservations := Reservations}}) ->
+				lists:any(F1, maps:keys(Reservations));
+			(#bucket{}) ->
+				false
+	end,
+	{SessionBuckets, OtherBuckets} = lists:partition(F2, Buckets),
+	Now = erlang:system_time(millisecond),
+	get_final(ServiceId, ChargingKey, SessionAttributes,
+			Refund, Now, #{}, SessionBuckets, OtherBuckets, []);
 get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Buckets) ->
 	F = fun(#bucket{attributes = #{bucket_type := session,
 					reservations := Reservations}})
@@ -3390,11 +3410,12 @@ get_final(_, _, _, _, _, Debits, [], [], Acc) ->
 
 %% @hidden
 get_final1(RefundUnits, SessionAttributes, Now, Buckets, From) ->
-	get_final2(RefundUnits, SessionAttributes, Now, Buckets, sort_from_bucket(From)).
+	get_final2(RefundUnits, SessionAttributes, Now,
+			Buckets, sort_from_bucket(From)).
 %% @hidden
-get_final2(RefundUnits, SessionAttributes, Now, Buckets,
-		[#{id := Id, amount := Amount, unit_size := UnitSize,
-		unit_price := UnitPrice} | T] = _From)
+get_final2(RefundUnits, [{RefType, SessionId} | _] = SessionAttributes,
+		Now, Buckets, [#{id := Id, amount := Amount, unit_size := UnitSize,
+				unit_price := UnitPrice} | T] = _From)
 		when RefundUnits >= UnitSize ->
 	FromUnits = (Amount div UnitPrice) * UnitSize,
 	{RefundedAmount, RefundedUnits} = case FromUnits =< RefundUnits of
@@ -3419,6 +3440,30 @@ get_final2(RefundUnits, SessionAttributes, Now, Buckets,
 			NewBuckets = lists:keyreplace(Id, #bucket.id, Buckets, B2),
 			get_final2(RefundUnits - RefundedUnits,
 					SessionAttributes, Now, NewBuckets, T);
+		#bucket{attributes = #{reservations
+				:= Reservations} = Attributes} = B1
+				when RefType == 'Session-Id'; RefType == nrf_ref ->
+			F = fun({[{RT, SID} | _], _}) when RT == RefType; SID == SessionId ->
+						true;
+					(_) ->
+						false
+			end,
+			case lists:search(F, maps:to_list(Reservations)) of
+				{value, {_, #{debit := Debit, reserve := Reserve} = Reservation}}
+						when Debit >= RefundedAmount ->
+					Debit1 = Debit - RefundedAmount,
+					Reserve1 = Reserve + RefundedAmount,
+					Reservation1 = Reservation#{debit => Debit1, reserve => Reserve1},
+					Reservations1 = Reservations#{SessionAttributes => Reservation1},
+					Attributes1 = Attributes#{reservations => Reservations1},
+					LM = {Now, erlang:unique_integer([positive])},
+					B2 = B1#bucket{attributes = Attributes1, last_modified = LM},
+					NewBuckets = lists:keyreplace(Id, #bucket.id, Buckets, B2),
+					get_final2(RefundUnits - RefundedUnits,
+							SessionAttributes, Now, NewBuckets, T);
+				_ ->
+					get_final2(RefundUnits, SessionAttributes, Now, Buckets, T)
+			end;
 		false ->
 			get_final2(RefundUnits, SessionAttributes, Now, Buckets, T)
 	end;
@@ -3437,6 +3482,14 @@ get_final_debits(ServiceId, ChargingKey, SessionAttributes, Reservations) ->
 get_final_debits(undefined, undefined, SessionAttributes,
 		[{SessionAttributes, #{debit := Debited, reserve := Reserved}} | T],
 		Debit, Refund, Acc) ->
+	get_final_debits(undefined, undefined, SessionAttributes,
+			T, Debit + Debited, Refund + Reserved, Acc);
+get_final_debits(undefined, undefined,
+		[{RefType, SessionId} | _] = SessionAttributes,
+		[{[{RefType, SessionId} | _],
+				#{debit := Debited, reserve := Reserved}} | T],
+						Debit, Refund, Acc)
+		when RefType == 'Session-Id'; RefType == nrf_ref ->
 	get_final_debits(undefined, undefined, SessionAttributes,
 			T, Debit + Debited, Refund + Reserved, Acc);
 get_final_debits(ServiceId, ChargingKey, SessionAttributes,
