@@ -3252,12 +3252,12 @@ filter_prices_key(ChargingKey,
 filter_prices_key(_, [], Acc1, Acc2) ->
 	lists:reverse(Acc1) ++ lists:reverse(Acc2).
 
--spec get_final(ServiceId, ChargingKey, SessionId,
+-spec get_final(ServiceId, ChargingKey, SessionAttributes,
 		Refund, Buckets) -> Result
 	when
 		ServiceId :: non_neg_integer() | undefined,
 		ChargingKey :: non_neg_integer() | undefined,
-		SessionId :: [tuple()],
+		SessionAttributes :: [tuple()],
 		Refund :: {RefundUnits, RefundAmount},
 		RefundUnits :: octets | seconds | messages,
 		RefundAmount :: non_neg_integer(),
@@ -3268,30 +3268,30 @@ filter_prices_key(_, [], Acc1, Acc2) ->
 %% @doc Get total debited and remaining amounts, refund and
 %% 	remove all reservations, for session.
 %% @private
-get_final(ServiceId, ChargingKey, SessionId, Refund, Buckets) ->
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Buckets) ->
 	F = fun(#bucket{attributes = #{bucket_type := session,
 					reservations := Reservations}})
-					when is_map_key(SessionId, Reservations) ->
+					when is_map_key(SessionAttributes, Reservations) ->
 				true;
 			(#bucket{}) ->
 				false
 	end,
 	{SessionBuckets, OtherBuckets} = lists:partition(F, Buckets),
 	Now = erlang:system_time(millisecond),
-	get_final(ServiceId, ChargingKey, SessionId,
+	get_final(ServiceId, ChargingKey, SessionAttributes,
 			Refund, Now, #{}, SessionBuckets, OtherBuckets, []).
 %% @hidden
-get_final(ServiceId, ChargingKey, SessionId,
+get_final(ServiceId, ChargingKey, SessionAttributes,
 		{Units, RefundAmount} = _Refund, Now, Debits,
 		[#bucket{units = Units, remain_amount = Remain,
 				attributes = Attributes} = B | T] = _SessionBuckets,
 		OtherBuckets, Acc) when RefundAmount > 0,
 				is_map_key(from_bucket, Attributes) ->
-	get_final(ServiceId, ChargingKey, SessionId,
+	get_final(ServiceId, ChargingKey, SessionAttributes,
 			{Units, 0}, Now, Debits,
 			[B#bucket{remain_amount = Remain + RefundAmount} | T],
 			OtherBuckets, Acc);
-get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now, Debits,
 		[#bucket{remain_amount = Remain,
 				attributes = #{reservations := Reservations1,
 						from_bucket := From} = Attributes1,
@@ -3303,52 +3303,53 @@ get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
 			(Debited) ->
 				Debits#{Units => N + Debited}
 	end,
-	case get_final_debits(ServiceId, ChargingKey, SessionId, Reservations1) of
+	case get_final_debits(ServiceId, ChargingKey,
+			SessionAttributes, Reservations1) of
 		{Debited, 0, Reservations2} when Remain == 0,
 				map_size(Reservations2) == 0  ->
-			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+			get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 					F(Debited), T, OtherBuckets1, Acc);
 		{Debited, Reserved, Reservations2} when Reserved > 0,
 				map_size(Reservations2) == 0  ->
 			OtherBuckets2 = get_final1(Remain + Reserved,
-					SessionId, Now, OtherBuckets1, From),
-			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+					SessionAttributes, Now, OtherBuckets1, From),
+			get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 					F(Debited), T, OtherBuckets2, Acc);
 		{Debited, Reserved, Reservations2}
 				when map_size(Reservations2) == 0 ->
 			Attributes2 = maps:remove(reservations, Attributes1),
 			B2 = B1#bucket{remain_amount = Remain + Reserved,
 					attributes = Attributes2},
-			get_final(ServiceId, ChargingKey, SessionId,
+			get_final(ServiceId, ChargingKey, SessionAttributes,
 					Refund, Now, F(Debited),
 					T, OtherBuckets1, [B2 | Acc]);
 		{Debited, Reserved, Reservations2} ->
 			Attributes2 = Attributes1#{reservations => Reservations2},
 			B2 = B1#bucket{remain_amount = Remain + Reserved,
 					attributes = Attributes2},
-			get_final(ServiceId, ChargingKey, SessionId,
+			get_final(ServiceId, ChargingKey, SessionAttributes,
 					Refund, Now, F(Debited),
 					T, OtherBuckets1, [B2 | Acc])
 	end;
-get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now, Debits,
 		[], [#bucket{remain_amount = 0,
 				attributes = Attributes} = _B | T], Acc)
 		when is_map_key(reservations, Attributes) == false ->
-	get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+	get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 			Debits, [], T, Acc);
-get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now, Debits,
 		[], [#bucket{remain_amount = Remain, attributes = Attributes,
 		end_date = Expires} = _B | T], Acc)
 		when Remain >= 0, Expires /= undefined, Expires < Now,
 		is_map_key(reservations, Attributes) == false ->
-	get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+	get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 			Debits, [], T, Acc);
-get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now, Debits,
 		[], [#bucket{attributes = Attributes} = B | T], Acc)
 		when is_map_key(reservations, Attributes) == false ->
-	get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+	get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 			Debits, [], T, [B | Acc]);
-get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
+get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now, Debits,
 		[], [#bucket{remain_amount = Remain, units = Units,
 				attributes = #{reservations := Reservations1} = Attributes1,
 				end_date = EndDate} = B1 | T], Acc) ->
@@ -3358,39 +3359,40 @@ get_final(ServiceId, ChargingKey, SessionId, Refund, Now, Debits,
 			(Debited) ->
 				Debits#{Units => N + Debited}
 	end,
-	case get_final_debits(ServiceId, ChargingKey, SessionId, Reservations1) of
+	case get_final_debits(ServiceId, ChargingKey,
+			SessionAttributes, Reservations1) of
 		{Debited, 0, Reservations2} when Remain == 0,
 				map_size(Reservations2) == 0 ->
-			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+			get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 					F(Debited), [], T, Acc);
 		{Debited, Reserved, Reservations2}
 				when (Remain + Reserved) >= 0,
 				EndDate /= undefined, EndDate < Now,
 				map_size(Reservations2) == 0 ->
-			get_final(ServiceId, ChargingKey, SessionId, Refund, Now,
+			get_final(ServiceId, ChargingKey, SessionAttributes, Refund, Now,
 					F(Debited), [], T, Acc);
 		{Debited, Reserved, Reservations2}
 				when map_size(Reservations2) == 0 ->
 			Attributes2 = maps:remove(reservations, Attributes1),
 			B2 = B1#bucket{remain_amount = Remain + Reserved,
 					attributes = Attributes2},
-			get_final(ServiceId, ChargingKey, SessionId,
+			get_final(ServiceId, ChargingKey, SessionAttributes,
 					Refund, Now, F(Debited), [], T, [B2 | Acc]);
 		{Debited, Reserved, Reservations2} ->
 			Attributes2 = Attributes1#{reservations => Reservations2},
 			B2 = B1#bucket{remain_amount = Remain + Reserved,
 					attributes = Attributes2},
-			get_final(ServiceId, ChargingKey, SessionId,
+			get_final(ServiceId, ChargingKey, SessionAttributes,
 					Refund, Now, F(Debited), [], T, [B2 | Acc])
 	end;
 get_final(_, _, _, _, _, Debits, [], [], Acc) ->
 	{Debits, lists:reverse(Acc)}.
 
 %% @hidden
-get_final1(RefundUnits, SessionId, Now, Buckets, From) ->
-	get_final2(RefundUnits, SessionId, Now, Buckets, sort_from_bucket(From)).
+get_final1(RefundUnits, SessionAttributes, Now, Buckets, From) ->
+	get_final2(RefundUnits, SessionAttributes, Now, Buckets, sort_from_bucket(From)).
 %% @hidden
-get_final2(RefundUnits, SessionId, Now, Buckets,
+get_final2(RefundUnits, SessionAttributes, Now, Buckets,
 		[#{id := Id, amount := Amount, unit_size := UnitSize,
 		unit_price := UnitPrice} | T] = _From)
 		when RefundUnits >= UnitSize ->
@@ -3403,49 +3405,49 @@ get_final2(RefundUnits, SessionId, Now, Buckets,
 			{RU * UnitPrice, RU * UnitSize}
 	end,
 	case lists:keyfind(Id, #bucket.id, Buckets) of
-		#bucket{attributes = #{reservations := #{SessionId
+		#bucket{attributes = #{reservations := #{SessionAttributes
 				:= #{debit := Debit, reserve := Reserve} = Reservation}
 				= Reservations} = Attributes} = B1
 				when Debit >= RefundedAmount ->
 			Debit1 = Debit - RefundedAmount,
 			Reserve1 = Reserve + RefundedAmount,
 			Reservation1 = Reservation#{debit => Debit1, reserve => Reserve1},
-			Reservations1 = Reservations#{SessionId => Reservation1},
+			Reservations1 = Reservations#{SessionAttributes => Reservation1},
 			Attributes1 = Attributes#{reservations => Reservations1},
 			LM = {Now, erlang:unique_integer([positive])},
 			B2 = B1#bucket{attributes = Attributes1, last_modified = LM},
 			NewBuckets = lists:keyreplace(Id, #bucket.id, Buckets, B2),
 			get_final2(RefundUnits - RefundedUnits,
-					SessionId, Now, NewBuckets, T);
+					SessionAttributes, Now, NewBuckets, T);
 		false ->
-			get_final2(RefundUnits, SessionId, Now, Buckets, T)
+			get_final2(RefundUnits, SessionAttributes, Now, Buckets, T)
 	end;
-get_final2(RefundUnits, SessionId, Now, Buckets, [_H | T]) ->
-	get_final2(RefundUnits, SessionId, Now, Buckets, T);
+get_final2(RefundUnits, SessionAttributes, Now, Buckets, [_H | T]) ->
+	get_final2(RefundUnits, SessionAttributes, Now, Buckets, T);
 get_final2(0, _, _, Buckets, _) ->
 	Buckets;
 get_final2(_, _, _, Buckets, []) ->
 	Buckets.
 
 %% @hidden
-get_final_debits(ServiceId, ChargingKey, SessionId, Reservations) ->
-	get_final_debits(ServiceId, ChargingKey, SessionId,
+get_final_debits(ServiceId, ChargingKey, SessionAttributes, Reservations) ->
+	get_final_debits(ServiceId, ChargingKey, SessionAttributes,
 			maps:to_list(Reservations), 0, 0, []).
 %% @hidden
-get_final_debits(undefined, undefined, SessionId,
-		[{SessionId, #{debit := Debited, reserve := Reserved}} | T],
+get_final_debits(undefined, undefined, SessionAttributes,
+		[{SessionAttributes, #{debit := Debited, reserve := Reserved}} | T],
 		Debit, Refund, Acc) ->
-	get_final_debits(undefined, undefined, SessionId,
+	get_final_debits(undefined, undefined, SessionAttributes,
 			T, Debit + Debited, Refund + Reserved, Acc);
-get_final_debits(ServiceId, ChargingKey, SessionId,
-		[{SessionId, #{debit := Debited, reserve := Reserved,
+get_final_debits(ServiceId, ChargingKey, SessionAttributes,
+		[{SessionAttributes, #{debit := Debited, reserve := Reserved,
 				service_id := ServiceId, charging_key := ChargingKey}} | T],
 		Debit, Refund, Acc) ->
-	get_final_debits(ServiceId, ChargingKey, SessionId,
+	get_final_debits(ServiceId, ChargingKey, SessionAttributes,
 			T, Debit + Debited, Refund + Reserved, Acc);
-get_final_debits(ServiceId, ChargingKey, SessionId,
+get_final_debits(ServiceId, ChargingKey, SessionAttributes,
 		[H | T], Debit, Refund, Acc) ->
-	get_final_debits(ServiceId, ChargingKey, SessionId,
+	get_final_debits(ServiceId, ChargingKey, SessionAttributes,
 			T, Debit, Refund, [H | Acc]);
 get_final_debits(_, _, _, [], Debit, Refund, Acc) ->
 	{Debit, Refund, maps:from_list(Acc)}.
