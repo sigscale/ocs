@@ -1,3 +1,13 @@
+2026-06-03   Vance Shipley <vances@sigscale.org>
+
+	* correct session attributes in test case
+	* test case: use binaries in session id attributes
+	* rate mobile forwarding as originating
+	* test case: final empty service rating
+	* match all reservations for session in final rating
+	* rename variable for clarity of purpose
+	* rename function for clarity of purpose
+
 2026-05-28   Vance Shipley <vances@sigscale.org>
 
 	* add card for nrf statistics to dashboard

@@ -1,3 +1,8 @@
+June 3, 2026
+------------
+	- Charge mobile forwarded call to forwarding subscriber
+	- Fix reaping all reservations when no consumed units in final request
+
 May 28 2026
 ------------
 	- PWA dashboard includes Nrf Rating statistics 
