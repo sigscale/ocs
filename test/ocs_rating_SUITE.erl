@@ -3950,16 +3950,16 @@ session_id(radius) ->
 	AcctSessionId = {?AcctSessionId, SessionId},
 	Address = inet:ntoa({192, 168, rand:uniform(256) - 1, rand:uniform(254)}),
 	NasIp = {?NasIpAddress, Address},
-	NasId = {?NasIdentifier, ocs:generate_password()},
+	NasId = {?NasIdentifier, list_to_binary(ocs:generate_password())},
 	[NasIp, NasId, AcctSessionId];
 session_id(diameter) ->
 	SessionId = diameter:session_id(ocs:generate_password()),
-	[{'Session-Id', SessionId}];
+	[{'Session-Id', list_to_binary(SessionId)}];
 session_id(nrf) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	RatingDataRef = integer_to_list(TS) ++ integer_to_list(N),
-	[{nrf_ref, RatingDataRef}].
+	[{nrf_ref, list_to_binary(RatingDataRef)}].
 
 validate_balance(Amount, Buckets) ->
 	F = fun(#bucket{attributes = #{bucket_type := normal}}) ->
