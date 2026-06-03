@@ -231,18 +231,15 @@ initial_add_session(_Config) ->
 	Timestamp = calendar:local_time(),
 	Protocol = protocol(),
 	ServiceType = service_type(Protocol, data),
-	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
-	NasIp = {?NasIpAddress, "192.168.7.17"},
-	NasId = {?NasIdentifier, ocs:generate_password()},
-	SessionAttr = [NasId, NasIp, AcctSessionId, {?ServiceType, ServiceType}],
-	{ok, #service{session_attributes = [{_, SessionId}]},
+	SessionAttr = session_id(Protocol),
+	{ok, #service{session_attributes = [{_, SessionAttr}]},
 			{PackageUnits, PackageSize}} = ocs_rating:rate(Protocol,
 			ServiceType, undefined, undefined, undefined, [ServiceId],
 			Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionAttr),
 	ok = mnesia:sync_log(),
 	{ok, #bucket{attributes = Attr}} = ocs:find_bucket(BId),
-	#{reservations := #{SessionId := #{debit := PackagePrice,
+	#{reservations := #{SessionAttr := #{debit := PackagePrice,
 			reserve := 0}}} = Attr.
 
 initial_overhead() ->
