@@ -733,13 +733,23 @@ direction_address([#'3gpp_ro_Service-Information'{
 direction_address([#'3gpp_ro_Service-Information'{
 		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
 		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
-		'Requested-Party-Address' = [CalledParty]}]}]) ->
-	{originate, destination(CalledParty)};
+		'Requested-Party-Address' = [RequestedParty]}]}]) ->
+	{originate, destination(RequestedParty)};
 direction_address([#'3gpp_ro_Service-Information'{
 		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
 		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
 		'Calling-Party-Address' = [CallingParty]}]}]) ->
 	{answer, destination(CallingParty)};
+direction_address([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE'],
+		'Requested-Party-Address' = [RequestedParty]}]}]) ->
+	{originate, destination(RequestedParty)};
+direction_address([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_FORWARDING_ROLE'],
+		'Called-Party-Address' = [CalledParty]}]}]) ->
+	{originate, destination(CalledParty)};
 direction_address(_) ->
 	{undefined, undefined}.
 
