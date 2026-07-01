@@ -1,3 +1,7 @@
+July 2, 2026
+------------
+	- Fix tariff price bucket partial reservation rollover
+
 June 3, 2026
 ------------
 	- Charge mobile forwarded call to forwarding subscriber

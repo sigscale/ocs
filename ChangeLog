@@ -1,3 +1,8 @@
+2026-07-02   Vance Shipley <vances@sigscale.org>
+
+	* fix price bucket rollover reservations
+	* skip redundany api call in fill_subs escript
+
 2026-06-03   Vance Shipley <vances@sigscale.org>
 
 	* correct session attributes in test case
