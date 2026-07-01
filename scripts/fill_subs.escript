@@ -55,28 +55,7 @@ fill1(_Node, _Offer, _MccMnc, _N, _MSIN,
 	halt(1).
 
 fill2(Node, Offer, MccMnc, N, MSIN,
-		{ok, #service{name = ServiceRef,
-		product = ProductRef}}) ->
-	fill3(Node, Offer, MccMnc, N, MSIN, ServiceRef,
-			erpc:call(Node, ocs, find_product,
-			[ProductRef]));
-fill2(_Node, _Offer, _MccMnc, _N, _MSIN,
-		{error, Reason}) ->
-	io:fwrite("~w: ~w~n", [error, Reason]),
-	halt(1).
-
-fill3(Node, Offer, MccMnc, N, MSIN, ServiceRef,
-		{ok, Product}) ->
-	fill4(Node, Offer, MccMnc, N, MSIN,
-			erpc:call(Node, ocs, update_product,
-			[Product#product{service = [ServiceRef]}]));
-fill3(_Node, _Offer, _MccMnc, _N, _MSIN, _ServiceRef,
-		{error, Reason}) ->
-	io:fwrite("~w: ~w~n", [error, Reason]),
-	halt(1).
-
-fill4(Node, Offer, MccMnc, N, MSIN,
-		{ok, #product{id = ProductRef}}) ->
+		{ok, #service{product = ProductRef}}) ->
 	End = case calendar:universal_time() of
 		{{Year, 12, Day}, Time} ->
 			ocs_rest:date({{Year + 1, 1, Day}, Time});
@@ -87,18 +66,18 @@ fill4(Node, Offer, MccMnc, N, MSIN,
 			remain_amount = 1000000000,
 			attributes = #{bucket_type => normal},
 			end_date = End},
-	fill5(Node, Offer, MccMnc, N, MSIN,
+	fill3(Node, Offer, MccMnc, N, MSIN,
 			erpc:call(Node, ocs, add_bucket,
 			[ProductRef, Bucket]));
-fill4(_Node, _Offer, _MccMnc, _N, _MSIN,
+fill2(_Node, _Offer, _MccMnc, _N, _MSIN,
 		{error, Reason}) ->
 	io:fwrite("~w: ~w~n", [error, Reason]),
 	halt(1).
 
-fill5(Node, Offer, MccMnc, N, MSIN,
+fill3(Node, Offer, MccMnc, N, MSIN,
 		{ok, _, #bucket{}}) ->
 	fill(Node, Offer, MccMnc, N - 1, MSIN + 1);
-fill5(_Node, _Offer, _MccMnc, _N, _MSIN,
+fill3(_Node, _Offer, _MccMnc, _N, _MSIN,
 		{error, Reason}) ->
 	io:fwrite("~w: ~w~n", [error, Reason]),
 	halt(1).
