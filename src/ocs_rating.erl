@@ -798,10 +798,12 @@ charge2(_Protocol, event = Flag, Service, ServiceId, Product,
 charge2(Protocol, initial = Flag, Service, ServiceId, Product,
 		[#price{type = tariff, units = Units,
 				size = UnitSize} = Price1 | T ] = _Prices,
-		[] = DebitAmounts, ReserveAmounts,
+		 DebitAmounts, ReserveAmounts,
 		{_, DA} = DebitedAmount, {_, RA1} = ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated,
-		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
+		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
+		when length(DebitAmounts) == 0;
+		element(2, hd(DebitAmounts)) == 0 ->
 	DebitAmount = {Units, 0},
 	case tariff_rate(Address, ServiceNetwork, Price1) of
 		{_Description, InitialUnitSize, InitialUnitPrice, _, _}
@@ -936,10 +938,12 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product,
 charge2(Protocol, event = Flag, Service, ServiceId, Product,
 		[#price{type = tariff, units = Units,
 				size = UnitSize} = Price1 | T ] = _Prices,
-		[] = DebitAmounts, ReserveAmounts,
+		DebitAmounts, ReserveAmounts,
 		{_, DA1} = DebitedAmount, ReservedAmount1,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated1,
-		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets) ->
+		[] = PriceBuckets, OtherBuckets, NewAcc, OldBuckets)
+		when length(DebitAmounts) == 0;
+		element(2, hd(DebitAmounts)) == 0 ->
 	case tariff_rate(Address, ServiceNetwork, Price1) of
 		{_Description, InitialUnitSize, InitialUnitPrice, _, _}
 				when UnitSize == undefined; UnitSize == InitialUnitSize ->
@@ -1280,11 +1284,13 @@ charge2(Protocol, final = Flag, Service, ServiceId, Product, Prices,
 	end;
 charge2(Protocol, event = Flag,
 		Service, ServiceId, Product, Prices,
-		[] = DebitAmounts, ReserveAmounts,
+		DebitAmounts, ReserveAmounts,
 		{Units1, DA1} = DebitedAmount, {Units1, 0} = ReservedAmount,
 		SessionId, ChargingKey, Address, ServiceNetwork, Rated1,
 		[#bucket{price = PriceName} | _] = PriceBuckets1,
-		OtherBuckets, NewAcc, OldBuckets) ->
+		OtherBuckets, NewAcc, OldBuckets)
+		when length(DebitAmounts) == 0;
+		element(2, hd(DebitAmounts)) == 0 ->
 	F = fun(#bucket{price = Pname}) when Pname == PriceName ->
 				true;
 		(_) ->
