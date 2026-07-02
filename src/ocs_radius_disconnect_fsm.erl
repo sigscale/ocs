@@ -87,6 +87,8 @@ init([Subscriber, {_, SessionAttributes}]) ->
 	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
 	Id = 1,
 	case lookup_client(NasIp, NasId) of
+		{ok, #client{port = undefined}} ->
+			ignore;
 		{ok, #client{port = 0}} ->
 			ignore;
 		{ok, #client{address = Address, identifier = NasID,
