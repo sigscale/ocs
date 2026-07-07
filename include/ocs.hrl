@@ -195,7 +195,7 @@
 		start_date :: pos_integer() | undefined | '_' | '$4',
 		end_date :: pos_integer() | undefined | '_' | '$5',
 		status :: product_status() | undefined | '_',
-		product :: string() | undefined | '_' | '$3',
+		product :: string() | undefined | '_' | '$3', % Product Offering (PO)
 		characteristics = [] :: [{Name :: string(), Value :: term()}] | '_',
 		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}] | '_',
 		balance = [] :: [BucketRef :: term()] | '_',
