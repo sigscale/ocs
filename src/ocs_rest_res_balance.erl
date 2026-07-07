@@ -417,7 +417,8 @@ top_up_service(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
 	of
-		#bucket{} = Bucket ->
+		#bucket{product = [], units = Units, remain_amount = Amount} = Bucket
+				when Amount > 0, Units /= undefined ->
 			case ocs:find_service(Identity) of
 				{ok, #service{product = ProductRef}} ->
 					case ocs:add_bucket(ProductRef, Bucket) of
