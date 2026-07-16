@@ -26,7 +26,7 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor call back
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
@@ -45,6 +45,15 @@ init(Args) ->
 			fsm(ocs_eap_aka_auc_fsm, Args)],
 	{ok, {SupFlags, ChildSpecs}}.
 
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec fsm(StartMod, Args) -> Result
+	when
+		StartMod :: atom(),
+		Args :: list(),
+		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
 %% @private
@@ -52,7 +61,6 @@ init(Args) ->
 fsm(StartMod, Args) ->
 	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_fsm, start_link, StartArgs},
-	#{id => StartMod, start => StartFunc,
-			restart => temporary, significant => true,
-			modules => [StartMod]}.
+	#{id => StartMod, start => StartFunc, restart => temporary,
+			significant => true, modules => [StartMod]}.
 

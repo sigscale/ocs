@@ -36,54 +36,77 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [term()],
-		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
+		Args :: list(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
+		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, Options]) ->
+init([Address, Port, Options] = _Args) ->
 	?PG_CREATE(?MODULE),
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, [?MODULE]),
 			server(ocs_radius_acct_port_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+	SupFlags = #{intensity => 10, period => 60},
+	{ok, {SupFlags, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod, Args) -> Result
+-spec server(StartMod, Address, Port, Options) -> Result
 	when
-		StartMod :: atom(), 
-		Args :: [term()],
+		StartMod :: atom(),
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
+		Options :: list(),
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/supervisor. supervisor} behaviour.
+%% 	{@link gen_server. gen_server} behaviour.
 %% @private
 %%
-supervisor(StartMod, Args) ->
-	StartArgs = [StartMod, Args],
-	StartFunc = {supervisor, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
-%% @hidden
-supervisor_bridge(StartMod, Args) ->
-	StartArgs = [StartMod, Args],
-	StartFunc = {supervisor_bridge, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
-%% @hidden
 server(StartMod, Address, Port, Options) ->
 	GlobalName = {ocs_radius_acct, node(), Address, Port},
 	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			shutdown => 4000, modules => [StartMod]}.
+
+-spec supervisor(StartMod, Args) -> Result
+	when
+		StartMod :: atom(),
+		Args :: list(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervidor. supervisor} behaviour.
+%% @private
+%%
+supervisor(StartMod, Args) ->
+	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
+
+-spec supervisor_bridge(StartMod, Args) -> Result
+	when
+		StartMod :: atom(),
+		Args :: list(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervidor. supervisor} behaviour.
+%% @private
+%%
+supervisor_bridge(StartMod, Args) ->
+	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor_bridge, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
 

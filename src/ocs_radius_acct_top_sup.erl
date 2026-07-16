@@ -26,23 +26,40 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [term()],
-		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
+		Args :: list(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
+		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
 init(_Args) ->
 	ChildSpecs = [supervisor(ocs_radius_acct_port_sup)],
-	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
+	SupFlags = #{strategy => simple_one_for_one,
+			intensity => 10, period => 60},
+	{ok, {SupFlags, ChildSpecs}}.
 
-%% @hidden
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec supervisor(StartMod) -> Result
+	when
+		StartMod :: atom(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervidor. supervisor} behaviour.
+%% @private
+%%
 supervisor(StartMod) ->
-	StartFunc = {supervisor, start_link, [StartMod]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+	StartArgs = [StartMod],
+	StartFunc = {supervisor, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
+

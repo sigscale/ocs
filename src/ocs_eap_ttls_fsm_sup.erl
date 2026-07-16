@@ -26,16 +26,14 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor call back
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
-		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), 
-		MaxT :: pos_integer(),
+		Args :: list(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
 		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
@@ -44,8 +42,18 @@
 init(Args) ->
 	ChildSpecs = [fsm(ocs_eap_ttls_fsm, [self() | Args]),
 			fsm(ocs_eap_ttls_aaah_fsm, [])],
-	{ok, {{one_for_one, 0, 1},	ChildSpecs}}.
+	SupFlags = #{intensity => 0, period => 1},
+	{ok, {SupFlags, ChildSpecs}}.
 
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec fsm(StartMod, Args) -> Result
+	when
+		StartMod :: atom(),
+		Args :: list(),
+		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
 %% @private
@@ -53,5 +61,6 @@ init(Args) ->
 fsm(StartMod, Args) ->
 	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_fsm, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			shutdown => 4000, modules => [StartMod]}.
 

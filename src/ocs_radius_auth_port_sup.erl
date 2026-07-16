@@ -26,23 +26,20 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(),
-		MaxT :: pos_integer(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
 		ChildSpec :: supervisor:child_spec().
-		
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, Options]) ->
+init([Address, Port, Options] = _Args) ->
 	ChildSpecs = [supervisor(ocs_simple_auth_fsm_sup, []),
 		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
 		supervisor(ocs_eap_aka_fsm_sup_sup, []),
@@ -50,21 +47,49 @@ init([Address, Port, Options]) ->
 		supervisor(ocs_eap_pwd_fsm_sup, []),
 		server(ocs_radius_auth_port_server, Address, Port, Options),
 		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
-	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
+	SupFlags = #{intensity => 10, period => 3600},
+	{ok, {SupFlags, ChildSpecs}}.
 
-%% @hidden
-supervisor(ocs_radius_auth_server_sup = StartMod, StartArgs) ->
-	StartFunc = {supervisor_bridge, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]};
-supervisor(StartMod, StartArgs) ->
-	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
 
-%% @hidden
+-spec server(StartMod, Address, Port, Options) -> Result
+	when
+		StartMod :: atom(),
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
+		Options :: list(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link gen_server. gen_server} behaviour.
+%% @private
+%%
 server(StartMod, Address, Port, Options) ->
 	GlobalName = {ocs_radius_auth, node(), Address, Port},
 	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			shutdown => 4000, modules => [StartMod]}.
+
+-spec supervisor(StartMod, Args) -> Result
+	when
+		StartMod :: atom(),
+		Args :: list(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervidor. supervisor} behaviour.
+%% @private
+%%
+supervisor(ocs_radius_auth_server_sup = StartMod, Args) ->
+	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor_bridge, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]};
+supervisor(StartMod, Args) ->
+	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
 

@@ -26,12 +26,12 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor call back
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
+		Args :: list(),
 		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
 		SupFlags :: supervisor:sup_flags(),
 		ChildSpec :: supervisor:child_spec().
@@ -40,11 +40,25 @@
 %% @private
 %%
 init(_Args) ->
-	StartMod = ocs_eap_aka_fsm_sup,
+	ChildSpecs = [supervisor(ocs_eap_aka_fsm_sup)],
+	SupFlags = #{strategy => simple_one_for_one,
+			intensity => 10, period => 60},
+	{ok, {SupFlags, ChildSpecs}}.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec supervisor(StartMod) -> Result
+	when
+		StartMod :: atom(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervidor. supervisor} behaviour.
+%% @private
+%%
+supervisor(StartMod) ->
 	StartFunc = {supervisor, start_link, [StartMod]},
-	ChildSpec = #{id => StartMod, start => StartFunc,
-			restart => temporary, type => supervisor,
-			shutdown => infinity, modules => [StartMod]},
-	SupFlags = #{strategy => simple_one_for_one},
-	{ok, {SupFlags, [ChildSpec]}}.
+	#{id => StartMod, start => StartFunc, restart => temporary,
+			type => supervisor, modules => [StartMod]}.
 

@@ -36,24 +36,41 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The supervisor call back
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
-		| rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
-		[ChildSpec :: supervisor:child_spec()]}} | ignore.
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
+		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
 init([ProcGroupName] = _Args) ->
 	ok = ?PG_JOIN(ProcGroupName, self()),
-	StartMod = ocs_radius_disconnect_fsm,
-	StartFunc = {gen_fsm, start_link, [StartMod]},
-	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
-	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
+	ChildSpecs = [fsm(ocs_radius_disconnect_fsm)],
+	SupFlags = #{strategy => simple_one_for_one,
+			intensity => 10, period => 60},
+	{ok, {SupFlags, ChildSpecs}}.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec fsm(StartMod) -> Result
+	when
+		StartMod :: atom(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
+%% @private
+%%
+fsm(StartMod) ->
+	StartArgs = [StartMod],
+	StartFunc = {gen_fsm, start_link, StartArgs},
+	#{id => StartMod, start => StartFunc, restart => transient,
+			shutdown =>  4000, modules => [StartMod]}.
 

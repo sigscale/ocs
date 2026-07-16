@@ -30,7 +30,8 @@
 		-define(PG,
 				StartMod = pg,
 				StartFunc = {StartMod, start_link, [pg_scope_ocs]},
-				[{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}]).
+				[#{id => StartMod, start => StartFunc,
+						shutdown => 4000, modules => [StartMod]}]).
 	-else.
 		-define(PG, []).
 	-endif.
@@ -39,14 +40,15 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [term()],
-		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
+		Args :: list(),
+		Result :: {ok, {SupFlags, [ChildSpec]}} | ignore,
+		SupFlags :: supervisor:sup_flags(),
+		ChildSpec :: supervisor:child_spec().
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
@@ -69,7 +71,8 @@ init(_Args) ->
 			supervisor(ocs_event_log_sup,
 					ocs_event_log_sup, []),
 			event(ocs_event_log)],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+	SupFlags = #{intensity => 10, period => 60},
+	{ok, {SupFlags, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -91,7 +94,8 @@ pg() ->
 supervisor(StartMod, Args) ->
 	StartArgs = [StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
 
 -spec supervisor(StartMod, RegName, Args) -> Result
 	when
@@ -107,7 +111,8 @@ supervisor(StartMod, Args) ->
 supervisor(StartMod, RegName, Args) ->
 	StartArgs = [{local, RegName}, StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			type => supervisor, modules => [StartMod]}.
 
 -spec server(StartMod, Args) -> Result
 	when
@@ -121,7 +126,8 @@ supervisor(StartMod, RegName, Args) ->
 server(StartMod, Args) ->
 	StartArgs = [{local, ocs}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			shutdown => 4000, modules => [StartMod]}.
 
 -spec event(StartMod) -> Result
 	when
@@ -134,5 +140,6 @@ server(StartMod, Args) ->
 event(StartMod) ->
 	StartArgs = [{local, StartMod}],
 	StartFunc = {gen_event, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	#{id => StartMod, start => StartFunc,
+			shutdown => 4000, modules => [StartMod]}.
 
