@@ -1,7 +1,7 @@
 {
   "openapi" : "3.0.0",
   "info" : {
-    "version" : "1.2.3",
+    "version" : "1.3.0",
     "title" : "Nrf_Rating",
     "description" : "## RF Rating Service\nThe RF performs both monetary and non-monetary unit determination (rating) for all charging levels (bearer, session and service) before and after service delivery (prepaid and postpaid) and based on dynamic credit limit update. Rating considers cross-product, cross-channel, counter-based, rental-based and recharge-based discounts, benefits and allowances. Rating may be performed based on dimensions of volume, time and events.\n\nRate requests include various rating parameters such as service identifier, subscriber reference, network identification, user location, service usage time, transferred data volume, etc. The rate request may contain multiple service identifiers that reflect the list of active services contained in the context handled by the rating service consumer (CHF/OCF).\n\nThe RF determines the applicable price or tariff model and returns it to the NF consumer (CHF/OCF), according to rate requests, subscriber contractual terms, the rating rules configured by operators and billing related information. Note that in case of multiple service requests received, the RF may apply a special price or tariff which can be different to the price or tariff applied to the related services handled separately. For example a VoLTE call may have the data volume associated with the bearer usage free of charge while rating the time associated with the voice session.\n\nTo support the online rating process, the RF needs counters. The counters may be maintained by the RF or by the ABMF. In the former case counters are optional in rating requests.\n\nSee\\:\n  - [3GPP TS 32.296 Online Charging System (OCS) - Applications and Interfaces](https://www.3gpp.org/ftp/Specs/archive/32_series/32.296)\n  - [3GPP TS 32.290 Services, Operations and Procedures of Charging using Service Based Interface (SBI)](https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=290)\n  - [3GPP TS 32.291 5G System, Charging Service; Stage 3](https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=291)",
     "license" : {
@@ -29,6 +29,8 @@
     "/ratingdata" : {
       "post" : {
         "operationId" : "startRating",
+        "summary" : "Create rating data for a new event or session",
+        "description" : "The rating data collection represents instances of rating requests.",
         "tags" : [ "Rating Data (Collection)" ],
         "requestBody" : {
           "required" : true,
@@ -507,13 +509,82 @@
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
         },
-        "summary" : "Create rating data for a new event or session",
-        "description" : "The rating data collection represents instances of rating requests."
+        "callbacks" : {
+          "ratingNotification" : {
+            "{$request.body#/notifyUri}" : {
+              "post" : {
+                "requestBody" : {
+                  "required" : true,
+                  "content" : {
+                    "application/json" : {
+                      "schema" : {
+                        "$ref" : "#/components/schemas/RatingNotifyRequest"
+                      }
+                    }
+                  }
+                },
+                "responses" : {
+                  "200" : {
+                    "description" : "OK",
+                    "content" : {
+                      "application/json" : {
+                        "schema" : {
+                          "$ref" : "#/components/schemas/RatingNotifyResponse"
+                        }
+                      }
+                    }
+                  },
+                  "204" : {
+                    "description" : "No Content"
+                  },
+                  "400" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                  },
+                  "401" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/401"
+                  },
+                  "403" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/403"
+                  },
+                  "404" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/404"
+                  },
+                  "411" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/411"
+                  },
+                  "413" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/413"
+                  },
+                  "415" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/415"
+                  },
+                  "429" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/429"
+                  },
+                  "500" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/500"
+                  },
+                  "503" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/503"
+                  },
+                  "504" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/504"
+                  },
+                  "default" : {
+                    "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/ratingdata/{RatingDataRef}/update" : {
       "post" : {
         "operationId" : "updateRating",
+        "summary" : "In session interim rating data update.",
+        "description" : "Provides an interim update for on going session.  May contain reservation requests and/or reports of used units.",
         "tags" : [ "Individual Rating Data (Document)" ],
         "requestBody" : {
           "required" : true,
@@ -649,14 +720,14 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        },
-        "summary" : "In session interim rating data update.",
-        "description" : "Provides an interim update for on going session.  May contain reservation requests and/or reports of used units."
+        }
       }
     },
     "/ratingdata/{RatingDataRef}/release" : {
       "post" : {
         "operationId" : "endRating",
+        "summary" : "End of session rating data update.",
+        "description" : "Indicates the end of an existing session.  May contain  reports of used units.",
         "tags" : [ "Individual Rating Data (Document)" ],
         "requestBody" : {
           "required" : true,
@@ -833,9 +904,7 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        },
-        "summary" : "End of session rating data update.",
-        "description" : "Indicates the end of an existing session.  May contain  reports of used units."
+        }
       }
     }
   },
@@ -910,6 +979,11 @@
               "type" : "string"
             } ]
           },
+          "notifyUri" : {
+            "description" : "Callback URI for notifications.",
+            "type" : "string",
+            "format" : "uri"
+          },
           "serviceContextId" : {
             "$ref" : "#/components/schemas/ServiceContextId"
           },
@@ -955,6 +1029,30 @@
         },
         "required" : [ "invocationTimeStamp", "invocationSequenceNumber" ]
       },
+      "RatingNotifyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "notificationType" : {
+            "$ref" : "#/components/schemas/NotificationType"
+          },
+          "reauthorizationDetails" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReauthorizationDetails"
+            },
+            "minItems" : 0
+          }
+        },
+        "required" : [ "notificationType" ]
+      },
+      "RatingNotifyResponse" : {
+        "type" : "object",
+        "properties" : {
+          "invocationResult" : {
+            "$ref" : "#/components/schemas/InvocationResult"
+          }
+        }
+      },
       "NFIdentification" : {
         "type" : "object",
         "properties" : {
@@ -983,7 +1081,7 @@
         "description" : "The function of the node.",
         "anyOf" : [ {
           "type" : "string",
-          "enum" : [ "CHF", "OC" ]
+          "enum" : [ "CHF", "OCF" ]
         }, {
           "type" : "string",
           "enum" : [ "AMF", "SMF", "SMSF", "PGW_C_SMF", "SGW", "I_SMF", "ePDG", "CEF", "NEF", "MnS_Producer", "SGSN", "V_SMF", "5G_DDNMF", "IMS_Node", "EES", "PCF", "UDM", "UPF" ]
@@ -2212,6 +2310,36 @@
       },
       "IPFilterRule" : {
         "type" : "string"
+      },
+      "ReauthorizationDetails" : {
+        "type" : "object",
+        "properties" : {
+          "serviceId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
+          },
+          "ratingGroup" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
+          },
+          "quotaManagementIndicator" : {
+            "$ref" : "#/components/schemas/QuotaManagementIndicator"
+          }
+        }
+      },
+      "NotificationType" : {
+        "anyOf" : [ {
+          "type" : "string",
+          "enum" : [ "REAUTHORIZATION", "ABORT_CHARGING" ]
+        }, {
+          "type" : "string"
+        } ]
+      },
+      "QuotaManagementIndicator" : {
+        "anyOf" : [ {
+          "type" : "string",
+          "enum" : [ "ONLINE_CHARGING", "OFFLINE_CHARGING", "QUOTA_MANAGEMENT_SUSPENDED" ]
+        }, {
+          "type" : "string"
+        } ]
       }
     }
   }
