@@ -88,8 +88,11 @@
 		| {ok, State :: state(), Timeout :: non_neg_integer() | infinity}
 		| {stop, Reason :: term()} | ignore.
 %% @doc Initialize the {@module} server.
-%% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
-%% 	Address :: inet:ip_address()].
+%%
+%% 	Args :: [Sup :: pid(),
+%% 			Address :: inet:ip_address(),
+%% 			Port :: inet:port_number(),
+%% 			Options :: proplists:proplist()].
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
