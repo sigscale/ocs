@@ -61,7 +61,7 @@
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
-%% 	IpAddress :: inet:ip_address()].
+%% 	IpAddress :: inet:ip_address(), Options :: list()].
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
