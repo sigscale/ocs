@@ -129,11 +129,11 @@ prepare_retransmit(Packet, ServiceName, Peer, Fsm) ->
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(#diameter_packet{msg = Answer, errors = []} = _Packet,
 		_Request, _ServiceName, _Peer, Fsm) ->
-	gen_fsm:send_event(Fsm, {ok, Answer});
+	gen_statem:cast(Fsm, {ok, Answer});
 handle_answer(#diameter_packet{msg = Answer, errors = Errors} = _Packet,
 		Request, ServiceName, {_, Caps} = _Peer, Fsm) ->
 	errors(ServiceName, Caps, Request, Errors),
-	gen_fsm:send_event(Fsm, {ok, Answer}).
+	gen_statem:cast(Fsm, {ok, Answer}).
 
 -spec handle_error(Reason, Request, ServiceName, Peer, Fsm) -> Result
 	when
@@ -146,7 +146,7 @@ handle_answer(#diameter_packet{msg = Answer, errors = Errors} = _Packet,
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
 handle_error(Reason, _Request, _ServiceName, _Peer, Fsm) ->
-	gen_fsm:send_event(Fsm, {error, Reason}).
+	gen_statem:cast(Fsm, {error, Reason}).
 
 -spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
@@ -246,7 +246,7 @@ process_request1(ServiceName, ServerAddress, ServerPort, ClientAddress,
 			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
-			{reply, gen_fsm:sync_send_event(Fsm, Request)};
+			{reply, gen_statem:call(Fsm, Request)};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting HSS session handler",
 					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),

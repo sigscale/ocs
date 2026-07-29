@@ -15,9 +15,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements procedures for deregistration of user equipment (UE) in
-%%% 	non-3GPP access networks.
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements procedures for deregistration of user equipment (UE)
+%%% 	in non-3GPP access networks.
 %%%
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&amp;GSMSpecPart2=273">
 %%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
@@ -25,17 +25,12 @@
 -module(ocs_deregister_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_deregister_fsm API
--export([]).
-
-%% export the ocs_deregister_fsm state callbacks
--export([idle/3, abort/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states.
+-export([idle/3, abort/3]).
 
 -include("ocs.hrl").
 -include("diameter_gen_3gpp.hrl").
@@ -62,8 +57,9 @@
 		request :: #'3gpp_swx_RTR'{} | undefined,
 		session_id :: string(),
 		sessions = [] :: [#session{}] | undefined,
-		from :: {pid(), reference()} | undefined}).
+		from :: gen_statme:from() | undefined}).
 -type statedata() :: #statedata{}.
+-type state() :: idle | abort.
 
 -define(IANA_PEN_3GPP, 10415).
 -define(STa_APPLICATION_ID, 16777250).
@@ -97,28 +93,28 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The ocs_deregister_fsm API
+%%  The ocs_deregister_fsm gen_statem call backs
 %%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  The ocs_deregister_fsm gen_fsm call backs
-%%----------------------------------------------------------------------
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-		| {ok, StateName, StateData, Timeout}
-		| {ok, StateName, StateData, hibernate}
-		| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
-%%
 init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 		ClientPort, SessionId, OriginHost, OriginRealm,
 		_DestinationHost, _DestinationRealm] = _Args) ->
@@ -128,37 +124,23 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 			client_address = ClientAddress, client_port = ClientPort,
 			origin_host = OriginHost, origin_realm = OriginRealm}}.
 
--spec idle(Event, From, StateData) -> Result
+-spec idle(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		From :: {pid(), reference()},
-		StateData :: statedata(),
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
-%%		gen_fsm:sync_send_event/2} in the <b>idle</b> state.
-%% @@see //stdlib/gen_fsm:StateName/3
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>idle</em> state.
 %% @private
-%%
-idle(#'3gpp_swx_RTR'{'User-Name' = Identity,
-		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
-		'Deregistration-Reason' = #'3gpp_swx_Deregistration-Reason'{
-				'Reason-Code' = ReasonCode,
-				'Reason-Info' = ReasonInfo}} = Request,
-		From, #statedata{session_id = SessionId} = StateData) ->
+idle({call, From} = _EventType,
+		#'3gpp_swx_RTR'{'User-Name' = Identity,
+				'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
+				'Deregistration-Reason' = #'3gpp_swx_Deregistration-Reason'{
+						'Reason-Code' = ReasonCode,
+						'Reason-Info' = ReasonInfo}} = EventContent,
+		#statedata{session_id = SessionId} = StateData) ->
 	[IMSI | _] = binary:split(Identity, <<$@>>, []),
-	NewStateData = StateData#statedata{request = Request,
+	NewStateData = StateData#statedata{request = EventContent,
 			from = From, imsi = IMSI, identity = Identity,
 			hss_realm = HssRealm, hss_host = HssHost},
 	F = fun() ->
@@ -170,17 +152,17 @@ idle(#'3gpp_swx_RTR'{'User-Name' = Identity,
 		{atomic, []} ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
 			Reply = response(ResultCode, NewStateData),
-			{stop, shutdown,  Reply, NewStateData};
+			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData};
 		{atomic, Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_PERMANENT_TERMINATION' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			gen_fsm:reply(From, response(ResultCode, NewStateData)),
+			gen_statem:reply(From, response(ResultCode, NewStateData)),
 			send_abort(Sessions, NewStateData);
 		{atomic, _Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_NEW_SERVER_ASSIGNED' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			Reply = response(ResultCode, NewStateData),
-			{stop, shutdown,  Reply, NewStateData};
+			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData};
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{hss_host, HssHost}, {hss_realm, HssRealm},
@@ -189,28 +171,20 @@ idle(#'3gpp_swx_RTR'{'User-Name' = Identity,
 					{error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, NewStateData),
-			{stop, shutdown,  Reply, NewStateData}
+			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData}
 	end.
 
--spec abort(Event, StateData) -> Result
+-spec abort(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>abort</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>idle</em> state.
 %% @private
-%%
-abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
-		'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
+abort(info = _EventType,
+		{ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
+				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}} = _EventContent,
 		#statedata{sessions = Sessions} = StateData) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
 		[] ->
@@ -219,8 +193,9 @@ abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
-abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
-		'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
+abort(info = _EventType,
+		{ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
+				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
 		#statedata{sessions = Sessions} = StateData) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
 		[] ->
@@ -229,9 +204,10 @@ abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
-abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
-		'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
-		'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
+abort(info = _EventType,
+		{ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
+				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
+				'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
 		#statedata{sessions = Sessions} = StateData) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
@@ -252,9 +228,10 @@ abort({ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
-abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
-		'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
-		'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
+abort(info = _EventType,
+		{ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
+				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
+				'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
 		#statedata{sessions = Sessions} = StateData) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
@@ -275,9 +252,10 @@ abort({ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
-abort({ok, #'diameter_base_answer-message'{'Session-Id' = SessionId,
-		'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
-		'Result-Code' = ResultCode}},
+abort(info = _EventType,
+		{ok, #'diameter_base_answer-message'{'Session-Id' = SessionId,
+				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
+				'Result-Code' = ResultCode}},
 		#statedata{sessions = Sessions} = StateData) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
@@ -298,109 +276,39 @@ abort({ok, #'diameter_base_answer-message'{'Session-Id' = SessionId,
 			NewStateData = StateData#statedata{sessions = NewSessions},
 			{next_state, abort, NewStateData, ?TIMEOUT}
 	end;
-abort(timeout, #statedata{sessions = []} = StateData) ->
+abort(info = _EventType, timeout,
+		#statedata{sessions = []} = StateData) ->
 	{stop, shutdown, StateData}.
-	
--spec handle_event(Event, StateName, StateData) -> Result
-	when
-		Event :: term(),
-		StateName :: atom(),
-      StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(Event, _StateName, StateData) ->
-	{stop, Event, StateData}.
 
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Event :: term(),
-		From :: {Pid, Tag},
-		Pid :: pid(),
-		Tag :: term(),
-      StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName ::atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(Event, _From, _StateName, StateData) ->
-	{stop, Event, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(),
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(Info, request, StateData) ->
-	{stop, Info, StateData}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(),
-		StateName :: atom(),
-      StateData :: statedata().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
+terminate(_Reason, _State, _Data) ->
 	ok.
 
--spec code_change(OldVsn, StateName, StateData, Extra ) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn | {down, Vsn}),
-		Vsn :: term(),
-      StateName :: atom(),
-		StateData :: statedata(),
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata().
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -415,10 +323,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 response(ResultCode,
 		#statedata{request = #'3gpp_swx_RTR'{} = Request,
-		session_id = SessionId,
-		server_address = ServerAddress, server_port = ServerPort,
-		client_address = ClientAddress, client_port = ClientPort,
-		origin_host = OriginHost, origin_realm = OriginRealm} = _StateData)
+				session_id = SessionId,
+				server_address = ServerAddress,
+				server_port = ServerPort,
+				client_address = ClientAddress,
+				client_port = ClientPort,
+				origin_host = OriginHost,
+				origin_realm = OriginRealm} = _StateData)
 		when is_integer(ResultCode), is_binary(OriginHost),
 		is_binary(OriginRealm) ->
 	Server = {ServerAddress, ServerPort},
@@ -442,28 +353,42 @@ response(ResultCode,
 		Timeout :: non_neg_integer().
 %% @doc Send DIAMETER Abort-Session-Reqest (ASR).
 %% @hidden
-send_abort([#session{id = AccessSessionId, application = ?STa_APPLICATION_ID,
-		identity = Identity, nas_host = NasHost, nas_realm = NasRealm} = H | T],
-		#statedata{origin_host = OriginHost, origin_realm = OriginRealm,
-		service = Service, sessions = Sessions} = StateData) ->
+send_abort([#session{id = AccessSessionId,
+				application = ?STa_APPLICATION_ID,
+				identity = Identity,
+				nas_host = NasHost,
+				nas_realm = NasRealm} = H | T],
+		#statedata{origin_host = OriginHost,
+				origin_realm = OriginRealm,
+				service = Service,
+				sessions = Sessions} = StateData) ->
 	Request = #'3gpp_sta_ASR'{'Session-Id' = AccessSessionId,
 			'User-Name' = [Identity],
-			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = NasRealm, 'Destination-Host' = NasHost,
+			'Origin-Realm' = OriginRealm,
+			'Origin-Host' = OriginHost,
+			'Destination-Realm' = NasRealm,
+			'Destination-Host' = NasHost,
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED'},
 	diameter:call(Service, ?STa_APPLICATION,
 			Request, [detach, {extra, [self()]}]),
 	NewStateData = StateData#statedata{sessions = [H | Sessions]},
 	send_abort(T, NewStateData);
-send_abort([#session{id = AccessSessionId, application = ?SWm_APPLICATION_ID,
-		identity = Identity, nas_host = NasHost, nas_realm = NasRealm} = H | T],
-		#statedata{origin_host = OriginHost, origin_realm = OriginRealm,
-		service = Service, sessions = Sessions} = StateData) ->
+send_abort([#session{id = AccessSessionId,
+				application = ?SWm_APPLICATION_ID,
+				identity = Identity,
+				nas_host = NasHost,
+				nas_realm = NasRealm} = H | T],
+		#statedata{origin_host = OriginHost,
+				origin_realm = OriginRealm,
+				service = Service,
+				sessions = Sessions} = StateData) ->
 	Request = #'3gpp_swm_ASR'{'Session-Id' = AccessSessionId,
 			'User-Name' = [Identity],
-			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = NasRealm, 'Destination-Host' = NasHost,
+			'Origin-Realm' = OriginRealm,
+			'Origin-Host' = OriginHost,
+			'Destination-Realm' = NasRealm,
+			'Destination-Host' = NasHost,
 			'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED'},
 	diameter:call(Service, ?STa_APPLICATION,
@@ -471,8 +396,11 @@ send_abort([#session{id = AccessSessionId, application = ?SWm_APPLICATION_ID,
 	NewStateData = StateData#statedata{sessions = [H | Sessions]},
 	send_abort(T, NewStateData);
 send_abort([#session{id = AccessSessionId,
-		application = undefined, nas_address = NasAddress,
-		imsi = IMSI, identity = Identity} | T], StateData) ->
+				application = undefined,
+				nas_address = NasAddress,
+				imsi = IMSI,
+				identity = Identity} | T],
+		StateData) ->
 	case ?PG_CLOSEST(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect",
