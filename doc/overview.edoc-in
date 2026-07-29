@@ -654,7 +654,7 @@ eligible event will be sent to the endpoint in an HTTP POST operation.
 
 [Note: A subscription will be silently removed on the first encountered
 		error in sending a notification.  The `/hub' collections may be
-		be queried to verify that a subscription still exists.]
+		queried to verify that a subscription still exists.]
 
 ===SNMP Agent===
 SigScale OCS supports fault &amp; performance management with the Simple Network
