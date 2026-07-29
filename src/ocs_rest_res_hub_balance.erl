@@ -55,8 +55,7 @@ content_types_provided() ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% Delete by id.
-%% @doc Respond to `POST /balanceManagement/v1/hub/{id}'
+%% @doc Respond to `DELETE /balanceManagement/v1/hub/{id}'
 delete_hub(Id) ->
 	try
 		gen_fsm:sync_send_all_state_event({global, Id}, delete)
@@ -79,7 +78,6 @@ delete_hub(Id) ->
 		ResponseBody :: iolist(),
 		StatusCode :: 400..599,
 		Problem :: ocs_rest:problem().
-%% Hub event to disk.
 %% @doc Respond to `POST /balanceManagement/v1/hub'
 post_hub(ReqBody, Authorization) ->
 	try
