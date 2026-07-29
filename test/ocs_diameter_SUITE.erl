@@ -115,37 +115,49 @@ init_per_testcase(auth_connect_tcp, Config) ->
 	true = diameter:subscribe(ServiceName),
 	[{rservice, ServiceName}, {rport, Port} | Config];
 init_per_testcase(acct_connect_sctp, Config) ->
-	ok = application:start(diameter),
-	Host = "ct",
-	Realm = "exemple.net",
-	Port = rand:uniform(64511) + 1024,
-	ServiceName = make_ref(),
-	ServiceOptions = service_options(acct, Host, Realm),
-	ok = diameter:start_service(ServiceName, ServiceOptions),
-	Address = proplists:get_value(ct_diameter_address, Config),
-	TransportConfig = [{transport_module, diameter_sctp},
-			{ip, Address}, {port, Port}, {reuseaddr, true}],
-	TransportOptions = [{transport_config, TransportConfig}],
-	{ok, _Ref} = diameter:add_transport(ServiceName,
-			{listen, TransportOptions}),
-	true = diameter:subscribe(ServiceName),
-	[{rservice, ServiceName}, {rport, Port} | Config];
+	case gen_sctp:open() of
+		{ok, _Socket} ->
+			ok = gen_sctp:close(),
+			ok = application:start(diameter),
+			Host = "ct",
+			Realm = "exemple.net",
+			Port = rand:uniform(64511) + 1024,
+			ServiceName = make_ref(),
+			ServiceOptions = service_options(acct, Host, Realm),
+			ok = diameter:start_service(ServiceName, ServiceOptions),
+			Address = proplists:get_value(ct_diameter_address, Config),
+			TransportConfig = [{transport_module, diameter_sctp},
+					{ip, Address}, {port, Port}, {reuseaddr, true}],
+			TransportOptions = [{transport_config, TransportConfig}],
+			{ok, _Ref} = diameter:add_transport(ServiceName,
+					{listen, TransportOptions}),
+			true = diameter:subscribe(ServiceName),
+			[{rservice, ServiceName}, {rport, Port} | Config];
+		{error, eprotonosupport = Reason} ->
+			{skip, Reason}
+	end;
 init_per_testcase(auth_connect_sctp, Config) ->
-	ok = application:start(diameter),
-	Host = "ct",
-	Realm = "exemple.net",
-	Port = rand:uniform(64511) + 1024,
-	ServiceName = make_ref(),
-	ServiceOptions = service_options(auth, Host, Realm),
-	ok = diameter:start_service(ServiceName, ServiceOptions),
-	Address = proplists:get_value(ct_diameter_address, Config),
-	TransportConfig = [{transport_module, diameter_sctp},
-			{ip, Address}, {port, Port}, {reuseaddr, true}],
-	TransportOptions = [{transport_config, TransportConfig}],
-	{ok, _Ref} = diameter:add_transport(ServiceName,
-			{listen, TransportOptions}),
-	true = diameter:subscribe(ServiceName),
-	[{rservice, ServiceName}, {rport, Port} | Config];
+	case gen_sctp:open() of
+		{ok, _Socket} ->
+			ok = gen_sctp:close(),
+			ok = application:start(diameter),
+			Host = "ct",
+			Realm = "exemple.net",
+			Port = rand:uniform(64511) + 1024,
+			ServiceName = make_ref(),
+			ServiceOptions = service_options(auth, Host, Realm),
+			ok = diameter:start_service(ServiceName, ServiceOptions),
+			Address = proplists:get_value(ct_diameter_address, Config),
+			TransportConfig = [{transport_module, diameter_sctp},
+					{ip, Address}, {port, Port}, {reuseaddr, true}],
+			TransportOptions = [{transport_config, TransportConfig}],
+			{ok, _Ref} = diameter:add_transport(ServiceName,
+					{listen, TransportOptions}),
+			true = diameter:subscribe(ServiceName),
+			[{rservice, ServiceName}, {rport, Port} | Config];
+		{error, eprotonosupport = Reason} ->
+			{skip, Reason}
+	end;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
