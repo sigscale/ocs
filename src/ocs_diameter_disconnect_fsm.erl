@@ -15,10 +15,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements sending DIAMETER Abort-Session-Request to DIAMETER
-%%% 	credit-control clients (Network Access Servers) using  {@link //ocs. ocs}
-%%% 	application.
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements sending DIAMETER Abort-Session-Request to DIAMETER
+%%% 	credit-control clients (Network Access Servers)
+%%% 	the {@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/html/rfc6733#section-8.5">
 %%% 	RFC6733 - Diameter Base Protocol, Sec 8.5, Aborting a Session</a>
@@ -26,17 +26,12 @@
 -module(ocs_diameter_disconnect_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_diameter_disconnect_fsm API
--export([]).
-
-%% export the ocs_diameter_disconnect_fsm state callbacks
--export([send_request/2, receive_response/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states.
+-export([send_request/3, receive_response/3]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -52,194 +47,113 @@
 		retry_time = 500 :: integer(),
 		retry_count = 0 :: integer(),
 		auth_app_id :: integer()}).
-
--define(TIMEOUT, 30000).
-
-%%----------------------------------------------------------------------
-%%  The ocs_diameter_disconnect_fsm API
-%%----------------------------------------------------------------------
+-type statedata() :: #statedata{}.
+-type state() :: send_request | receive_response.
 
 %%----------------------------------------------------------------------
-%%  The ocs_diameter_disconnect_fsm gen_fsm call backs
+%%  The ocs_diameter_disconnect_fsm gen_statem call backs
 %%----------------------------------------------------------------------
+
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-			| {ok, StateName, StateData, Timeout}
-			| {ok, StateName, StateData, hibernate}
-			| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
-%%
-init([Svc, AppAlias, SessionId, OHost, DHost, ORealm, DRealm, AuthAppId]) ->
+init([Svc, AppAlias, SessionId, OHost, DHost, ORealm, DRealm,
+		AuthAppId] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{diameter_service = Svc, app_alias = AppAlias,
+	Data = #statedata{diameter_service = Svc, app_alias = AppAlias,
 			session_id = SessionId, origin_host = OHost,
 			destination_host = DHost, origin_realm = ORealm,
 			destination_realm = DRealm, auth_app_id = AuthAppId},
-	{ok, send_request, StateData, 0}.
+	{ok, send_request, Data, {timeout, 0, initial}}.
 
--spec send_request(Event, StateData) -> Result
+-spec send_request(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
-%%		for sending a DIAMETER Abort-Session-Request to an access point.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>send_request</em> state.
 %% @private
-%%
-send_request(timeout, #statedata{diameter_service = Svc, app_alias = AppAlias,
-		session_id = SId, origin_host = OH, destination_host = DH, origin_realm = OR,
-		destination_realm = DR, auth_app_id = AuthAppId, retry_time = Retry,
-		retry_count = Count} = StateData) ->
-	ASR = #diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OH,
-			'Origin-Realm' = OR, 'Destination-Realm' = DR, 'Destination-Host' = DH,
+send_request(timeout = _EventType, EventContent,
+		#statedata{diameter_service = Svc, app_alias = AppAlias,
+				session_id = SId, origin_host = OH, destination_host = DH,
+				origin_realm = OR, destination_realm = DR,
+				auth_app_id = AuthAppId, retry_time = Retry,
+				retry_count = Count} = Data)
+		when EventContent == initial; EventContent == retry ->
+	ASR = #diameter_base_ASR{'Session-Id' = SId,
+			'Origin-Host' = OH, 'Origin-Realm' = OR,
+			'Destination-Realm' = DR, 'Destination-Host' = DH,
 			'Auth-Application-Id' = AuthAppId},
 	case diameter:call(Svc, AppAlias, ASR, []) of
 		ok ->
-			{stop, {shutdown, SId}, StateData};
+			{stop, {shutdown, SId}, Data};
 		{error, _Reason} ->
 			NewRetry = Retry * 2,
 			NewCount = Count + 1,
-			NewStateData = StateData#statedata{retry_count = NewCount,
+			NewData = Data#statedata{retry_count = NewCount,
 					retry_time = NewRetry},
-			{next_state, send_request, NewStateData, NewRetry};
+			{keep_state, NewData, {timeout, retry, NewRetry}};
 		{ok, _ASA} ->
-			{stop, {shutdown, SId}, StateData}
+			{stop, {shutdown, SId}, Data}
 	end.
 
--spec receive_response(Event, StateData) -> Result
+-spec receive_response(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>receive_response</b> state. This state is responsible
-%%		for recieving a DIAMETER Abort-Session-Answer from an access point.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>receive_response</em> state.
 %% @private
-%%
-receive_response(_Event, StateData) ->
-	{next_state, receive_response, StateData}.
+receive_response(_EventType, _EventContent, _Data) ->
+	keep_state_and_data.
 
--spec handle_event(Event, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Event :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason , NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(_Info, StateName, #statedata{} = StateData) ->
-	{next_state, StateName, StateData}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(), 
-		StateName :: atom(),
-		StateData :: #statedata{}.
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, #statedata{} = _StateData) ->
+terminate(_Reason, _State, _Data) ->
 	ok.
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: #statedata{}, 
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
