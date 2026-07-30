@@ -180,7 +180,7 @@ idle({call, From} = _EventType,
 		EventContent :: term(),
 		Data :: statedata(),
 		Result :: gen_statem:event_handler_result(state()).
-%% @doc Handles events received in the <em>idle</em> state.
+%% @doc Handles events received in the <em>abort</em> state.
 %% @private
 abort(info = _EventType,
 		{ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
