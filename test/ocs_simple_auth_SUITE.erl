@@ -54,70 +54,79 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
+	DefaultAddress = {127,0,0,1},
+	DefaultRealm = "mnc001.mcc001.3gppnetwork.org",
+	DefaultHost = atom_to_list(?MODULE) ++ "." ++ DefaultRealm,
 	[{userdata, [{doc, "Test suite for authentication in OCS"}]},
-	{timetrap, {minutes, 1}},
+	{timetrap, {seconds, 5}},
 	{require, radius},
 	{default_config, radius,
-			[{address, {127,0,0,1}},
-			{peer_address, {127,0,0,1}},
-			{username, "ocs"},
-			{password, "ocs123"},
-			{secret, "xyzzy5461"}]},
+			[{address, DefaultAddress},
+			{client_address, DefaultAddress},
+			{secret, "abc456"}]},
 	{require, diameter},
 	{default_config, diameter,
-			[{address, {127,0,0,1}},
-			{peer_address, {127,0,0,1}}]}].
+			{realm, DefaultRealm},
+			{host, DefaultHost},
+			[{address, DefaultAddress},
+			{client_address, DefaultAddress}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
-%% Initiation before the whole suite.
-%%
+%% Initialization before the entire suite.
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	RadiusAddress = ct:get_config({radius, address}),
+	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
 	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
-	RadiusAcctPort = ct:get_config({radius, acct_port}, rand:uniform(64511) + 1024),
-	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, []}]},
-			{acct, [{RadiusAddress, RadiusAcctPort, []}]}],
+	RadiusClientAddress = ct:get_config({radius, client_address}, {127,0,0,1}),
+	RadiusSecret = ct:get_config({radius, secret}, "abc456"),
+	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, []}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
-	DiameterAddress = ct:get_config({diameter, address}),
-	DiameterPeerAddress = ct:get_config({diameter, peer_address}),
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
+	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
 	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
-	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
-	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
-		{acct, [{DiameterAddress, DiameterAcctPort, []}]}],
+	DiameterClientAddress = ct:get_config({diameter, client_address}, {127,0,0,1}),
+	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
+	ok = application:set_env(ocs, min_reserve_octets, 1000000),
+	ok = application:set_env(ocs, min_reserve_seconds, 60),
+	ok = application:set_env(ocs, min_reserve_messages, 1),
 	ok = ocs_test_lib:start(),
-	OriginRealm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
-	OriginHost = ct:get_config({diameter, host},
-			atom_to_list(?MODULE) ++ "." ++ OriginRealm),
-	Config1 = [{host, OriginHost},
-			{realm, OriginRealm},
+	Config1 = [{host, Host}, {realm, Realm},
 			{nas_id, atom_to_list(node())},
 			{called_id, "E4-8D-8C-D6-E0-AC:TestSSID"},
+			{radius_secret, RadiusSecret},
+			{radius_address, RadiusAddress},
 			{radius_auth_port, RadiusAuthPort},
-			{radius_acct_port, RadiusAcctPort},
-			{diameter_auth_port, DiameterAuthPort} | Config],
-	{ok, _} = ocs:add_client(DiameterPeerAddress, undefined, diameter, undefined, true),
-	ok = diameter:start_service(?MODULE, client_service_opts(Config1, DiameterPeerAddress)),
-	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
+			{radius_address, RadiusAddress},
+			{radius_client_address, RadiusClientAddress},
+			{diameter_address, DiameterAddress},
+			{diameter_auth_port, DiameterAuthPort},
+			{diameter_client_address, DiameterClientAddress}| Config],
+	ServiceName = ?MODULE,
+	ok = diameter:start_service(ServiceName,
+			client_service_opts(Config1)),
+	{ok, _} = ocs:add_client(DiameterClientAddress,
+			undefined, diameter, undefined, true),
+	true = diameter:subscribe(ServiceName),
+	{ok, _} = connect(ServiceName,
+			DiameterAddress, DiameterAuthPort, diameter_tcp),
 	receive
-		#diameter_event{service = ?MODULE, info = Info}
+		#diameter_event{service = ServiceName, info = Info}
 				when element(1, Info) == up ->
 			Config1;
-		_ ->
-			{skip, diameter_client_service_not_started}
+		_Other ->
+			{skip, diameter_service_not_started}
 	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
-end_per_suite(Config) ->
+end_per_suite(_Config) ->
 	ok = diameter:stop_service(?MODULE),
 	ok = diameter:remove_transport(?MODULE, true),
-	ok = ocs_test_lib:stop(),
-	Config.
+	ok = ocs_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
@@ -130,10 +139,12 @@ init_per_testcase(TestCase, Config) when
 		TestCase == unknown_username_radius;
 		TestCase == authenticate_voice;
 		TestCase == auth_data_fail ->
-	Address = ct:get_config({radius, peer_address}),
-	SharedSecret = ct:get_config({radius, secret}),
-	{ok, _} = ocs:add_client(Address, 3799, radius, SharedSecret, true),
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, Address}, binary]),
+	SharedSecret = proplists:get_value(radius_secret, Config),
+	ClientAddress = proplists:get_value(radius_client_address, Config),
+	{ok, _} = ocs:add_client(ClientAddress,
+			3799, radius, SharedSecret, true),
+	{ok, Socket} = gen_udp:open(0,
+			[{active, false}, inet, {ip, ClientAddress}, binary]),
 	lists:keystore(socket, 1, Config, {socket, Socket});
 init_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter;
@@ -142,8 +153,9 @@ init_per_testcase(TestCase, Config) when
 		TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter;
 		TestCase == client_authorized ->
-	DiameterPeerAddress = ct:get_config({radius, peer_address}),
-	{ok, _} = ocs:add_client(DiameterPeerAddress, undefined, diameter, undefined, true),
+	ClientAddress = proplists:get_value(diameter_client_address, Config),
+	{ok, _} = ocs:add_client(ClientAddress,
+			undefined, diameter, undefined, true),
 	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -151,12 +163,14 @@ init_per_testcase(_TestCase, Config) ->
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(client_authorized = TestCase, Config) ->
-	DiameterPeerAddress = ct:get_config({diameter, peer_address}),
-	ok = ocs:delete_client(DiameterPeerAddress),
-	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
+end_per_testcase(TestCase, Config) when
+		TestCase == client_authorized;
+		TestCase == client_not_authorized->
+	ClientAddress = proplists:get_value(diameter_client_address, Config),
+	ServiceName = lists:concat([?MODULE, $:, TestCase]),
 	ok = diameter:stop_service(ServiceName),
 	ok = diameter:remove_transport(ServiceName, true),
+	ok = ocs:delete_client(ClientAddress),
 	Config;
 end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_radius;
@@ -166,19 +180,18 @@ end_per_testcase(TestCase, Config) when
 		TestCase == unknown_username_radius;
 		TestCase == authenticate_voice;
 		TestCase == auth_data_fail ->
-	Address = ct:get_config({radius, peer_address}),
-	ok = ocs:delete_client(Address),
-	Socket = ?config(socket, Config),
+	ClientAddress = proplists:get_value(radius_client_address, Config),
+	ok = ocs:delete_client(ClientAddress),
+	Socket = proplists:get_value(socket, Config),
 	ok = gen_udp:close(Socket);
 end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter;
 		TestCase == bad_password_diameter;
 		TestCase == unknown_username_diameter;
 		TestCase == out_of_credit_diameter;
-		TestCase == session_termination_diameter;
-		TestCase == client_authorized ->
-	Address = ct:get_config({diameter, peer_address}),
-	ok = ocs:delete_client(Address),
+		TestCase == session_termination_diameter ->
+	ClientAddress = proplists:get_value(diameter_client_address, Config),
+	ok = ocs:delete_client(ClientAddress),
 	Config;
 end_per_testcase(_TestCase, Config) ->
 	Config.
@@ -208,7 +221,7 @@ simple_authentication_radius() ->
 
 simple_authentication_radius(Config) ->
 	Id = 1,
-	NasId = ?config(nas_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -216,7 +229,7 @@ simple_authentication_radius(Config) ->
 			password = PeerPassword} =  add_service(ProdRef),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
-	CalledStationId = ?config(called_id, Config),
+	CalledStationId = proplists:get_value(called_id, Config),
 	MAC = "DD:EE:DD:EE:BB:AA",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -225,7 +238,7 @@ simple_authentication_radius(Config) ->
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -248,7 +261,7 @@ simple_auth_radius_chap() ->
 
 simple_auth_radius_chap(Config) ->
 	Id = 1,
-	NasId = ?config(nas_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -256,7 +269,7 @@ simple_auth_radius_chap(Config) ->
 			password = PeerPassword} =  add_service(ProdRef),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
-	CalledStationId = ?config(called_id, Config),
+	CalledStationId = proplists:get_value(called_id, Config),
 	MAC = "DE:FE1:DE:EE:BE:AE",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -265,7 +278,7 @@ simple_auth_radius_chap(Config) ->
 	ChapPassword = crypto:hash(md5, [ChapId, PeerPassword, Authenticator]),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -312,13 +325,13 @@ out_of_credit_radius() ->
 
 out_of_credit_radius(Config) ->
 	Id = 2,
-	NasId = ?config(nas_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = UserName,
 			password = PeerPassword} =  add_service(ProdRef),
-	CalledStationId = ?config(called_id, Config),
+	CalledStationId = proplists:get_value(called_id, Config),
 	MAC = "DD:EE:DD:EE:CC:BB",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -327,7 +340,7 @@ out_of_credit_radius(Config) ->
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 12, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -381,8 +394,8 @@ bad_password_radius(Config) ->
 	#service{name = UserName} =  add_service(ProdRef),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
-	NasId = ?config(nas_id, Config),
-	CalledStationId = ?config(called_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
+	CalledStationId = proplists:get_value(called_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -391,7 +404,7 @@ bad_password_radius(Config) ->
 	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -446,8 +459,8 @@ unknown_username_radius(Config) ->
 	#service{password = PeerPassword} =  add_service(ProdRef),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
-	NasId = ?config(nas_id, Config),
-	CalledStationId = ?config(called_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
+	CalledStationId = proplists:get_value(called_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -457,7 +470,7 @@ unknown_username_radius(Config) ->
 	BogusUserName = ocs:generate_password(),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -544,7 +557,7 @@ authenticate_voice(Config) ->
 	ProdRef = add_product(OfferId, []),
 	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
 	Id = 1,
-	NasId = ?config(nas_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
 	B1 = bucket(cents, 3000),
@@ -555,7 +568,7 @@ authenticate_voice(Config) ->
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 12, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -587,7 +600,7 @@ auth_data_fail(Config) ->
 	ProdRef = add_product(OfferId, []),
 	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
 	Id = 1,
-	NasId = ?config(nas_id, Config),
+	NasId = proplists:get_value(nas_id, Config),
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
 	Authenticator = radius:authenticator(),
@@ -595,7 +608,7 @@ auth_data_fail(Config) ->
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
-	Socket = ?config(socket, Config),
+	Socket = proplists:get_value(socket, Config),
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
@@ -617,21 +630,25 @@ client_authorized() ->
 	[{userdata, [{doc, "Authorize a Diameter Peer"}]}].
 
 client_authorized(Config) ->
-	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized",
-	DiameterAuthPort = ?config(diameter_auth_port, Config),
-	DiameterAddress = ct:get_config({diameter, address}),
-	DiameterPeerAddress = ct:get_config({diameter, peer_address}),
-	ok = diameter:start_service(ServiceName, client_service_opts(Config, DiameterPeerAddress)),
+	ServiceName = lists:concat([?MODULE, $:, ?FUNCTION_NAME]),
+	AuthAddress = proplists:get_value(diameter_address, Config),
+	AuthPort = proplists:get_value(diameter_auth_port, Config),
+	ClientAddress = proplists:get_value(diameter_client_address, Config),
+	Realm = atom_to_list(?MODULE),
+	Host = lists:concat([?FUNCTION_NAME, $., Realm]),
+	ok = diameter:start_service(ServiceName,
+			client_service_opts(Host, Realm)),
 	true = diameter:subscribe(ServiceName),
-	{ok, _} = ocs:add_client(DiameterPeerAddress, undefined, diameter, undefined, true),
-	{ok, _Ref} = connect(ServiceName, DiameterAddress, DiameterAuthPort,
-			DiameterPeerAddress, diameter_tcp),
+	{ok, _} = ocs:add_client(ClientAddress,
+			undefined, diameter, undefined, true),
+	{ok, _Ref} = connect(ServiceName,
+			AuthAddress, AuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ServiceName, info = Info}
 				when element(1, Info) == up ->
 			client_authorized(ServiceName, Config);
 		 _Other ->
-			{skip, diameter_client_auth_service_not_started}
+			{fail, diameter_service_not_started}
 	end.
 client_authorized(ServiceName, _Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
@@ -657,45 +674,38 @@ client_not_authorized() ->
 	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
 
 client_not_authorized(Config) ->
-	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_not_authorized",
-	DiameterAuthPort = ?config(diameter_auth_port, Config),
-	DiameterAcctAddress = ?config(diameter_auth_address, Config),
-	DiameterPeerAddress = ct:get_config({diameter, peer_address}),
-	ok = ocs:delete_client(DiameterPeerAddress),
-	ok = diameter:start_service(ServiceName, client_service_opts(Config, DiameterPeerAddress)),
+	ServiceName = lists:concat([?MODULE, $:, ?FUNCTION_NAME]),
+	AuthAddress = proplists:get_value(diameter_address, Config),
+	AuthPort = proplists:get_value(diameter_auth_port, Config),
+	ClientAddress = proplists:get_value(diameter_client_address, Config),
+	Realm = atom_to_list(?MODULE),
+	Host = lists:concat([?FUNCTION_NAME, $., Realm]),
+	ok = ocs:delete_client(ClientAddress),
+	ok = diameter:start_service(ServiceName,
+			client_service_opts(Host, Realm)),
 	true = diameter:subscribe(ServiceName),
-	{ok, _Ref} = connect(ServiceName, DiameterAcctAddress, DiameterAuthPort,
-			DiameterPeerAddress, diameter_tcp),
+	{ok, _Ref} = connect(ServiceName,
+			AuthAddress, AuthPort, ClientAddress, diameter_tcp),
 	receive
 		#diameter_event{service = ServiceName, info = Info}
 				when element(1, Info) == closed ->
 			ok;
 		 _Other ->
-			{skip, diameter_client_auth_service_not_started}
+			{fail, diameter_service_not_started}
 	end.
 
 %%--------------------------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------------------------
 
-%% @doc Add a transport capability to diameter service.
-%% @hidden
-connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
-	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
-%% @hidden
-connect(SvcName, RemAddress, Port, LocalIp, Transport) when is_atom(Transport) ->
-	connect(SvcName, [{connect_timer, 30000} | transport_opts(RemAddress, Port, LocalIp, Transport)]).
+client_service_opts(Config) ->
+	Host = proplists:get_value(host, Config),
+	Realm = proplists:get_value(realm, Config),
+	client_service_opts(Host, Realm).
 
-%% @hidden
-connect(SvcName, Opts)->
-	diameter:add_transport(SvcName, {connect, Opts}).
-
-%% @hidden
-client_service_opts(Config, HostIp) ->
-	[{'Origin-Host', ?config(host, Config)},
-			{'Origin-Realm', ?config(realm, Config)},
-			{'Host-IP-Address', [HostIp]},
-			{'Product-Name', "SigScale Test Client (auth)"},
+client_service_opts(Host, Realm) ->
+	[{'Origin-Host', Host}, {'Origin-Realm', Realm},
+			{'Product-Name', "SigScale Test Client (acct)"},
 			{'Vendor-Id', ?IANA_PEN_SigScale},
 			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?NAS_APPLICATION_ID]},
@@ -707,18 +717,26 @@ client_service_opts(Config, HostIp) ->
 					{dictionary, diameter_gen_nas_application_rfc7155},
 					{module, diameter_test_client_cb}]}].
 
-%% @hidden
-transport_opts(Address, Port, Trans) when is_atom(Trans) ->
-	transport_opts1({Trans, Address, Address, Port}).
-%% @hidden
-transport_opts(RemAddress, Port, Ip, Trans) when is_atom(Trans) ->
-	transport_opts1({Trans, Ip, RemAddress, Port}).
+connect(SvcName, Address, Port, Transport)
+		when is_atom(Transport) ->
+	TransportOpts = transport_opts(Address, Port, Transport),
+	connect(SvcName, [{connect_timer, 30000} | TransportOpts]).
+connect(SvcName, RemAddress, Port, LocalIp, Transport)
+		when is_atom(Transport) ->
+	TransportOpts = transport_opts(RemAddress, Port, LocalIp, Transport),
+	connect(SvcName, [{connect_timer, 30000} | TransportOpts]).
 
-%% @hidden
-transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans}, {transport_config,
-			[{raddr, RemAddr}, {rport, RemPort},
-			{reuseaddr, true}, {ip, LocalAddr}]}].
+connect(SvcName, Opts) ->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+transport_opts(Address, Port, Module) when is_atom(Module) ->
+	transport_opts1(Module, Address, Address, Port).
+transport_opts(Address, Port, LocalIp, Module) when is_atom(Module) ->
+	transport_opts1(Module, LocalIp, Address, Port).
+transport_opts1(Module, LocalAddr, RemAddr, Port) ->
+	Config = [{raddr, RemAddr}, {rport, Port},
+			{ip, LocalAddr}, {reuseaddr, true}],
+	[{transport_module, Module}, {transport_config, Config}].
 
 %% @hidden
 price(Type, Units, Size, Amount) ->
