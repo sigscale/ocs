@@ -174,7 +174,7 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					trusted = Trusted, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
-		end.
+	end.
 
 -spec eap_start(Event, StateData) -> Result
 	when
@@ -338,7 +338,7 @@ eap_start2(Token, #statedata{eap_id = EapID,
 %%		gen_fsm:send_event/2} in the <b>id</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-id(timeout, #statedata{session_id = SessionID} = StateData)->
+id(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes} = AccessRequest, RadiusFsm},
