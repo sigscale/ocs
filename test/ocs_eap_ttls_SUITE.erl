@@ -216,7 +216,7 @@ eap_ttls_authentication_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 8, EapId1 = 1,
+	RadId1 = 1, EapId1 = 1,
 	ok = send_identity_radius(Socket, Address, Port, NasId, AnonymousName,
 			Secret, MAC, ReqAuth1, EapId1, RadId1),
 	{RadId2, EapId2} = receive_identity(Socket, Address, Port, Secret,

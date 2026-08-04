@@ -219,7 +219,7 @@ simple_authentication_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessAccept to the peer"}]}].
 
 simple_authentication_radius(Config) ->
-	Id = 1,
+	RadId = 1,
 	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
@@ -248,18 +248,18 @@ simple_authentication_radius(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId,
 			authenticator = Authenticator, attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
+	#radius{code = ?AccessAccept, id = RadId} = radius:codec(AccessAcceptPacket).
 
 simple_auth_radius_chap() ->
 	[{userdata, [{doc, "RADIUS Access-Request with CHAP"}]}].
 
 simple_auth_radius_chap(Config) ->
-	Id = 1,
+	RadId = 2,
 	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
@@ -288,12 +288,12 @@ simple_auth_radius_chap(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?ChapPassword, {ChapId, ChapPassword}, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId,
 			authenticator = Authenticator, attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
+	#radius{code = ?AccessAccept, id = RadId} = radius:codec(AccessAcceptPacket).
 
 simple_authentication_diameter() ->
 	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
@@ -323,7 +323,7 @@ out_of_credit_radius() ->
 			less than 0"}]}].
 
 out_of_credit_radius(Config) ->
-	Id = 2,
+	RadId = 3,
 	NasId = proplists:get_value(nas_id, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
@@ -350,12 +350,12 @@ out_of_credit_radius(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId, authenticator = Authenticator,
 			attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessRejectPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessReject, id = Id, attributes = AccessRejectData} =
+	#radius{code = ?AccessReject, id = RadId, attributes = AccessRejectData} =
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
@@ -385,7 +385,7 @@ bad_password_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when password not matched"}]}].
 
 bad_password_radius(Config) ->
-	Id = 2,
+	RadId = 4,
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -413,12 +413,12 @@ bad_password_radius(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, BoguesPassowrd, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId, authenticator = Authenticator,
 			attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessRejectPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessReject, id = Id, attributes = AccessRejectData} =
+	#radius{code = ?AccessReject, id = RadId, attributes = AccessRejectData} =
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Bad Password"} = radius_attributes:find(?ReplyMessage, AccessReject).
@@ -461,7 +461,7 @@ unknown_username_radius() ->
 	[{userdata, [{doc, "Send RADIUS RAccessReject response to the peer for unknown username"}]}].
 
 unknown_username_radius(Config) ->
-	Id = 3,
+	RadId = 5,
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -490,12 +490,12 @@ unknown_username_radius(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId, authenticator = Authenticator,
 			attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessRejectPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessReject, id = Id, attributes = AccessRejectData} =
+	#radius{code = ?AccessReject, id = RadId, attributes = AccessRejectData} =
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Unknown Username"} = radius_attributes:find(?ReplyMessage, AccessReject).
@@ -565,7 +565,7 @@ authenticate_voice(Config) ->
 	OfferId = add_offer([P1], "9", Chars),
 	ProdRef = add_product(OfferId, []),
 	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
-	Id = 1,
+	RadId = 6,
 	NasId = proplists:get_value(nas_id, Config),
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
@@ -588,12 +588,12 @@ authenticate_voice(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId,
 			authenticator = Authenticator, attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessAccept, id = Id,
+	#radius{code = ?AccessAccept, id = RadId,
 			attributes = Attributes} = radius:codec(AccessAcceptPacket),
 	RadiusAttributes = radius_attributes:codec(Attributes),
 	RadiusReserveSessionTime = radius_attributes:fetch(?SessionTimeout, RadiusAttributes).
@@ -608,7 +608,7 @@ auth_data_fail(Config) ->
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId, []),
 	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
-	Id = 1,
+	RadId = 7,
 	NasId = proplists:get_value(nas_id, Config),
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
@@ -628,12 +628,12 @@ auth_data_fail(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+	AccessReqest = #radius{code = ?AccessRequest, id = RadId,
 			authenticator = Authenticator, attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessReject, id = Id} = radius:codec(AccessAcceptPacket).
+	#radius{code = ?AccessReject, id = RadId} = radius:codec(AccessAcceptPacket).
 
 client_authorized() ->
 	[{userdata, [{doc, "Authorize a Diameter Peer"}]}].

@@ -222,7 +222,7 @@ pwd_id_radius(Config) ->
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_radius_id(Socket, Address, Port, Secret,
+	ok = send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
 	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
@@ -283,7 +283,7 @@ pwd_commit_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 5, EapId1 = 1,
+	RadId1 = 4, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -291,7 +291,7 @@ pwd_commit_radius(Config) ->
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_radius_id(Socket, Address, Port, Secret,
+	ok = send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
 	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
@@ -358,7 +358,7 @@ pwd_commit_diameter(_Config) ->
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
 			data = _EapPwdData2} = ocs_eap_codec:eap_pwd(EapData2),
 	ok = ocs:delete_service(PeerId).
-	
+
 pwd_confirm_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response using RADIUS to peer"}]}].
 
@@ -377,7 +377,7 @@ pwd_confirm_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 8, EapId1 = 1,
+	RadId1 = 7, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -385,7 +385,7 @@ pwd_confirm_radius(Config) ->
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_radius_id(Socket, Address, Port, Secret,
+	ok = send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
 	{EapId3, ElementS, ScalarS} = receive_radius_commit(Socket, Address,
@@ -406,9 +406,9 @@ pwd_confirm_radius(Config) ->
 	ConfirmP = ocs_eap_pwd:h(Input),
 	RadId4 = RadId3 + 1,
 	ReqAuth4 = radius:authenticator(),
-	send_radius_confirm(Socket, Address, Port, Secret, ReqAuth4, UserName,
+	ok = send_radius_confirm(Socket, Address, Port, Secret, ReqAuth4, UserName,
 			NasId, MAC, ConfirmP, EapId4, RadId4),
-	EapId4 = receive_radius_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
+	EapId4 = receive_radius_success(Socket, Address, Port, Secret, ReqAuth4, RadId4),
 
 pwd_confirm_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Confirm/Response to peer using DIAMETER"}]}].
@@ -489,9 +489,9 @@ message_authentication_radius(Config) ->
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config({radius, username}),
-	Secret = ocs:generate_password(), 
+	Secret = ocs:generate_password(),
 	ReqAuth = radius:authenticator(),
-	RadId = 13, EapId = 1,
+	RadId = 11, EapId = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
@@ -513,7 +513,7 @@ role_reversal_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth = radius:authenticator(),
-	RadId = 14, EapId = 1,
+	RadId = 12, EapId = 1,
 	Token = crypto:strong_rand_bytes(4),
 	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
@@ -541,7 +541,7 @@ validate_pwd_id_cipher_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 16, EapId1 = 1,
+	RadId1 = 13, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -576,7 +576,7 @@ validate_pwd_id_prep_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 16, EapId1 = 1,
+	RadId1 = 15, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -611,7 +611,7 @@ validate_pwd_id_token_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 16, EapId1 = 1,
+	RadId1 = 17, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -646,7 +646,7 @@ negotiate_method_radius(Config) ->
 	UserName = ct:get_config({radius, username}),
 	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
-	RadId1 = 16, EapId1 = 1,
+	RadId1 = 19, EapId1 = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
@@ -827,7 +827,7 @@ connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
 	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
 
 %% @hidden
-connect(SvcName, Opts)->
+connect(SvcName, Opts) ->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
