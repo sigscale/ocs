@@ -44,7 +44,6 @@
 -define(NAS_APPLICATION_ID, 1).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
--define(RO_APPLICATION_ID, 4).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -362,26 +361,25 @@ out_of_credit_radius(Config) ->
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
 out_of_credit_diameter() ->
-	[{userdata, [{doc, "Diameter authentication failure when subscriber has a balance less than 0"}]}].
+	[{userdata, [{doc, "Diameter authentication failure when subscriber has zero balance"}]}].
 
-out_of_credit_diameter(_Config) ->
+out_of_credit_diameter(Config) ->
+	Host = proplists:get_value(host, Config),
+	Realm = proplists:get_value(realm, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	#service{name = UserName,
-			password = Password} =  add_service(ProdRef),
-	Ref = erlang:ref_to_list(make_ref()),
-	SId = diameter:session_id(Ref),
-	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+	#service{name = Username, password = Password} = add_service(ProdRef),
+	SId = diameter:session_id(Host),
+	AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Origin-Host' = Host, 'Origin-Realm' = Realm,
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'User-Name' = [UserName], 'User-Password' = [Password],
-			'Service-Type' = [11]},
-	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
-	true = is_record(Answer, diameter_nas_app_AAA),
-	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'User-Name' = [Username], 'User-Password' = [Password]},
+	{ok, AAA} = diameter:call(?MODULE, nas_app_test, AAR, []),
+	#diameter_nas_app_AAA{'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED'} = AAA.
 
 bad_password_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when password not matched"}]}].
@@ -428,25 +426,36 @@ bad_password_radius(Config) ->
 bad_password_diameter() ->
 	[{userdata, [{doc, "Diameter simple authentication failure wheh a wrong password is used"}]}].
 
-bad_password_diameter(_Config) ->
+bad_password_diameter(Config) ->
+	Host = proplists:get_value(host, Config),
+	Realm = proplists:get_value(realm, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	#service{name = Username} =  add_service(ProdRef),
+	#service{name = Username} = add_service(ProdRef),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
 	InvalidPassword = ocs:generate_password(),
-	Ref = erlang:ref_to_list(make_ref()),
-	SId = diameter:session_id(Ref),
-	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+	SId1 = diameter:session_id(Host),
+	AAR1 = #diameter_nas_app_AAR{'Session-Id' = SId1,
+			'Origin-Host' = Host, 'Origin-Realm' = Realm,
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [Username], 'User-Password' = [InvalidPassword]},
-	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
-	true = is_record(Answer, diameter_nas_app_AAA),
-	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
+	{ok, AAA1} = diameter:call(?MODULE, nas_app_test, AAR1, []),
+	#diameter_nas_app_AAA{'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'} = AAA1,
+	SId2 = diameter:session_id(Host),
+	AAR2 = #diameter_nas_app_AAR{'Session-Id' = SId2,
+			'Origin-Host' = Host, 'Origin-Realm' = Realm,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'User-Name' = [Username], 'User-Password' = [InvalidPassword]},
+	{ok, AAA2} = diameter:call(?MODULE, nas_app_test, AAR2, []),
+	#diameter_nas_app_AAA{'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'} = AAA2.
 
 unknown_username_radius() ->
 	[{userdata, [{doc, "Send RADIUS RAccessReject response to the peer for unknown username"}]}].
