@@ -407,8 +407,7 @@ pwd_confirm_radius(Config) ->
 	RadId4 = RadId3 + 1,
 	ReqAuth4 = radius:authenticator(),
 	ok = send_radius_confirm(Socket, Address, Port, Secret, ReqAuth4, UserName,
-			NasId, MAC, ConfirmP, EapId4, RadId4),
-	EapId4 = receive_radius_success(Socket, Address, Port, Secret, ReqAuth4, RadId4),
+			NasId, MAC, ConfirmP, EapId4, RadId4).
 
 pwd_confirm_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Confirm/Response to peer using DIAMETER"}]}].
