@@ -339,7 +339,10 @@ reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
 handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, dest_host = DHost,
 		dest_realm = DRealm, subscriber = SubscriberId, password = Password,
-		service_type = ServiceType} = StateData) ->
+		auth_request_type = AuthRequestType,
+		service_type = ServiceType} = StateData) when
+		AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY';
+		AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE' ->
 	Timestamp = calendar:local_time(),
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 			{'Destination-Host', DHost}, {'Destination-Realm', DRealm},
@@ -350,10 +353,16 @@ handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 			handle_diameter1(Subscriber, ExistingSessionAttributes, StateData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
 			start_disconnect(ExistingSessionAttributes, StateData),
-			reject_diameter(disabled_subscriber , StateData);
+			reject_diameter(disabled, StateData);
+		{unauthorized, Reason, _ExistingSessionAttributes} when
+				Reason =/= bad_password, Reason =/= service_not_found,
+				AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY' ->
+			handle_diameter2(StateData);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
 			reject_diameter(Reason, StateData)
-	end.
+	end;
+handle_diameter(#statedata{protocol = diameter} = StateData) ->
+	reject_diameter(unable_to_comply, StateData).
 %% @hidden
 handle_diameter1(#service{multisession = true},
 		_ExistingSessions, StateData) ->
@@ -385,17 +394,76 @@ handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
 	{stop, {shutdown, SessionID}, StateData}.
 
 %% @hidden
-reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
-		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
-		server_address = ServerAddress, server_port = ServerPort,
-		diameter_port_server = PortServer, client_address = ClientAddress,
-		client_port = ClientPort, request = Request} = StateData) ->
+reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = AuthRequestType, origin_host = OHost,
+		origin_realm = ORealm, server_address = ServerAddress,
+		server_port = ServerPort, diameter_port_server = PortServer,
+		client_address = ClientAddress,
+		client_port = ClientPort, request = Request} = StateData) when
+		Reason =/= unable_to_comply,
+		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY' ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+			'Auth-Application-Id' = AppId,
+			'Auth-Request-Type' = AuthRequestType,
 			'Origin-Host' = OHost,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Origin-Realm' = ORealm },
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData};
+reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = AuthRequestType, origin_host = OHost,
+		origin_realm = ORealm, server_address = ServerAddress,
+		server_port = ServerPort, diameter_port_server = PortServer,
+		client_address = ClientAddress, client_port = ClientPort,
+		request = Request} = StateData) when
+		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		((Reason == bad_password) orelse (Reason == service_not_found)) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId,
+			'Auth-Request-Type' = AuthRequestType,
+			'Origin-Host' = OHost,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Origin-Realm' = ORealm },
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData};
+reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = AuthRequestType, origin_host = OHost,
+		origin_realm = ORealm, server_address = ServerAddress,
+		server_port = ServerPort, diameter_port_server = PortServer,
+		client_address = ClientAddress, client_port = ClientPort,
+		request = Request} = StateData) when
+		Reason =/= unable_to_comply,
+		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE' ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId,
+			'Auth-Request-Type' = AuthRequestType,
+			'Origin-Host' = OHost,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+			'Origin-Realm' = ORealm },
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData};
+reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = AuthRequestType, origin_host = OHost,
+		origin_realm = ORealm, server_address = ServerAddress,
+		server_port = ServerPort, diameter_port_server = PortServer,
+		client_address = ClientAddress, client_port = ClientPort,
+		request = Request} = StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId,
+			'Auth-Request-Type' = AuthRequestType,
+			'Origin-Host' = OHost,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			'Origin-Realm' = ORealm },
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),

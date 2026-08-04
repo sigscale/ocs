@@ -1853,7 +1853,8 @@ authorize(Protocol, ServiceType, SubscriberIDs, Password, Timestamp,
 						ok = mnesia:write(S#service{session_attributes = []}),
 						{unauthorized, disabled, ExistingAttr};
 					[#service{password = Password1} = S]
-						when Protocol == radius, is_tuple(Password) ->
+							when tuple_size(Password) == 3,
+							((Protocol == radius) orelse (Protocol == diameter)) ->
 						{ChapId, ChapPassword, Challenge} = Password,
 						case crypto:hash(md5, [ChapId, Password1, Challenge]) of
 							ChapPassword ->
@@ -1863,12 +1864,12 @@ authorize(Protocol, ServiceType, SubscriberIDs, Password, Timestamp,
 								mnesia:abort(bad_password)
 						end;
 					[#service{password = MTPassword} = Service]
-							when ((Protocol == radius) and
-							(((Password == <<>>) and (Password =/= MTPassword))
-							orelse (Password == MTPassword))) ->
+							when (((Password == <<>>) and (Password =/= MTPassword))
+									orelse (Password == MTPassword)),
+							((Protocol == radius) orelse (Protocol == diameter)) ->
 						authorize1(Protocol, ServiceType, Service, Timestamp,
 								Address, Direction, SessionAttributes);
-					[#service{}] when Protocol == radius ->
+					[#service{}] when Protocol == radius; Protocol == diameter ->
 						mnesia:abort(bad_password);
 					[#service{} = Service] ->
 						authorize1(Protocol, ServiceType, Service, Timestamp,
@@ -1888,11 +1889,16 @@ authorize(Protocol, ServiceType, SubscriberIDs, Password, Timestamp,
 			{unauthorized, Reason, []}
 	end.
 %% @hidden
-authorize1(radius, ServiceType,
+authorize1(Protocol, ServiceType,
 		#service{attributes = Attributes, product = ProdRef} = Service,
 		Timestamp, Address, Direction, SessionAttributes) ->
+	Now = erlang:system_time(millisecond),
 	case mnesia:read(product, ProdRef, read) of
-		[#product{product = OfferId, balance = BucketRefs}] ->
+		[#product{product = OfferId, balance = BucketRefs, status = Status1,
+				end_date = EndDate1, start_date = StartDate1} = _Product]
+				when ((Status1 == active) orelse (Status1 == undefined)),
+						((StartDate1 =< Now) or (StartDate1 == undefined)),
+						((EndDate1 > Now) or (EndDate1 == undefined)) ->
 			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			F = fun({'Session-Id', _}) ->
 					true;
@@ -1902,9 +1908,13 @@ authorize1(radius, ServiceType,
 					false
 			end,
 			case lists:any(F, get_session_id(SessionAttributes)) of
-				true ->
+				true when Protocol == radius ->
 					case mnesia:read(offer, OfferId, read) of
-						[#offer{char_value_use = CharValueUse} = Offer] ->
+						[#offer{char_value_use = CharValueUse, status = Status2,
+								end_date = EndDate2, start_date = StartDate2} = Offer]
+								when ((Status2 == active) orelse (Status2 == undefined)),
+										((StartDate1 =< Now) or (StartDate2 == undefined)),
+										((EndDate2 > Now) or (EndDate2 == undefined)) ->
 							F2 = fun(#char_value_use{name = "radiusReserveSessionTime",
 											values = [CharValue]}) ->
 										case CharValue of
@@ -1942,46 +1952,47 @@ authorize1(radius, ServiceType,
 							end,
 							case lists:filtermap(F2, CharValueUse) of
 								[{ReserveUnits, Reserve}] ->
-									authorize2(radius, ServiceType, Service, Buckets,
+									authorize2(Protocol, ServiceType, Service, Buckets,
 										Offer, Timestamp, Address, Direction,
-										SessionAttributes, Reserve, ReserveUnits);
+										SessionAttributes, Reserve, ReserveUnits, Now);
 								[] ->
 									authorize5(Service, Buckets, ServiceType,
-											SessionAttributes, Attributes)
+											SessionAttributes, Attributes, Now)
 							end;
-						[] ->
+						_ ->
 							mnesia:abort(offer_not_found)
 					end;
-				false ->
+				_ ->
 					authorize5(Service, Buckets, ServiceType,
-							SessionAttributes, Attributes)
+							SessionAttributes, Attributes, Now)
 			end;
-		[] ->
+		_ ->
 			mnesia:abort(product_not_found)
-	end;
-authorize1(Protocol, _ServiceType,
-		#service{attributes = Attributes} = Service, _Timestamp,
-		_Address, _Direction, SessionAttributes)
-		when Protocol == diameter; Protocol == nrf ->
-	authorize6(Service, SessionAttributes, Attributes).
+	end.
 %% @hidden
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets, Timestamp,
 		#offer{specification = undefined, bundle = Bundle}, Address, Direction,
-		SessionAttributes, Reserve, ReserveUnits) when Reserve > 0, Bundle /= [] ->
+		SessionAttributes, Reserve, ReserveUnits, Now) when Reserve > 0, Bundle /= [] ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
 				case mnesia:read(offer, OfferId, read) of
-					[#offer{specification = Spec, status = Status} = P] when
-							((Status == active) orelse (Status == undefined))
-							and
-							(((Protocol == radius)
-								and
-								(((ServiceType == ?RADIUSVOICE) and
-								((Spec == "5") orelse (Spec == "9"))) orelse
-								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)) and
-								((Spec == "4") orelse (Spec == "8")))))) ->
-						[P | Acc];
+					[#offer{specification = Spec, status = Status,
+							end_date = EndDate, start_date = StartDate} = O]
+							when (((Status == active) orelse
+									(Status == undefined)) andalso
+									((StartDate =< Now) orelse
+									(StartDate == undefined)) andalso
+									((EndDate > Now) orelse
+									(EndDate == undefined)) andalso
+									(((ServiceType == ?RADIUSVOICE) andalso
+									((Spec == "5") orelse
+									(Spec == "9"))) orelse
+									(((ServiceType == ?RADIUSFRAMED) orelse
+									(ServiceType == ?RADIUSLOGIN)) andalso
+									((Spec == "4") orelse
+									(Spec == "8"))))) ->
+						[O | Acc];
 					_ ->
 						Acc
 				end
@@ -1990,9 +2001,10 @@ authorize2(radius = Protocol, ServiceType,
 			[#offer{} = Offer | _] ->
 				authorize2(Protocol, ServiceType, Service, Buckets, Offer,
 						Timestamp, Address, Direction, SessionAttributes,
-						Reserve, ReserveUnits);
+						Reserve, ReserveUnits, Now);
 			[] ->
-				authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
+				authorize5(Service, Buckets, ServiceType,
+						SessionAttributes, Attributes, Now)
 		end
 	catch
 		_:Reason ->
@@ -2001,7 +2013,7 @@ authorize2(radius = Protocol, ServiceType,
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets,
 		#offer{specification = ProdSpec, price = Prices}, Timestamp,
-		Address, Direction, SessionAttributes, Reserve, ReserveUnits)
+		Address, Direction, SessionAttributes, Reserve, ReserveUnits, Now)
 		when (Reserve > 0) and ((ProdSpec == "9") orelse (ProdSpec == "5")) ->
 	F = fun(#price{type = tariff, units = seconds}) ->
 				true;
@@ -2015,14 +2027,15 @@ authorize2(radius = Protocol, ServiceType,
 	case filter_prices_dir(Direction, FilteredPrices2) of
 		[Price | _] ->
 			authorize3(Protocol, ServiceType, Service, Buckets, Address,
-					Price, SessionAttributes, Reserve, ReserveUnits);
+					Price, SessionAttributes, Reserve, ReserveUnits, Now);
 		_ ->
-			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
+			authorize5(Service, Buckets, ServiceType,
+					SessionAttributes, Attributes, Now)
 	end;
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets,
 		#offer{specification = ProdSpec, price = Prices}, Timestamp,
-		_Address, _Direction, SessionAttributes, Reserve, ReserveUnits)
+		_Address, _Direction, SessionAttributes, Reserve, ReserveUnits, Now)
 		when (Reserve > 0) and ((ProdSpec == "8") orelse (ProdSpec == "4")) ->
 	F = fun(#price{type = usage, units = Units}) when Units == ReserveUnits ->
 				true;
@@ -2033,19 +2046,24 @@ authorize2(radius = Protocol, ServiceType,
 	case filter_prices_tod(Timestamp, FilteredPrices1) of
 		[Price | _] ->
 			authorize4(Protocol, ServiceType, Service,
-					Buckets, Price, SessionAttributes, Reserve, ReserveUnits);
+					Buckets, Price, SessionAttributes,
+					Reserve, ReserveUnits, Now);
 		_ ->
-			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
+			authorize5(Service, Buckets, ServiceType,
+					SessionAttributes, Attributes, Now)
 	end;
 authorize2(_Protocol, ServiceType,
-		#service{attributes = Attributes} = Service, Buckets, _Offer, _Timestamp,
-		_Address, _Direction, SessionAttributes, _Reserve, _ReserveUnits) ->
-	authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes).
+		#service{attributes = Attributes} = Service, Buckets, _Offer,
+		_Timestamp, _Address, _Direction, SessionAttributes, _Reserve,
+		_ReserveUnits, Now) ->
+	authorize5(Service, Buckets, ServiceType,
+			SessionAttributes, Attributes, Now).
 %% @hidden
 authorize3(Protocol, ServiceType, Service, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
-		SessionAttributes, Reserve, ReserveUnits) ->
-	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
+		SessionAttributes, Reserve, ReserveUnits, Now) ->
+	case lists:keyfind("destPrefixTariffTable",
+			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
@@ -2053,7 +2071,7 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 						when is_integer(Amount), Amount >= 0 ->
 					authorize4(Protocol, ServiceType, Service, Buckets,
 							Price#price{amount = Amount}, SessionAttributes,
-							Reserve, ReserveUnits);
+							Reserve, ReserveUnits, Now);
 				{_Description, PeriodInitial, RateInitial,
 						PeriodAdditional, RateAdditional, _TS}
 						when is_integer(PeriodInitial),
@@ -2062,30 +2080,32 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 						is_integer(RateAdditional) ->
 					authorize4(Protocol, ServiceType, Service, Buckets,
 							Price#price{amount = RateInitial}, SessionAttributes,
-							Reserve, ReserveUnits);
+							Reserve, ReserveUnits, Now);
 				_Other ->
 					mnesia:abort(table_lookup_failed)
 			end;
 		false ->
 			mnesia:abort(undefined_tariff)
 	end;
-authorize3(Protocol, ServiceType, Service,
-		Buckets, _Address, Price, SessionAttributes, Reserve, ReserveUnits) ->
-	authorize4(Protocol, ServiceType, Service,
-			Buckets, Price, SessionAttributes, Reserve, ReserveUnits).
+authorize3(Protocol, ServiceType, Service, Buckets, _Address,
+		Price, SessionAttributes, Reserve, ReserveUnits, Now) ->
+	authorize4(Protocol, ServiceType, Service, Buckets,
+			Price, SessionAttributes, Reserve, ReserveUnits, Now).
 %% @hidden
 authorize4(_Protocol, ServiceType,
 		#service{session_attributes = ExistingAttr,
 		attributes = Attr} = Service, Buckets, #price{units = Units,
 		size = UnitSize, amount = UnitPrice},
-		SessionAttributes, Reserve, ReserveUnits) ->
+		SessionAttributes, Reserve, ReserveUnits, Now) ->
 	case update_session(Units, 0, Reserve,
 			undefined, undefined, SessionAttributes, Buckets) of
 		{0, Reserve, _Buckets2} when ReserveUnits == seconds ->
 			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
-			authorize5(Service, Buckets, ServiceType, SessionAttributes, NewAttr);
+			authorize5(Service, Buckets, ServiceType,
+					SessionAttributes, NewAttr, Now);
 		{0, Reserve, _Buckets2} ->
-			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attr);
+			authorize5(Service, Buckets, ServiceType,
+					SessionAttributes, Attr, Now);
 		{0, UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (Reserve- UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
@@ -2094,30 +2114,43 @@ authorize4(_Protocol, ServiceType,
 					undefined, undefined, SessionAttributes, Buckets2) of
 				{0, PriceReserve, _Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
-					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize5(Service, Buckets, ServiceType, SessionAttributes, NewAttr);
+					NewAttr = radius_attributes:store(?SessionTimeout,
+							SessionTimeout, Attr),
+					authorize5(Service, Buckets, ServiceType,
+							SessionAttributes, NewAttr, Now);
 				{0, 0, _Buckets3}  when UnitsReserved == 0 ->
 					{unauthorized, out_of_credit, ExistingAttr};
 				{0, PriceReserved, _Buckets3} ->
-					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
-					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize5(Service, Buckets, ServiceType, SessionAttributes, NewAttr)
+					SessionTimeout = UnitsReserved
+							+ ((PriceReserved div UnitPrice) * UnitSize),
+					NewAttr = radius_attributes:store(?SessionTimeout,
+							SessionTimeout, Attr),
+					authorize5(Service, Buckets, ServiceType,
+							SessionAttributes, NewAttr, Now)
 			end
 	end.
 %% @hidden
 authorize5(#service{session_attributes = ExistingAttr} = Service,
-		Buckets, ServiceType, SessionAttributes, Attributes) ->
-	F = fun(#bucket{remain_amount = R, units = U})
-				when ((ServiceType == undefined) orelse
-				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)
-						orelse (ServiceType == ?PSDATA) orelse (ServiceType == ?'5GCDATA'))
-						and ((U == octets) orelse (U == cents) orelse (U == seconds)))
-				orelse (((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?IMSVOICE)
-						orelse (ServiceType == ?VCS) orelse (ServiceType == ?MMTel)) and
-						((U == seconds) orelse (U == cents)))
-				orelse
-				((ServiceType == ?SMS) and ((U == messages) orelse (U == cents))))
-						and (R > 0) ->
+		Buckets, ServiceType, SessionAttributes, Attributes, Now) ->
+	F = fun(#bucket{remain_amount = R, units = U, status = Status,
+				end_date = EndDate, start_date = StartDate} = _Bucket)
+				when ((Status == active) orelse (Status == undefined)),
+						((StartDate =< Now) or (StartDate == undefined)),
+						((EndDate > Now) or (EndDate == undefined)),
+						((ServiceType == undefined) orelse
+						(((ServiceType == ?RADIUSFRAMED) orelse
+						(ServiceType == ?RADIUSLOGIN) orelse
+						(ServiceType == ?PSDATA) orelse
+						(ServiceType == ?'5GCDATA')) and
+						((U == octets) orelse (U == cents) orelse
+						(U == seconds))) orelse
+						(((ServiceType == ?RADIUSVOICE) orelse
+						(ServiceType == ?IMSVOICE) orelse
+						(ServiceType == ?VCS) orelse
+						(ServiceType == ?MMTel)) and
+						((U == seconds) orelse (U == cents))) orelse
+						((ServiceType == ?SMS) and ((U == messages) orelse
+						(U == cents)))), R > 0 ->
 			true;
 		(_) ->
 			false
