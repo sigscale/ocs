@@ -60,6 +60,6 @@ init(_Args) ->
 fsm(StartMod) ->
 	StartArgs = [StartMod],
 	StartFunc = {gen_fsm, start_link, StartArgs},
-	#{id => StartMod, start => StartFunc,
+	#{id => StartMod, start => StartFunc, restart => transient,
 			shutdown => 4000, modules => [StartMod]}.
 
