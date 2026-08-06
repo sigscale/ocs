@@ -108,10 +108,10 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 					-keyout CAkey.pem -out CAcert.pem; \
 		fi; \
 		if [ ! -f key.pem -o ! -f cert.csr ]; then \
-		openssl req -newkey rsa:2048 -nodes \
+			openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout key.pem -out cert.csr; \
-				chmod 600 key.pem; \
+			chmod 600 key.pem; \
 		fi; \
 		if [ ! -f extensions ]; then \
 			echo "extendedKeyUsage = serverAuth" > extensions; \
