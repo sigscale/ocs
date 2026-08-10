@@ -2029,6 +2029,8 @@ basic_auth() ->
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
 
+init_diameter(Config, a = RfClass) ->
+	{skip, not_implemented};
 init_diameter(Config, RfClass) ->
 	Realm = proplists:get_value(realm, Config),
 	Address = proplists:get_value(acct_address, Config),
