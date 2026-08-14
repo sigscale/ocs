@@ -180,8 +180,9 @@ idle(Request, From, #statedata{session_id = SessionId} = StateData)
 			end,
 			case mnesia:transaction(F) of
 				{atomic, ok} ->
-					response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
-					{stop, shutdown, NewStateData};
+					ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					Reply = response(ResultCode, NewStateData),
+					{stop, shutdown, Reply, NewStateData};
 				{atomic, {HssRealm1, HssHost1}} ->
 					NextStateData = NewStateData#statedata{hss_realm = HssRealm1,
 							hss_host = HssHost1},
