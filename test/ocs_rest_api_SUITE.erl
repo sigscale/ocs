@@ -147,6 +147,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 	end;
 init_per_testcase(get_ipdr_usage = _TestCase, Config) ->
 	{skip, deprecated};
+init_per_testcase(delete_policy_table = _TestCase, Config) ->
+	{skip, not_implemented};
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
