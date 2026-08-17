@@ -145,6 +145,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		{error, Reason} ->
 			{error, Reason}
 	end;
+init_per_testcase(get_ipdr_usage = _TestCase, Config) ->
+	{skip, deprecated};
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
