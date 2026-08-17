@@ -864,8 +864,12 @@ get_offer(Config) ->
 	true = (lists:keyfind("lifecycleStatus", 1, ReqList) == lists:keyfind("lifecycleStatus", 1, RespList)),
 	case {lists:keyfind("validFor", 1, ReqList), lists:keyfind("validFor", 1, RespList)} of
 		{{_, {struct, ValidFor1}}, {_, {struct, ValidFor2}}} ->
-			true = (lists:keyfind("startDateTime", 1, ValidFor1) == lists:keyfind("startDateTime", 1, ValidFor2)),
-			true = (lists:keyfind("endDateTime", 1, ValidFor1) == lists:keyfind("endDateTime", 1, ValidFor2));
+			StartDateTime1 = lists:keyfind("startDateTime", 1, ValidFor1),
+			StartDateTime2 = lists:keyfind("startDateTime", 1, ValidFor2),
+			true = equal(StartDateTime1, StartDateTime2),
+			EndDateTime1 = lists:keyfind("endDateTime", 1, ValidFor1),
+			EndDateTime2 = lists:keyfind("endDateTime", 1, ValidFor2),
+			true = equal(EndDateTime1, EndDateTime2);
 		{false, false} ->
 			true
 	end,
@@ -880,17 +884,29 @@ get_offer(Config) ->
 		true = (lists:keyfind("description", 1, L1) == lists:keyfind("description", 1 , L2)),
 		case {lists:keyfind("validFor", 1, L1), lists:keyfind("validFor", 1, L2)} of
 			{{_, {struct, V1}}, {_, {struct, V2}}} ->
-				true = (lists:keyfind("startDateTime", 1, V1) == lists:keyfind("startDateTime", 1, V2)),
-				true = (lists:keyfind("endDateTime", 1, V1) == lists:keyfind("endDateTime", 1, V2));
+				StartDateTime3 = lists:keyfind("startDateTime", 1, V1),
+				StartDateTime4 = lists:keyfind("startDateTime", 1, V2),
+				true = equal(StartDateTime3, StartDateTime4),
+				EndDateTime3 = lists:keyfind("endDateTime", 1, V1),
+				EndDateTime4 = lists:keyfind("endDateTime", 1, V2),
+				true = equal(EndDateTime3, EndDateTime4);
 			{false, false} ->
 				true
 		end,
 		case {lists:keyfind("price", 1, L1), lists:keyfind("price", 1, L2)} of
 			{{_, {struct, P1}}, {_, {struct, P2}}} ->
-				true = (lists:keyfind("taxIncludedAmount", 1, P1) == lists:keyfind("taxIncludedAmount", 1, P2)),
-				true = (lists:keyfind("dutyFreeAmount", 1, P1) == lists:keyfind("dutyFreeAmount", 1, P2)),
-				true = (lists:keyfind("taxRate", 1, P1) == lists:keyfind("taxRate", 1, P2)),
-				true = (lists:keyfind("currencyCode", 1, P1) == lists:keyfind("currencyCode", 1, P2));
+				TaxIncludedAmount1 = lists:keyfind("taxIncludedAmount", 1, P1),
+				TaxIncludedAmount2 = lists:keyfind("taxIncludedAmount", 1, P2),
+				true = equal(TaxIncludedAmount1, TaxIncludedAmount2),
+				DutyFreeAmount1 = lists:keyfind("dutyFreeAmount", 1, P1),
+				DutyFreeAmount2 = lists:keyfind("dutyFreeAmount", 1, P2),
+				true = equal(DutyFreeAmount1, DutyFreeAmount2),
+				TaxRate1 = lists:keyfind("taxRate", 1, P1),
+				TaxRate2 = lists:keyfind("taxRate", 1, P2),
+				true = equal(TaxRate1, TaxRate2),
+				CurrencyCode1 = lists:keyfind("currencyCode", 1, P1),
+				CurrencyCode2 = lists:keyfind("currencyCode", 1, P2),
+				true = equal(CurrencyCode1 , CurrencyCode2);
 			{false, false} ->
 				true
 		end,
@@ -923,19 +939,30 @@ get_offer(Config) ->
 				true = (lists:keyfind("description", 1, A1) == lists:keyfind("description", 1, A2)),
 				case {lists:keyfind("validFor", 1, A1), lists:keyfind("validFor", 1, A2)} of
 					{{_, {struct, AV1}}, {_, {struct, AV2}}} ->
-						true = (lists:keyfind("startDateTime", 1, AV1) == lists:keyfind("startDateTime", 1, AV2)),
-						true = (lists:keyfind("endDateTime", 1, AV1) == lists:keyfind("endDateTime", 1, AV2));
+						StartDateTime5 = lists:keyfind("startDateTime", 1, AV1),
+						StartDateTime6 = lists:keyfind("startDateTime", 1, AV2),
+						true = equal(StartDateTime5, StartDateTime6),
+						EndDateTime5 = lists:keyfind("endDateTime", 1, AV1),
+						EndDateTime6 = lists:keyfind("endDateTime", 1, AV2),
+						true = equal(EndDateTime5, EndDateTime6);
 					{false, false} ->
 						true
 				end,
 				true = (lists:keyfind("priceType", 1, A1) == lists:keyfind("priceType", 1, A2)),
 				case {lists:keyfind("price", 1, A1), lists:keyfind("price", 1, A2)} of
 					{{_, {struct, AP1}}, {_, {struct, AP2}}} ->
-						true = (lists:keyfind("taxIncludedAmount", 1, AP1) == lists:keyfind("taxIncludedAmount", 1, AP2)),
-						true = (lists:keyfind("dutyFreeAmount", 1, AP1) == lists:keyfind("dutyFreeAmount", 1, AP2)),
-						true = (lists:keyfind("taxRate", 1, AP1) == lists:keyfind("taxRate", 1, AP2)),
-						true = (lists:keyfind("currencyCode", 1, AP1) == lists:keyfind("currencyCode", 1, AP2)),
-						true = (lists:keyfind("percentage", 1, AP1) == lists:keyfind("percentage", 1, AP2));
+						TaxIncludedAmount3 = lists:keyfind("taxIncludedAmount", 1, AP1),
+						TaxIncludedAmount4 = lists:keyfind("taxIncludedAmount", 1, AP2),
+						true = equal(TaxIncludedAmount3, TaxIncludedAmount4),
+						DutyFreeAmount3 = lists:keyfind("dutyFreeAmount", 1, AP1),
+						DutyFreeAmount4 = lists:keyfind("dutyFreeAmount", 1, AP2),
+						true = equal(DutyFreeAmount3, DutyFreeAmount4),
+						TaxRate3 = lists:keyfind("taxRate", 1, AP1),
+						TaxRate4 = lists:keyfind("taxRate", 1, AP2),
+						true = equal(TaxRate3, TaxRate4),
+						CurrencyCode3 = lists:keyfind("currencyCode", 1, AP1),
+						CurrencyCode4 = lists:keyfind("currencyCode", 1, AP2),
+						true = equal(CurrencyCode3 , CurrencyCode4);
 					{false, false} ->
 						true
 				end,
@@ -947,7 +974,9 @@ get_offer(Config) ->
 					{false, false} ->
 						true
 				end,
-				true = (lists:keyfind("recurringChargePeriod", 1, A1) == lists:keyfind("recurringChargePeriod", 1, A2));
+				RecurringChargePeriod1 = lists:keyfind("recurringChargePeriod", 1, A1),
+				RecurringChargePeriod2 = lists:keyfind("recurringChargePeriod", 1, A2),
+				true = equal(RecurringChargePeriod1, RecurringChargePeriod2);
 			{false, false} ->
 				true
 		end
@@ -7991,4 +8020,36 @@ fill_acct(N, Protocol) ->
 	end,
 	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
 	fill_acct(N - 1, Protocol).
+
+equal(A, B)
+		when is_atom(A), is_atom(B) ->
+	A == B;
+equal(A, B)
+		when (is_integer(A) orelse is_float(A)),
+		(is_integer(B) orelse is_float(B)) ->
+	A == B;
+equal(A, B)
+		when is_list(A), is_list(B) ->
+	Characters = [$., $0, $1, $2, $3, $4, $5, $6, $7, $8, $9],
+	case {string:take(A, Characters), string:take(B, Characters)} of
+		{{_, []}, {_, []}} ->
+			equal(to_number(A), to_number(B));
+		_ ->
+			string:equal(A, B)
+	end;
+equal({Key, A}, {Key, B}) ->
+	equal(A, B);
+equal(_A, _B) ->
+	false.
+
+to_number(String)
+		when is_list(String) ->
+	to_number(String, lists:member($., String)).
+
+to_number(String, false)
+		when is_list(String) ->
+	list_to_integer(String);
+to_number(String, true)
+		when is_list(String) ->
+	list_to_float(String).
 
