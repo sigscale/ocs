@@ -637,7 +637,7 @@ get_client_bogus(Config) ->
 	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID,
 			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
-	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
+	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
 get_client_notfound() ->
 	[{userdata, [{doc, "get client notfound in rest interface"}]}].
