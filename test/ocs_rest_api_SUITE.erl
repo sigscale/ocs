@@ -709,8 +709,7 @@ get_client_range(Config) ->
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Address = {10, rand:uniform(255),
-						rand:uniform(255), rand:uniform(254)},
+				Address = ocs_test_lib:ipv4(),
 				Secret = ocs:generate_password(),
 				{ok, _} = ocs:add_client(Address, Secret),
 				F(F, N - 1)
