@@ -1,3 +1,20 @@
+2026-08-18   Vance Shipley <vances@sigscale.org>
+
+	* accumulated balance thresold notification when multiple unit types
+	* use test lib random ipv4 function in test case
+	* expand service id range in test case to be rentrant
+	* reentrant test case: query policy table
+	* skip unimplemented delete policy table test case
+	* skip deprecated ipdr test case
+	* correct expected response in test case
+	* limited (safe) character set for identifiers in test cases
+	* dynamically create party role names
+	* refactor http basic auth credential configuration
+	* handle comparing floats as strings in test suite
+	* tmf654 topup by service: product must be omitted, units must not be undefined
+	* note on unfortunate legacy name in product record
+	* ignore radius disconnect if nas client disconnect port undefined (OCS-73 #close)
+
 2026-07-02   Vance Shipley <vances@sigscale.org>
 
 	* fix price bucket rollover reservations
