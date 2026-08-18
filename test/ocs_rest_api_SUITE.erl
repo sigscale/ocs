@@ -1706,7 +1706,7 @@ get_service_range(Config) ->
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Identity = ocs:generate_identity(),
+				Identity = ocs:generate_identity() ++ ocs:generate_identity(),
 				Password = ocs:generate_password(),
 				{ok, _} = ocs:add_service(Identity, Password, ProdRef, []),
 				F(F, N - 1)
