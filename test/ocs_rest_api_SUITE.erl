@@ -3754,27 +3754,36 @@ notify_accumulated_balance_threshold() ->
 notify_accumulated_balance_threshold(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	PackagePrice = 5000000,
-	PackageSize = 100000000,
+	OctetsPrice = 10000000,
+	OctetsSize = 10000000,
+	SecondsPrice = 100000,
+	SecondsSize = 60,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
-			size = PackageSize, amount = PackagePrice},
-	OfferId = add_offer([P1], 4),
+			size = OctetsSize, amount = OctetsPrice},
+	P2 = #price{name = ocs:generate_identity(), type = usage, units = seconds,
+			size = SecondsSize, amount = SecondsPrice},
+	OfferId = add_offer([P1, P2], 4),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	_BId1 = add_bucket(ProdRef, cents, 50000000),
-	RA = 500000000,
-	_BId2 = add_bucket(ProdRef, octets, RA),
-	_BId3 = add_bucket(ProdRef, cents, 100000000),
-	Threshold = 500000000,
-	ok = application:set_env(ocs, threshold_bytes, 500000000),
+	RAcents = OctetsPrice - rand:uniform(OctetsPrice),
+	_BId1 = add_bucket(ProdRef, cents, RAcents),
+	RAoctets = OctetsSize * 10,
+	_BId2 = add_bucket(ProdRef, octets, RAoctets div 2),
+	_BId3 = add_bucket(ProdRef, octets, RAoctets div 2),
+	RAseconds = SecondsSize * 10,
+	_BId4 = add_bucket(ProdRef, seconds, RAseconds),
+	ThresholdOctets = RAoctets div 5,
+	ok = application:set_env(ocs, threshold_bytes, ThresholdOctets),
+	ThresholdSeconds = RAseconds div 5,
+	ok = application:set_env(ocs, threshold_seconds, ThresholdSeconds),
 	CollectionUrl = HostUrl ++ ?PathBalanceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalancethreshold",
 	Query = "totalBalance.units=octets&totalBalance.amount.lt="
-			++ integer_to_list(Threshold),
+			++ integer_to_list(ThresholdOctets),
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
@@ -3787,12 +3796,13 @@ notify_accumulated_balance_threshold(Config) ->
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
+	DebitOctets = (RAoctets - ThresholdOctets) + rand:uniform(OctetsSize),
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
-			initial, [], [{octets, PackageSize}], SessionId),
+			initial, [], [{octets, DebitOctets}], SessionId),
 	receive
-		Input7 ->
-			{struct, AccBalanceEvent} = mochijson:decode(Input7),
+		Notification ->
+			{struct, AccBalanceEvent} = mochijson:decode(Notification),
 			{_, "AccumulatedBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, AccBalanceEvent),
 			{_, {array, [{struct, AccList}]}}
@@ -3800,10 +3810,10 @@ notify_accumulated_balance_threshold(Config) ->
 			case lists:keyfind("totalBalance", 1, AccList) of
 				{_, {array, [{struct, [{"amount", Amount}, {"units", "octets"}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
-					OctetsAmount = RA - PackageSize;
+					OctetsAmount = RAoctets - DebitOctets;
 				{_, {array, [{struct, [{"units", "octets"}, {"amount", Amount}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
-					OctetsAmount = RA - PackageSize
+					OctetsAmount = RAoctets - DebitOctets
 			end
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
