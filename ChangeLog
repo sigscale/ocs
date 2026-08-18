@@ -1,5 +1,7 @@
 2026-08-18   Vance Shipley <vances@sigscale.org>
 
+	* updates for nrf v1.3.0
+	* define callback for notifications (#11)
 	* accumulated balance thresold notification when multiple unit types
 	* use test lib random ipv4 function in test case
 	* expand service id range in test case to be rentrant
@@ -11,6 +13,7 @@
 	* dynamically create party role names
 	* refactor http basic auth credential configuration
 	* handle comparing floats as strings in test suite
+	* define callback for notifications (#11)
 	* tmf654 topup by service: product must be omitted, units must not be undefined
 	* note on unfortunate legacy name in product record
 	* ignore radius disconnect if nas client disconnect port undefined (OCS-73 #close)
