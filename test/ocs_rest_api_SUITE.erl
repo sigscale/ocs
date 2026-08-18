@@ -6774,14 +6774,17 @@ query_policy_resource() ->
 query_policy_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ok = ocs_gtt:new(tariff_table6, []),
-	TariffTable = #resource{name = "tariff_table6", description = "Tariff Table",
+	GttTableName = ocs:generate_identity(),
+	GttTableID = list_to_atom(GttTableName),
+	ok = ocs_gtt:new(GttTableID, []),
+	TariffTable = #resource{name = GttTableName, description = "Tariff Table",
 			category = "Tariff", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
 					name = "TariffTable"}},
 	{ok, #resource{}} = ocs:add_resource(TariffTable),
-	PolicyTable = #resource{name = "PolicyTable", description = "Policy Table",
+	PolicyTableName = ocs:generate_identity(),
+	PolicyTable = #resource{name = PolicyTableName, description = "Policy Table",
 			category = "Policy", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "3",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
@@ -6791,7 +6794,7 @@ query_policy_resource(Config) ->
 			category = "Policy", class_type = "LogicalResource",
 			base_type = "Resource", related = [#resource_rel{id = PolicyTableId1,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ PolicyTableId1, name = "PolicyTable1", type = "contained"}],
+					++ PolicyTableId1, name = PolicyTableName, type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
 					name = "PolicyTableRow"},
@@ -6830,9 +6833,9 @@ query_policy_resource(Config) ->
 	{ok, #resource{id = _RowId2}} = ocs:add_resource(PolicyRow2),
 	Accept = {"accept", "application/json"},
 	Query = "resourceSpecification.id=4" ++
-		"&resourceRelationship.resource.name=PolicyTable1",
-	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?" ++ Query,
-			[Accept, auth_header(Config)]},
+		"&resourceRelationship.resource.name=" ++ PolicyTableName,
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?"
+			++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6845,7 +6848,7 @@ query_policy_resource(Config) ->
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
 	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
-	{_, "PolicyTable1"} = lists:keyfind("name", 1, ObjList).
+	{_, PolicyTableName} = lists:keyfind("name", 1, ObjList).
 
 delete_policy_table() ->
 	[{userdata, [{doc,"Delete policy table resource"}]}].
