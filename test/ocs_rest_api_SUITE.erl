@@ -684,20 +684,7 @@ get_all_clients(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
 	ContentLength = integer_to_list(length(Body1)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, ClientsList} = mochijson:decode(Body1),
-	Pred1 = fun({struct, Param}) ->
-		case lists:keyfind("id", 1, Param) of
-			{_, ID} ->
-				true;
-			{_, _ID} ->
-				false
-		end
-	end,
-	[{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
-	{_, URI1} = lists:keyfind("href", 1, ClientVar),
-	{_, Port} = lists:keyfind("port", 1, ClientVar),
-	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
-	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+	{array, _ClientsList} = mochijson:decode(Body1).
 
 get_client_range() ->
 	[{userdata, [{doc,"Get range of items in the client collection"}]}].
