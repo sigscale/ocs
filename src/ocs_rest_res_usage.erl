@@ -672,6 +672,10 @@ ipdr_wlan_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
+usage_aaa_auth({Milliseconds, N, P, Node, Server, Client,
+		RequestAttributes, ResponseAttributes}, Filters) ->
+	usage_aaa_auth({Milliseconds, N, P, Node, Server, Client, undefined,
+		RequestAttributes, ResponseAttributes}, Filters);
 usage_aaa_auth({Milliseconds, N, P, Node, Server, Client, EventType,
 		RequestAttributes, ResponseAttributes}, Filters) ->
 	UsageSpec = {struct, [{"id", "AAAAccessUsageSpec"},
@@ -723,9 +727,14 @@ usage_aaa_auth({Milliseconds, N, P, Node, Server, Client, EventType,
 	end,
 	ProtocolChar = {struct, [{"name", "protocol"}, {"value", Protocol}]},
 	NodeChar = {struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
-	TypeChar = {struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]},
+	TypeChar = case EventType of
+		undefined ->
+			[];
+		_ ->
+			[{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}]
+	end,
 	EventChars = [ProtocolChar, NodeChar]
-			++ ServerChars ++ ClientChars ++ [TypeChar],
+			++ ServerChars ++ ClientChars ++ TypeChar,
 	RequestChars = usage_characteristics(RequestAttributes),
 	ResponseChars = usage_characteristics(ResponseAttributes),
 	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
