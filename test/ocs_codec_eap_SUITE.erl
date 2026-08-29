@@ -49,12 +49,18 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	Config.
+	case application:load(ocs) of
+		ok ->
+			Config;
+		{error, {already_loaded, ocs}} ->
+			Config
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = application:unload(ocs),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
