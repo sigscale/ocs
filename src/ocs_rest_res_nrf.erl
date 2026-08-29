@@ -514,46 +514,46 @@ add_ref(RatingDataRef,
 rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
 			status => 403,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied due to insufficient credit (usage applied)"};
 rest_error_response(service_not_found, InvalidParams) ->
 	#{cause => "SUBSCRIPTION_NOT_FOUND",
 			status => 404,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied because the subscriber identity is unrecognized",
 			invalidParams => InvalidParams};
 rest_error_response(service_rejected, InvalidParams) ->
 	#{cause => "END_USER REQUEST_DENIED",
 			status => 403,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied due to restrictions or limitations related to the subscriber",
 			invalidParams => InvalidParams};
 rest_error_response(rating_failed, undefined) ->
 	#{cause => "RATING_FAILED",
 			status => 400,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Incomplete or erroneous session or subscriber information"};
 %rest_error_response(charging_failed, undefined) ->
 %	#{cause => "CHARGING_FAILED",
 %			status => 400,
-%			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+%			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 %			title => "Incomplete or erroneous session or subscriber information"};
 rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "MANDATORY_IE_INCORRECT",
 			status => 400,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied because the rating data ref is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(mandatory_missing, InvalidParams) ->
 	#{cause => "MANDATORY_IE_INCORRECT",
 			status => 400,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied because of missing mandatory IE(s)",
 			invalidParams => InvalidParams};
 rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "INVALID_SERVICE_TYPE",
 			status => 400,
-			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.2.1#/",
+			type => "https://app.swaggerhub.com/apis-docs/SigScale/nrf-rating/1.3.0#/",
 			title => "Request denied because the service context id is not recognized",
 			invalidParams => InvalidParams};
 rest_error_response(decode_failed, undefined) ->

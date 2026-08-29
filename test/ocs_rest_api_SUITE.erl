@@ -67,9 +67,7 @@ suite() ->
 	{timetrap, {minutes, 1}},
 	{require, rest},
 	{default_config, rest,
-			[{user, "bss"},
-			{password, "nfc9xgp32xha"},
-			{group, "all"}]}].
+			[]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -91,17 +89,17 @@ init_per_suite(Config) ->
 				FPort(T)
 	end,
 	{Host, Port} = Fport(Services),
-	RestUser = ct:get_config({rest, user}),
-	RestPass = ct:get_config({rest, password}),
-	_RestGroup = ct:get_config({rest, group}),
+	RestUser = ocs:generate_identity(),
+	RestPass = ocs:generate_password(),
 	{ok, _} = ocs:add_user(RestUser, RestPass, []),
 	{ok, ProductID} = ocs_test_lib:add_offer(),
 	CAcert = ?config(data_dir, Config) ++ "CAcert.pem",
 	SslOpts = [{verify, verify_peer}, {cacertfile, CAcert}],
 	HttpOpt = [{ssl, SslOpts}],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	[{port, Port}, {host_url, HostUrl}, {http_options, HttpOpt},
-			{product_id, ProductID} | Config].
+	[{port, Port}, {product_id, ProductID},
+			{host_url, HostUrl}, {http_options, HttpOpt},
+			{user, RestUser}, {password, RestPass} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -147,6 +145,10 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		{error, Reason} ->
 			{error, Reason}
 	end;
+init_per_testcase(get_ipdr_usage = _TestCase, Config) ->
+	{skip, deprecated};
+init_per_testcase(delete_policy_table = _TestCase, Config) ->
+	{skip, not_implemented};
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -307,7 +309,8 @@ authenticate_user_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, auth_header()]},
+	Request = {HostUrl ++ "/usageManagement/v1/usage",
+			[Accept, auth_header(Config)]},
 	{ok, _Result} = httpc:request(get, Request, HttpOpt, []).
 
 unauthenticate_user_request() ->
@@ -319,9 +322,9 @@ unauthenticate_user_request(Config) ->
 	Accept = {"accept", "application/json"},
 	RestUser = ocs:generate_identity(),
 	RestPass = ocs:generate_password(),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	Authentication = {"authorization", AuthKey},
+	BasicAuth = RestUser ++ ":" ++ RestPass,
+	Base64 = base64:encode_to_string(BasicAuth),
+	Authentication = {"authorization", Base64},
 	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
@@ -333,9 +336,9 @@ add_user(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	ID = "King",
+	ID = ocs:generate_identity(),
 	Username = ID,
-	Password = "KingKong",
+	Password = ocs:generate_password(),
 	Locale = "en",
 	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
@@ -344,7 +347,8 @@ add_user(Config) ->
 	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -366,13 +370,14 @@ get_user() ->
 get_user(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ID = "Prince",
-	Password = "Frog",
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
 	Locale = "es",
 	UserData = [{locale, Locale}],
 	{ok, _} = ocs:add_user(ID, Password, UserData),
 	Accept = {"accept", "application/json"},
-	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID,
+			[Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
@@ -399,10 +404,10 @@ head_users() ->
 head_users(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Identity = ocs_test_lib:rand_name(),
-	Password = ocs_test_lib:rand_name(),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_user(Identity, Password, []),
-	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	RequestHeaders = [auth_header(Config), {"accept", "application/json"}],
 	Request = {HostUrl ++ "/partyManagement/v1/individual", RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _NoContent}, ResultHeaders, []} = Result,
@@ -416,11 +421,12 @@ delete_user() ->
 delete_user(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ID = "Queen",
-	Password = "QueenBee",
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
 	Locale = "en",
 	{ok, _} = ocs:add_user(ID, Password, Locale),
-	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [auth_header()]},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID,
+			[auth_header(Config)]},
 	{ok, Result1} = httpc:request(delete, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
 	{error, no_such_user} = ocs:get_user(ID).
@@ -432,7 +438,7 @@ get_health(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/health+json"},
-	Request = {HostUrl ++ "/health", [Accept, auth_header()]},
+	Request = {HostUrl ++ "/health", [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, "application/health+json"} = lists:keyfind("content-type", 1, Headers),
@@ -453,7 +459,7 @@ head_health(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/health+json"},
-	Request = {HostUrl ++ "/health", [Accept, auth_header()]},
+	Request = {HostUrl ++ "/health", [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, []} = Result,
 	true = lists:keymember("content-length", 1, Headers),
@@ -466,13 +472,13 @@ update_user_characteristics_json_patch() ->
 update_user_characteristics_json_patch(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	Username = "ryanstiles",
-	Password = "wliaycaducb46",
+	Username = ocs:generate_identity(),
+	Password = ocs:generate_password(),
 	Locale = "en",
 	{ok, _} = ocs:add_user(Username, Password, Locale),
 	Accept = {"accept", "application/json"},
 	URI = "/partyManagement/v1/individual/" ++ Username,
-	Request1 = {HostUrl ++ URI, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ URI, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, ResponseBody1} = Result1,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
@@ -497,11 +503,14 @@ update_user_characteristics_json_patch(Config) ->
 	IndexPassword= F1(F1, Characteristic, "password", 0),
 	IndexLocale = F1(F1, Characteristic, "locale", 0),
 	JSON = {array, [
-			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
-			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
+			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexPassword},
+					{value, NewPwdObj}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale},
+					{value, NewLocaleObj}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON)),
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch], ContentType, PatchBody},
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
+			ContentType, PatchBody},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers2, _ResponseBody2} = Result2,
 	{ok, #httpd_user{username = Username, password = NewPassword,
@@ -515,15 +524,16 @@ add_client(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	ID = "10.2.53.9",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 3799,
 	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
+	Secret = ocs:generate_password(),
 	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/client/",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -545,10 +555,12 @@ add_client_without_password(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	JSON = {struct, [{"id", "10.5.55.10"}]},
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
+	JSON = {struct, [{"id", ID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/client/",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
 	{struct, Object} = mochijson:decode(ResponseBody),
@@ -564,21 +576,22 @@ get_client(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	ID = "10.2.53.9",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 1899,
 	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
+	Secret = ocs:generate_password(),
 	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/client/",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ URI2, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
@@ -597,9 +610,9 @@ get_client_id() ->
 get_client_id(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ID = "10.2.53.19",
-	Identifier = "nas-01-23-45",
-	Secret = "ps5mhybc297m",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
+	Identifier = "nas-" ++ ocs_test_lib:rand_name(),
+	Secret = ocs:generate_password(),
 	{ok, _} = ocs:add_client(ID, Secret),
 	{ok, Address} = inet:parse_address(ID),
 	Fun = fun() ->
@@ -609,7 +622,8 @@ get_client_id(Config) ->
 	end,
 	{atomic, ok} = mnesia:transaction(Fun),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID,
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _, Body} = Result,
 	{struct, Object} = mochijson:decode(Body),
@@ -623,10 +637,11 @@ get_client_bogus(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/json"},
-	ID = "beefbeefcafe",
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	ID = ocs:generate_identity(),
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID,
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
-	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
+	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
 get_client_notfound() ->
 	[{userdata, [{doc, "get client notfound in rest interface"}]}].
@@ -635,8 +650,9 @@ get_client_notfound(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/json"},
-	ID = "10.2.53.20",
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID,
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 404, _}, _Headers, _Body} = Result.
 
@@ -647,20 +663,22 @@ get_all_clients(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	ID = "10.2.53.8",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 1899,
 	Protocol = "RADIUS",
-	Secret = "ksc8c344npqc",
+	Secret = ocs:generate_password(),
 	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/client",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()]},
+	Request2 = {HostUrl ++ "/ocs/v1/client",
+			[Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
@@ -691,8 +709,7 @@ get_client_range(Config) ->
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Address = {10, rand:uniform(255),
-						rand:uniform(255), rand:uniform(254)},
+				Address = ocs_test_lib:ipv4(),
 				Secret = ocs:generate_password(),
 				{ok, _} = ocs:add_client(Address, Secret),
 				F(F, N - 1)
@@ -706,7 +723,7 @@ get_client_range(Config) ->
 			PageSize - 1
 	end,
 	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
+	RequestHeaders1 = [Accept, auth_header(Config)],
 	Request1 = {HostUrl ++ "/ocs/v1/client", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
@@ -756,11 +773,12 @@ get_clients_filter() ->
 get_clients_filter(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy", true),
+	IP = inet:ntoa(ocs_test_lib:ipv4()),
+	{ok, _} = ocs:add_client(IP, 3799, radius, "ziggyzaggy", true),
 	Accept = {"accept", "application/json"},
 	Filters = "?filter=%22%5B%7Bid.like=%5B1%25%5D%7D%5D%22",
 	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
-	Request = {Url, [Accept, auth_header()]},
+	Request = {Url, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	ContentLength = integer_to_list(length(Body)),
@@ -782,9 +800,9 @@ head_clients(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	Address = ocs_test_lib:ipv4(),
-	Secret = ocs_test_lib:rand_name(),
+	Secret = ocs:generate_identity(),
 	{ok, _} = ocs:add_client(Address, Secret),
-	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	RequestHeaders = [auth_header(Config), {"accept", "application/json"}],
 	Request = {HostUrl ++ "/ocs/v1/client", RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _NoContent}, ResultHeaders, []} = Result,
@@ -799,20 +817,21 @@ delete_client(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType = "application/json",
-	ID = "10.2.53.9",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 1899,
 	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
+	Secret = ocs:generate_password(),
 	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/client",
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [auth_header()]},
+	Request2 = {HostUrl ++ URI2, [auth_header(Config)]},
 	{ok, Result1} = httpc:request(delete, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
@@ -829,7 +848,7 @@ add_offer(Config) ->
 	ReqList = product_offer(),
 	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, auth_header()], ContentType, ReqBody},
+			[Accept, auth_header(Config)], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers).
@@ -846,11 +865,11 @@ get_offer(Config) ->
 	ReqList = product_offer(),
 	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, auth_header()], ContentType, ReqBody},
+			[Accept, auth_header(Config)], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, Href} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Response} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
 	{_, ContentType} = lists:keyfind("content-type", 1, Headers1),
@@ -863,8 +882,12 @@ get_offer(Config) ->
 	true = (lists:keyfind("lifecycleStatus", 1, ReqList) == lists:keyfind("lifecycleStatus", 1, RespList)),
 	case {lists:keyfind("validFor", 1, ReqList), lists:keyfind("validFor", 1, RespList)} of
 		{{_, {struct, ValidFor1}}, {_, {struct, ValidFor2}}} ->
-			true = (lists:keyfind("startDateTime", 1, ValidFor1) == lists:keyfind("startDateTime", 1, ValidFor2)),
-			true = (lists:keyfind("endDateTime", 1, ValidFor1) == lists:keyfind("endDateTime", 1, ValidFor2));
+			StartDateTime1 = lists:keyfind("startDateTime", 1, ValidFor1),
+			StartDateTime2 = lists:keyfind("startDateTime", 1, ValidFor2),
+			true = equal(StartDateTime1, StartDateTime2),
+			EndDateTime1 = lists:keyfind("endDateTime", 1, ValidFor1),
+			EndDateTime2 = lists:keyfind("endDateTime", 1, ValidFor2),
+			true = equal(EndDateTime1, EndDateTime2);
 		{false, false} ->
 			true
 	end,
@@ -879,17 +902,29 @@ get_offer(Config) ->
 		true = (lists:keyfind("description", 1, L1) == lists:keyfind("description", 1 , L2)),
 		case {lists:keyfind("validFor", 1, L1), lists:keyfind("validFor", 1, L2)} of
 			{{_, {struct, V1}}, {_, {struct, V2}}} ->
-				true = (lists:keyfind("startDateTime", 1, V1) == lists:keyfind("startDateTime", 1, V2)),
-				true = (lists:keyfind("endDateTime", 1, V1) == lists:keyfind("endDateTime", 1, V2));
+				StartDateTime3 = lists:keyfind("startDateTime", 1, V1),
+				StartDateTime4 = lists:keyfind("startDateTime", 1, V2),
+				true = equal(StartDateTime3, StartDateTime4),
+				EndDateTime3 = lists:keyfind("endDateTime", 1, V1),
+				EndDateTime4 = lists:keyfind("endDateTime", 1, V2),
+				true = equal(EndDateTime3, EndDateTime4);
 			{false, false} ->
 				true
 		end,
 		case {lists:keyfind("price", 1, L1), lists:keyfind("price", 1, L2)} of
 			{{_, {struct, P1}}, {_, {struct, P2}}} ->
-				true = (lists:keyfind("taxIncludedAmount", 1, P1) == lists:keyfind("taxIncludedAmount", 1, P2)),
-				true = (lists:keyfind("dutyFreeAmount", 1, P1) == lists:keyfind("dutyFreeAmount", 1, P2)),
-				true = (lists:keyfind("taxRate", 1, P1) == lists:keyfind("taxRate", 1, P2)),
-				true = (lists:keyfind("currencyCode", 1, P1) == lists:keyfind("currencyCode", 1, P2));
+				TaxIncludedAmount1 = lists:keyfind("taxIncludedAmount", 1, P1),
+				TaxIncludedAmount2 = lists:keyfind("taxIncludedAmount", 1, P2),
+				true = equal(TaxIncludedAmount1, TaxIncludedAmount2),
+				DutyFreeAmount1 = lists:keyfind("dutyFreeAmount", 1, P1),
+				DutyFreeAmount2 = lists:keyfind("dutyFreeAmount", 1, P2),
+				true = equal(DutyFreeAmount1, DutyFreeAmount2),
+				TaxRate1 = lists:keyfind("taxRate", 1, P1),
+				TaxRate2 = lists:keyfind("taxRate", 1, P2),
+				true = equal(TaxRate1, TaxRate2),
+				CurrencyCode1 = lists:keyfind("currencyCode", 1, P1),
+				CurrencyCode2 = lists:keyfind("currencyCode", 1, P2),
+				true = equal(CurrencyCode1 , CurrencyCode2);
 			{false, false} ->
 				true
 		end,
@@ -922,19 +957,30 @@ get_offer(Config) ->
 				true = (lists:keyfind("description", 1, A1) == lists:keyfind("description", 1, A2)),
 				case {lists:keyfind("validFor", 1, A1), lists:keyfind("validFor", 1, A2)} of
 					{{_, {struct, AV1}}, {_, {struct, AV2}}} ->
-						true = (lists:keyfind("startDateTime", 1, AV1) == lists:keyfind("startDateTime", 1, AV2)),
-						true = (lists:keyfind("endDateTime", 1, AV1) == lists:keyfind("endDateTime", 1, AV2));
+						StartDateTime5 = lists:keyfind("startDateTime", 1, AV1),
+						StartDateTime6 = lists:keyfind("startDateTime", 1, AV2),
+						true = equal(StartDateTime5, StartDateTime6),
+						EndDateTime5 = lists:keyfind("endDateTime", 1, AV1),
+						EndDateTime6 = lists:keyfind("endDateTime", 1, AV2),
+						true = equal(EndDateTime5, EndDateTime6);
 					{false, false} ->
 						true
 				end,
 				true = (lists:keyfind("priceType", 1, A1) == lists:keyfind("priceType", 1, A2)),
 				case {lists:keyfind("price", 1, A1), lists:keyfind("price", 1, A2)} of
 					{{_, {struct, AP1}}, {_, {struct, AP2}}} ->
-						true = (lists:keyfind("taxIncludedAmount", 1, AP1) == lists:keyfind("taxIncludedAmount", 1, AP2)),
-						true = (lists:keyfind("dutyFreeAmount", 1, AP1) == lists:keyfind("dutyFreeAmount", 1, AP2)),
-						true = (lists:keyfind("taxRate", 1, AP1) == lists:keyfind("taxRate", 1, AP2)),
-						true = (lists:keyfind("currencyCode", 1, AP1) == lists:keyfind("currencyCode", 1, AP2)),
-						true = (lists:keyfind("percentage", 1, AP1) == lists:keyfind("percentage", 1, AP2));
+						TaxIncludedAmount3 = lists:keyfind("taxIncludedAmount", 1, AP1),
+						TaxIncludedAmount4 = lists:keyfind("taxIncludedAmount", 1, AP2),
+						true = equal(TaxIncludedAmount3, TaxIncludedAmount4),
+						DutyFreeAmount3 = lists:keyfind("dutyFreeAmount", 1, AP1),
+						DutyFreeAmount4 = lists:keyfind("dutyFreeAmount", 1, AP2),
+						true = equal(DutyFreeAmount3, DutyFreeAmount4),
+						TaxRate3 = lists:keyfind("taxRate", 1, AP1),
+						TaxRate4 = lists:keyfind("taxRate", 1, AP2),
+						true = equal(TaxRate3, TaxRate4),
+						CurrencyCode3 = lists:keyfind("currencyCode", 1, AP1),
+						CurrencyCode4 = lists:keyfind("currencyCode", 1, AP2),
+						true = equal(CurrencyCode3 , CurrencyCode4);
 					{false, false} ->
 						true
 				end,
@@ -946,7 +992,9 @@ get_offer(Config) ->
 					{false, false} ->
 						true
 				end,
-				true = (lists:keyfind("recurringChargePeriod", 1, A1) == lists:keyfind("recurringChargePeriod", 1, A2));
+				RecurringChargePeriod1 = lists:keyfind("recurringChargePeriod", 1, A1),
+				RecurringChargePeriod2 = lists:keyfind("recurringChargePeriod", 1, A2),
+				true = equal(RecurringChargePeriod1, RecurringChargePeriod2);
 			{false, false} ->
 				true
 		end
@@ -965,7 +1013,7 @@ update_offer(Config) ->
 	ReqList = product_offer(),
 	RequestBody1 = lists:flatten(mochijson:encode({struct, ReqList})),
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, auth_header()], ContentType1, RequestBody1},
+			[Accept, auth_header(Config)], ContentType1, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result1,
 	{_, Href} = lists:keyfind("location", 1, Headers1),
@@ -979,7 +1027,7 @@ update_offer(Config) ->
 			pp_alter_type(), pp_alter_ufm(), prod_price_rc_period()]},
 	RequestBody2 = lists:flatten(mochijson:encode(Json)),
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ Href, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ Href, [Accept, auth_header(Config), IfMatch],
 			ContentType2, RequestBody2},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers2, _ResponseBody2} = Result2.
@@ -994,7 +1042,7 @@ delete_offer(Config) ->
 	OfferId = offer_add([P1], 4),
 	{ok, #offer{}} = ocs:find_offer(OfferId),
 	URI = "/productCatalogManagement/v2/productOffering/" ++ OfferId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -1012,7 +1060,7 @@ ignore_delete_offer(Config) ->
 	{ok, #offer{}} = ocs:find_offer(OfferId),
 	_ProdRef = product_add(OfferId),
 	URI = "/productCatalogManagement/v2/productOffering/" ++ OfferId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 403, _Forbidden}, _Headers, _} = Result,
 	{ok, #offer{}} = ocs:find_offer(OfferId).
@@ -1036,7 +1084,7 @@ add_product(Config) ->
 	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
 	ReqBody = lists:flatten(mochijson:encode(Inventory)),
 	Request1 = {HostUrl ++ InventoryHref ++ "/product",
-			[Accept, auth_header()], ContentType, ReqBody},
+			[Accept, auth_header(Config)], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, Href} = lists:keyfind("location", 1, Headers),
@@ -1066,7 +1114,7 @@ get_product(Config) ->
 	ServiceId = service_add(ProdRef),
 	Accept = {"accept", "application/json"},
 	Request = {HostUrl ++ "/productInventoryManagement/v2/product/" ++ ProdRef,
-			[Accept, auth_header()]},
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1107,7 +1155,7 @@ update_product_realizing_service(Config) ->
 	{ok, #service{}}	= ocs:add_service(ServiceId, ocs:generate_password(), undefined, []),
 	Accept = {"accept", "application/json"},
 	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
-	Request1 = {HostUrl ++ URI, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ URI, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, _ResponseBody11} = Result1,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
@@ -1120,7 +1168,7 @@ update_product_realizing_service(Config) ->
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	ContentType = "application/json-patch+json",
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
 			ContentType, RequestBody},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK2}, _Headers2, ResponseBody2} = Result2,
@@ -1149,7 +1197,7 @@ head_products(Config) ->
 	ProdRef1 = product_add(OfferId1),
 	{_, #product{}} = ocs:find_product(ProdRef1),
 	URI = "/productInventoryManagement/v2/product",
-	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	RequestHeaders = [auth_header(Config), {"accept", "application/json"}],
 	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _NoContent}, ResultHeaders, []} = Result,
@@ -1168,7 +1216,7 @@ delete_product(Config) ->
 	ProdRef = product_add(OfferId),
 	{_, #product{}} = ocs:find_product(ProdRef),
 	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -1187,7 +1235,7 @@ ignore_delete_product(Config) ->
 	{ok, #product{id = ProdRef}} =
 			ocs:add_product(OfferId, [list_to_binary(ServiceId)]),
 	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 403, _Forbidden}, _Headers, _} = Result,
 	{ok, #product{}} = ocs:find_product(ProdRef).
@@ -1218,7 +1266,7 @@ query_product(Config) ->
 	Query = "id=" ++ Id ++ "&productOffering=" ++ Offer ++ 
 		"&service=" ++  binary_to_list(lists:nth(rand:uniform(length(Services)), Services)),
 	Request = {HostUrl ++ "/productInventoryManagement/v2/product?" ++ Query,
-			[Accept, auth_header()]},
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1261,7 +1309,7 @@ filter_product(Config) ->
 	Filter = "?filter=%22%5B%7Bid.like=%5B" ++ TS ++ "%25%5D%7D%5D%22",
 	Url = HostUrl ++ "/productInventoryManagement/v2/product" ++ Filter,
 	Accept = {"accept", "application/json"},
-	Request = {Url, [Accept, auth_header()]},
+	Request = {Url, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1303,7 +1351,7 @@ add_product_sms(Config) ->
 	ReqList = [ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice],
 	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, auth_header()], ContentType, ReqBody},
+			[Accept, auth_header(Config)], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers).
@@ -1335,7 +1383,7 @@ add_service_inventory(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
-			[Accept, auth_header()], ContentType, RequestBody},
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1373,7 +1421,7 @@ add_service_inventory_without_password(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
-			[Accept, auth_header()], ContentType, RequestBody},
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1417,7 +1465,7 @@ add_service_aka(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
-			[Accept, auth_header()], ContentType, RequestBody},
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1451,7 +1499,7 @@ get_service_inventory(Config) ->
 	{ok, #service{}} = ocs:add_service(ID, Password, State, ProdRef, [], Attributes, true, false),
 	Accept = {"accept", "application/json"},
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID,
-			[Accept, auth_header()]},
+			[Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1505,7 +1553,7 @@ head_services(Config) ->
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(Identity, Password),
 	URI = "/serviceInventoryManagement/v2/service/",
-	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	RequestHeaders = [auth_header(Config), {"accept", "application/json"}],
 	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _NoContent}, ResultHeaders, []} = Result,
@@ -1521,7 +1569,7 @@ get_service_not_found(Config) ->
 	HttpOpt = ?config(http_options, Config),
 	Accept = {"accept", "application/json"},
 	ID = ocs:generate_identity(),
-	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID, [Accept, auth_header()]},
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
@@ -1568,7 +1616,7 @@ get_all_service_inventories(Config) ->
 	{ok, #service{}} = ocs:add_service(ID4, Password4, active, ProdRef4, [], Attributes4, true, false),
 	{ok, #service{}} = ocs:add_service(ID5, Password5, active, ProdRef5, [], Attributes5, true, false),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [Accept, auth_header()]},
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1656,7 +1704,7 @@ get_service_range(Config) ->
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Identity = ocs:generate_identity(),
+				Identity = ocs:generate_identity() ++ ocs:generate_identity(),
 				Password = ocs:generate_password(),
 				{ok, _} = ocs:add_service(Identity, Password, ProdRef, []),
 				F(F, N - 1)
@@ -1670,7 +1718,7 @@ get_service_range(Config) ->
 			PageSize - 1
 	end,
 	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
+	RequestHeaders1 = [Accept, auth_header(Config)],
 	Request1 = {HostUrl ++ "/serviceInventoryManagement/v2/service/", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
@@ -1726,7 +1774,7 @@ delete_service(Config) ->
 	ServiceId = service_add(ProdRef),
 	{ok, #service{}} = ocs:find_service(ServiceId),
 	URI = "/serviceInventoryManagement/v2/service/" ++ ServiceId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers).
@@ -1744,7 +1792,7 @@ update_service(Config) ->
 	ServiceId = service_add(ProdRef),
 	Accept = {"accept", "application/json"},
 	URI = "/serviceInventoryManagement/v2/service/" ++ ServiceId,
-	Request1 = {HostUrl ++ URI, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ URI, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK1}, Headers1, ResponseBody1} = Result1,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
@@ -1769,7 +1817,7 @@ update_service(Config) ->
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	ContentType = "application/json-patch+json",
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
 			ContentType, RequestBody},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK2}, _Headers2, ResponseBody2} = Result2,
@@ -1796,7 +1844,7 @@ get_usagespecs(Config) ->
 	HttpOpt = ?config(http_options, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Request = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, auth_header()]},
+	Request = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -1818,7 +1866,7 @@ get_usagespecs_query(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	Path = HostUrl ++ "/usageManagement/v1/usageSpecification",
-	Request1 = {Path, [Accept, auth_header()]},
+	Request1 = {Path, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
 	{array, UsageSpecs} = mochijson:decode(Body1),
@@ -1828,7 +1876,7 @@ get_usagespecs_query(Config) ->
 	end,
 	Types = lists:map(F1, UsageSpecs),
 	F2 = fun(Type2) ->
-				Request2 = {Path ++ "?name=" ++ Type2, [Accept, auth_header()]},
+				Request2 = {Path ++ "?name=" ++ Type2, [Accept, auth_header(Config)]},
 				{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 				{{"HTTP/1.1", 200, _}, Headers2, Body2} = Result2,
 				{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
@@ -1851,7 +1899,7 @@ get_usagespec(Config) ->
 	HttpOpt = ?config(http_options, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Request1 = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, auth_header()]},
+	Request1 = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
 	{array, UsageSpecs} = mochijson:decode(Body1),
@@ -1863,7 +1911,7 @@ get_usagespec(Config) ->
 	end,
 	Uris = lists:map(F1, UsageSpecs),
 	F2 = fun(Uri) ->
-				Request2 = {HostUrl ++ Uri, [Accept, auth_header()]},
+				Request2 = {HostUrl ++ Uri, [Accept, auth_header(Config)]},
 				{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 				{{"HTTP/1.1", 200, _}, Headers2, Body2} = Result2,
 				{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
@@ -1904,7 +1952,7 @@ get_auth_usage(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage&sort=-date",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2005,7 +2053,7 @@ get_auth_usage_id(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri1 = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage",
-	Request1 = {RequestUri1, [Accept, auth_header()]},
+	Request1 = {RequestUri1, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
 	{array, Usages} = mochijson:decode(Body1),
@@ -2013,7 +2061,7 @@ get_auth_usage_id(Config) ->
 	{_, Id} = lists:keyfind("id", 1, Usage),
 	{_, Href} = lists:keyfind("href", 1, Usage),
 	RequestUri2 = HostUrl ++ Href,
-	Request2 = {RequestUri2, [Accept, auth_header()]},
+	Request2 = {RequestUri2, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _}, Headers2, Body2} = Result2,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
@@ -2049,7 +2097,7 @@ get_auth_usage_filter(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage&sort=-date&fields=date,status,usageCharacteristic",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2094,7 +2142,7 @@ get_auth_usage_range(Config) ->
 			PageSize - 1
 	end,
 	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
+	RequestHeaders1 = [Accept, auth_header(Config)],
 	Request1 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
@@ -2168,7 +2216,7 @@ acct_usage_radius(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2342,7 +2390,7 @@ acct_usage_diameter(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2493,7 +2541,7 @@ acct_usage_nrf(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2576,14 +2624,14 @@ get_acct_usage_id(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri1 = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage",
-	Request1 = {RequestUri1, [Accept, auth_header()]},
+	Request1 = {RequestUri1, [Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
 	{array, Usages} = mochijson:decode(Body1),
 	{struct, Usage} = lists:last(Usages),
 	{_, Href} = lists:keyfind("href", 1, Usage),
 	RequestUri2 = HostUrl ++ Href,
-	Request2 = {RequestUri2, [Accept, auth_header()]},
+	Request2 = {RequestUri2, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _}, Headers2, Body2} = Result2,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
@@ -2609,7 +2657,7 @@ get_acct_usage_filter(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date&fields=date,status,usageCharacteristic",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2641,7 +2689,7 @@ query_acct_usage_radius(Config) ->
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2678,7 +2726,7 @@ query_acct_usage_diameter(Config) ->
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2715,7 +2763,7 @@ query_acct_usage_nrf(Config) ->
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2752,7 +2800,7 @@ query_acct_usage_type(Config) ->
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2793,7 +2841,7 @@ query_acct_usage_nas_id(Config) ->
 			{"type", "AAAAccountingUsage"}, {"filter", Filter}],
 	Query = uri_string:compose_query(QueryList),
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?" ++ Query,
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -2854,7 +2902,7 @@ get_balance_range(Config) ->
 			PageSize - 1
 	end,
 	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
+	RequestHeaders1 = [Accept, auth_header(Config)],
 	Request1 = {HostUrl ++ "/ocs/v1/log/balance", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
@@ -2931,7 +2979,7 @@ get_acct_usage_range(Config) ->
 			PageSize - 1
 	end,
 	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
+	RequestHeaders1 = [Accept, auth_header(Config)],
 	Request1 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
@@ -2984,7 +3032,7 @@ get_ipdr_usage(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=PublicWLANAccessUsage",
-	Request = {RequestUri, [Accept, auth_header()]},
+	Request = {RequestUri, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
@@ -3053,7 +3101,7 @@ topup_product(Config) ->
 			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
 	JSON = {struct, [BucketType, Channel, Amount, Product, ValidFor]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {RequestURI, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {RequestURI, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, Href} = lists:keyfind("location", 1, Headers),
@@ -3088,7 +3136,7 @@ topup_service(Config) ->
 			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
 	JSON = {struct, [BucketType, Channel, Amount, ValidFor]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {RequestURI, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {RequestURI, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, Href} = lists:keyfind("location", 1, Headers),
@@ -3125,7 +3173,7 @@ topup_price(Config) ->
 			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
 	JSON = {struct, [BucketType, Channel, Amount, Product, Price, ValidFor]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {RequestURI, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {RequestURI, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, Href} = lists:keyfind("location", 1, Headers),
@@ -3160,7 +3208,7 @@ get_balance_product(Config) ->
 	OctetsBal = integer_to_list(B2#bucket.remain_amount) ++ "b",
 	Path = "/balanceManagement/v1/product/" ++ ProdRef ++ "/accumulatedBalance",
 	GETURI = HostUrl ++ Path,
-	GETRequest = {GETURI, [Accept, auth_header()]},
+	GETRequest = {GETURI, [Accept, auth_header(Config)]},
 	{ok, GETResult} = httpc:request(get, GETRequest, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3218,7 +3266,7 @@ get_balance_service(Config) ->
 	OctetsBal = integer_to_list(B2#bucket.remain_amount) ++ "b",
 	Path = "/balanceManagement/v1/service/" ++ ServiceId ++ "/accumulatedBalance",
 	GETURI = HostUrl ++ Path,
-	GETRequest = {GETURI, [Accept, auth_header()]},
+	GETRequest = {GETURI, [Accept, auth_header(Config)]},
 	{ok, GETResult} = httpc:request(get, GETRequest, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3271,7 +3319,7 @@ query_buckets(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	Path = "/balanceManagement/v1/bucket" ++ "?product.id=" ++ ProdRef1,
-	GETRequest = {HostUrl ++ Path, [Accept, auth_header()]},
+	GETRequest = {HostUrl ++ Path, [Accept, auth_header(Config)]},
 	{ok, GETResult} = httpc:request(get, GETRequest, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3300,7 +3348,7 @@ head_buckets(Config) ->
 	Bucket = b(cents, 10000),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	URI = "/balanceManagement/v1/bucket",
-	RequestHeaders = [auth_header(), {"accept", "application/json"}],
+	RequestHeaders = [auth_header(Config), {"accept", "application/json"}],
 	Request = {HostUrl ++ URI, RequestHeaders},
 	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _NoContent}, ResultHeaders, []} = Result,
@@ -3324,7 +3372,7 @@ simultaneous_updates_on_client_failure(Config) ->
 			{"protocol", Protocol}, {"secret", Secret}]},
 	RequestBody1 = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()],
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header(Config)],
 			ContentType1, RequestBody1},
 	{ok, Result11} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result11,
@@ -3336,7 +3384,7 @@ simultaneous_updates_on_client_failure(Config) ->
 	RequestBody2 =  "{\"secret\" : \""  ++ NewSecret ++ "\"}",
 	ContentType2 = "application/json-patch+json",
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
 			ContentType2, RequestBody2},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 412, _NoContent}, _Headers2, _ResponseBody2} = Result2.
@@ -3349,7 +3397,7 @@ update_client_password_json_patch(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType1 = "application/json",
-	ID = "10.21.65.83",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 3781,
 	Protocol = "RADIUS",
 	Secret = ocs:generate_password(),
@@ -3357,7 +3405,7 @@ update_client_password_json_patch(Config) ->
 		{"secret", Secret}]},
 	RequestBody1 = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()],
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header(Config)],
 			ContentType1, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result1,
@@ -3379,7 +3427,7 @@ update_client_password_json_patch(Config) ->
 	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/secret"}, {value, NewSecret}]}]},
 	RequestBody2 = lists:flatten(mochijson:encode(JSON1)),
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
 			ContentType2, RequestBody2},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers2, ResponseBody2} = Result2,
@@ -3398,7 +3446,7 @@ update_client_attributes_json_patch(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	ContentType1 = "application/json",
-	ID = "103.73.94.4",
+	ID = inet:ntoa(ocs_test_lib:ipv4()),
 	Port = 2768,
 	Protocol = "RADIUS",
 	Secret = ocs:generate_password(),
@@ -3406,7 +3454,7 @@ update_client_attributes_json_patch(Config) ->
 		{"secret", Secret}]},
 	RequestBody1 = lists:flatten(mochijson:encode(JSON)),
 	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()],
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header(Config)],
 			ContentType1, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result1,
@@ -3430,7 +3478,7 @@ update_client_attributes_json_patch(Config) ->
 			{struct, [{op, "replace"}, {path, "/protocol"}, {value, NewProtocol}]}]},
 	RequestBody2 = lists:flatten(mochijson:encode(JSON1)),
 	IfMatch = {"if-match", Etag},
-	Request2 = {HostUrl ++ URI, [Accept, auth_header(), IfMatch],
+	Request2 = {HostUrl ++ URI, [Accept, auth_header(Config), IfMatch],
 			ContentType2, RequestBody2},
 	{ok, Result2} = httpc:request(patch, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, _Headers2, ResponseBody2} = Result2,
@@ -3455,7 +3503,7 @@ post_hub_balance(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3479,11 +3527,11 @@ delete_hub_balance(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_balance_hubs() ->
@@ -3499,13 +3547,13 @@ get_balance_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3535,12 +3583,12 @@ get_balance_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -3568,7 +3616,7 @@ notify_create_bucket(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price = #price{name = ocs:generate_identity(),
@@ -3594,7 +3642,7 @@ notify_create_bucket(Config) ->
 	{_, "cents"} = lists:keyfind("units", 1, RemainAmount),
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	100 = ocs_rest:millionths_in(MillionthsOut),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_delete_bucket() ->
@@ -3613,7 +3661,7 @@ notify_delete_bucket(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
@@ -3636,7 +3684,7 @@ notify_delete_bucket(Config) ->
 			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_rating_deleted_bucket() ->
@@ -3655,7 +3703,7 @@ notify_rating_deleted_bucket(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
@@ -3695,7 +3743,7 @@ notify_rating_deleted_bucket(Config) ->
 			= lists:keyfind("remainedAmount", 1, DeletedBalance),
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	PackagePrice = ocs_rest:millionths_in(MillionthsOut),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_accumulated_balance_threshold() ->
@@ -3705,45 +3753,55 @@ notify_accumulated_balance_threshold() ->
 notify_accumulated_balance_threshold(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	PackagePrice = 5000000,
-	PackageSize = 100000000,
+	OctetsPrice = 10000000,
+	OctetsSize = 10000000,
+	SecondsPrice = 100000,
+	SecondsSize = 60,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
-			size = PackageSize, amount = PackagePrice},
-	OfferId = add_offer([P1], 4),
+			size = OctetsSize, amount = OctetsPrice},
+	P2 = #price{name = ocs:generate_identity(), type = usage, units = seconds,
+			size = SecondsSize, amount = SecondsPrice},
+	OfferId = add_offer([P1, P2], 4),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	_BId1 = add_bucket(ProdRef, cents, 50000000),
-	RA = 500000000,
-	_BId2 = add_bucket(ProdRef, octets, RA),
-	_BId3 = add_bucket(ProdRef, cents, 100000000),
-	Threshold = 500000000,
-	ok = application:set_env(ocs, threshold_bytes, 500000000),
+	RAcents = OctetsPrice - rand:uniform(OctetsPrice),
+	_BId1 = add_bucket(ProdRef, cents, RAcents),
+	RAoctets = OctetsSize * 10,
+	_BId2 = add_bucket(ProdRef, octets, RAoctets div 2),
+	_BId3 = add_bucket(ProdRef, octets, RAoctets div 2),
+	RAseconds = SecondsSize * 10,
+	_BId4 = add_bucket(ProdRef, seconds, RAseconds),
+	ThresholdOctets = RAoctets div 5,
+	ok = application:set_env(ocs, threshold_bytes, ThresholdOctets),
+	ThresholdSeconds = RAseconds div 5,
+	ok = application:set_env(ocs, threshold_seconds, ThresholdSeconds),
 	CollectionUrl = HostUrl ++ ?PathBalanceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalancethreshold",
 	Query = "totalBalance.units=octets&totalBalance.amount.lt="
-			++ integer_to_list(Threshold),
+			++ integer_to_list(ThresholdOctets),
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
+	DebitOctets = (RAoctets - ThresholdOctets) + rand:uniform(OctetsSize),
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, [ServiceId], Timestamp, undefined, undefined,
-			initial, [], [{octets, PackageSize}], SessionId),
+			initial, [], [{octets, DebitOctets}], SessionId),
 	receive
-		Input7 ->
-			{struct, AccBalanceEvent} = mochijson:decode(Input7),
+		Notification ->
+			{struct, AccBalanceEvent} = mochijson:decode(Notification),
 			{_, "AccumulatedBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, AccBalanceEvent),
 			{_, {array, [{struct, AccList}]}}
@@ -3751,13 +3809,13 @@ notify_accumulated_balance_threshold(Config) ->
 			case lists:keyfind("totalBalance", 1, AccList) of
 				{_, {array, [{struct, [{"amount", Amount}, {"units", "octets"}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
-					OctetsAmount = RA - PackageSize;
+					OctetsAmount = RAoctets - DebitOctets;
 				{_, {array, [{struct, [{"units", "octets"}, {"amount", Amount}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
-					OctetsAmount = RA - PackageSize
+					OctetsAmount = RAoctets - DebitOctets
 			end
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 query_accumulated_balance_notification() ->
@@ -3786,14 +3844,14 @@ query_accumulated_balance_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Threshold = 100,
 	Query = "?totalBalance.units=cents&totalBalance.amount.lt="
 			++ integer_to_list(Threshold),
 	Request2 = {HostUrl ++ "/balanceManagement/v1/product/" ++ ProdRef
-			++ "/accumulatedBalance" ++ Query, [Accept, auth_header()]},
+			++ "/accumulatedBalance" ++ Query, [Accept, auth_header(Config)]},
 	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, HttpOpt, []),
 	ok = ocs:delete_bucket(BId2),
 	receive
@@ -3813,7 +3871,7 @@ query_accumulated_balance_notification(Config) ->
 					= lists:keyfind("event", 1, AccBalanceEvent),
 			AccBalList
 	end,
-	Request3 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request3 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request3, HttpOpt, []),
 	{_, {array,[{struct, Q}]}} = lists:keyfind("totalBalance", 1, AccBalance),
 	{_, Amount} = lists:keyfind("amount", 1, Q),
@@ -3844,7 +3902,7 @@ query_bucket_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	_BId2 = add_bucket(ProdRef, octets, 100000000),
@@ -3858,7 +3916,7 @@ query_bucket_notification(Config) ->
 					= lists:keyfind("event", 1, BalDelEvent),
 			{_, BId1} = lists:keyfind("id", 1, StructList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_product_charge() ->
@@ -3877,7 +3935,7 @@ notify_product_charge(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	SD = erlang:system_time(millisecond),
@@ -3939,7 +3997,7 @@ notify_product_charge(Config) ->
 				end
 	end,
 	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 post_hub_product() ->
@@ -3956,7 +4014,7 @@ post_hub_product(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -3980,11 +4038,11 @@ delete_hub_product(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _ResponseHeaders, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_product_hubs() ->
@@ -4000,13 +4058,13 @@ get_product_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4036,12 +4094,12 @@ get_product_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4069,7 +4127,7 @@ notify_create_product(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price = #price{name = ocs:generate_identity(),
@@ -4095,7 +4153,7 @@ notify_create_product(Config) ->
 	{_, ProductId} = lists:keyfind("id", 1, Product),
 	{_, {struct, OfferStruct}} = lists:keyfind("productOffering", 1, Product),
 	{_, OfferId} = lists:keyfind("id", 1, OfferStruct),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_delete_product() ->
@@ -4114,7 +4172,7 @@ notify_delete_product(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
@@ -4146,7 +4204,7 @@ notify_delete_product(Config) ->
 			ProductStuct1
 	end,
 	#product{} = ocs_rest_res_product:product(ProductStuct2),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 query_product_notification() ->
@@ -4173,7 +4231,7 @@ query_product_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	{ok, #product{id = _ProdRef2}} = ocs:add_product(OfferId, [], []),
@@ -4187,7 +4245,7 @@ query_product_notification(Config) ->
 					= lists:keyfind("event", 1, ProductDelEvent),
 			{_, ProdRef1} = lists:keyfind("id", 1, StructList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 post_hub_service() ->
@@ -4204,7 +4262,7 @@ post_hub_service(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4232,7 +4290,7 @@ notify_create_service(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Identity = ocs:generate_identity(),
@@ -4256,7 +4314,7 @@ notify_create_service(Config) ->
 				false
 	end,
 	[Password] = lists:filtermap(F, Chars),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_delete_service() ->
@@ -4275,7 +4333,7 @@ notify_delete_service(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Identity = ocs:generate_identity(),
@@ -4294,7 +4352,7 @@ notify_delete_service(Config) ->
 			{_, "ServiceDeleteNotification"}
 					= lists:keyfind("eventType", 1, ServiceDelEvent)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 delete_hub_service() ->
@@ -4309,11 +4367,11 @@ delete_hub_service(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_service_hubs() ->
@@ -4329,13 +4387,13 @@ get_service_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4365,12 +4423,12 @@ get_service_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4401,7 +4459,7 @@ query_service_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Password = ocs:generate_password(),
@@ -4426,7 +4484,7 @@ query_service_notification(Config) ->
 				false
 	end,
 	[Password] = lists:filtermap(F, Chars),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 post_hub_user() ->
@@ -4443,7 +4501,7 @@ post_hub_user(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4467,11 +4525,11 @@ delete_hub_user(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_user_hubs() ->
@@ -4487,13 +4545,13 @@ get_user_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4523,12 +4581,12 @@ get_user_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4554,7 +4612,7 @@ post_hub_catalog(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4578,11 +4636,11 @@ delete_hub_catalog(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_catalog_hubs() ->
@@ -4598,13 +4656,13 @@ get_catalog_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4634,12 +4692,12 @@ get_catalog_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4667,7 +4725,7 @@ notify_create_offer(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price1 = price(one_time, undefined, undefined, 1000),
@@ -4681,7 +4739,7 @@ notify_create_offer(Config) ->
 			{_, {struct, OfferList}} = lists:keyfind("event", 1, OfferEvent),
 			{_, OfferId} = lists:keyfind("id", 1, OfferList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_delete_offer() ->
@@ -4700,7 +4758,7 @@ notify_delete_offer(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
@@ -4719,7 +4777,7 @@ notify_delete_offer(Config) ->
 			{_, "ProductOfferingRemoveNotification"}
 					= lists:keyfind("eventType", 1, OfferDelEvent)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 query_offer_notification() ->
@@ -4743,7 +4801,7 @@ query_offer_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	_OfferId2 = add_offer([P1], 4),
@@ -4757,7 +4815,7 @@ query_offer_notification(Config) ->
 					= lists:keyfind("event", 1, OfferDelEvent),
 			{_, OfferId1} = lists:keyfind("id", 1, StructList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 post_hub_inventory() ->
@@ -4774,7 +4832,7 @@ post_hub_inventory(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4798,11 +4856,11 @@ delete_hub_inventory(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_inventory_hubs() ->
@@ -4818,13 +4876,13 @@ get_inventory_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -4854,12 +4912,12 @@ get_inventory_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -4887,7 +4945,7 @@ notify_add_resource(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-1",
@@ -4906,7 +4964,7 @@ notify_add_resource(Config) ->
 			{_, Id} = lists:keyfind("id", 1, ResList),
 			true = is_list(Id)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 notify_delete_resource() ->
@@ -4925,7 +4983,7 @@ notify_delete_resource(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-2",
@@ -4950,7 +5008,7 @@ notify_delete_resource(Config) ->
 			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent2),
 			{_, Id} = lists:keyfind("id", 1, ResList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 query_resource_notification() ->
@@ -4978,7 +5036,7 @@ query_resource_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	ok = ocs:delete_resource(Id),
@@ -4990,7 +5048,7 @@ query_resource_notification(Config) ->
 			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
 			{_, Id} = lists:keyfind("id", 1, ResList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 post_hub_usage() ->
@@ -5007,7 +5065,7 @@ post_hub_usage(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5032,13 +5090,13 @@ get_usage_hubs(Config) ->
 	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5068,12 +5126,12 @@ get_usage_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -5097,11 +5155,11 @@ delete_hub_usage(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 notify_diameter_acct_log() ->
@@ -5120,7 +5178,7 @@ notify_diameter_acct_log(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, HttpOpt, []),
 	{_, ?PathUsageHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Protocol = diameter,
@@ -5144,7 +5202,7 @@ notify_diameter_acct_log(Config) ->
 			{_, "AAAAccountingUsage"}
 					= lists:keyfind("type", 1, AcctUsageList)
 	end,
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, HttpOpt, []).
 
 get_resources() ->
@@ -5159,7 +5217,7 @@ get_resources(Config) ->
 	{ok, #resource{id = _RowId}} = add_row("2", "tariff row", TableId, TableName),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()]},
+	Request = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5186,7 +5244,7 @@ get_tariff_tables(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=1",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5215,7 +5273,7 @@ get_periods_tables(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=5",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5244,7 +5302,7 @@ get_roaming_tables(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=7",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5270,7 +5328,7 @@ get_tariff_rows(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=2",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5297,7 +5355,7 @@ get_periods_rows(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=6",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5324,7 +5382,7 @@ get_roaming_rows(Config) ->
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource",
 	Query = "?resourceSpecification.id=8",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl ++ Query, [Accept, auth_header()]},
+	Request = {CollectionUrl ++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5365,7 +5423,7 @@ get_tariff_table(Config) ->
 					href = SpecHref, name = SpecName}},
 	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5432,7 +5490,7 @@ get_tariff_row(Config) ->
 					#resource_char{name = "rate", value = Rate}]},
 	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5493,7 +5551,7 @@ get_periods_table(Config) ->
 					href = SpecHref, name = SpecName}},
 	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5566,7 +5624,7 @@ get_periods_row(Config) ->
 					#resource_char{name = "rateAdditional", value = RateAdditional}]},
 	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5627,7 +5685,7 @@ get_roaming_table(Config) ->
 					href = SpecHref, name = SpecName}},
 	{ok, #resource{id = Id, href = Href}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5694,7 +5752,7 @@ get_roaming_row(Config) ->
 					#resource_char{name = "tariff", value = TariffTableName}]},
 	{ok, #resource{id = RowId, href = RowHref}} = ocs:add_resource(Resource),
 	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ RowHref, [Accept, auth_header()]},
+	Request = {HostUrl ++ RowHref, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5770,7 +5828,7 @@ post_tariff_table(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5856,7 +5914,7 @@ post_tariff_row(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5911,7 +5969,7 @@ post_periods_table(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6013,7 +6071,7 @@ post_periods_row(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6069,7 +6127,7 @@ post_roaming_table(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6154,7 +6212,7 @@ post_roaming_row(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6175,7 +6233,7 @@ delete_tariff_table(Config) ->
 	ok = ocs_gtt:new(TableName, []),
 	{ok, #resource{id = Id}} = add_table("1", "", TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6192,7 +6250,7 @@ delete_tariff_row(Config) ->
 	{ok, #resource{id = TableId}} = add_table("1", "", TableName),
 	{ok, #resource{id = RowId}} = add_row("2", "", TableId, TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6208,7 +6266,7 @@ delete_periods_table(Config) ->
 	ok = ocs_gtt:new(TableName, []),
 	{ok, #resource{id = Id}} = add_table("5", "", TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6225,7 +6283,7 @@ delete_periods_row(Config) ->
 	{ok, #resource{id = TableId}} = add_table("5", "", TableName),
 	{ok, #resource{id = RowId}} = add_row("6", "", TableId, TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6241,7 +6299,7 @@ delete_roaming_table(Config) ->
 	ok = ocs_gtt:new(TableName, []),
 	{ok, #resource{id = Id}} = add_table("7", "", TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6258,7 +6316,7 @@ delete_roaming_row(Config) ->
 	{ok, #resource{id = TableId}} = add_table("7", "", TableName),
 	{ok, #resource{id = RowId}} = add_row("8", "", TableId, TableName),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ RowId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6300,7 +6358,7 @@ update_tariff_table(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6361,7 +6419,7 @@ update_tariff_row(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6417,7 +6475,7 @@ update_periods_table(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6502,7 +6560,7 @@ update_periods_row(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6564,7 +6622,7 @@ update_roaming_table(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6625,7 +6683,7 @@ update_roaming_row(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json-patch+json",
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	Request = {HostUrl ++ Href, [Accept, auth_header()],
+	Request = {HostUrl ++ Href, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result} = httpc:request(patch, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
@@ -6685,7 +6743,7 @@ post_policy_resource(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/",
-			[Accept, auth_header()], ContentType, RequestBody},
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6724,14 +6782,17 @@ query_policy_resource() ->
 query_policy_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ok = ocs_gtt:new(tariff_table6, []),
-	TariffTable = #resource{name = "tariff_table6", description = "Tariff Table",
+	GttTableName = ocs:generate_identity(),
+	GttTableID = list_to_atom(GttTableName),
+	ok = ocs_gtt:new(GttTableID, []),
+	TariffTable = #resource{name = GttTableName, description = "Tariff Table",
 			category = "Tariff", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
 					name = "TariffTable"}},
 	{ok, #resource{}} = ocs:add_resource(TariffTable),
-	PolicyTable = #resource{name = "PolicyTable", description = "Policy Table",
+	PolicyTableName = ocs:generate_identity(),
+	PolicyTable = #resource{name = PolicyTableName, description = "Policy Table",
 			category = "Policy", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "3",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
@@ -6741,7 +6802,7 @@ query_policy_resource(Config) ->
 			category = "Policy", class_type = "LogicalResource",
 			base_type = "Resource", related = [#resource_rel{id = PolicyTableId1,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ PolicyTableId1, name = "PolicyTable1", type = "contained"}],
+					++ PolicyTableId1, name = PolicyTableName, type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
 					name = "PolicyTableRow"},
@@ -6780,9 +6841,9 @@ query_policy_resource(Config) ->
 	{ok, #resource{id = _RowId2}} = ocs:add_resource(PolicyRow2),
 	Accept = {"accept", "application/json"},
 	Query = "resourceSpecification.id=4" ++
-		"&resourceRelationship.resource.name=PolicyTable1",
-	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?" ++ Query,
-			[Accept, auth_header()]},
+		"&resourceRelationship.resource.name=" ++ PolicyTableName,
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?"
+			++ Query, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6795,7 +6856,7 @@ query_policy_resource(Config) ->
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
 	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
-	{_, "PolicyTable1"} = lists:keyfind("name", 1, ObjList).
+	{_, PolicyTableName} = lists:keyfind("name", 1, ObjList).
 
 delete_policy_table() ->
 	[{userdata, [{doc,"Delete policy table resource"}]}].
@@ -6807,7 +6868,7 @@ delete_policy_table(Config) ->
 	PolicyRowId1 = add_policy_row(TableId, TableName, 0),
 	PolicyRowId2 = add_policy_row(TableId, TableName, 1),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ TableId,
-	Request = {HostUrl ++ URI, [auth_header()]},
+	Request = {HostUrl ++ URI, [auth_header(Config)]},
 	{ok, Result} = httpc:request(delete, Request, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
@@ -6822,14 +6883,14 @@ oauth_authentication(Config)->
 	Path = ?config(data_dir, Config),
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	ID = "cornflakes",
+	ID = ocs:generate_identity(),
 	{ok, _} = ocs:add_user(ID, "", []),
 	ok = application:set_env(ocs, oauth_issuer, "joe"),
 	ok = application:set_env(ocs, oauth_audience, "network-subscriber.sigscale-ocs"),
 	ok = application:set_env(ocs, oauth_key, Path ++ "pub.pem"),
 	Accept = {"accept", "application/json"},
 	Header = {struct, [{"alg", "RS256"}, {"typ", "JWT"}]},
-	Payload = {struct, [{"iss", "joe"}, {"exp", 1300819380}, {"email", "cornflakes"},
+	Payload = {struct, [{"iss", "joe"}, {"exp", 1300819380}, {"email", ID},
 			{"aud", {array, ["network-subscriber.sigscale-ocs", "account"]}},
 			{"preferred_username", "flakes"}]},
 	EncodedHeader = encode_base64url(lists:flatten(mochijson:encode(Header))),
@@ -6880,7 +6941,7 @@ arbitrary_char_service(Config) ->
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
-			[Accept, auth_header()], ContentType, RequestBody},
+			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -6907,7 +6968,8 @@ post_role(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
 	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
-	RequestBody = lists:flatten(mochijson:encode(party_role("Global_Pirates"))),
+	RoleName = ocs:generate_identity(),
+	RequestBody = lists:flatten(mochijson:encode(party_role(RoleName))),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept], ContentType, RequestBody},
@@ -6925,16 +6987,17 @@ delete_role() ->
 delete_role(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	RequestBody = lists:flatten(mochijson:encode(party_role("Queen"))),
+	RoleName = ocs:generate_identity(),
+	RequestBody = lists:flatten(mochijson:encode(party_role(RoleName))),
 	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()],
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result1,
 	{_, Href} = lists:keyfind("location", 1, Headers1),
-	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(delete, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers2, []} = Result2,
 	{ok, {{"HTTP/1.1", 404, _NotFound}, _Headers3, _ResponseBody3}}
@@ -6946,20 +7009,22 @@ get_roles() ->
 get_roles(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	RequestBody1 = lists:flatten(mochijson:encode(party_role("USA_Pirates"))),
-	RequestBody2 = lists:flatten(mochijson:encode(party_role("CA_Pirates"))),
+	RoleName1 = ocs:generate_identity(),
+	RequestBody1 = lists:flatten(mochijson:encode(party_role(RoleName1))),
+	RoleName2 = ocs:generate_identity(),
+	RequestBody2 = lists:flatten(mochijson:encode(party_role(RoleName2))),
 	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()],
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)],
 			ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, Created}, _Headers1, _ResponseBody1} = Result1,
-	Request2 = {CollectionUrl, [Accept, auth_header()],
+	Request2 = {CollectionUrl, [Accept, auth_header(Config)],
 			ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 201, Created}, _Headers2, _ResponseBody2} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers3, ResponseBody3} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers3),
@@ -6975,16 +7040,17 @@ get_role() ->
 get_role(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	RequestBody = lists:flatten(mochijson:encode(party_role("SL_Pirates"))),
+	RoleName = ocs:generate_identity(),
+	RequestBody = lists:flatten(mochijson:encode(party_role(RoleName))),
 	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()],
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)],
 			ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result1,
 	{_, Href} = lists:keyfind("location", 1, Headers1),
-	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Href, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody2} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -7032,11 +7098,11 @@ delete_hub_role(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, HttpOpt, []),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Id} = lists:keyfind("id", 1, HubList),
-	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header(Config)]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, HttpOpt, []).
 
 get_role_hubs() ->
@@ -7053,14 +7119,14 @@ get_role_hubs(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	Request1 = {CollectionUrl, [Accept,
-			auth_header()], ContentType, RequestBody1},
+			auth_header(Config)], ContentType, RequestBody1},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result1,
 	Request2 = {CollectionUrl, [Accept,
-			auth_header()], ContentType, RequestBody2},
+			auth_header(Config)], ContentType, RequestBody2},
 	{ok, Result2} = httpc:request(post, Request2, HttpOpt, []),
 	{{_, 201, _}, _, _} = Result2,
-	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	Request3 = {CollectionUrl, [Accept, auth_header(Config)]},
 	{ok, Result3} = httpc:request(get, Request3, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -7090,12 +7156,12 @@ get_role_hub(Config) ->
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request1 = {CollectionUrl, [Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result1} = httpc:request(post, Request1, HttpOpt, []),
 	{{_, 201, _}, Headers1, _} = Result1,
 	{_, Location} = lists:keyfind("location", 1, Headers1),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
-	Request2 = {HostUrl ++ Location, [Accept, auth_header()]},
+	Request2 = {HostUrl ++ Location, [Accept, auth_header(Config)]},
 	{ok, Result2} = httpc:request(get, Request2, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
@@ -7395,15 +7461,16 @@ is_etag_valid(Etag) ->
 	true = is_integer(list_to_integer(X2)).
 
 %% @hidden
-basic_auth() ->
-	RestUser = ct:get_config({rest, user}),
-	RestPass = ct:get_config({rest, password}),
-	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	"Basic " ++ EncodeKey.
+basic_auth(Config) ->
+	RestUser = proplists:get_value(user, Config),
+	RestPass = proplists:get_value(password, Config),
+	BasicAuth = RestUser ++ ":" ++ RestPass,
+	Base64 = base64:encode_to_string(BasicAuth),
+	"Basic " ++ Base64.
 
 %% @hidden
-auth_header() ->
-	{"authorization", basic_auth()}.
+auth_header(Config) ->
+	{"authorization", basic_auth(Config)}.
 
 %% @hidden
 price(Type, undefined, undefined, Amount)
@@ -7693,7 +7760,8 @@ resource_inventory() ->
 			"/resourceCatalogManagement/v2/resourceSpecification/2"},
 	ResSpec = {"resourceSpecification",
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
-	ResRelId = {"id", RelId = random_string(5)},
+	RelId = random_string(5),
+	ResRelId = {"id", RelId},
 	ResRelName = {"name", "tariff_table5"},
 	ResRelType = {"relationshipType", "contained"},
 	ResRelHref = {"href", "/resourceInventoryManagement/v1/resource/" ++ RelId},
@@ -7990,4 +8058,36 @@ fill_acct(N, Protocol) ->
 	end,
 	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, undefined),
 	fill_acct(N - 1, Protocol).
+
+equal(A, B)
+		when is_atom(A), is_atom(B) ->
+	A == B;
+equal(A, B)
+		when (is_integer(A) orelse is_float(A)),
+		(is_integer(B) orelse is_float(B)) ->
+	A == B;
+equal(A, B)
+		when is_list(A), is_list(B) ->
+	Characters = [$., $0, $1, $2, $3, $4, $5, $6, $7, $8, $9],
+	case {string:take(A, Characters), string:take(B, Characters)} of
+		{{_, []}, {_, []}} ->
+			equal(to_number(A), to_number(B));
+		_ ->
+			string:equal(A, B)
+	end;
+equal({Key, A}, {Key, B}) ->
+	equal(A, B);
+equal(_A, _B) ->
+	false.
+
+to_number(String)
+		when is_list(String) ->
+	to_number(String, lists:member($., String)).
+
+to_number(String, false)
+		when is_list(String) ->
+	list_to_integer(String);
+to_number(String, true)
+		when is_list(String) ->
+	list_to_float(String).
 

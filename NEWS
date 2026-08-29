@@ -1,3 +1,11 @@
+August 18, 2026
+---------------
+	- Fix balance threshold notification when multiple unit types
+	- TMF654 topup by service
+		- Product must be omitted
+		- Units must not be undefined
+	- Ignore RADIUS disconnect if nas client disconnect port undefined
+
 July 2, 2026
 ------------
 	- Fix tariff price bucket partial reservation rollover

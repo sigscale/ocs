@@ -3641,8 +3641,8 @@ send_notifications([DeletedBucket | T]) ->
 %% @private
 notify_accumulated_balance([]) ->
 	ok;
-notify_accumulated_balance(AccBlance) ->
-	ocs_event:notify(accumulated, AccBlance, balance).
+notify_accumulated_balance(AccBalance) ->
+	ocs_event:notify(accumulated, AccBalance, balance).
 
 %% @private
 accumulated_balance(Buckets, ProdRef) ->
@@ -3698,7 +3698,7 @@ accumulated_balance(Buckets, ProdRef, true) when is_list(Buckets) ->
 			{[], AccBalance1};
 		BucketList2 when is_list(BucketList2) ->
 			AccBal2 = build_acc(BucketList2, "accumulated seconds", seconds,
-					ProdRef, application:get_env(ocs, threshold_seconds), AccBalance),
+					ProdRef, application:get_env(ocs, threshold_seconds), AccBalance1),
 			{BucketList2, AccBal2}
 	end,
 	Fmessages = fun(#bucket{units = messages}) ->
@@ -3712,7 +3712,7 @@ accumulated_balance(Buckets, ProdRef, true) when is_list(Buckets) ->
 			{[], AccBalance2};
 		BucketList3 when is_list(BucketList3) ->
 			AccBal3 = build_acc(BucketList3, "accumulated messages", messages,
-					ProdRef, application:get_env(ocs, threshold_messages), AccBalance),
+					ProdRef, application:get_env(ocs, threshold_messages), AccBalance2),
 			{BucketList3, AccBal3}
 	end,
 	AccBalance3.
