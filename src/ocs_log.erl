@@ -165,6 +165,13 @@
 
 -export_type([cdr/0]).
 
+-dialyzer({no_opaque,
+		[http_query1/8, cdr_log1/5, cdr_log2/6, cdr_log3/5, cdr_file3/4,
+		ipdr_log1/5, ipdr_log2/6, ipdr_log3/6, ipdr_file3/4, last2/4,
+		last3/5, file_chunk/4, btree_search/3, btree_search/6,
+		btree_search/7, get_range/4, get_range1/4, get_range3/3,
+		query_log/5]}).
+
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
@@ -515,21 +522,22 @@ auth_close() ->
 %% @doc Query http log events with filters
 http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
 	Log = ocs_log:httpd_logname(LogType),
-	http_query1(disk_log:chunk(Log, start), Log,
-		DateTime, Host, User, Method, URI, HTTPStatus, []);
+	http_query1(disk_log:chunk(Log, start),
+			DateTime, Host, User, Method, URI, HTTPStatus, []);
 http_query(Cont, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
 	Log = ocs_log:httpd_logname(LogType),
-	http_query1(disk_log:chunk(Log, Cont), Log,
-		DateTime, Host, User, Method, URI, HTTPStatus, []).
+	http_query1(disk_log:chunk(Log, Cont),
+			DateTime, Host, User, Method, URI, HTTPStatus, []).
 %% @hidden
-http_query1({error, Reason}, _, _, _, _, _, _, _, _) ->
+http_query1({error, Reason}, _, _, _, _, _, _, _) ->
 	{error, Reason};
-http_query1(eof, _Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
+http_query1(eof, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
 	http_query2(lists:flatten(PrevChunk), DateTime, Host, User, Method, URI, HTTPStatus);
-http_query1({Cont, Chunk}, Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
+http_query1({{_, Pid, _, _} = Cont, Chunk},
+			DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
 	ParseChunk = lists:map(fun http_parse/1, Chunk),
 	CurrentChunk = [ParseChunk | PrevChunk],
-	http_query1(disk_log:chunk(Log, Cont), Log, DateTime,
+	http_query1(disk_log:chunk(Pid, Cont), DateTime,
 			Host, User, Method, URI, HTTPStatus, CurrentChunk).
 %% @hidden
 http_query2(Chunks, DateTime, Host, User, Method, URI, '_') ->
@@ -622,9 +630,9 @@ cdr_log1(CdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
 			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
-cdr_log1(CdrLog, Start, End, AcctLog, Cont) ->
+cdr_log1(CdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	cdr_log2(CdrLog, Start, End, AcctLog, [],
-			disk_log:chunk(AcctLog, Cont)).
+			disk_log:chunk(Pid, Cont)).
 %% @hidden
 cdr_log2(CdrLog, _Start, _End, AcctLog,
 		_PrevChunk, {error, Reason}) ->
@@ -643,11 +651,11 @@ cdr_log2(CdrLog, Start, End, AcctLog, PrevChunk, eof) ->
 	end,
 	cdr_log3(CdrLog, Start, End, AcctLog,
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
-cdr_log2(CdrLog, Start, End, AcctLog,
-		_PrevChunk, {Cont, [H | T]})
+cdr_log2(CdrLog, Start, End, AcctLog, _PrevChunk,
+		{{_, Pid, _, _} = Cont, [H | T]})
 		when element(1, H) < Start ->
 	cdr_log2(CdrLog, Start, End,
-			AcctLog, T, disk_log:chunk(AcctLog, Cont));
+			AcctLog, T, disk_log:chunk(Pid, Cont));
 cdr_log2(CdrLog, Start, End, AcctLog, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -678,9 +686,10 @@ cdr_log3(CdrLog, Start, End, AcctLog, {Cont, [H | T]}) ->
 			disk_log:close(CdrLog),
 			{error, Reason}
 	end;
-cdr_log3(CdrLog, Start, End, AcctLog, {Cont, []}) ->
+cdr_log3(CdrLog, Start, End, AcctLog,
+		{{_, Pid, _, _} = Cont, []}) ->
 	cdr_log3(CdrLog, Start, End,
-			AcctLog, disk_log:chunk(AcctLog, Cont)).
+			AcctLog, disk_log:chunk(Pid, Cont)).
 %% @hidden
 cdr_log4(CdrLog) ->
 	case disk_log:close(CdrLog) of
@@ -776,8 +785,9 @@ cdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
 	disk_log:close(Log),
 	file:close(IoDevice),
 	{error, Reason};
-cdr_file3(Log, IoDevice, Format, {Cont, []}) ->
-	cdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, Cont));
+cdr_file3(Log, IoDevice, Format,
+		{{_, Pid, _, _} = Cont, []}) ->
+	cdr_file3(Log, IoDevice, Format, disk_log:chunk(Pid, Cont));
 cdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
 	 {error, unimplemented};
 cdr_file3(_Log, _IoDevice, json, {_Cont,_Events}) ->
@@ -854,11 +864,9 @@ ipdr_log1(IpdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
-%ipdr_log1(IpdrLog, _Start, _End, _AcctLog, eof) ->
-%	ipdr_log5(IpdrLog, 0);
-ipdr_log1(IpdrLog, Start, End, AcctLog, Cont) ->
+ipdr_log1(IpdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	ipdr_log2(IpdrLog, Start, End, AcctLog,
-			[], disk_log:chunk(AcctLog, Cont)).
+			[], disk_log:chunk(Pid, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End,
 		AcctLog, _PrevChunk, {error, Reason}) ->
@@ -876,10 +884,11 @@ ipdr_log2(IpdrLog, Start, End, AcctLog, PrevChunk, eof) ->
 	end,
 	ipdr_log3(IpdrLog, Start, End, AcctLog, 0,
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
-ipdr_log2(IpdrLog, Start, End, AcctLog, _PrevChunk, {Cont, [H | T]})
+ipdr_log2(IpdrLog, Start, End, AcctLog, _PrevChunk,
+		{{_, Pid, _, _} = Cont, [H | T]})
 		when element(1, H) < Start ->
 	ipdr_log2(IpdrLog, Start, End,
-			AcctLog, T, disk_log:chunk(log_name(acct_log_name), Cont));
+			AcctLog, T, disk_log:chunk(Pid, Cont));
 ipdr_log2(IpdrLog, Start, End, AcctLog, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -895,9 +904,10 @@ ipdr_log3(IpdrLog, _Start, _End, _AcctLog, SeqNum, {error, _Reason}) ->
 	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, _End, _AcctLog, SeqNum, {eof, []}) ->
 	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum, {Cont, []}) ->
+ipdr_log3(IpdrLog, Start, End, AcctLog, SeqNum,
+		{{_, Pid, _, _} = Cont, []}) ->
 	ipdr_log3(IpdrLog, Start,
-			End, AcctLog, SeqNum, disk_log:chunk(AcctLog, Cont));
+			End, AcctLog, SeqNum, disk_log:chunk(Pid, Cont));
 ipdr_log3(IpdrLog, _Start, End, _AcctLog, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log5(IpdrLog, SeqNum);
@@ -1039,8 +1049,8 @@ ipdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
 	disk_log:close(Log),
 	file:close(IoDevice),
 	{error, Reason};
-ipdr_file3(Log, IoDevice, Format, {Cont, []}) ->
-	ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, Cont));
+ipdr_file3(Log, IoDevice, Format, {{_, Pid, _, _} = Cont, []}) ->
+	ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Pid, Cont));
 ipdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
 	 {error, unimplemented};
 ipdr_file3(_Log, _IoDevice, xdr, {_Cont,_Events}) ->
@@ -1144,8 +1154,8 @@ last(Log, MaxItems) ->
 			last(Log, MaxItems, Cont1, [Cont1])
 	end.
 %% @hidden
-last(Log, MaxItems, Cont1, [H | _] = Acc) ->
-	case disk_log:chunk_step(Log, H, 1) of
+last(Log, MaxItems, {_, Pid, _, _} = Cont1, [H | _] = Acc) ->
+	case disk_log:chunk_step(Pid, H, 1) of
 		{error, end_of_log} ->
 			last1(Log, MaxItems, Acc, {0, []});
 		{ok, Cont1} ->
@@ -1166,8 +1176,8 @@ last1(Log, MaxItems, [Cont | T], _Acc) ->
 last1(_Log, _MaxItems, [], {NumItems, Items}) ->
 	{NumItems, lists:flatten(Items)}.
 %% @hidden
-last2(Log, MaxItems, Cont, Acc) ->
-	case disk_log:bchunk(Log, Cont) of
+last2(Log, MaxItems, {_, Pid, _, _} = Cont, Acc) ->
+	case disk_log:bchunk(Pid, Cont) of
 		{error, Reason} ->
 			{error, Reason};
 		eof ->
@@ -1176,8 +1186,8 @@ last2(Log, MaxItems, Cont, Acc) ->
 			last2(Log, MaxItems, Cont1, [Cont | Acc])
 	end.
 %% @hidden
-last3(Log, MaxItems, [Cont | T], NumItems, Acc) ->
-	case disk_log:chunk(Log, Cont) of
+last3(Log, MaxItems, [{_, Pid, _, _} = Cont | T], NumItems, Acc) ->
+	case disk_log:chunk(Pid, Cont) of
 		{error, Reason} ->
 			{error, Reason};
 		{_, Items} ->
@@ -2868,34 +2878,38 @@ dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
 	end.
 
 %% @hidden
-file_chunk(Log, IoDevice, Type, Cont) when Type == binary; Type == tuple ->
-	case disk_log:chunk(Log, Cont) of
-		eof ->
-			file:close(IoDevice);
-		{error, Reason} ->
-			Desc = format_error(Reason),
-			error_logger:error_report([Desc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			{error, Reason};
-		{NextCont, Terms} ->
-			file_chunk1(Log, IoDevice, Type, NextCont, Terms)
-	end.
+file_chunk(Log, IoDevice, Type, start = Cont)
+		when Type == binary; Type == tuple ->
+	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Log, Cont));
+file_chunk(Log, IoDevice, Type, {_, Pid, _, _} = Cont)
+		when Type == binary; Type == tuple ->
+	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Pid, Cont)).
 %% @hidden
-file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
+file_chunk1(_Log, IoDevice, _Type, eof) ->
+	file:close(IoDevice);
+file_chunk1(Log, IoDevice, _Type, {error, Reason}) ->
+	Desc = format_error(Reason),
+	error_logger:error_report([Desc, {module, ?MODULE},
+			{log, Log}, {error, Reason}]),
+	file:close(IoDevice),
+	{error, Reason};
+file_chunk1(Log, IoDevice, Type, {Cont, Terms}) ->
+	file_chunk2(Log, IoDevice, Type, Cont, Terms).
+%% @hidden
+file_chunk2(Log, IoDevice, tuple = Type, Cont, [Event | T]) ->
 	io:fwrite(IoDevice, "~999p~n", [Event]),
-	file_chunk1(Log, IoDevice, tuple, Cont, T);
-file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
+	file_chunk2(Log, IoDevice, Type, Cont, T);
+file_chunk2(Log, IoDevice, binary = Type, Cont, [Event | T]) ->
 	case file:write(IoDevice, Event) of
 		ok ->
-			file_chunk1(Log, IoDevice, binary, Cont, T);
+			file_chunk2(Log, IoDevice, Type, Cont, T);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason}
 	end;
-file_chunk1(Log, IoDevice, Type, Cont, []) ->
+file_chunk2(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
 
 -spec btree_search(Log, Start) -> Result
@@ -2919,9 +2933,11 @@ btree_search(_Log, _Start, eof) ->
 	start;
 btree_search(_Log, _Start, {error, Reason}) ->
 	{error, Reason};
-btree_search(_Log, Start, {_Cont, [R]}) when element(1, R) >= Start ->
+btree_search(_Log, Start, {_Cont, [R]})
+		when element(1, R) >= Start ->
 	start;
-btree_search(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
+btree_search(Log, Start, {{_, Pid, _, _} = Cont, [R]})
+		when element(1, R) < Start ->
 	case disk_log:info(Log) of
 		{error,no_such_log} ->
 			{error,no_such_log};
@@ -2933,19 +2949,22 @@ btree_search(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
 					MaxFiles div 2
 			end,
 			btree_search(Log, Start, Step, start, element(1, R),
-					disk_log:chunk_step(Log, Cont, Step))
+					disk_log:chunk_step(Pid, Cont, Step))
 	end.
 %% @hidden
-btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
-	btree_search(Log, Start, Step, PrevCont, PrevChunkStart, Cont,
-			disk_log:chunk(Log, Cont, 1));
+btree_search(Log, Start, Step, PrevCont, PrevChunkStart,
+		{ok, {_, Pid, _, _} = Cont}) ->
+	btree_search(Log, Start, Step, PrevCont, PrevChunkStart,
+			Cont, disk_log:chunk(Pid, Cont, 1));
 btree_search(_Log, _Start, 1, PrevCont, _PrevChunkStart, {error, end_of_log}) ->
 	PrevCont;
-btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
+btree_search(Log, Start, Step, PrevCont,
+			PrevChunkStart, {error, end_of_log}) ->
 	Step1 = Step div 2,
 	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
 			disk_log:chunk_step(Log, PrevCont, Step1));
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Reason}),
 	{error, Reason}.
 %% @hidden
 btree_search(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
@@ -2960,33 +2979,47 @@ btree_search(_Log, _Start, Step, PrevCont, PrevChunkStart, _Cont, {_NextCont, [R
 btree_search(_Log, Start, -1, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when element(1, R) < Start ->
 	Cont;
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step == 1; Step == -1 ->
-	btree_search(Log, Start, Step, Cont, element(1, R), disk_log:chunk_step(Log, Cont, Step));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, Step, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, Step));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step > 2, element(1, R) < Start, (Step rem 2) == 0 ->
 	NextStep = (Step div 2) - 1,
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step > 0, element(1, R) < Start ->
 	NextStep = Step div 2,
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step > 0, element(1, R) >= Start ->
 	NextStep = -(Step div 2),
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step < -2, element(1, R) >= Start, (Step rem 2) == 0 ->
 	NextStep = (Step div 2) - 1,
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) >= Start ->
 	NextStep = Step div 2,
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart,
+		{_, Pid, _, _} = Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) < Start ->
 	NextStep = -(Step div 2),
-	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+	btree_search(Log, Start, NextStep, Cont, element(1, R),
+			disk_log:chunk_step(Pid, Cont, NextStep));
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, Cont, eof) ->
 	Cont;
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Reason}) ->
@@ -3005,32 +3038,33 @@ btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Rea
 %% 	Returns filtered records.
 %% @hidden
 get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, [], disk_log:bchunk(Log, Cont)).
+	get_range1(Start, End, [], disk_log:bchunk(Log, Cont)).
 %% @hidden
-get_range(_Log, _Start, _End, _PrevChunk, {error, Reason}) ->
+get_range1(_Start, _End, _PrevChunk, {error, Reason}) ->
 	{error, Reason};
-get_range(Log, Start, End, PrevChunk, eof) ->
+get_range1(Start, End, PrevChunk, eof) ->
 	Chunk = [binary_to_term(E) || E <- PrevChunk],
-	get_range1(Log, Start, End, {eof, Chunk}, []);
-get_range(Log, Start, End, PrevChunk, {Cont, [H | T] = Chunk}) ->
+	get_range2(Start, End, {eof, Chunk}, []);
+get_range1(Start, End, PrevChunk,
+		{{_, Pid, _, _} = Cont, [H | T] = Chunk}) ->
 	case binary_to_term(H) of
 		Event when element(1, Event) < Start ->
-			get_range(Log, Start, End, T, disk_log:bchunk(Log, Cont));
+			get_range1(Start, End, T, disk_log:bchunk(Pid, Cont));
 		_Event ->
 			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
-			get_range1(Log, Start, End, {Cont, NewChunk}, [])
+			get_range2(Start, End, {Cont, NewChunk}, [])
 	end.
 %% @hidden
-get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
+get_range2(Start, End, {Cont, Chunk}, Acc) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
 	NewChunk = lists:dropwhile(Fstart, Chunk),
-	get_range2(Log, End, {Cont, NewChunk}, Acc).
+	get_range3(End, {Cont, NewChunk}, Acc).
 %% @hidden
-get_range2(Log, End, {Cont, Chunk}, Acc) ->
+get_range3(End, {Cont, Chunk}, Acc) ->
 	Fend = fun(R) when element(1, R) =< End ->
 				true;
 			(_) ->
@@ -3039,8 +3073,8 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 	case {Cont, lists:last(Chunk)} of
 		{eof, R} when element(1, R) =< End ->
 			lists:flatten(lists:reverse([Chunk | Acc]));
-		{Cont, R} when element(1, R) =< End ->
-			get_range2(Log, End, disk_log:chunk(Log, Cont), [Chunk | Acc]);
+		{{_, Pid, _, _} = Cont, R} when element(1, R) =< End ->
+			get_range3(End, disk_log:chunk(Pid, Cont), [Chunk | Acc]);
 		{_, _} ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
@@ -4231,9 +4265,9 @@ query_log(start, Start, End, Log, MFA)
 		Continuation ->
 			query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
 	end;
-query_log(Continuation, Start, End, Log, MFA)
+query_log({_, Pid, _, _} = Continuation, Start, End, _Log, MFA)
 		when is_integer(Start), is_integer(End), Start =< End ->
-	query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
+	query_log1(Start, End, MFA, disk_log:chunk(Pid, Continuation), []).
 %% @hidden
 query_log1(_Start, _End, {M, F, A}, eof, Acc) ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
