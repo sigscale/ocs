@@ -141,7 +141,7 @@ get_client(Id, Query) ->
 	end.
 %% @hidden
 get_client(Id, [] = _Query, Filters) ->
-	case inet:parse_address(Id) of
+	case inet:parse_ipv4strict_address(Id) of
 		{ok, Address} ->
 			get_client1(Address, Filters);
 		{error, einval} ->
@@ -241,7 +241,7 @@ patch_client(Id, Etag, CType, ReqBody) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		Address0 = case inet:parse_address(Id) of
+		Address0 = case inet:parse_ipv4strict_address(Id) of
 			{ok, IpAddress} ->
 				IpAddress;
 			{error, einval} ->
@@ -407,7 +407,7 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 %% a `client' resource. If the deletion is successful return true.
 delete_client(Id) ->
 	try
-		case inet:parse_address(Id) of
+		case inet:parse_ipv4strict_address(Id) of
 			{ok, Address} ->
 				ocs:delete_client(Address),
 				{ok, [], []};
