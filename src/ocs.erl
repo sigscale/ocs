@@ -76,7 +76,7 @@
 
 -spec add_client(Address, Secret) -> Result
 	when
-		Address :: inet:ip_address(),
+		Address :: inet:ip_address() | string(),
 		Secret :: string() | binary(),
 		Result :: {ok, #client{}}.
 %% @equiv add_client(Address, 3799, radius, Secret, true)
@@ -87,7 +87,7 @@ add_client(Address, Secret) ->
 
 -spec add_client(Address, Secret, PasswordRequired) -> Result
 	when
-		Address :: inet:ip_address(),
+		Address :: inet:ip_address() | string(),
 		Secret :: string() | binary(),
 		PasswordRequired :: boolean(),
 		Result :: {ok, #client{}}.
@@ -97,7 +97,7 @@ add_client(Address, Secret, PasswordRequired) ->
 
 -spec add_client(Address, Port, Protocol, Secret, PasswordRequired) -> Result
 	when
-		Address :: inet:ip_address(),
+		Address :: inet:ip_address() | string(),
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
@@ -109,7 +109,7 @@ add_client(Address, Port, Protocol, Secret, PasswordRequired) ->
 
 -spec add_client(Address, Port, Protocol, Secret, PasswordRequired, Trusted) -> Result
 	when
-		Address :: inet:ip_address(),
+		Address :: inet:ip_address() | string(),
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
@@ -125,7 +125,7 @@ add_client(Address, Port, Protocol, Secret, undefined, Trusted) ->
 	add_client(Address, Port, Protocol, Secret, true, Trusted);
 add_client({A, B, C, D} = Address,
 		undefined, diameter, undefined, PasswordRequired, Trusted)
-		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
+		when A >= 1, A =< 255, B >= 0, B =< 255, C >= 0, C =< 255, D >= 1, D < 255,
 		is_boolean(PasswordRequired), is_boolean(Trusted) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
@@ -155,8 +155,8 @@ add_client(Address, Port, Protocol,
 		list_to_binary(Secret), PasswordRequired, Trusted);
 add_client({A, B, C, D} = Address,
 		Port, radius, Secret, PasswordRequired, Trusted)
-		when A >= 1, A =< 255, B >= 0, C =< 255,
-		C >= 0, D =< 255, D >= 1, A < 255,
+		when A >= 1, A =< 255, B >= 0, B =< 255,
+		C >= 0, C =< 255, D >= 1, D < 255,
 		is_binary(Secret), is_boolean(PasswordRequired) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
