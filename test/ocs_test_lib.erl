@@ -140,7 +140,15 @@ rand_dn(N, Acc) ->
 	rand_dn(N - 1, [47 + rand:uniform(10) | Acc]).
 
 ipv4() ->
-	{10, rand:uniform(256) - 1, rand:uniform(256) - 1, rand:uniform(254)}.
+	N = lists:nth(rand:uniform(3), [10, 172, 192]),
+	ipv4(N).
+
+ipv4(10 = N) ->
+	{N, rand:uniform(256) - 1, rand:uniform(256) - 1, rand:uniform(254)};
+ipv4(172 = N) ->
+	{N, rand:uniform(16) + 15, rand:uniform(256) - 1, rand:uniform(254)};
+ipv4(192 = N) ->
+	{N, 168, rand:uniform(256) - 1, rand:uniform(254)}.
 
 port() ->
 	rand:uniform(66559) + 1024.
