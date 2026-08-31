@@ -55,6 +55,12 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 
+-if(?OTP_RELEASE >= 25).
+	-define(QUOTE(S), uri_string:quote(S)).
+-else.
+	-define(QUOTE(S), http_uri:encode(S)).
+-endif.
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -760,11 +766,19 @@ get_clients_filter() ->
 get_clients_filter(Config) ->
 	HostUrl = ?config(host_url, Config),
 	HttpOpt = ?config(http_options, Config),
-	IP = inet:ntoa(ocs_test_lib:ipv4()),
-	{ok, _} = ocs:add_client(IP, 3799, radius, "ziggyzaggy", true),
+	IP = ocs_test_lib:ipv4(),
+	Protocol = lists:nth(rand:uniform(2), [radius, diameter]),
+	{Port, Password} = case Protocol of
+		radius ->
+			{3799, ocs_test_lib:rand_name()};
+		diameter ->
+			{undefined, undefined}
+	end,
+	{ok, _} = ocs:add_client(IP, Port, Protocol, Password, true),
 	Accept = {"accept", "application/json"},
-	Filters = "?filter=%22%5B%7Bid.like=%5B1%25%5D%7D%5D%22",
-	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
+	Prefix = integer_to_list(element(1, IP)),
+	Filter = lists:concat(["\"[{id.like=[", Prefix, ".%]}]\""]),
+	Url = HostUrl ++ "/ocs/v1/client?filter=" ++ ?QUOTE(Filter),
 	Request = {Url, [Accept, auth_header(Config)]},
 	{ok, Result} = httpc:request(get, Request, HttpOpt, []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
@@ -772,9 +786,9 @@ get_clients_filter(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, ClientsList} = mochijson:decode(Body),
 	Fall = fun({struct, L}) ->
-				lists:keymember("id", 1, L)
-						and lists:keymember("href", 1, L)
-						and lists:keymember("port", 1, L)
+				{_, Address} = lists:keyfind("id", 1, L),
+				[Prefix | _] = string:lexemes(Address, [$.]),
+				lists:keymember("href", 1, L)
 						and lists:keymember("protocol", 1, L)
 						and lists:keymember("identifier", 1, L)
 	end,
