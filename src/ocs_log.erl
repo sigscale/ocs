@@ -2964,7 +2964,6 @@ btree_search(Log, Start, Step, PrevCont,
 	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
 			disk_log:chunk_step(Log, PrevCont, Step1));
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
-erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Reason}),
 	{error, Reason}.
 %% @hidden
 btree_search(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
