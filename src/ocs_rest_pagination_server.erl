@@ -26,8 +26,8 @@
 -export_type([continuation/0]).
 
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-		terminate/2, code_change/3]).
+-export([init/1, handle_continue/2, handle_call/3, handle_cast/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -opaque continuation() :: start | eof | disk_log:continuation().
 -record(state,
@@ -45,6 +45,19 @@
 		request :: undefined | {StartRange :: non_neg_integer(),
 				EndRange :: non_neg_integer(), From :: gen_server:from()}}).
 -type state() :: #state{}.
+
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 28).
+		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
+		-define(CONTINUE, {continue, chunk}).
+	-else.
+		-define(TIMEOUT(Timeout), Timeout).
+		-define(CONTINUE, 0).
+	-endif.
+-else.
+	-define(TIMEOUT(Timeout), Timeout).
+	-define(CONTINUE, 0).
+-endif.
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_pagination_server API
@@ -82,10 +95,16 @@ start_link(Args) ->
 	when
 		Args :: [term()],
 		Result :: {ok, State}
-			| {ok, State, Timeout}
-			| {stop, Reason} | ignore,
+				| {ok, State, Timeout}
+				| {ok, State, hibernate}
+				| {ok, State, {continue, Continue}}
+				| {stop, Reason}
+				| ignore,
 		State :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
@@ -97,7 +116,7 @@ init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, module = M, function = F,
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
-	{ok, State, Timeout};
+	{ok, State, ?TIMEOUT(Timeout)};
 init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
    {ok, Log} = disk_log:open([{LogName, B}]),
 	{ok, MaxPageSize} = application:get_env(rest_page_size),
@@ -105,7 +124,32 @@ init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, log = Log, module = M, function = F,
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
-	{ok, State, Timeout}.
+	{ok, State, ?TIMEOUT(Timeout)}.
+
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State :: state(),
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
+%% @doc Handle a callback conntinuation.
+%% @see //stdlib/gen_server:handle_continue/2
+%% @private
+%%
+handle_continue(chunk = _Info,
+		#state{module = Module, function = Function,
+				cont = Cont, args = Args, request = Request} = State)
+		when is_tuple(Request) ->
+	continue(apply(Module, Function, [Cont | Args]), State).
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -113,13 +157,19 @@ init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list
 		From :: gen_server:from(),
 		State :: state(),
 		Result :: {reply, Reply, NewState}
-			| {reply, Reply, NewState, timeout() | hibernate | {continue, Continue}}
-			| {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
-			| {stop, Reason, Reply, NewState}
-			| {stop, Reason, NewState},
+				| {reply, Reply, NewState, Timeout}
+				| {reply, Reply, NewState, hibernate}
+				| {reply, Reply, NewState, {continue, Continue}}
+				| {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, Reply, NewState}
+				| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
@@ -142,28 +192,33 @@ handle_call(Request, From,
 		#state{request = undefined} = State) ->
 	handle_call1(Request, From, range_request(Request, State));
 handle_call(_Request, _From, State) ->
-	{reply, {error, 409}, State, 0}.
+	{stop, shutdown, {error, 409}, State}.
 %% @hidden
 handle_call1(_Request, _From,
 		{ok, Reply, #state{timeout = Timeout} = State}) ->
 	NewState = State#state{request = undefined},
-	{reply, Reply, NewState, Timeout};
+	{reply, Reply, NewState, ?TIMEOUT(Timeout)};
 handle_call1(_Request, _From,
 		{stop, Reply, State}) ->
 	{stop, shutdown, Reply, State};
 handle_call1({StartRange, EndRange} = _Request, From,
 		{eob, State}) ->
 	NewState = State#state{request = {StartRange, EndRange, From}},
-	{noreply, NewState, 0}.
+	{noreply, NewState, ?CONTINUE}.
 
 -spec handle_cast(Request, State) -> Result
 	when
 		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
@@ -180,9 +235,14 @@ handle_cast(stop = _Request, State) ->
 		Info :: timeout | term(),
 		State::state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate | {continue, Continue}}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a received message.
@@ -310,7 +370,7 @@ continue({Cont, Items},
 	NewState = State#state{cont = Cont,
 			offset = Offset + Length + length(Items),
 			buffer = [], length = 0},
-	{noreply, NewState, 0};
+	{noreply, NewState, ?CONTINUE};
 continue({Cont, Items},
 		#state{buffer = Buffer, length = Length,
 				request = {StartRange, EndRange, From}} = State) ->
@@ -319,12 +379,12 @@ continue({Cont, Items},
 	case range_request({StartRange, EndRange}, NewState) of
 		{ok, Reply, #state{timeout = Timeout} = NextState} ->
 			gen_server:reply(From, Reply),
-			{noreply, NextState#state{request = undefined}, Timeout};
+			{noreply, NextState#state{request = undefined}, ?TIMEOUT(Timeout)};
 		{stop, Reply, NextState} ->
 			gen_server:reply(From, Reply),
 			{stop, shutdown, NextState};
 		{eob, NextState} ->
-			{noreply, NextState, 0}
+			{noreply, NextState, ?CONTINUE}
 	end;
 continue({error, _Reason}, State) ->
 	{stop, shutdown, {error, 500}, State}.
