@@ -64,13 +64,16 @@
 				| {stop, Reason}
 				| ignore,
 		State :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
 %% @private
 %% @todo Allow intervals shorter than one day.
+%%
 init([Type, ScheduledTime, Interval] = _Args) when
 		((Type == chf) or (Type == wlan) or (Type == voip)),
 		tuple_size(ScheduledTime) =:= 3,
@@ -94,7 +97,9 @@ init([Type, ScheduledTime, Interval] = _Args) ->
 				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a callback conntinuation.
@@ -154,7 +159,9 @@ handle_continue1(Directory, #state{type = Type,
 				| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
@@ -176,7 +183,9 @@ handle_call(_Request, _From, State) ->
 				| {noreply, NewState, {continue, Continue}}
 				| {stop, Reason, NewState},
 		NewState :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
 		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
