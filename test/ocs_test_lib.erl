@@ -6,7 +6,7 @@
 -export([initialize_db/0, start/0, start/1, stop/0, stop/1]).
 -export([load/1, unload/1]).
 -export([rand_name/0, rand_name/1, rand_dn/0, rand_dn/1]).
--export([ipv4/0, port/0, mac/0, uuid/0]).
+-export([ipv4/0, port/0, mac/0, ssid/0, uuid/0]).
 -export([add_offer/0]).
 -export([write_csv/2]).
 
@@ -156,9 +156,12 @@ port() ->
 mac() ->
 	mac(6, []).
 mac(0, Acc) ->
-	lists:flatten(io_lib:fwrite("~.16B:~.16B:~.16B:~.16B:~.16B:~.16B", Acc));
+	lists:flatten(io_lib:fwrite("~.16B-~.16B-~.16B-~.16B-~.16B-~.16B", Acc));
 mac(N, Acc) ->
 	mac(N - 1, [rand:uniform(256) - 1 | Acc]).
+
+ssid() ->
+	lists:concat([mac(), [$:], "AP ", rand:uniform(9)]).
 
 uuid() ->
 	R1 = rand:uniform(16#ffffffffffff),
