@@ -30,9 +30,9 @@
 %% export the ocs_radius_auth_port_server API
 -export([]).
 
-%% export the call backs needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-			terminate/2, code_change/3]).
+%% export the callbacks needed for gen_server behaviour
+-export([init/1, handle_continue/2, handle_call/3, handle_cast/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
@@ -53,6 +53,19 @@
 				Peer :: string()}), Value :: (Fsm :: pid()))}).
 -type state() :: #state{}.
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 28).
+		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
+		-define(CONTINUE, {continue, init}).
+	-else.
+		-define(TIMEOUT(Timeout), Timeout).
+		-define(CONTINUE, 0).
+	-endif.
+-else.
+	-define(TIMEOUT(Timeout), Timeout).
+	-define(CONTINUE, 0).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_radius_auth_port_server API
 %%----------------------------------------------------------------------
@@ -61,14 +74,20 @@
 %%  The ocs_radius_auth_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
--spec init(Args) -> Result 
+-spec init(Args) -> Result
 	when
-		Args :: list(),
+		Args :: [term()],
 		Result :: {ok, State}
-			| {ok, State, Timeout}
-			| {stop, Reason} | ignore,
+				| {ok, State, Timeout}
+				| {ok, State, hibernate}
+				| {ok, State, {continue, Continue}}
+				| {stop, Reason}
+				| ignore,
 		State :: state(),
-		Timeout :: non_neg_integer() | infinity,
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
@@ -76,7 +95,7 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AuthPortSup, Address, Port, Options]) ->
+init([AuthPortSup, Address, Port, Options] = _Args) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
 	MethodOrder = proplists:get_value(eap_method_order,
 			Options, [akap, pwd, ttls]),
@@ -84,32 +103,57 @@ init([AuthPortSup, Address, Port, Options]) ->
 			address = Address, port = Port,
 			method_prefer = MethodPrefer, method_order = MethodOrder},
 	process_flag(trap_exit, true),
-	{ok, State, 0}.
+	{ok, State, ?CONTINUE}.
+
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State :: state(),
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
+%% @doc Handle a callback conntinuation.
+%% @see //stdlib/gen_server:handle_continue/2
+%% @private
+%%
+handle_continue(init, State) ->
+	init1(State).
 
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
-		From :: {Pid, Tag},
-		Pid :: pid(),
-		Tag :: any(),
+		Request :: term(),
+		From :: gen_server:from(),
 		State :: state(),
 		Result :: {reply, Reply, NewState}
-			| {reply, Reply, NewState, Timeout}
-			| {reply, Reply, NewState, hibernate}
-			| {noreply, NewState}
-			| {noreply, NewState, Timeout}
-			| {noreply, NewState, hibernate}
-			| {stop, Reason, Reply, NewState}
-			| {stop, Reason, NewState},
+				| {reply, Reply, NewState, Timeout}
+				| {reply, Reply, NewState, hibernate}
+				| {reply, Reply, NewState, {continue, Continue}}
+				| {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, Reply, NewState}
+				| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
-		Timeout :: non_neg_integer() | infinity,
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
+%%
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret, PasswordReq,
@@ -120,14 +164,18 @@ handle_call({request, Address, Port, Secret, PasswordReq,
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, Timeout | infinity}
-			| {noreply, NewState, hibernate}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
-		Timeout :: non_neg_integer() | infinity,
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
@@ -140,29 +188,25 @@ handle_cast(_Request, State) ->
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
-		State :: state(),
+		Info :: timeout | term(),
+		State::state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, Timeout}
-			| {noreply, NewState, hibernate}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
-		Timeout :: non_neg_integer() | infinity,
-		 Reason :: term().
-	
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
-	Children = supervisor:which_children(AuthPortSup),
-	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
-	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
-	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
-	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
-	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
-	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup,
-			aka_sup = AkaSup, akap_sup = AkapSup, simple_auth_sup = SimpleAuthSup}};
+handle_info(timeout, State) ->
+	init1(State);
 handle_info({'EXIT', Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
 	 case gb_trees:lookup(SessionID, Handlers) of
@@ -197,8 +241,8 @@ handle_info({'EXIT', Pid, _Reason},
 
 -spec terminate(Reason, State) -> any()
 	when
-		Reason :: normal | shutdown | term(),
-      State :: state().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State::state().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_server:terminate/3
 %% @private
@@ -208,12 +252,12 @@ terminate(_Reason, _State) ->
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: (Vsn | {down, Vsn}),
-		Vsn :: term(),
-		State :: state(), 
+		OldVsn :: term() | {down, term()},
+		State :: state(),
 		Extra :: term(),
-		Result :: {ok, NewState},
-		NewState :: state().
+		Result :: {ok, NewState} | {error, Reason},
+		NewState :: state(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private
@@ -224,6 +268,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+init1(#state{auth_port_sup = AuthPortSup} = State) ->
+	Children = supervisor:which_children(AuthPortSup),
+	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
+	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
+	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
+	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
+	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
+	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup,
+			aka_sup = AkaSup, akap_sup = AkapSup, simple_auth_sup = SimpleAuthSup}}.
 
 -spec request(IsEap, Address, Port, Secret,
 		PasswordReq, Trusted, Radius, From, State) -> Result
