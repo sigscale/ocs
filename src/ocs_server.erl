@@ -24,12 +24,9 @@
 
 -behaviour(gen_server).
 
-%% export the ocs_server API
--export([]).
-
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-			terminate/2, code_change/3]).
+-export([init/1, handle_continue/2, handle_call/3, handle_cast/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {sup :: pid()}).
 -type state() :: #state{}.
@@ -45,9 +42,18 @@
 -spec init(Args) -> Result
 	when
 		Args :: [term()],
-		Result :: {ok, State :: state()}
-			| {ok, State :: state(), Timeout :: timeout()}
-			| {stop, Reason :: term()} | ignore.
+		Result :: {ok, State}
+				| {ok, State, Timeout}
+				| {ok, State, hibernate}
+				| {ok, State, {continue, Continue}}
+				| {stop, Reason}
+				| ignore,
+		State :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
 %% @private
@@ -56,25 +62,57 @@ init([Sup] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, #state{sup = Sup}}.
 
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State :: state(),
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
+%% @doc Handle a callback conntinuation.
+%% @see //stdlib/gen_server:handle_continue/2
+%% @private
+%%
+handle_continue(Info, State) ->
+	{stop, not_implemented}.
+
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
-		From :: {pid(), Tag :: any()},
+		Request :: term(),
+		From :: gen_server:from(),
 		State :: state(),
-		Result :: {reply, Reply :: term(), NewState :: state()}
-			| {reply, Reply :: term(), NewState :: state(), timeout() | hibernate}
-			| {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), Reply :: term(), NewState :: state()}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {reply, Reply, NewState}
+				| {reply, Reply, NewState, Timeout}
+				| {reply, Reply, NewState, hibernate}
+				| {reply, Reply, NewState, {continue, Continue}}
+				| {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, Reply, NewState}
+				| {stop, Reason, NewState},
+		Reply :: term(),
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call({start, radius, auth, Address, Port, Options}, _From,
-		#state{sup = Sup} = State) ->
+handle_call({start, radius, auth, Address, Port, Options} = _Request,
+		_From, #state{sup = Sup} = State) ->
 	Children = supervisor:which_children(Sup),
 	{_, AuthSup, _, _} = lists:keyfind(ocs_radius_auth_sup, 1, Children),
 	Result = supervisor:start_child(AuthSup, [[Address, Port, Options]]),
@@ -140,27 +178,43 @@ handle_call({get, diameter, auth}, _From, #state{sup = Sup} = State) ->
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: state(),
-		Result :: {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
 %% 	gen_server:abcast/2,3}.
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(stop, State) ->
+handle_cast(stop = Request, State) ->
 	{stop, normal, State}.
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
-		State:: state(),
-		Result :: {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Info :: timeout | term(),
+		State::state(),
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
@@ -171,7 +225,7 @@ handle_info(_Info, State) ->
 -spec terminate(Reason, State) -> any()
 	when
 		Reason :: normal | shutdown | {shutdown, term()} | term(),
-      State::state().
+		State::state().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_server:terminate/3
 %% @private
@@ -181,10 +235,12 @@ terminate(_Reason, _State) ->
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: term() | {down, term()}, 
+		OldVsn :: term() | {down, term()},
 		State :: state(),
 		Extra :: term(),
-		Result :: {ok, NewState :: state()} | {error, Reason :: term()}.
+		Result :: {ok, NewState} | {error, Reason},
+		NewState :: state(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private
