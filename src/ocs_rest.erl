@@ -74,7 +74,7 @@ iso8601(DateTime) when is_list(DateTime) ->
 %% @hidden
 iso8601(Date, Time) when is_list(Date), is_list(Time) ->
 	D = iso8601_date(string:tokens(Date, ",-"), []),
-	{H, Mi, S, Ms} = iso8601_time(string:tokens(Time, ":."), []),
+	{H, Mi, S, Ms} = iso8601_time(string:tokens(Time, ":.Z"), []),
 	date({D, {H, Mi, S}}) + Ms.
 %% @hidden
 iso8601_date([[Y1, Y2, Y3, Y4] | T], _Acc) ->
@@ -698,11 +698,8 @@ query_date([{"date.exact", DateTime}], undefined, undefined) ->
 	{TS, TS};
 query_date([{"date", DateTime}], undefined, undefined) ->
 	date_range(DateTime);
-query_date([], Start, End)
-		when Start /= undefined; End /= undefined ->
-	{Start, End};
-query_date(_QueryList, _Start, _End) ->
-	throw({error, 400}).
+query_date([], Start, End) ->
+	{Start, End}.
 
 -spec date_range(ISODateTime) -> Result
 	when
