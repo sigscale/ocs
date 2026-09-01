@@ -39,11 +39,14 @@
 -ifdef(OTP_RELEASE).
 	-if(?OTP_RELEASE >= 28).
 		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
+		-define(CONTINUE, {continue, init}).
 	-else.
 		-define(TIMEOUT(Timeout), Timeout).
+		-define(CONTINUE, 0).
 	-endif.
 -else.
 	-define(TIMEOUT(Timeout), Timeout).
+	-define(CONTINUE, 0).
 -endif.
 
 %%----------------------------------------------------------------------
@@ -81,7 +84,7 @@ init([Type, ScheduledTime, Interval] = _Args) when
 	process_flag(trap_exit, true),
 	State = #state{interval = Interval,
 			schedule = ScheduledTime, type = Type},
-	{ok, State, {continue, init}};
+	{ok, State, ?CONTINUE};
 init([Type, ScheduledTime, Interval] = _Args) ->
 	error_logger:warning_report(["Ignored archive log specification",
 			{type, Type}, {time, ScheduledTime}, {interval, Interval}]),
