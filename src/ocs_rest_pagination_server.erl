@@ -254,7 +254,7 @@ handle_info(timeout,
 				cont = Cont, args = Args, request = Request} = State)
 		when is_tuple(Request) ->
 	continue(apply(Module, Function, [Cont | Args]), State);
-handle_info(timeout, State) ->
+handle_info(timeout = _Info, State) ->
 	{stop, shutdown, State}.
 
 -spec terminate(Reason, State) -> any()

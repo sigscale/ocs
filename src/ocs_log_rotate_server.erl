@@ -197,7 +197,7 @@ handle_call(_Request, _From, State) ->
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(stop, State) ->
+handle_cast(stop = _Request, State) ->
 	{stop, normal, State}.
 
 -spec handle_info(Info, State) -> Result
@@ -219,14 +219,16 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{last = undefined,
-		interval = Interval, schedule = ScheduledTime} = State) ->
+handle_info(timeout = _Info,
+		#state{last = undefined, interval = Interval,
+				schedule = ScheduledTime} = State) ->
 	Now = erlang:system_time(millisecond),
 	Last = Now - next(ScheduledTime, Interval),
 	NewState = State#state{last = Last},
 	handle_info(timeout, NewState);
-handle_info(timeout, #state{last = Last, interval = Interval,
-		schedule = ScheduledTime, type = Type} = State)
+handle_info(timeout,
+		#state{last = Last, interval = Interval,
+				schedule = ScheduledTime, type = Type} = State)
 		when Type == wlan; Type == voip ->
 	Now = erlang:system_time(millisecond),
 	FileName = ocs_log:iso8601(Now),
@@ -241,8 +243,9 @@ handle_info(timeout, #state{last = Last, interval = Interval,
 			Timeout = next(ScheduledTime, Interval),
 			{noreply, State, ?TIMEOUT(Timeout)}
 	end;
-handle_info(timeout, #state{last = Last, interval = Interval,
-		schedule = ScheduledTime, type = Type} = State)
+handle_info(timeout,
+		#state{last = Last, interval = Interval,
+				schedule = ScheduledTime, type = Type} = State)
 		when Type == chf ->
 	Now = erlang:system_time(millisecond),
 	FileName = ocs_log:iso8601(Now),

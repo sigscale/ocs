@@ -81,8 +81,8 @@ init([Sup] = _Args) ->
 %% @see //stdlib/gen_server:handle_continue/2
 %% @private
 %%
-handle_continue(Info, State) ->
-	{stop, not_implemented}.
+handle_continue(_Info, State) ->
+	{stop, not_implemented, State}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -197,7 +197,7 @@ handle_call({get, diameter, auth}, _From, #state{sup = Sup} = State) ->
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(stop = Request, State) ->
+handle_cast(stop = _Request, State) ->
 	{stop, normal, State}.
 
 -spec handle_info(Info, State) -> Result

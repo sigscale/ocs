@@ -55,14 +55,11 @@
 
 -ifdef(OTP_RELEASE).
 	-if(?OTP_RELEASE >= 28).
-		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
 		-define(CONTINUE, {continue, init}).
 	-else.
-		-define(TIMEOUT(Timeout), Timeout).
 		-define(CONTINUE, 0).
 	-endif.
 -else.
-	-define(TIMEOUT(Timeout), Timeout).
 	-define(CONTINUE, 0).
 -endif.
 
@@ -124,7 +121,7 @@ init([AuthPortSup, Address, Port, Options] = _Args) ->
 %% @see //stdlib/gen_server:handle_continue/2
 %% @private
 %%
-handle_continue(init, State) ->
+handle_continue(init = _Info, State) ->
 	init1(State).
 
 -spec handle_call(Request, From, State) -> Result
@@ -154,11 +151,11 @@ handle_continue(init, State) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call(shutdown, _From, State) ->
+handle_call(shutdown = _Request, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret, PasswordReq,
-			#radius{code = ?AccessRequest} = Radius,
-			Trusted, IsEap}, From, State) ->
+		#radius{code = ?AccessRequest} = Radius,
+		Trusted, IsEap}, From, State) ->
 	request(IsEap, Address, Port, Secret,
 			PasswordReq, Trusted, Radius, From, State).
 
@@ -205,7 +202,7 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, State) ->
+handle_info(timeout = _Info, State) ->
 	init1(State);
 handle_info({'EXIT', Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
