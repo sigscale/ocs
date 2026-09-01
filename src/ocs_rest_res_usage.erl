@@ -3069,10 +3069,12 @@ char_attr_user_location(_, Acc) ->
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
-	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
-		{_, DateTime} when length(DateTime) > 3 ->
-			ocs_rest:date_range(DateTime);
-		false ->
+	{DateStart, DateEnd} = case ocs_rest:query_date(Query) of
+		{TS1, TS2} when is_integer(TS1), is_integer(TS2) ->
+			{TS1, TS2};
+		{TS1, undefined} when is_integer(TS1) ->
+			{TS1, erlang:system_time(millisecond)};
+		{undefined, undefined} ->
 			{1, erlang:system_time(millisecond)}
 	end,
 	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
@@ -3198,8 +3200,6 @@ query_start1(_Type, {_, "HTTPTransferUsage"}, undefined, Query,
 	end;
 query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
-query_start1(_, {_, false}, _, _, _, _, _, _, _) ->
-	{error, 400};
 query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
 	{error, 400}.
 

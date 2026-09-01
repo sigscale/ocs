@@ -68,10 +68,12 @@ content_types_provided() ->
 %% requests.
 get_balance_log(Query, Headers) ->
 	try
-		{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
-			{_, DateTime} when length(DateTime) > 3 ->
-				ocs_rest:date_range(DateTime);
-			false ->
+		{DateStart, DateEnd} = case ocs_rest:query_date(Query) of
+			{TS1, TS2} when is_integer(TS1), is_integer(TS2) ->
+				{TS1, TS2};
+			{TS1, undefined} when is_integer(TS1) ->
+				{TS1, erlang:system_time(millisecond)};
+			{undefined, undefined} ->
 				{1, erlang:system_time(millisecond)}
 		end,
 		case lists:keytake("filter", 1, Query) of
