@@ -25,8 +25,8 @@
 -export([start_link/0]).
 
 %% export the callbacks needed for gen_server behaviour
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-			terminate/2, code_change/3]).
+-export([init/1, handle_continue/2, handle_call/3, handle_cast/2,
+		handle_info/2, terminate/2, code_change/3]).
 
 -record(state,
 		{last :: integer(),
@@ -41,7 +41,17 @@
 				TotalTime :: non_neg_integer()}]}).
 -type state() :: #state{}.
 
--define(TIMEOUT, 600000).
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 28).
+		-define(TIMEOUT(Timeout), {timeout, Timeout, timeout}).
+	-else.
+		-define(TIMEOUT(Timeout), Timeout).
+	-endif.
+-else.
+	-define(TIMEOUT(Timeout), Timeout).
+-endif.
+
+-define(INTERVAL, 600000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_statistics_server API
@@ -70,10 +80,16 @@ start_link() ->
 	when
 		Args :: [term()],
 		Result :: {ok, State}
-			| {ok, State, Timeout}
-			| {stop, Reason} | ignore,
+				| {ok, State, Timeout}
+				| {ok, State, hibernate}
+				| {ok, State, {continue, Continue}}
+				| {stop, Reason}
+				| ignore,
 		State :: state(),
-		Timeout :: timeout(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
@@ -86,28 +102,56 @@ init(_Args) ->
 	N = erlang:unique_integer([positive]),
 	erlang:system_flag(scheduler_wall_time, true),
 	Wall = erlang:statistics(scheduler_wall_time),
-	ServerTimeout = Now + erlang:time_offset(millisecond) + ?TIMEOUT,
+	ServerTimeout = Now + erlang:time_offset(millisecond) + ?INTERVAL,
 	process_flag(trap_exit, true),
 	State = #state{last = Now, uniq = N,
 			interval = Interval,
 			wall0 = Wall, wall1 = Wall,
 			timeout = ServerTimeout},
-	{ok, State, Interval}.
+	{ok, State, ?TIMEOUT(Interval)}.
+
+-spec handle_continue(Info, State) -> Result
+	when
+		Info :: term(),
+		State :: state(),
+		Result :: {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
+		Reason :: term().
+%% @doc Handle a callback conntinuation.
+%% @see //stdlib/gen_server:handle_continue/2
+%% @private
+%%
+handle_continue(_Info, State) ->
+	{stop, not_implemented, State}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
 		Request :: term(),
-		From :: {pid(), Tag},
-		Tag :: any(),
+		From :: gen_server:from(),
 		State :: state(),
 		Result :: {reply, Reply, NewState}
-			| {reply, Reply, NewState, timeout() | hibernate}
-			| {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, Reply, NewState}
-			| {stop, Reason, NewState},
+				| {reply, Reply, NewState, Timeout}
+				| {reply, Reply, NewState, hibernate}
+				| {reply, Reply, NewState, {continue, Continue}}
+				| {noreply, NewState}
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, Reply, NewState}
+				| {stop, Reason, NewState},
 		Reply :: term(),
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
@@ -115,9 +159,9 @@ init(_Args) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call(scheduler_utilization, _From,
+handle_call(scheduler_utilization = _Request, _From,
 		#state{wall0 = W0, wall1 = W1, last = Last,
-		uniq = N, interval = Interval} = State) ->
+				uniq = N, interval = Interval} = State) ->
 	F = fun({{I, _, T0}, {I, _, T1}})
 					when (T1 - T0) == 0 ->
 				{I, 0};
@@ -129,7 +173,7 @@ handle_call(scheduler_utilization, _From,
 	Euniq = integer_to_list(Ts) ++ "-" ++ integer_to_list(N),
 	Reply = {Euniq, Interval, Report},
 	Now = erlang:monotonic_time(millisecond),
-	ServerTimeout = Now + erlang:time_offset(millisecond) + ?TIMEOUT,
+	ServerTimeout = Now + erlang:time_offset(millisecond) + ?INTERVAL,
 	NewState = State#state{timeout = ServerTimeout},
 	Timeout = case Interval - (Now - Last) of
 		To when To >= 0 ->
@@ -137,16 +181,22 @@ handle_call(scheduler_utilization, _From,
 		_To ->
 			0
 	end,
-	{reply, Reply, NewState, Timeout}.
+	{reply, Reply, NewState, ?TIMEOUT(Timeout)}.
 
 -spec handle_cast(Request, State) -> Result
 	when
 		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
@@ -154,7 +204,7 @@ handle_call(scheduler_utilization, _From,
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(stop, State) ->
+handle_cast(stop = _Request, State) ->
 	{stop, normal, State}.
 
 -spec handle_info(Info, State) -> Result
@@ -162,15 +212,21 @@ handle_cast(stop, State) ->
 		Info :: timeout | term(),
 		State::state(),
 		Result :: {noreply, NewState}
-			| {noreply, NewState, timeout() | hibernate}
-			| {stop, Reason, NewState},
+				| {noreply, NewState, Timeout}
+				| {noreply, NewState, hibernate}
+				| {noreply, NewState, {continue, Continue}}
+				| {stop, Reason, NewState},
 		NewState :: state(),
+		Timeout :: Time | {timeout, Time, Message},
+		Time :: timeout(),
+		Message :: timeout | term(),
+		Continue :: term(),
 		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout,
+handle_info(timeout = _Info,
 		#state{last = Last, interval = Interval, timeout = End} = State)
 		when End < (Last + Interval) ->
 	{stop, shutdown, State};
@@ -180,7 +236,7 @@ handle_info(timeout,
 	N = erlang:unique_integer([positive]),
 	NewState = State#state{last = Now, uniq = N, wall0 = W1,
 			wall1 = erlang:statistics(scheduler_wall_time)},
-	{noreply, NewState, Interval}.
+	{noreply, NewState, ?TIMEOUT(Interval)}.
 
 -spec terminate(Reason, State) -> any()
 	when
