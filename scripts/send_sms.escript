@@ -136,15 +136,12 @@ send_sms(Options) ->
 					record_info(fields, 'diameter_base_Proxy-Info')
 		end,
 		case diameter:call(Name, ro, CCR, []) of
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-					'Result-Code' = 2001} = Answer1 ->
+			#'3gpp_ro_CCA'{'Result-Code' = 2001} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fro)]);
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-					'Result-Code' = ResultCode} = Answer1 ->
+			#'3gpp_ro_CCA'{'Result-Code' = ResultCode} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fro)]),
 				throw(ResultCode);
-			#'diameter_base_answer-message'{'Session-Id' = SId,
-					'Result-Code' = ResultCode} = Answer1 ->
+			#'diameter_base_answer-message'{'Result-Code' = ResultCode} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fbase)]),
 				throw(ResultCode);
 			{error, Reason1} ->

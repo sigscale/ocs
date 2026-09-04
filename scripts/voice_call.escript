@@ -144,15 +144,12 @@ voice_call(Options) ->
 					record_info(fields, 'diameter_base_Proxy-Info')
 		end,
 		case diameter:call(Name, ro, CCR1, []) of
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-					'Result-Code' = 2001} = Answer1 ->
+			#'3gpp_ro_CCA'{'Result-Code' = 2001} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fro)]);
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-						'Result-Code' = ResultCode} = Answer1 ->
+			#'3gpp_ro_CCA'{'Result-Code' = ResultCode} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fro)]),
 				throw(ResultCode);
-			#'diameter_base_answer-message'{'Session-Id' = SId,
-					'Result-Code' = ResultCode} = Answer1 ->
+			#'diameter_base_answer-message'{'Result-Code' = ResultCode} = Answer1 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fbase)]),
 				throw(ResultCode);
 			{error, Reason1} ->
@@ -173,15 +170,12 @@ voice_call(Options) ->
 							'Multiple-Services-Credit-Control' = MSCC2,
 							'Event-Timestamp' = [calendar:universal_time()]},
 					case diameter:call(Name, ro, CCR2, []) of
-						#'3gpp_ro_CCA'{'Session-Id' = SId,
-								'Result-Code' = 2001} = Answer2 ->
+						#'3gpp_ro_CCA'{'Result-Code' = 2001} = Answer2 ->
 							io:fwrite("~s~n", [io_lib_pretty:print(Answer2, Fro)]);
-						#'3gpp_ro_CCA'{'Session-Id' = SId,
-								'Result-Code' = ResultCode1} = Answer2 ->
+						#'3gpp_ro_CCA'{'Result-Code' = ResultCode1} = Answer2 ->
 							io:fwrite("~s~n", [io_lib_pretty:print(Answer2, Fro)]),
 							throw(ResultCode1);
-						#'diameter_base_answer-message'{'Session-Id' = SId,
-								'Result-Code' = ResultCode1} = Answer2 ->
+						#'diameter_base_answer-message'{'Result-Code' = ResultCode1} = Answer2 ->
 							io:fwrite("~s~n", [io_lib_pretty:print(Answer2, Fbase)]),
 							throw(ResultCode1);
 						{error, Reason2} ->
@@ -202,15 +196,12 @@ voice_call(Options) ->
 				'Multiple-Services-Credit-Control' = MSCC3,
 				'Event-Timestamp' = [calendar:universal_time()]},
 		case diameter:call(Name, ro, CCR3, []) of
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-					'Result-Code' = 2001} = Answer3 ->
+			#'3gpp_ro_CCA'{'Result-Code' = 2001} = Answer3 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer3, Fro)]);
-			#'3gpp_ro_CCA'{'Session-Id' = SId,
-					'Result-Code' = ResultCode2} = Answer3 ->
+			#'3gpp_ro_CCA'{'Result-Code' = ResultCode2} = Answer3 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer3, Fro)]),
 				throw(ResultCode2);
-			#'diameter_base_answer-message'{'Session-Id' = SId,
-					'Result-Code' = ResultCode2} = Answer3 ->
+			#'diameter_base_answer-message'{'Result-Code' = ResultCode2} = Answer3 ->
 				io:fwrite("~s~n", [io_lib_pretty:print(Answer3, Fbase)]),
 				throw(ResultCode2);
 			{error, Reason3} ->

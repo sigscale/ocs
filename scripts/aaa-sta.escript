@@ -94,10 +94,10 @@ auth_session(Options) ->
 								record_info(fields, 'diameter_base_answer-message')
 					end,
 					case diameter:call(Name, sta, DER, []) of
-						#'3gpp_sta_DEA'{'Session-Id' = SId} = Answer ->
-								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
-						#'diameter_base_answer-message'{'Session-Id' = SId} = Answer ->
-								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
+						#'3gpp_sta_DEA'{} = Answer ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
+						#'diameter_base_answer-message'{} = Answer ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
 						{error, Reason} ->
 									throw(Reason)
 					end,
