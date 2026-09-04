@@ -71,7 +71,7 @@ auth_session(Options) ->
 		Frequest = fun F(0) ->
 					 ok;
 				F(N) ->
-					SId = diameter:session_id(Hostname),
+					SId = list_to_binary(diameter:session_id(Hostname)),
 					EapId = 0,
 					IMSI = maps:get(imsi, Options, "001001123456789"),
 					Identity = iolist_to_binary([?PERM_AKAp, IMSI, $@, OriginRealm]),
@@ -94,10 +94,10 @@ auth_session(Options) ->
 								record_info(fields, 'diameter_base_answer-message')
 					end,
 					case diameter:call(Name, sta, DER, []) of
-						#'3gpp_sta_DEA'{} = Answer ->
-									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
-						#'diameter_base_answer-message'{} = Answer ->
-									io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
+						#'3gpp_sta_DEA'{'Session-Id' = SId} = Answer ->
+								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
+						#'diameter_base_answer-message'{'Session-Id' = SId} = Answer ->
+								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
 						{error, Reason} ->
 									throw(Reason)
 					end,
