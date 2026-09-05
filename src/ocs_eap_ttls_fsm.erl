@@ -15,30 +15,25 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements the functions associated with a TTLS server within EAP
-%%% 	Tunneled Transport Layer Security (EAP-TTLS)
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements the functions associated with a TTLS server within
+%%% 	EAP Tunneled Transport Layer Security (EAP-TTLS)
 %%% 	in the {@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="http://tools.ietf.org/rfc/rfc5281.txt">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc5281/">
 %%% 	RFC5281 - EAP Tunneled Transport Layer Security (EAP-TTLS)</a>
 %%%
 -module(ocs_eap_ttls_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_eap_ttls_fsm API
--export([]).
-
-%% export the ocs_eap_ttls_fsm state callbacks
--export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
-			client_cipher/2, server_cipher/2, finish/2, client_passthrough/2,
-			server_passthrough/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states
+-export([ssl_start/3, eap_start/3, client_hello/3, server_hello/3,
+			client_cipher/3, server_cipher/3, finish/3, client_passthrough/3,
+			server_passthrough/3]).
 
 -dialyzer({[nowarn_function, no_contracts, no_return], prf/5}).
 
@@ -106,8 +101,8 @@
 		password_required :: boolean(),
 		trusted :: boolean(),
 		service_type :: undefined | integer()}).
-
 -type statedata() :: #statedata{}.
+-type state() :: idle.
 
 -define(TIMEOUT, 30000).
 -define(BufTIMEOUT, 100).
@@ -123,28 +118,28 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_ttls_fsm API
+%%  The ocs_eap_ttls_fsm gen_statem call backs
 %%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  The ocs_eap_ttls_fsm gen_fsm call backs
-%%----------------------------------------------------------------------
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-		| {ok, StateName, StateData, Timeout}
-		| {ok, StateName, StateData, hibernate}
-		| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
-%%
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
 		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
@@ -157,7 +152,7 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		{_, ST} ->
 			ST
 	end,
-	StateData = #statedata{sup = Sup, server_address = ServerAddress,
+	Data = #statedata{sup = Sup, server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
 			session_id = SessionID, start = AccessRequest, tls_key = TLSkey,
@@ -165,7 +160,8 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			password_required = PasswordReq, trusted = Trusted,
 			service_type = ServiceType},
 	process_flag(trap_exit, true),
-	{ok, ssl_start, StateData, 0};
+	Action = {next_event, internal, start},
+	{ok, ssl_start, Data, Action};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionID, AppId, ReqType, OHost, ORealm,
 		_DHost, _DRealm, DiameterRequest, _Options] = _Args) ->
@@ -183,7 +179,7 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 				_ ->
 					undefined
 			end,
-			StateData = #statedata{sup = Sup, server_address = ServerAddress,
+			Data = #statedata{sup = Sup, server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionID,
 					start = DiameterRequest, tls_key = TLSkey, tls_cert = TLScert,
@@ -193,886 +189,920 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					password_required = PasswordReq, trusted = Trusted,
 					service_type = ServiceType},
 			process_flag(trap_exit, true),
-			{ok, ssl_start, StateData, 0}
+			Action = {next_event, internal, start},
+			{ok, ssl_start, Data, Action}
 	end.
 
--spec ssl_start(Event, StateData) -> Result
+-spec ssl_start(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>ssl_start</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>ssl_start</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
-		ssl_socket = undefined, sup = Sup,
-		tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert} = StateData) ->
+ssl_start(internal = _EventType, start = _EventContent,
+		#statedata{start = #radius{code = ?AccessRequest},
+				ssl_socket = undefined, sup = Sup,
+				tls_key = TLSkey, tls_cert = TLScert,
+				tls_cacert = TLScacert} = Data) ->
 	Children = supervisor:which_children(Sup),
-	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
-			{cacertfile, TLScacert}],
-	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(), Options),
-	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
-	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
+	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm,
+			1, Children),
+	Options = [{mode, binary}, {certfile, TLScert},
+			{keyfile, TLSkey}, {cacertfile, TLScacert}],
+	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(),
+			Options),
+	gen_statem:cast(AaahFsm,
+			{ttls_socket, self(), SslSocket}),
+	NewData = Data#statedata{aaah_fsm = AaahFsm,
 			ssl_socket = SslSocket},
-	{next_state, ssl_start, NewStateData, ?TIMEOUT};
-ssl_start(timeout, #statedata{start = #diameter_eap_app_DER{},
-		ssl_socket = undefined, sup = Sup, tls_key = TLSkey,
-		tls_cert = TLScert, tls_cacert = TLScacert} = StateData) ->
+	Action = {timeout, ?TIMEOUT, timeout},
+	{keep_state, NewData, Action};
+ssl_start(internal = _EventType, start = _EventContent,
+		#statedata{start = #diameter_eap_app_DER{},
+				ssl_socket = undefined, sup = Sup,
+				tls_key = TLSkey, tls_cert = TLScert,
+				tls_cacert = TLScacert} = Data) ->
 	Children = supervisor:which_children(Sup),
-	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
-			{cacertfile, TLScacert}],
-	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(), Options),
-	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
-	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
+	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm,
+			1, Children),
+	Options = [{mode, binary}, {certfile, TLScert},
+			{keyfile, TLSkey}, {cacertfile, TLScacert}],
+	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(),
+			Options),
+	gen_statem:cast(AaahFsm,
+			{ttls_socket, self(), SslSocket}),
+	NewData = Data#statedata{aaah_fsm = AaahFsm,
 			ssl_socket = SslSocket},
-	{next_state, ssl_start, NewStateData, ?TIMEOUT};
-ssl_start(timeout, #statedata{session_id = SessionID} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-ssl_start({ssl_pid, SslPid}, StateData) ->
-	NewStateData = StateData#statedata{ssl_pid = SslPid},
-	{next_state, eap_start, NewStateData, 0}.
+	Action = {timeout, ?TIMEOUT, timeout},
+	{keep_state, NewData, Action};
+ssl_start(cast = _EventType, {ssl_pid, SslPid}, Data) ->
+	NewData = Data#statedata{ssl_pid = SslPid},
+	Action = {next_event, internal, start},
+	{next_state, eap_start, NewData, Action};
+ssl_start(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 
--spec eap_start(Event, StateData) -> Result
+-spec eap_start(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>eap_start</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
-		id = RadiusID, authenticator = RequestAuthenticator,
-		attributes = Attributes}, radius_fsm = RadiusFsm, eap_id = EapID,
-		session_id = SessionID, secret = Secret} = StateData) ->
+eap_start(internal = _EventType, start = _EventContent,
+		#statedata{start = #radius{code = ?AccessRequest,
+				id = RadiusID, authenticator = RequestAuthenticator,
+				attributes = Attributes}, radius_fsm = RadiusFsm,
+				eap_id = EapID, session_id = SessionID,
+				secret = Secret} = Data) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
-	NewStateData = StateData#statedata{req_auth = RequestAuthenticator},
+	NewData = Data#statedata{req_auth = RequestAuthenticator},
+	Action = {timeout, ?TIMEOUT, timeout},
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-			{next_state, client_hello, NewStateData, ?TIMEOUT};
+					RadiusID, [], RequestAuthenticator, Attributes,
+					Secret, RadiusFsm, NewData),
+			{next_state, client_hello, NewData, Action};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
 					NewEapID = (StartEapID rem 255) + 1,
-					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
-							identifier = NewEapID, data = EapData},
+					NewEapPacket = #eap_packet{code = request,
+							type = ?TTLS, identifier = NewEapID,
+							data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
-							RadiusID, [], RequestAuthenticator, Attributes, Secret,
-							RadiusFsm, StateData),
-					NextStateData = NewStateData#statedata{eap_id = NewEapID},
-					{next_state, client_hello, NextStateData, ?TIMEOUT};
+							RadiusID, [], RequestAuthenticator,
+							Attributes, Secret, RadiusFsm, NewData),
+					NextData = NewData#statedata{eap_id = NewEapID},
+					{next_state, client_hello, NextData, Action};
 				#eap_packet{code = request, identifier = NewEapID} ->
-					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
-							identifier = NewEapID, data = <<0>>},
+					NewEapPacket = #eap_packet{code = response,
+							type = ?LegacyNak, identifier = NewEapID,
+							data = <<0>>},
 					send_response(NewEapPacket, ?AccessReject,
-							RadiusID, [], RequestAuthenticator, Attributes, Secret,
-							RadiusFsm, StateData),
-					{stop, {shutdown, SessionID}, NewStateData};
-				#eap_packet{code = Code,
-							type = EapType, identifier = NewEapID, data = Data} ->
+							RadiusID, [], RequestAuthenticator,
+							Attributes, Secret, RadiusFsm, NewData),
+					{stop, {shutdown, SessionID}, NewData};
+				#eap_packet{code = Code, type = EapType,
+						identifier = NewEapID, data = EapData1} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
 							{eap_id, NewEapID}, {code, Code},
-							{type, EapType}, {data, Data}]),
-					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+							{type, EapType}, {data, EapData1}]),
+					NewEapPacket = #eap_packet{code = failure,
+							identifier = NewEapID},
 					send_response(NewEapPacket, ?AccessReject,
-							RadiusID, [], RequestAuthenticator, Attributes, Secret,
-							RadiusFsm, StateData),
-					{stop, {shutdown, SessionID}, StateData};
+							RadiusID, [], RequestAuthenticator,
+							Attributes, Secret, RadiusFsm, NewData),
+					{stop, {shutdown, SessionID}, NewData};
 				{'EXIT', _Reason} ->
-					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
+					NewEapPacket = #eap_packet{code = failure,
+							identifier = EapID},
 					send_response(NewEapPacket, ?AccessReject,
-							RadiusID, [], RequestAuthenticator, Attributes, Secret,
-							RadiusFsm, StateData),
-					{stop, {shutdown, SessionID}, StateData}
+							RadiusID, [], RequestAuthenticator,
+							Attributes, Secret, RadiusFsm, NewData),
+					{stop, {shutdown, SessionID}, NewData}
 			end;
 		{error, not_found} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret,
-					RadiusFsm, StateData),
-			{next_state, client_hello, NewStateData, ?TIMEOUT}
+					RadiusID, [], RequestAuthenticator,
+					Attributes, Secret, RadiusFsm, NewData),
+			{next_state, client_hello, NewData, Action}
 	end;
-eap_start(timeout, #statedata{start = DiameterRequest,
-		eap_id = EapID, session_id = SessionID, auth_req_type = AuthType,
-		origin_host = OH, origin_realm = OR, port_server = PortServer}
-		= StateData) ->
+eap_start(internal = _EventType, start = _EventContent,
+		#statedata{start = DiameterRequest, eap_id = EapID,
+				session_id = SessionID, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	Action = {timeout, ?TIMEOUT, timeout},
 	case DiameterRequest#diameter_eap_app_DER.'EAP-Payload' of
 		<<>> ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
 			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-					OH, OR, EapPacket, PortServer, DiameterRequest, StateData),
-			{next_state, client_hello, StateData, ?TIMEOUT};
+					OH, OR, EapPacket, PortServer, DiameterRequest,
+					Data),
+			{next_state, client_hello, Data, Action};
 		EAPMessage ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
 					NewEapID = (StartEapID rem 255) + 1,
-					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
-							identifier = NewEapID, data = EapData},
+					NewEapPacket = #eap_packet{code = request,
+							type = ?TTLS, identifier = NewEapID,
+							data = EapData},
 					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-							OH, OR, NewEapPacket, PortServer, DiameterRequest, StateData),
-					NextStateData = StateData#statedata{eap_id = NewEapID},
-					{next_state, client_hello, NextStateData, ?TIMEOUT};
+							OH, OR, NewEapPacket, PortServer,
+							DiameterRequest, Data),
+					NextData = Data#statedata{eap_id = NewEapID},
+					{next_state, client_hello, NextData, Action};
 				#eap_packet{code = request, identifier = NewEapID} ->
-					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
+					NewEapPacket = #eap_packet{code = response,
+							type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
 					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket, PortServer, DiameterRequest, StateData),
-					{stop, {shutdown, SessionID}, StateData};
-				#eap_packet{code = Code,
-							type = EapType, identifier = NewEapID, data = Data} ->
+							OH, OR, NewEapPacket, PortServer,
+							DiameterRequest, Data),
+					{stop, {shutdown, SessionID}};
+				#eap_packet{code = Code, type = EapType,
+						identifier = NewEapID, data = EapData1} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
 							{eap_id, NewEapID}, {code, Code},
-							{type, EapType}, {data, Data}]),
-					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+							{type, EapType}, {data, EapData1}]),
+					NewEapPacket = #eap_packet{code = failure,
+							identifier = NewEapID},
 					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket, PortServer, DiameterRequest, StateData),
-					{stop, {shutdown, SessionID}, StateData};
+							OH, OR, NewEapPacket, PortServer,
+							DiameterRequest, Data),
+					{stop, {shutdown, SessionID}};
 				{'EXIT', _Reason} ->
-					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
+					NewEapPacket = #eap_packet{code = failure,
+							identifier = EapID},
 					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket, PortServer, DiameterRequest, StateData),
-					{stop, {shutdown, SessionID}, StateData}
+							OH, OR, NewEapPacket, PortServer,
+							DiameterRequest, Data),
+					{stop, {shutdown, SessionID}}
 			end
 	end.
 
--spec client_hello(Event, StateData) -> Result
+-spec client_hello(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>client_hello</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>client_hello</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-client_hello(timeout, #statedata{session_id = SessionID} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-client_hello({ssl_setopts, Options}, StateData) ->
-	NewStateData = StateData#statedata{socket_options = Options},
-	{next_state, client_hello, NewStateData, ?TIMEOUT};
-client_hello({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{eap_id = EapID,
-		session_id = SessionID, secret = Secret,
-		rx_length = RxLength, rx_buf = RxBuf, ssl_pid = SslPid} = StateData) ->
+client_hello(cast = _EventType,
+		{ssl_setopts, Options}, Data) ->
+	NewData = Data#statedata{socket_options = Options},
+	Action = {timeout, ?TIMEOUT, timeout},
+	{keep_state, NewData, Action};
+client_hello(cast = _EventType,
+		{#radius{code = ?AccessRequest, id = RadiusID,
+				authenticator = RequestAuthenticator,
+				attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID,
+				session_id = SessionID, secret = Secret,
+				rx_length = RxLength, rx_buf = RxBuf,
+				ssl_pid = SslPid} = Data) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
-	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
+	NewData = case {radius_attributes:find(?FramedMtu, Attributes),
 			radius_attributes:find(?NasPortType, Attributes)} of
 		{{ok, MTU}, {ok, 19}} when MTU > 1496 -> % 802.11
-			StateData#statedata{max_size = MTU - 4,
+			Data#statedata{max_size = MTU - 4,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
 		{{ok, MTU}, {ok, 19}} when MTU < 1496 -> % 802.11
-			StateData#statedata{max_size = 1496,
+			Data#statedata{max_size = 1496,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
 		{{ok, MTU}, {ok, 15}} -> % Ethernet
-			StateData#statedata{max_size = MTU - 4,
+			Data#statedata{max_size = MTU - 4,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
 		{{ok, MTU}, _} -> % Ethernet
-			StateData#statedata{max_size = MTU,
+			Data#statedata{max_size = MTU,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
 		{_, _} ->
-			StateData#statedata{max_size = 16#ffff,
+			Data#statedata{max_size = 16#ffff,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator}
 	end,
+	Action = {timeout, ?TIMEOUT, timeout},
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, start = false, data = Data}
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(EapData) of
+			#eap_ttls{more = false, start = false, data = TtlsData}
 					when RxLength == undefined ->
-				CHMsg = <<RxBuf/binary, Data/binary>>,
-				NextStateData = client_hello1(CHMsg, NewStateData),
+				CHMsg = <<RxBuf/binary, TtlsData/binary>>,
+				NextData = client_hello1(CHMsg, NewData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
-				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
+				NextNewData = NextData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
-				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
-			#eap_ttls{more = false, start = false, data = Data} ->
-				CHMsg = <<RxBuf/binary, Data/binary>>,
+				{next_state, server_hello, NextNewData, Action};
+			#eap_ttls{more = false, start = false, data = TtlsData} ->
+				CHMsg = <<RxBuf/binary, TtlsData/binary>>,
 				RxLength = size(CHMsg),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
-				NextStateData = NewStateData#statedata{rx_buf = <<>>,
+				NextData = NewData#statedata{rx_buf = <<>>,
 								rx_length = undefined},
-				{next_state, server_hello, NextStateData, ?TIMEOUT};
+				{next_state, server_hello, NextData, Action};
 			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= <<>> ->
+					start = false, data = TtlsData} when RxBuf /= <<>> ->
 				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response,
+						type = ?TTLS, identifier = NewEapID,
+						data = EapData1},
 				send_response(EapPacket1, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-				NextRxBuf = <<RxBuf/binary, Data/binary>>,
-				NextStateData = NewStateData#statedata{rx_buf = NextRxBuf},
-				{next_state, client_hello, NextStateData, ?TIMEOUT};
+						RadiusID, [], RequestAuthenticator,
+						Attributes, Secret, RadiusFsm, NewData),
+				NextRxBuf = <<RxBuf/binary, TtlsData/binary>>,
+				NextData = NewData#statedata{rx_buf = NextRxBuf},
+				{keep_state, NextData, Action};
 			#eap_ttls{more = true, message_len = MessageLength,
-					start = false, data = Data} ->
+					start = false, data = TtlsData} ->
 				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response,
+						type = ?TTLS, identifier = NewEapID,
+						data = EapData1},
 				send_response(EapPacket1, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-				NextStateData = NewStateData#statedata{rx_buf = Data,
+						RadiusID, [], RequestAuthenticator,
+						Attributes, Secret, RadiusFsm, NewData),
+				NextData = NewData#statedata{rx_buf = TtlsData,
 						rx_length = MessageLength},
-				{next_state, client_hello, NextStateData, ?TIMEOUT}
+				{keep_state, NextData, Action}
+		end
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure,
+					identifier = EapID},
+			send_response(EapPacket2, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, Attributes,
+					Secret, RadiusFsm, NewData),
+			{stop, {shutdown, SessionID}, NewData}
+	end;
+client_hello(cast = _EventType,
+		#diameter_eap_app_DER{} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				rx_length = RxLength, rx_buf = RxBuf,
+				ssl_pid = SslPid,
+				origin_host = OH, origin_realm = OR,
+				auth_req_type = AuthType,
+				port_server = PortServer} = Data) ->
+	{EapMessage, FramedMTU, NasPortType} = get_diameter_attributes(Request),
+	NewData = case {FramedMTU, NasPortType} of
+		{undefined, undefined} ->
+			Data#statedata{max_size = 16#ffff};
+		{MTU, 19} when MTU > 1496 -> % 802.11
+			Data#statedata{max_size = MTU - 4};
+		{MTU, 19} when MTU < 1496 -> % 802.11
+			Data#statedata{max_size = 1496};
+		{MTU, 15} -> % Ethernet
+			Data#statedata{max_size = MTU - 4};
+		{MTU, _} -> % Ethernet
+			Data#statedata{max_size = MTU}
+	end,
+	Action = {timeout, ?TIMEOUT, timeout},
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(EapData) of
+			#eap_ttls{more = false, start = false, data = TtlsData}
+					when RxLength == undefined ->
+				CHMsg = <<RxBuf/binary, TtlsData/binary>>,
+				NextData = client_hello1(CHMsg, NewData),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextNewData = NextData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_hello, NextNewData, Action};
+			#eap_ttls{more = false, start = false, data = TtlsData} ->
+				CHMsg = <<RxBuf/binary, TtlsData/binary>>,
+				RxLength = size(CHMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextData = NewData#statedata{rx_buf = <<>>,
+								rx_length = undefined},
+				{next_state, server_hello, NextData, Action};
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = TtlsData} when RxBuf /= <<>> ->
+				NewEapID = (EapID rem 255) + 1,
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = EapData1},
+				send_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+						OH, OR, EapPacket1, PortServer, Request, NewData),
+				NextRxBuf = <<RxBuf/binary, TtlsData/binary>>,
+				NextData = NewData#statedata{rx_buf = NextRxBuf},
+				{keep_state, NextData, Action};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = TtlsData} ->
+				NewEapID = (EapID rem 255) + 1,
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = EapData1},
+				send_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+						OH, OR, EapPacket1, PortServer, Request, NewData),
+				NextData = NewData#statedata{rx_buf = TtlsData,
+						rx_length = MessageLength},
+				{keep_state, NextData, Action}
+		end
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure,
+					identifier = EapID},
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OH, OR, EapPacket2, PortServer, Request,
+					NewData),
+			{stop, {shutdown, SessionID}, NewData}
+	end;
+client_hello(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
+%% @hidden
+% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
+% ProtocolMessage - <<MessageType, Length:24, ClientHelloMessage>>
+% RFC 5246 Section 7.4.1.2
+% ClientHelloMessage -
+% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
+%	SessionID, CipherSuite, CompressionMethod, ..>>
+client_hello1(<<?Handshake, _Version:16, _L1:16, ?ClientHello, _L2:24,
+		_ClientVersion:16, ClientRand:32/binary, _/binary>>, Data) ->
+	Data#statedata{client_rand = ClientRand}.
+
+-spec server_hello(EventType, EventContent, Data) -> Result
+	when
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>server_hello</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
+%% @private
+%%
+% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
+% ProtocolMessage - <<MessageType, Length:24, ServerHelloMessage>>
+% RFC 5246 Section 7.4.1.3
+% ServerHelloMessage -
+% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
+% SessionID, CipherSuite, CompressionMethod, ..>>
+server_hello(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+				?ServerHello, _L2:24, _ServerVersion:16,
+				ServerRand:32/binary, _/binary>> = TlsData}, Data) ->
+	NewData = Data#statedata{server_rand = ServerRand},
+	server_hello1(TlsData, NewData);
+server_hello(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+				?Certificate, _/binary>> = TlsData}, Data) ->
+	server_hello1(TlsData, Data);
+server_hello(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+				?ServerKeyExchange, _/binary>> = TlsData}, Data) ->
+	server_hello1(TlsData, Data);
+server_hello(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+				?ServerHelloDone, _/binary>> = TlsData},
+		#statedata{tx_buf = TxBuf} = Data) ->
+	NextTxBuf = <<TxBuf/binary, TlsData/binary>>,
+	NewData = Data#statedata{tx_buf = NextTxBuf},
+	server_hello2([], NewData);
+server_hello(cast = _EventType,
+		{#radius{code = ?AccessRequest, id = RadiusID,
+				authenticator = RequestAuthenticator,
+				attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+				secret = Secret} = Data) ->
+	NewData = Data#statedata{radius_fsm = RadiusFsm,
+      	radius_id = RadiusID, req_auth = RequestAuthenticator},
+	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
+	EapMessage = iolist_to_binary(EapMessages),
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_ttls{more = false, start = false,
+				data = <<>>} = ocs_eap_codec:eap_ttls(EapData),
+		server_hello2(Attributes, NewData)
+	catch
+		_:_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject, RadiusID, [],
+					RequestAuthenticator, Attributes, Secret, RadiusFsm,
+					NewData),
+			{stop, {shutdown, SessionID}, NewData}
+	end;
+server_hello(cast = _EventType,
+		#diameter_eap_app_DER{} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				auth_req_type = AuthType, origin_host = OH,
+				origin_realm = OR, port_server = PortServer} = Data) ->
+	{EapMessages, _, _} = get_diameter_attributes(Request),
+	EapMessage = iolist_to_binary(EapMessages),
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_ttls{more = false, start = false,
+				data = <<>>} = ocs_eap_codec:eap_ttls(EapData),
+		server_hello2([], Data)
+	catch
+		_:_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OH, OR, EapPacket, PortServer, Request, Data),
+			{stop, {shutdown, SessionID}}
+	end;
+server_hello(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID, tx_buf = <<>>} = _Data) ->
+	{stop, {shutdown, SessionID}};
+server_hello(timeout = _EventType, timeout = _EventContent, Data) ->
+	server_hello2([], Data).
+%% @hidden
+server_hello1(<<_:24, Length:16, _/binary>> = TlsData,
+		#statedata{ssl_pid = SslPid, tx_buf = TxBuf} = Data) ->
+	Action = {timeout, ?TIMEOUT, timeout},
+	case TlsData of
+		<<_:40, _:Length/binary>> = TRLayer ->
+			NextTxBuf = <<TxBuf/binary, TRLayer/binary>>,
+			NewData = Data#statedata{tx_buf = NextTxBuf},
+			{keep_state, NewData, Action};
+		<<_:40, _:Length/binary, Rest/binary>> = TRLayer ->
+			Size = Length + 5,
+			<<Msg:Size/binary, _/binary>>  = TRLayer,
+			NextTxBuf = <<TxBuf/binary, Msg/binary>>,
+			NewData = Data#statedata{tx_buf = NextTxBuf},
+			{keep_state, NewData, Action}
+	end.
+%% @hidden
+server_hello2(RequestAttributes,
+		#statedata{start = #radius{}, tx_buf = TxBuf,
+				radius_fsm = RadiusFsm, radius_id = RadiusID,
+				req_auth = RequestAuthenticator, secret = Secret,
+				eap_id = EapID, max_size = MaxSize} = Data) ->
+	MaxData = MaxSize - 10,
+	NewEapID = (EapID rem 255) + 1,
+	Action = {timeout, ?TIMEOUT, timeout},
+	case size(TxBuf) of
+		Size when Size > MaxData ->
+			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
+			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge, RadiusID, [],
+					RequestAuthenticator, RequestAttributes, Secret,
+					RadiusFsm, Data),
+			NewData = Data#statedata{eap_id = NewEapID, tx_buf = Rest},
+			{keep_state, NewData, Action};
+		_Size ->
+			EapTtls = #eap_ttls{data = TxBuf},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge, RadiusID,
+					[], RequestAuthenticator, RequestAttributes,
+					Secret, RadiusFsm, Data),
+			NewData = Data#statedata{eap_id = NewEapID, tx_buf = <<>>},
+			{next_state, client_cipher, NewData, Action}
+	end;
+server_hello2(_,
+		#statedata{start = #diameter_eap_app_DER{},
+				tx_buf = TxBuf, eap_id = EapID, max_size = MaxSize,
+				session_id = SessionID, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
+	MaxData = MaxSize - 10,
+	NewEapID = (EapID rem 255) + 1,
+	Action = {timeout, ?TIMEOUT, timeout},
+	case size(TxBuf) of
+		Size when Size > MaxData ->
+			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
+			EapTtls = #eap_ttls{more = true,
+					message_len = Size, data = Chunk},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+					OH, OR, EapPacket, PortServer,
+					#diameter_eap_app_DER{}, Data),
+			NewData = Data#statedata{eap_id = NewEapID, tx_buf = Rest},
+			{keep_state, NewData, Action};
+		_Size ->
+			EapTtls = #eap_ttls{data = TxBuf},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+					OH, OR, EapPacket, PortServer,
+					#diameter_eap_app_DER{}, Data),
+			NewData = Data#statedata{eap_id = NewEapID, tx_buf = <<>>},
+			{next_state, client_cipher, NewData, Action}
+	end.
+
+-spec client_cipher(EventType, EventContent, Data) -> Result
+	when
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>client_cipher</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
+%% @private
+%%
+client_cipher(cast = _EventType,
+		{#radius{code = ?AccessRequest, id = RadiusID,
+				authenticator = RequestAuthenticator,
+				attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+				secret = Secret, rx_length = RxLength, rx_buf = RxBuf,
+				ssl_pid = SslPid} = Data) ->
+	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
+	EapMessage = iolist_to_binary(EapMessages),
+	NewData = Data#statedata{radius_fsm = RadiusFsm,
+		radius_id = RadiusID, req_auth = RequestAuthenticator},
+	Action = {timeout, ?TIMEOUT, timeout},
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(EapData) of
+			#eap_ttls{more = false, start = false, data = TtlsData}
+					when RxLength == undefined ->
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextData = NewData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_cipher, NextData};
+			#eap_ttls{more = false, start = false, data = TtlsData} ->
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
+				RxLength = size(CCMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextData = NewData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_cipher, NextData};
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = TtlsData} when RxBuf /= <<>> ->
+				NewEapID = (EapID rem 255) + 1,
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = EapData1},
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
+				send_response(EapPacket1, ?AccessChallenge, RadiusID,
+						[], RequestAuthenticator, Attributes, Secret,
+						RadiusFsm, NewData),
+				NextData = NewData#statedata{rx_buf = CCMsg},
+				{keep_state, NextData, Action};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = TtlsData} ->
+				NewEapID = (EapID rem 255) + 1,
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = EapData1},
+				send_response(EapPacket1, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Attributes,
+					Secret, RadiusFsm, NewData),
+				NextData = NewData#statedata{rx_buf = TtlsData,
+						rx_length = MessageLength},
+				{keep_state, NextData, Action}
 		end
 	catch
 		_:_ ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket2, ?AccessReject,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-			{stop, {shutdown, SessionID}, NewStateData}
+			send_response(EapPacket2, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, Attributes, Secret,
+					RadiusFsm, NewData),
+			{stop, {shutdown, SessionID}, NewData}
 	end;
-client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
-		session_id = SessionID, rx_length = RxLength, rx_buf = RxBuf,
-		ssl_pid = SslPid, origin_host = OH, origin_realm = OR,
-		auth_req_type = AuthType, port_server = PortServer} = StateData) ->
-	{EapMessage, FramedMTU, NasPortType} = get_diameter_attributes(Request),
-	NewStateData = case {FramedMTU, NasPortType} of
-		{undefined, undefined} ->
-			StateData#statedata{max_size = 16#ffff};
-		{MTU, 19} when MTU > 1496 -> % 802.11
-			StateData#statedata{max_size = MTU - 4};
-		{MTU, 19} when MTU < 1496 -> % 802.11
-			StateData#statedata{max_size = 1496};
-		{MTU, 15} -> % Ethernet
-			StateData#statedata{max_size = MTU - 4};
-		{MTU, _} -> % Ethernet
-			StateData#statedata{max_size = MTU}
-	end,
+client_cipher(cast = _EventType,
+		#diameter_eap_app_DER{} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				rx_length = RxLength, rx_buf = RxBuf,
+				ssl_pid = SslPid, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
+	EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
+	Action = {timeout, ?TIMEOUT, timeout},
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, start = false, data = Data}
+				data = EapData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(EapData) of
+			#eap_ttls{more = false, start = false, data = TtlsData}
 					when RxLength == undefined ->
-				CHMsg = <<RxBuf/binary, Data/binary>>,
-				NextStateData = client_hello1(CHMsg, NewStateData),
-				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
-				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextData = Data#statedata{rx_buf = <<>>,
 						rx_length = undefined},
-				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
-			#eap_ttls{more = false, start = false, data = Data} ->
-				CHMsg = <<RxBuf/binary, Data/binary>>,
-				RxLength = size(CHMsg),
-				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
-				NextStateData = NewStateData#statedata{rx_buf = <<>>,
-								rx_length = undefined},
-				{next_state, server_hello, NextStateData, ?TIMEOUT};
+				{next_state, server_cipher, NextData};
+			#eap_ttls{more = false, start = false, data = TtlsData} ->
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
+				RxLength = size(CCMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextData = Data#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_cipher, NextData};
 			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= <<>> ->
+					start = false, data = TtlsData} when RxBuf /= <<>> ->
 				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
+						identifier = NewEapID, data = EapData1},
+				CCMsg = <<RxBuf/binary, TtlsData/binary>>,
 				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OH, OR, EapPacket1, PortServer, Request, StateData),
-				NextRxBuf = <<RxBuf/binary, Data/binary>>,
-				NextStateData = NewStateData#statedata{rx_buf = NextRxBuf},
-				{next_state, client_hello, NextStateData, ?TIMEOUT};
+						OH, OR, EapPacket1, PortServer, Request, Data),
+				NextData = Data#statedata{rx_buf = CCMsg},
+				{keep_state, NextData, Action};
 			#eap_ttls{more = true, message_len = MessageLength,
-					start = false, data = Data} ->
+					start = false, data = TtlsData} ->
 				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapData1 = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
+						identifier = NewEapID, data = EapData1},
 				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OH, OR, EapPacket1, PortServer, Request, StateData),
-				NextStateData = NewStateData#statedata{rx_buf = Data,
+						OH, OR, EapPacket1, PortServer, Request, Data),
+				NextData = Data#statedata{rx_buf = TtlsData,
 						rx_length = MessageLength},
-				{next_state, client_hello, NextStateData, ?TIMEOUT}
+				{keep_state, NextData, Action}
 		end
 	catch
 		_:_ ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OH, OR, EapPacket2, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, NewStateData}
-	end.
-%% @hidden
-%% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
-%% ProtocolMessage - <<MessageType, Length:24, ClientHelloMessage>>
-%% RFC 5246 Section 7.4.1.2
-%% ClientHelloMessage -
-%% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
-%%	SessionID, CipherSuite, CompressionMethod, ..>>
-client_hello1(<<?Handshake, _Version:16, _L1:16, ?ClientHello, _L2:24,
-		_ClientVersion:16, ClientRand:32/binary, _/binary>>, StateData) ->
-	StateData#statedata{client_rand = ClientRand}.
-
--spec server_hello(Event, StateData) -> Result
-	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>server_hello</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-server_hello(timeout, #statedata{session_id = SessionID,
-		tx_buf = <<>>} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-server_hello(timeout, StateData) ->
-	server_hello2([], StateData);
-%% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
-%% ProtocolMessage - <<MessageType, Length:24, ServerHelloMessage>>
-%% RFC 5246 Section 7.4.1.3
-%% ServerHelloMessage -
-%% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
-%% SessionID, CipherSuite, CompressionMethod, ..>>
-server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerHello, _L2:24, _ServerVersion:16, ServerRand:32/binary,
-		_/binary>> = Data}, StateData) ->
-	NewStateData = StateData#statedata{server_rand = ServerRand},
-	server_hello1(Data, NewStateData);
-server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?Certificate, _/binary>> = Data}, StateData) ->
-	server_hello1(Data, StateData);
-server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerKeyExchange, _/binary>> = Data}, StateData) ->
-	server_hello1(Data, StateData);
-server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerHelloDone, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf} = StateData) ->
-	NextTxBuf = <<TxBuf/binary, Data/binary>>,
-	NewStateData = StateData#statedata{tx_buf = NextTxBuf},
-	server_hello2([], NewStateData);
-server_hello({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
-		secret = Secret} = StateData) ->
-	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
-      radius_id = RadiusID, req_auth = RequestAuthenticator},
-	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
-	EapMessage = iolist_to_binary(EapMessages),
-	try
-		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_ttls{more = false, start = false,
-				data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
-		server_hello2(Attributes, NewStateData)
-	catch
-		_:_ ->
-			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket, ?AccessReject,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-			{stop, {shutdown, SessionID}, NewStateData}
+					OH, OR, EapPacket2, PortServer, Request, Data),
+			{stop, {shutdown, SessionID}}
 	end;
-server_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
-		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, port_server = PortServer} = StateData) ->
-	{EapMessages, _, _} = get_diameter_attributes(Request),
-	EapMessage = iolist_to_binary(EapMessages),
-	try
-		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_ttls{more = false, start = false,
-				data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
-		server_hello2([], StateData)
-	catch
-		_:_ ->
-			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-					EapPacket, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData}
-	end.
-%% @hidden
-server_hello1(<<_:24, Length:16, _/binary>> = Data,
-		#statedata{ssl_pid = SslPid, tx_buf = TxBuf} = StateData) ->
-	case Data of
-		<<_:40, _:Length/binary>>  = TRLayer->
-			NextTxBuf = <<TxBuf/binary, TRLayer/binary>>,
-			NewStateData = StateData#statedata{tx_buf = NextTxBuf},
-			{next_state, server_hello, NewStateData, ?TIMEOUT};
-		<<_:40,  _:Length/binary, Rest/binary>> = TRLayer ->
-			Size = Length + 5,
-			<<Msg:Size/binary, _/binary>>  = TRLayer,
-			NextTxBuf = <<TxBuf/binary, Msg/binary>>,
-			NewStateData = StateData#statedata{tx_buf = NextTxBuf},
-			server_hello({eap_tls, SslPid, Rest}, NewStateData)
-	end.
-%% @hidden
-server_hello2(RequestAttributes, #statedata{start = #radius{},
-		tx_buf = TxBuf, radius_fsm = RadiusFsm, radius_id = RadiusID,
-		req_auth = RequestAuthenticator, secret = Secret, eap_id = EapID,
-		max_size = MaxSize} = StateData) ->
-	MaxData = MaxSize - 10,
-	NewEapID = (EapID rem 255) + 1,
-	case size(TxBuf) of
-		Size when Size > MaxData ->
-			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
-			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
-			EapData = ocs_eap_codec:eap_ttls(EapTtls),
-			EapPacket = #eap_packet{code = request, type = ?TTLS,
-					identifier = NewEapID, data = EapData},
-			send_response(EapPacket, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, RequestAttributes, Secret,
-					RadiusFsm, StateData),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
-			{next_state, server_hello, NewStateData, ?TIMEOUT};
-		_Size ->
-			EapTtls = #eap_ttls{data = TxBuf},
-			EapData = ocs_eap_codec:eap_ttls(EapTtls),
-			EapPacket = #eap_packet{code = request, type = ?TTLS,
-					identifier = NewEapID, data = EapData},
-			send_response(EapPacket, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, RequestAttributes, Secret,
-					RadiusFsm, StateData),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
-			{next_state, client_cipher, NewStateData, ?TIMEOUT}
-	end;
-server_hello2(_, #statedata{start = #diameter_eap_app_DER{}, tx_buf = TxBuf,
-	 eap_id = EapID, max_size = MaxSize, session_id = SessionID,
-	 auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-	 port_server = PortServer} = StateData) ->
-	MaxData = MaxSize - 10,
-	NewEapID = (EapID rem 255) + 1,
-	case size(TxBuf) of
-		Size when Size > MaxData ->
-			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
-			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
-			EapData = ocs_eap_codec:eap_ttls(EapTtls),
-			EapPacket = #eap_packet{code = request, type = ?TTLS,
-					identifier = NewEapID, data = EapData},
-			send_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
-					EapPacket, PortServer, #diameter_eap_app_DER{}, StateData),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
-			{next_state, server_hello, NewStateData, ?TIMEOUT};
-		_Size ->
-			EapTtls = #eap_ttls{data = TxBuf},
-			EapData = ocs_eap_codec:eap_ttls(EapTtls),
-			EapPacket = #eap_packet{code = request, type = ?TTLS,
-					identifier = NewEapID, data = EapData},
-			send_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
-					EapPacket, PortServer, #diameter_eap_app_DER{}, StateData),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
-			{next_state, client_cipher, NewStateData, ?TIMEOUT}
-	end.
+client_cipher(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 
--spec client_cipher(Event, StateData) -> Result
+-spec server_cipher(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>client_cipher</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>server_cipher</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-client_cipher(timeout,
-		#statedata{session_id = SessionID} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
-		secret = Secret, rx_length = RxLength, rx_buf = RxBuf,
-		ssl_pid = SslPid} = StateData) ->
-	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
-	EapMessage = iolist_to_binary(EapMessages),
-	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
-		radius_id = RadiusID, req_auth = RequestAuthenticator},
-	try
-		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, start = false, data = Data}
-					when RxLength == undefined ->
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
-				NextStateData = NewStateData#statedata{rx_buf = <<>>,
-						rx_length = undefined},
-				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = false, start = false, data = Data} ->
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				RxLength = size(CCMsg),
-				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
-				NextStateData = NewStateData#statedata{rx_buf = <<>>,
-						rx_length = undefined},
-				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= <<>> ->
-				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				send_response(EapPacket1, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-				NextStateData = NewStateData#statedata{rx_buf = CCMsg},
-				{next_state, client_cipher, NextStateData, ?TIMEOUT};
-			#eap_ttls{more = true, message_len = MessageLength,
-					start = false, data = Data} ->
-				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
-				send_response(EapPacket1, ?AccessChallenge,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-				NextStateData = NewStateData#statedata{rx_buf = Data,
-						rx_length = MessageLength},
-				{next_state, client_cipher, NextStateData, ?TIMEOUT}
-		end
-	catch
-		_:_ ->
-			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket2, ?AccessReject,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-			{stop, {shutdown, SessionID}, NewStateData}
-	end;
-client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
-		session_id = SessionID, rx_length = RxLength, rx_buf = RxBuf,
-		ssl_pid = SslPid, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, port_server = PortServer} = StateData) ->
-	EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
-	try
-		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, start = false, data = Data}
-					when RxLength == undefined ->
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
-				NextStateData = StateData#statedata{rx_buf = <<>>,
-						rx_length = undefined},
-				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = false, start = false, data = Data} ->
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				RxLength = size(CCMsg),
-				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
-				NextStateData = StateData#statedata{rx_buf = <<>>,
-						rx_length = undefined},
-				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= <<>> ->
-				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
-				CCMsg = <<RxBuf/binary, Data/binary>>,
-				send_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
-						EapPacket1, PortServer, Request, StateData),
-				NextStateData = StateData#statedata{rx_buf = CCMsg},
-				{next_state, client_cipher, NextStateData, ?TIMEOUT};
-			#eap_ttls{more = true, message_len = MessageLength,
-					start = false, data = Data} ->
-				NewEapID = (EapID rem 255) + 1,
-				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
-				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
-						identifier = NewEapID, data = TtlsData},
-				send_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
-						EapPacket1, PortServer, Request, StateData),
-				NextStateData = StateData#statedata{rx_buf = Data,
-						rx_length = MessageLength},
-				{next_state, client_cipher, NextStateData, ?TIMEOUT}
-		end
-	catch
-		_:_ ->
-			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			send_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-					EapPacket2, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData}
-	end.
-
--spec server_cipher(Event, StateData) -> Result
-	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>server_cipher</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-server_cipher(timeout,
-		#statedata{session_id = SessionID} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-server_cipher({eap_tls, SslPid, <<?ChangeCipherSpec, _/binary>> = Data},
-	StateData) ->
-	NewStateData = StateData#statedata{ssl_pid = SslPid},
-	server_cipher1(Data, NewStateData).
-
+%%
+server_cipher(cast = _EventType,
+		{eap_tls, SslPid, <<?ChangeCipherSpec, _/binary>> = TlsData},
+		Data) ->
+	NewData = Data#statedata{ssl_pid = SslPid},
+	server_cipher1(TlsData, NewData);
+server_cipher(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 %% @hidden
-server_cipher1(<<_:24, Length:16, _/binary>> = Data,
-		#statedata{ssl_pid = SslPid, tx_buf = Buf} = StateData) ->
-	case Data of
+server_cipher1(<<_:24, Length:16, _/binary>> = TlsData,
+		#statedata{ssl_pid = SslPid, tx_buf = Buf} = Data) ->
+	case TlsData of
 		<<_:40, _:Length/binary>> = SC ->
 			TxBuf = <<Buf/binary, SC/binary>>,
-			NewStateData = StateData#statedata{tx_buf = TxBuf},
-			{next_state, finish, NewStateData};
+			NewData = Data#statedata{tx_buf = TxBuf},
+			{next_state, finish, NewData};
 		<<_:40, _:Length/binary, Rest/binary>> = SC ->
 			Size = Length + 5,
-			<<Msg:Size/binary, _/binary>>  = SC,
+			<<Msg:Size/binary, _/binary>> = SC,
 			TxBuf = <<Buf/binary, Msg/binary>>,
-			NewStateData = StateData#statedata{tx_buf = TxBuf},
-			finish({eap_tls, SslPid, Rest}, NewStateData)
+			NewData = Data#statedata{tx_buf = TxBuf},
+			Action = {next_event, cast, {eap_tls, SslPid, Rest}},
+			{next_state, finish, NewData, Action}
 	end.
 
--spec finish(Event, StateData) -> Result
+-spec finish(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData , hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>finish</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>finish</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-finish(timeout,
-		#statedata{session_id = SessionID} = StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf, start = #radius{}, radius_id = RadiusID,
-		radius_fsm = RadiusFsm, req_auth = RequestAuthenticator, secret = Secret,
-		eap_id = EapID} = StateData) ->
+%%
+finish(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _/binary>> = TlsData},
+		#statedata{tx_buf = TxBuf, start = #radius{},
+				radius_id = RadiusID, radius_fsm = RadiusFsm,
+				req_auth = RequestAuthenticator, secret = Secret,
+				eap_id = EapID} = Data) ->
 	NewEapID = (EapID rem 255) + 1,
-	BinData = <<TxBuf/binary, Data/binary>>,
+	BinData = <<TxBuf/binary, TlsData/binary>>,
 	EapTtls = #eap_ttls{data = BinData},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	EapPacket = #eap_packet{code = request, type = ?TTLS,
 			identifier = NewEapID, data = EapData},
 	send_response(EapPacket, ?AccessChallenge,
-			RadiusID, [], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
-	{next_state, client_passthrough, NewStateData};
-finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf, start = #diameter_eap_app_DER{},
-		eap_id = EapID, session_id = SessionID, auth_req_type = AuthType,
-		origin_host = OH, origin_realm = OR, port_server = PortServer} =
-		StateData) ->
+			RadiusID, [], RequestAuthenticator,
+			[], Secret, RadiusFsm, Data),
+	NewData = Data#statedata{eap_id = NewEapID, tx_buf = <<>>},
+	{next_state, client_passthrough, NewData};
+finish(cast = _EventType,
+		{eap_tls, _SslPid, <<?Handshake, _/binary>> = TlsData},
+		#statedata{tx_buf = TxBuf,
+				start = #diameter_eap_app_DER{}, eap_id = EapID,
+				session_id = SessionID, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
 	NewEapID = (EapID rem 255) + 1,
-	BinData = <<TxBuf/binary, Data/binary>>,
+	BinData = <<TxBuf/binary, TlsData/binary>>,
 	EapTtls = #eap_ttls{data = BinData},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	EapPacket = #eap_packet{code = request, type = ?TTLS,
 			identifier = NewEapID, data = EapData},
 	send_diameter_response(SessionID, AuthType,
-			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket,
-			PortServer, #diameter_eap_app_DER{}, StateData),
-	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
-	{next_state, client_passthrough, NewStateData}.
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			OH, OR, EapPacket, PortServer,
+			#diameter_eap_app_DER{}, Data),
+	NewData = Data#statedata{eap_id = NewEapID, tx_buf = <<>>},
+	{next_state, client_passthrough, NewData};
+finish(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 
--spec client_passthrough(Event, StateData) -> Result
+-spec client_passthrough(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>client_passthrough</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>client_passthrough</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-client_passthrough(timeout, #statedata{session_id = SessionID} =
-		StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{eap_id = EapID,session_id = SessionID,
-		secret = Secret, ssl_pid = SslPid} = StateData) ->
-	NewStateData = StateData#statedata{req_auth = RequestAuthenticator,
+%%
+client_passthrough(cast = _EventType,
+		{#radius{code = ?AccessRequest, id = RadiusID,
+				authenticator = RequestAuthenticator,
+				attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+				secret = Secret, ssl_pid = SslPid} = Data) ->
+	NewData = Data#statedata{req_auth = RequestAuthenticator,
 			radius_fsm = RadiusFsm, radius_id = RadiusID},
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
-				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
+			#eap_packet{code = response,
+					identifier = EapID, data = EapData} ->
+				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(EapData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), TtlsData),
-				{next_state, server_passthrough, NewStateData};
+				{next_state, server_passthrough, NewData};
 			#eap_packet{code = request, identifier = NewEapID} ->
-					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
-							identifier = NewEapID, data = <<0>>},
-					send_response(NewEapPacket, ?AccessReject,
-							RadiusID, [], RequestAuthenticator, Attributes, Secret,
-							RadiusFsm, StateData),
-					{stop, {shutdown, SessionID}, NewStateData};
-			#eap_packet{code = Code,
-					type = EapType, identifier = NewEapID, data = Data} ->
+					NewEapPacket = #eap_packet{code = response,
+							type = ?LegacyNak, identifier = NewEapID,
+							data = <<0>>},
+					send_response(NewEapPacket, ?AccessReject, RadiusID,
+							[], RequestAuthenticator, Attributes, Secret,
+							RadiusFsm, NewData),
+					{stop, {shutdown, SessionID}, NewData};
+			#eap_packet{code = Code, type = EapType,
+					identifier = NewEapID, data = EapData} ->
 				error_logger:warning_report(["Unknown EAP received",
 						{pid, self()}, {session_id, SessionID},
 						{eap_id, NewEapID}, {code, Code},
-						{type, EapType}, {data, Data}]),
-				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
-				send_response(NewEapPacket, ?AccessReject,
-						RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-						StateData),
-				{stop, {shutdown, SessionID}, StateData}
+						{type, EapType}, {data, EapData}]),
+				NewEapPacket = #eap_packet{code = failure,
+						identifier = NewEapID},
+				send_response(NewEapPacket, ?AccessReject, RadiusID,
+						[], RequestAuthenticator, Attributes, Secret,
+						RadiusFsm, NewData),
+				{stop, {shutdown, SessionID}, NewData}
 		end
 	catch
 		_:_ ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket1, ?AccessReject,
-					RadiusID, [], RequestAuthenticator, Attributes, Secret, RadiusFsm,
-					StateData),
-				{stop, {shutdown, SessionID}, StateData}
+			send_response(EapPacket1, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, Attributes, Secret,
+					RadiusFsm, Data),
+				{stop, {shutdown, SessionID}}
 	end;
-client_passthrough(#diameter_eap_app_DER{} = Request,
-		#statedata{eap_id = EapID, session_id = SessionID, ssl_pid = SslPid,
-		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		port_server = PortServer} = StateData) ->
+client_passthrough(cast = _EventType,
+		#diameter_eap_app_DER{} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				ssl_pid = SslPid, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
 	try
 		EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
 		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
-				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
+			#eap_packet{code = response,
+					identifier = EapID, data = EapData} ->
+				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(EapData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), TtlsData),
-				{next_state, server_passthrough, StateData};
+				{next_state, server_passthrough, Data};
 			#eap_packet{code = request, identifier = NewEapID} ->
-					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
-							identifier = NewEapID, data = <<0>>},
+					NewEapPacket = #eap_packet{code = response,
+							type = ?LegacyNak, identifier = NewEapID,
+							data = <<0>>},
 					send_diameter_response(SessionID, AuthType,
-							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
-							NewEapPacket, PortServer, Request, StateData),
-					{stop, {shutdown, SessionID}, StateData};
-			#eap_packet{code = Code,
-					type = EapType, identifier = NewEapID, data = Data} ->
+							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+							OH, OR, NewEapPacket, PortServer, Request, Data),
+					{stop, {shutdown, SessionID}};
+			#eap_packet{code = Code, type = EapType,
+					identifier = NewEapID, data = EapData} ->
 				error_logger:warning_report(["Unknown EAP received",
 						{pid, self()}, {session_id, SessionID},
 						{eap_id, NewEapID}, {code, Code},
-						{type, EapType}, {data, Data}]),
-				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+						{type, EapType}, {data, EapData}]),
+				NewEapPacket = #eap_packet{code = failure,
+						identifier = NewEapID},
 				send_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-						NewEapPacket, PortServer, Request, StateData),
-				{stop, {shutdown, SessionID}, StateData}
+						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+						OH, OR, NewEapPacket, PortServer, Request, Data),
+				{stop, {shutdown, SessionID}}
 		end
 	catch
 		_:_ ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-					EapPacket1, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData}
-	end.
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OH, OR, EapPacket1, PortServer, Request, Data),
+			{stop, {shutdown, SessionID}}
+	end;
+client_passthrough(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 
--spec server_passthrough(Event, StateData) -> Result
+-spec server_passthrough(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, StateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>server_passthrough</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>server_passthrough</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-server_passthrough(timeout, #statedata{session_id = SessionID} =
-		StateData) ->
-	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, #service{name = Identity,
-		password = Password}, SslSocket}, #statedata{eap_id =
-		EapID, start = #radius{attributes = RequestAttributes},
-		session_id = SessionID, secret = Secret,
-		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
-		radius_id = RadiusID, %ssl_socket = SslSocket,
-		client_rand = ClientRandom, server_rand = ServerRandom,
-		service_type = ServiceType} = StateData) ->
+%%
+server_passthrough(cast = _EventType,
+		{accept, #service{name = Identity, password = Password}, SslSocket},
+		#statedata{eap_id = EapID,
+				start = #radius{attributes = RequestAttributes},
+				session_id = SessionID, secret = Secret,
+				req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
+				radius_id = RadiusID, %ssl_socket = SslSocket,
+				client_rand = ClientRandom, server_rand = ServerRandom,
+				service_type = ServiceType} = Data) ->
 	Timestamp = calendar:local_time(),
-	CallAddress = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	CallAddress = proplists:get_value(?CalledStationId,
+			RequestAttributes, ""),
 	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
-	case ocs_rating:authorize(radius, ServiceType, [Identity], Password,
-			Timestamp, CallAddress, undefined, SessionAttributes) of
+	case ocs_rating:authorize(radius,
+			ServiceType, [Identity], Password, Timestamp,
+			CallAddress, undefined, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
 			{MSK, _} = prf(SslSocket, master_secret ,
@@ -1088,152 +1118,94 @@ server_passthrough({accept, #service{name = Identity,
 			Attr3 = radius_attributes:store(?Microsoft,
 					?MsMppeSendKey, {Salt, MsMppeSendKey}, Attr2),
 			EapPacket = #eap_packet{code = success, identifier = EapID},
-			send_response(EapPacket, ?AccessAccept,
-				RadiusID, Attr3, RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			send_response(EapPacket, ?AccessAccept, RadiusID, Attr3,
+					RequestAuthenticator, [], Secret, RadiusFsm, Data),
+			{stop, {shutdown, SessionID}};
 		{unauthorized, disabled, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket, ?AccessReject, RadiusID,
-					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			send_response(EapPacket, ?AccessReject, RadiusID, [],
+					RequestAuthenticator, [], Secret, RadiusFsm, Data),
+			{stop, {shutdown, SessionID}};
 		{unauthorized, _Reason, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket, ?AccessReject, RadiusID,
-					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-			{stop, {shutdown, SessionID}, StateData}
+			send_response(EapPacket, ?AccessReject, RadiusID, [],
+					RequestAuthenticator, [], Secret, RadiusFsm, Data),
+			{stop, {shutdown, SessionID}}
 	end;
-server_passthrough(reject, #statedata{eap_id = EapID, 
-		session_id = SessionID, secret = Secret, start = #radius{},
-		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
-		radius_id = RadiusID} = StateData) ->
+server_passthrough(cast = _EventType, reject,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				secret = Secret, start = #radius{},
+				req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
+				radius_id = RadiusID} = Data) ->
 	EapPacket = #eap_packet{code = failure, identifier = EapID},
-	send_response(EapPacket, ?AccessReject, RadiusID,
-			[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, _UserName, SslSocket},
+	send_response(EapPacket, ?AccessReject, RadiusID, [],
+			RequestAuthenticator, [], Secret, RadiusFsm, Data),
+	{stop, {shutdown, SessionID}};
+server_passthrough(cast = _EventType,
+		{accept, _UserName, SslSocket},
 		#statedata{eap_id = EapID, start = #diameter_eap_app_DER{},
-		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, port_server = PortServer, client_rand = ClientRandom,
-		server_rand = ServerRandom} = StateData) ->
+				session_id = SessionID, auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer, client_rand = ClientRandom,
+				server_rand = ServerRandom} = _Data) ->
 	Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
-	{MSK, _} = prf(SslSocket, master_secret , <<"ttls keying material">>,
-			Seed, 128),
+	{MSK, _} = prf(SslSocket, master_secret,
+			<<"ttls keying material">>, Seed, 128),
 	EapPacket = #eap_packet{code = success, identifier = EapID},
-	EapData = ocs_eap_codec:eap_packet(EapPacket),
+	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionID,
 				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				'Origin-Host' = OH, 'Origin-Realm' = OR,
-				'EAP-Payload' = [EapData], 'EAP-Master-Session-Key' = [MSK]},
+				'EAP-Payload' = [EapMessage],
+				'EAP-Master-Session-Key' = [MSK]},
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData};
-server_passthrough(reject, #statedata{eap_id = EapID,
-		session_id = SessionID, start = #diameter_eap_app_DER{},
-	 	auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		port_server = PortServer} = StateData) ->
+	{stop, {shutdown, SessionID}};
+server_passthrough(cast = _EventType, reject,
+		#statedata{eap_id = EapID, session_id = SessionID,
+				start = #diameter_eap_app_DER{},
+	 			auth_req_type = AuthType,
+				origin_host = OH, origin_realm = OR,
+				port_server = PortServer} = Data) ->
 	EapPacket = #eap_packet{code = failure, identifier = EapID},
 	send_diameter_response(SessionID, AuthType,
-			?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED', OH, OR,
-			EapPacket, PortServer, #diameter_eap_app_DER{}, StateData),
-	{stop, {shutdown, SessionID}, StateData}.
+			?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			OH, OR, EapPacket, PortServer, #diameter_eap_app_DER{},
+			Data),
+	{stop, {shutdown, SessionID}};
+server_passthrough(timeout = _EventType, timeout = _EventContent,
+		#statedata{session_id = SessionID} = _Data) ->
+	{stop, {shutdown, SessionID}}.
 
--spec handle_event(Event, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Event :: term(), 
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData, ?TIMEOUT}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
-		StateData :: statedata(),
-		Result :: {reply, Reply, NextStateName, NewStateData}
-		| {reply, Reply, NextStateName, NewStateData, Timeout}
-		| {reply, Reply, NextStateName, NewStateData, hibernate}
-		| {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, Reply, NewStateData}
-		| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(), 
-		StateName :: atom(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData, ?TIMEOUT}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(), 
-		StateName :: atom(),
-		StateData :: statedata().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
+terminate(_Reason, _State, _Data) ->
 	ok.
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: statedata(), 
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: statedata().
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -1241,7 +1213,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 -spec send_response(EapPacket, RadiusCode, RadiusID, ResponseAttributes,
 		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm,
-		StateData) -> ok
+		Data) -> ok
 	when
 		EapPacket :: #eap_packet{},
 		RadiusCode :: integer(), 
@@ -1251,39 +1223,46 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		RequestAttributes :: radius_attributes:attributes(),
 		Secret :: binary(),
 		RadiusFsm :: pid(),
-		StateData :: statedata().
-%% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
+		Data :: statedata().
+%% @doc Sends a RADIUS-Access/Challenge, Reject or Accept packet to peer.
 %% @hidden
 send_response(#eap_packet{} = EapPacket, RadiusCode, RadiusID,
-		ResponseAttributes, RequestAuthenticator, RequestAttributes, Secret,
-		RadiusFsm, StateData) ->
-	BinEapPacket = ocs_eap_codec:eap_packet(EapPacket),
-	send_response1(BinEapPacket, RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData).
+		ResponseAttributes, RequestAuthenticator, RequestAttributes,
+		Secret, RadiusFsm, Data) ->
+	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+	send_response1(EapMessage, RadiusCode, RadiusID,
+		ResponseAttributes, RequestAuthenticator, RequestAttributes,
+		Secret, RadiusFsm, Data).
 %% @hidden
-send_response1(<<Chunk:253/binary, Rest/binary>>, RadiusCode, RadiusID,
-		ResponseAttributes, RequestAuthenticator, RequestAttributes, Secret,
-		RadiusFsm, StateData) ->
-	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
-			ResponseAttributes),
+send_response1(<<Chunk:253/binary, Rest/binary>>, RadiusCode,
+		RadiusID, ResponseAttributes, RequestAuthenticator,
+		RequestAttributes, Secret, RadiusFsm, Data) ->
+	AttrList1 = radius_attributes:add(?EAPMessage,
+			Chunk, ResponseAttributes),
 	send_response1(Rest, RadiusCode, RadiusID, AttrList1,
-		RequestAuthenticator,  RequestAttributes, Secret, RadiusFsm, StateData);
+		RequestAuthenticator,  RequestAttributes,
+		Secret, RadiusFsm, Data);
 send_response1(<<>>, RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData) ->
+		RequestAuthenticator, RequestAttributes, Secret,
+		RadiusFsm, Data) ->
 	send_response2(RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData);
+		RequestAuthenticator, RequestAttributes, Secret,
+		RadiusFsm, Data);
 send_response1(Chunk, RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm,
-		StateData) when is_binary(Chunk) ->
-	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
-			ResponseAttributes),
-	send_response2(RadiusCode, RadiusID, AttrList1, RequestAuthenticator,
-			RequestAttributes, Secret, RadiusFsm, StateData).
+		RequestAuthenticator, RequestAttributes, Secret,
+		RadiusFsm, Data) when is_binary(Chunk) ->
+	AttrList1 = radius_attributes:add(?EAPMessage,
+			Chunk, ResponseAttributes),
+	send_response2(RadiusCode, RadiusID, AttrList1,
+			RequestAuthenticator, RequestAttributes, Secret,
+			RadiusFsm, Data).
 %% @hidden
 send_response2(RadiusCode, RadiusID, ResponseAttributes,
 		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm,
-		#statedata{server_address = ServerAddress, server_port = ServerPort,
-		client_address = ClientAddress, client_port = ClientPort} = _StateData) ->
+		#statedata{server_address = ServerAddress,
+				server_port = ServerPort,
+				client_address = ClientAddress,
+				client_port = ClientPort} = _Data) ->
 	AttrList2 = radius_attributes:add(?MessageAuthenticator,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttrList2),
@@ -1389,7 +1368,7 @@ get_diameter_attributes(Packet) ->
 	{EapPacket, FramedMTU, NasPortType}.
 
 -spec send_diameter_response(SessionID, AuthType, ResultCode, OH, OR,
-		EapPacket, PortServer, Request, StateData) -> ok
+		EapPacket, PortServer, Request, Data) -> ok
 	when
 		SessionID :: string() | binary(),
 		AuthType :: integer(),
@@ -1399,26 +1378,29 @@ get_diameter_attributes(Packet) ->
 		EapPacket :: #eap_packet{},
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{},
-		StateData :: statedata().
+		Data :: statedata().
 %% @doc Send appropriate DIAMETER answer to ocs_diameter_auth_port_server.
 %% @hidden
 send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		PortServer, Request, #statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) ->
+		client_port = ClientPort} = _Data) ->
 	try
-		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
-				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
-				'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR,
-				'EAP-Payload' = [EapData]},
+				'Auth-Application-Id' = 5,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ResultCode,
+				'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapMessage]},
 		ok = ocs_log:auth_log(diameter, {ServerAddress, ServerPort},
 				{ClientAddress, ClientPort}, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
 		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
-				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+				'Auth-Application-Id' = 5,
+				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				'Origin-Host' = OH, 'Origin-Realm' = OR},
 		ok = ocs_log:auth_log(diameter, {ServerAddress, ServerPort},

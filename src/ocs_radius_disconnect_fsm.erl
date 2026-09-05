@@ -15,27 +15,23 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements sending Disconnect Messages (DM) to Network Access Servers
-%%% 	(NAS) in the {@link //ocs. ocs} application.
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements sending Disconnect Messages (DM) to
+%%% 	Network Access Servers (NAS)
+%%% 	in the {@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="http://tools.ietf.org/rfc/rfc3576.txt">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc3576/">
 %%% 	RFC3576 - Dynamic Authorization Extensions for RADIUS</a>
 %%%
 -module(ocs_radius_disconnect_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_radius_disconnect_fsm API
--export([]).
-
-%% export the ocs_radius_disconnect_fsm state callbacks
--export([send_request/2, receive_response/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states
+-export([send_request/3, receive_response/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
@@ -53,34 +49,37 @@
 		 retry_count = 0 :: integer(),
 		 request :: undefined | binary(),
 		 attributes :: radius_attributes:attributes()}).
+-type statedata() :: #statedata{}.
+-type state() :: idle.
 
 -define(TIMEOUT, 30000).
 -define(ERRORLOG, radius_disconnect_error).
 
 %%----------------------------------------------------------------------
-%%  The ocs_radius_disconnect_fsm API
+%%  The ocs_radius_disconnect_fsm gen_statem call backs
 %%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  The ocs_radius_disconnect_fsm gen_fsm call backs
-%%----------------------------------------------------------------------
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-			| {ok, StateName, StateData, Timeout}
-			| {ok, StateName, StateData, hibernate}
-			| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
 %%
-init([Subscriber, {_, SessionAttributes}]) ->
+init([Subscriber, {_, SessionAttributes}] = _Args) ->
 	process_flag(trap_exit, true),
 	NasIp = proplists:get_value(?NasIpAddress, SessionAttributes),
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
@@ -93,39 +92,33 @@ init([Subscriber, {_, SessionAttributes}]) ->
 			ignore;
 		{ok, #client{address = Address, identifier = NasID,
 				secret = Secret, port = Port}} ->
-			StateData = #statedata{nas_ip = Address, 
+			Data = #statedata{nas_ip = Address, 
 					nas_id = binary_to_list(NasID),
 					subscriber = Subscriber, acct_session_id = AcctSessionId,
 					secret = Secret, attributes = SessionAttributes, id = Id,
 					port = Port},
-			{ok, send_request, StateData, 0};
+			Action = {next_event, internal, start},
+			{ok, send_request, Data, Action};
 		{error, not_found} ->
 			{stop, {shutdown, client_not_found}};
 		{error, _Reason} ->
 			{stop, shutdown}
 	end.
 
--spec send_request(Event, StateData) -> Result
+-spec send_request(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
-%%		for sending a RADIUS-Disconnect/Request to an access point.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>send_request</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-send_request(timeout, #statedata{nas_ip = Address, port = Port,
-		id = Id, secret = SharedSecret, attributes = Attributes,
-		retry_time = Retry} = StateData) ->
+send_request(internal = _EventType, start = _EventContent,
+		#statedata{nas_ip = Address, port = Port, id = Id,
+				secret = SharedSecret, attributes = Attributes,
+				retry_time = Retry} = Data) ->
 	DiscAttrList  = extract_attributes(Attributes),
 	DiscAttr = radius_attributes:codec(DiscAttrList),
 	Length = size(DiscAttr) + 20,
@@ -135,124 +128,59 @@ send_request(timeout, #statedata{nas_ip = Address, port = Port,
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
 			authenticator = RequestAuthenticator, attributes = DiscAttr},
 	DisconnectRequest = radius:codec(DisconRec),
+	TimeoutAction = {timeout, Retry, initial},
 	case gen_udp:open(0, [{active, once}, binary]) of
 		{ok, Socket} ->
 			case gen_udp:send(Socket, Address, Port, DisconnectRequest) of
 				ok ->
-					NewStateData = StateData#statedata{id = Id, socket = Socket,
+					NewData = Data#statedata{id = Id, socket = Socket,
 							request = DisconnectRequest},
-					{next_state, receive_response, NewStateData, Retry};
+					{next_state, receive_response, NewData, TimeoutAction};
 				{error, _Reason} ->
-					{next_state, send_request, StateData, ?TIMEOUT}
+					{next_state, receive_response, Data, TimeoutAction}
 			end;
-		{error, _Reason} ->
-				{next_state, send_request, StateData, ?TIMEOUT}
+		{error, Reason} ->
+			{stop, Reason}
 	end.
 
--spec receive_response(Event, StateData) -> Result
+-spec receive_response(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>receive_response</b> state. This state is responsible
-%%		for recieving a RADIUS-Disconnect/ACK or RADIUS-Disconnect/NAK from an  access point.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>receive_response</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-receive_response(timeout, #statedata{retry_count = Count,
-		nas_id = NasId, subscriber = Subscriber,
-		acct_session_id = AcctSessionId} = StateData) when Count > 5 ->
-	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData};
-receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp, port = Port,
-		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
+receive_response(timeout = _EventType, retry = _EventContent,
+		#statedata{retry_count = Count,
+				nas_id = NasId, subscriber = Subscriber,
+				acct_session_id = AcctSessionId} = _Data)
+				when Count > 5 ->
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}};
+receive_response(timeout = _EventType, _EventContent,
+		#statedata{socket = Socket,
+				nas_ip = NasIp, port = Port,
+				request =  DisconnectRequest,
+				retry_count = Count,
+				retry_time = Retry} = Data) ->
 	NewRetry = Retry * 2,
 	NewCount = Count + 1,
-	NewStateData = StateData#statedata{retry_count = NewCount, retry_time = NewRetry},
-	case gen_udp:send(Socket, NasIp, Port, DisconnectRequest)of
+	NewData = Data#statedata{retry_count = NewCount,
+			retry_time = NewRetry},
+	TimeoutAction = {timeout, NewRetry, retry},
+	case gen_udp:send(Socket, NasIp, Port, DisconnectRequest) of
 		ok ->
-			{next_state, receive_response, NewStateData, NewRetry};
+			{keep_state, NewData, TimeoutAction};
 		{error, _Reason} ->
-			{next_state, receive_response, NewStateData, 0}
-	end.
-
--spec handle_event(Event, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason , NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
-		#statedata{id = Id, nas_id = NasId, subscriber = Subscriber,
-		acct_session_id = AcctSessionId} = StateData) ->
+			{keep_state, NewData, TimeoutAction}
+	end;
+receive_response(info = _EventType,
+		{udp, _, NasIp, NasPort, Packet} = _EventContent,
+		#statedata{id = Id,
+				nas_id = NasId, subscriber = Subscriber,
+				acct_session_id = AcctSessionId} = _Data) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
 			F = fun() ->
@@ -277,35 +205,39 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
 							{server, NasIp}, {port, NasPort}])
 			end
 	end,
-	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData}.
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}}.
 
--spec terminate(Reason, StateName, StateData) -> any()
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Reason :: normal | shutdown | term(), 
-		StateName :: atom(),
-		StateData :: #statedata{}.
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, #statedata{socket = undefined} = _StateData) ->
+terminate(_Reason, _State, #statedata{socket = undefined} = _Data) ->
 	ok;
-terminate(_Reason, _StateName, #statedata{socket = Socket} = _StateData) ->
+terminate(_Reason, _State, #statedata{socket = Socket} = _Data) ->
 	gen_udp:close(Socket).
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: #statedata{}, 
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

@@ -418,7 +418,7 @@ request2({eap, <<_, EapId, _:16, ?LegacyNak, AlternateMethods/binary>>},
 		#state{method_order = MethodOrder} = State) ->
 	try get_alternate(MethodOrder, AlternateMethods, State) of
 		{ok, Sup} ->
-			gen_fsm:send_event(ExistingFsm, Request),
+			gen_statem:cast(ExistingFsm, Request),
 			NewEapPacket = #eap_packet{code = response,
 					type = ?Identity, identifier = EapId, data = <<>>},
 			NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
@@ -445,7 +445,7 @@ request2({eap, _Eap}, _SessionId, _AuthRequestType,
 		_OHost, _ORealm, _DHost, _DRealm,
 		Request, CbProc, #state{cb_fsms = FsmHandler} = State) ->
 	NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
-	gen_fsm:send_event(ExistingFsm, Request),
+	gen_statem:cast(ExistingFsm, Request),
 	{noreply, State#state{cb_fsms = NewFsmHandler}};
 request2(none, SessionId, AuthRequestType,
 		{value, _ExistingFsm}, _Address, _Port, _PasswordReq, _Trusted,

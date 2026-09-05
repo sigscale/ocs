@@ -15,26 +15,22 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements functions for simple authentication
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements functions for simple authentication
 %%% 	in the {@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="http://tools.ietf.org/html/rfc2865">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc2865/">
 %%% 	RFC2865 - Remote Authentication Dial In User Service (RADIUS)</a>
 %%%
 -module(ocs_simple_auth_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_simple_auth_fsm API
--export([]).
-
-%% export the ocs_simple_auth_fsm state callbacks
--export([request/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states
+-export([request/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -78,13 +74,12 @@
 		password_required :: boolean(),
 		trusted :: boolean(),
 		service_type :: undefined | integer()}).
-
 -type statedata() :: #statedata{}.
-
--define(TIMEOUT, 30000).
+-type state() :: request.
 
 -ifdef(OTP_RELEASE).
 	-if(?OTP_RELEASE >= 23).
+		-define(HMAC(Key, Data), crypto:mac(hmac, md5, Key, Data)).
 		-define(PG_CLOSEST(Name),
 				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
@@ -98,39 +93,36 @@
 						Pid
 				end).
 	-else.
+		-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 		-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 	-endif.
 -else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.
--ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 23).
-		-define(HMAC(Key, Data), crypto:mac(hmac, md5, Key, Data)).
-	-else.
-		-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
-	-endif.
--else.
-	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
--endif.
 
 %%----------------------------------------------------------------------
-%%  The ocs_simple_auth_fsm API
+%%  The ocs_simple_auth_fsm gen_statem call backs
 %%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  The ocs_simple_auth_fsm gen_fsm call backs
-%%----------------------------------------------------------------------
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName :: atom(), StateData :: statedata()}
-		| {ok, StateName :: atom(), StateData :: statedata(),
-			Timeout :: non_neg_integer() | infinity}
-		| {ok, StateName :: atom(), StateData :: statedata(), hibernate}
-		| {stop, Reason :: term()} | ignore.
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
 %%
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
@@ -149,7 +141,7 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 				_ ->
 					undefined
 			end,
-			StateData = #statedata{protocol = diameter, session_id = SessId,
+			Data = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
 					subscriber = Subscriber, password = Password,
@@ -158,7 +150,8 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					diameter_port_server = PortServer, request = Request,
 					password_required = PasswordReq, trusted = Trusted,
 					service_type = ServiceType},
-			{ok, request, StateData, 0}
+			Action = {next_event, internal, start},
+			{ok, request, Data, Action}
 	end;
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
@@ -170,51 +163,50 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		{_, ST} ->
 			ST
 	end,
-	StateData = #statedata{protocol = radius, server_address = ServerAddress,
+	Data = #statedata{protocol = radius, server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
 		req_attr = Attributes, password_required = PasswordReq,
 		trusted = Trusted, service_type = ServiceType},
 	process_flag(trap_exit, true),
-	{ok, request, StateData, 0}.
+	Action = {next_event, internal, start},
+	{ok, request, Data, Action}.
 
--spec request(Event, StateData) -> Result
+-spec request(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>request</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>request</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-%%
 %% @todo handle muliti session for diameter
-request(timeout, #statedata{protocol = radius} = StateData) ->
-	handle_radius(StateData);
-request(timeout, #statedata{protocol = diameter} = StateData) ->
-	handle_diameter(StateData).
+%%
+request(internal = _EventType, start = _EventContent,
+		#statedata{protocol = radius} = Data) ->
+	handle_radius(Data);
+request(internal = _EventType, start = _EventContent,
+		#statedata{protocol = diameter} = Data) ->
+	handle_diameter(Data).
 
 %% @hidden
 handle_radius(#statedata{req_attr = Attributes, session_id = SessionID,
-		password_required = false} = StateData) ->
+		password_required = false} = Data) ->
 	try
 		Subscriber = radius_attributes:fetch(?UserName, Attributes),
-		NewStateData = StateData#statedata{subscriber = Subscriber,
+		NewData = Data#statedata{subscriber = Subscriber,
 				password = <<>>},
-		handle_radius1(NewStateData)
+		handle_radius1(NewData)
 	catch
 		_:_ ->
-			response(?AccessReject, [], StateData),
-			{stop, {shutdown, SessionID}, StateData}
+			response(?AccessReject, [], Data),
+			{stop, {shutdown, SessionID}}
 	end;
 handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		session_id = SessionID, shared_secret = Secret,
-		password_required = true} = StateData) ->
+		password_required = true} = Data) ->
 	try
 		Subscriber = radius_attributes:fetch(?UserName, Attributes),
 		Password = case radius_attributes:find(?UserPassword, Attributes) of
@@ -242,17 +234,17 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 				end,
 				{ChapId, ChapPassword, Challenge}
 		end,
-		NewStateData = StateData#statedata{subscriber = Subscriber,
+		NewData = Data#statedata{subscriber = Subscriber,
 				password = Password},
-		handle_radius1(NewStateData)
+		handle_radius1(NewData)
 	catch
 		_:_ ->
-			response(?AccessReject, [], StateData),
-			{stop, {shutdown, SessionID}, StateData}
+			response(?AccessReject, [], Data),
+			{stop, {shutdown, SessionID}}
 	end.
 %% @hidden
 handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
-		password_required = PasswordReq, req_attr = ReqAttr} = StateData) ->
+		password_required = PasswordReq, req_attr = ReqAttr} = Data) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
@@ -260,87 +252,87 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, #service{password = <<>>} =
 				Subscriber, Attributes, ExistingSessionAttributes} ->
-			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			NewData = Data#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, ExistingSessionAttributes, NewData);
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes}
 				when PasswordReq == false ->
-			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			NewData = Data#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, ExistingSessionAttributes, NewData);
 		{authorized, #service{password = PSK} =
 				Subscriber, Attributes, ExistingSessionAttributes}
 				when is_binary(PSK) ->
 			ResponseAttributes = radius_attributes:store(?Mikrotik,
 					?MikrotikWirelessPsk, binary_to_list(PSK), Attributes),
-			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			NewData = Data#statedata{res_attr = ResponseAttributes},
+			handle_radius2(Subscriber, ExistingSessionAttributes, NewData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
-			start_disconnect(ExistingSessionAttributes, StateData),
-			reject_radius(disabled, StateData);
+			start_disconnect(ExistingSessionAttributes, Data),
+			reject_radius(disabled, Data);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
-			reject_radius(Reason, StateData)
+			reject_radius(Reason, Data)
 	end;
 handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
-		req_attr = ReqAttr} = StateData) ->
+		req_attr = ReqAttr} = Data) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, [SubscriberId], Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
-			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			NewData = Data#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, ExistingSessionAttributes, NewData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
-			start_disconnect(ExistingSessionAttributes, StateData),
-			reject_radius(disabled, StateData);
+			start_disconnect(ExistingSessionAttributes, Data),
+			reject_radius(disabled, Data);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
-			reject_radius(Reason, StateData)
+			reject_radius(Reason, Data)
 	end.
 %% @hidden
 handle_radius2(#service{multisession = true},
-		_ExistingSessions, StateData) ->
-	handle_radius3(StateData);
+		_ExistingSessions, Data) ->
+	handle_radius3(Data);
 handle_radius2(#service{session_attributes = []},
-		_ExistingSessions, StateData) ->
-	handle_radius3(StateData);
+		_ExistingSessions, Data) ->
+	handle_radius3(Data);
 handle_radius2(#service{multisession = false},
-		ExistingSessions,  StateData) ->
-	NewStateData = StateData#statedata{multisession = false},
-	start_disconnect(ExistingSessions, NewStateData),
-	handle_radius3(NewStateData).
+		ExistingSessions,  Data) ->
+	NewData = Data#statedata{multisession = false},
+	start_disconnect(ExistingSessions, NewData),
+	handle_radius3(NewData).
 %% @hidden
 handle_radius3(#statedata{res_attr = ResponseAttributes,
-		session_id = SessionID} = StateData) ->
-	response(?AccessAccept, ResponseAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData}.
+		session_id = SessionID} = Data) ->
+	response(?AccessAccept, ResponseAttributes, Data),
+	{stop, {shutdown, SessionID}}.
 
 %% @hidden
-reject_radius(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+reject_radius(out_of_credit, #statedata{session_id = SessionID} = Data) ->
 	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-reject_radius(disabled, #statedata{session_id = SessionID} = StateData) ->
+	response(?AccessReject, RejectAttributes, Data),
+	{stop, {shutdown, SessionID}};
+reject_radius(disabled, #statedata{session_id = SessionID} = Data) ->
 	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-reject_radius(bad_password, #statedata{session_id = SessionID} = StateData) ->
+	response(?AccessReject, RejectAttributes, Data),
+	{stop, {shutdown, SessionID}};
+reject_radius(bad_password, #statedata{session_id = SessionID} = Data) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-reject_radius(service_not_found, #statedata{session_id = SessionID} = StateData) ->
+	response(?AccessReject, RejectAttributes, Data),
+	{stop, {shutdown, SessionID}};
+reject_radius(service_not_found, #statedata{session_id = SessionID} = Data) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
+	response(?AccessReject, RejectAttributes, Data),
+	{stop, {shutdown, SessionID}};
+reject_radius(_, #statedata{session_id = SessionID} = Data) ->
 	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData}.
+	response(?AccessReject, RejectAttributes, Data),
+	{stop, {shutdown, SessionID}}.
 
 %% @hidden
 handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, dest_host = DHost,
 		dest_realm = DRealm, subscriber = SubscriberId, password = Password,
 		auth_request_type = AuthRequestType,
-		service_type = ServiceType} = StateData) when
+		service_type = ServiceType} = Data) when
 		AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY';
 		AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE' ->
 	Timestamp = calendar:local_time(),
@@ -350,39 +342,39 @@ handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 	case ocs_rating:authorize(diameter, ServiceType, [SubscriberId], Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, Subscriber, _Attributes, ExistingSessionAttributes} ->
-			handle_diameter1(Subscriber, ExistingSessionAttributes, StateData);
+			handle_diameter1(Subscriber, ExistingSessionAttributes, Data);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
-			start_disconnect(ExistingSessionAttributes, StateData),
-			reject_diameter(disabled, StateData);
+			start_disconnect(ExistingSessionAttributes, Data),
+			reject_diameter(disabled, Data);
 		{unauthorized, Reason, _ExistingSessionAttributes} when
 				Reason =/= bad_password, Reason =/= service_not_found,
 				AuthRequestType == ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY' ->
-			handle_diameter2(StateData);
+			handle_diameter2(Data);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
-			reject_diameter(Reason, StateData)
+			reject_diameter(Reason, Data)
 	end;
-handle_diameter(#statedata{protocol = diameter} = StateData) ->
-	reject_diameter(unable_to_comply, StateData).
+handle_diameter(#statedata{protocol = diameter} = Data) ->
+	reject_diameter(unable_to_comply, Data).
 %% @hidden
 handle_diameter1(#service{multisession = true},
-		_ExistingSessions, StateData) ->
-	NewStateData = StateData#statedata{multisession = true},
-	handle_diameter2(NewStateData);
+		_ExistingSessions, Data) ->
+	NewData = Data#statedata{multisession = true},
+	handle_diameter2(NewData);
 handle_diameter1(#service{session_attributes = [],
-		multisession = MultiSession}, _ExistingSessions, StateData) ->
-	NewStateData = StateData#statedata{multisession = MultiSession},
-	handle_diameter2(NewStateData);
+		multisession = MultiSession}, _ExistingSessions, Data) ->
+	NewData = Data#statedata{multisession = MultiSession},
+	handle_diameter2(NewData);
 handle_diameter1(#service{multisession = false},
-		ExistingSessions, StateData) ->
-	NewStateData = StateData#statedata{multisession = false},
-	start_disconnect(ExistingSessions, NewStateData),
-	handle_diameter2(NewStateData).
+		ExistingSessions, Data) ->
+	NewData = Data#statedata{multisession = false},
+	start_disconnect(ExistingSessions, NewData),
+	handle_diameter2(NewData).
 %% @hidden
 handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
 		server_address = ServerAddress, server_port = ServerPort, app_id = AppId,
 		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, client_address = ClientAddress,
-		client_port = ClientPort, request = Request} = StateData) ->
+		client_port = ClientPort, request = Request} = _Data) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
@@ -391,7 +383,7 @@ handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
 			'Origin-Realm' = ORealm},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData}.
+	{stop, {shutdown, SessionID}}.
 
 %% @hidden
 reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
@@ -399,7 +391,7 @@ reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 		origin_realm = ORealm, server_address = ServerAddress,
 		server_port = ServerPort, diameter_port_server = PortServer,
 		client_address = ClientAddress,
-		client_port = ClientPort, request = Request} = StateData) when
+		client_port = ClientPort, request = Request} = _Data) when
 		Reason =/= unable_to_comply,
 		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY' ->
 	Server = {ServerAddress, ServerPort},
@@ -412,13 +404,13 @@ reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 			'Origin-Realm' = ORealm },
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData};
+	{stop, {shutdown, SessionID}};
 reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 		auth_request_type = AuthRequestType, origin_host = OHost,
 		origin_realm = ORealm, server_address = ServerAddress,
 		server_port = ServerPort, diameter_port_server = PortServer,
 		client_address = ClientAddress, client_port = ClientPort,
-		request = Request} = StateData) when
+		request = Request} = _Data) when
 		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		((Reason == bad_password) orelse (Reason == service_not_found)) ->
 	Server = {ServerAddress, ServerPort},
@@ -431,13 +423,13 @@ reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 			'Origin-Realm' = ORealm },
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData};
+	{stop, {shutdown, SessionID}};
 reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 		auth_request_type = AuthRequestType, origin_host = OHost,
 		origin_realm = ORealm, server_address = ServerAddress,
 		server_port = ServerPort, diameter_port_server = PortServer,
 		client_address = ClientAddress, client_port = ClientPort,
-		request = Request} = StateData) when
+		request = Request} = _Data) when
 		Reason =/= unable_to_comply,
 		AuthRequestType == ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE' ->
 	Server = {ServerAddress, ServerPort},
@@ -450,13 +442,13 @@ reject_diameter(Reason, #statedata{session_id = SessionID, app_id = AppId,
 			'Origin-Realm' = ORealm },
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData};
+	{stop, {shutdown, SessionID}};
 reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
 		auth_request_type = AuthRequestType, origin_host = OHost,
 		origin_realm = ORealm, server_address = ServerAddress,
 		server_port = ServerPort, diameter_port_server = PortServer,
 		client_address = ClientAddress, client_port = ClientPort,
-		request = Request} = StateData) ->
+		request = Request} = _Data) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
@@ -467,104 +459,47 @@ reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
 			'Origin-Realm' = ORealm },
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData}.
+	{stop, {shutdown, SessionID}}.
 
--spec handle_event(Event, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Event :: term(), 
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
-		StateData :: statedata(),
-		Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata()}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: statedata()}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(), 
-		StateName :: atom(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(_, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(), 
-		StateName :: atom(),
-		StateData :: statedata().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
+terminate(_Reason, _State, _Data) ->
 	ok.
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: statedata(), 
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName :: atom(), NewStateData :: statedata()}.
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec response(RadiusCode, ResponseAttributes, StateData) -> ok
+-spec response(RadiusCode, ResponseAttributes, Data) -> ok
 	when
 		RadiusCode :: byte(),
 		ResponseAttributes :: radius_attributes:attributes(),
-		StateData :: statedata().
+		Data :: statedata().
 %% @doc Send a RADIUS Access-Reject or Access-Accept reply
 %% @hidden
 response(RadiusCode, ResponseAttributes,
@@ -572,7 +507,7 @@ response(RadiusCode, ResponseAttributes,
 		client_address = ClientAddress, client_port = ClientPort,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		shared_secret = Secret, radius_fsm = RadiusFsm,
-		req_attr = RequestAttributes} = _StateData) ->
+		req_attr = RequestAttributes} = _Data) ->
 	AttributeList1 = radius_attributes:add(?MessageAuthenticator,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),

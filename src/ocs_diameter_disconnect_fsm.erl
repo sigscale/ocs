@@ -80,7 +80,8 @@ init([Svc, AppAlias, SessionId, OHost, DHost, ORealm, DRealm,
 			session_id = SessionId, origin_host = OHost,
 			destination_host = DHost, origin_realm = ORealm,
 			destination_realm = DRealm, auth_app_id = AuthAppId},
-	{ok, send_request, Data, {timeout, 0, initial}}.
+	Action =  {timeout, 0, initial},
+	{ok, send_request, Data, Action}.
 
 -spec send_request(EventType, EventContent, Data) -> Result
 	when
@@ -109,7 +110,8 @@ send_request(timeout = _EventType, EventContent,
 			NewCount = Count + 1,
 			NewData = Data#statedata{retry_count = NewCount,
 					retry_time = NewRetry},
-			{keep_state, NewData, {timeout, retry, NewRetry}};
+			Action = {timeout, NewRetry, retry},
+			{keep_state, NewData, Action};
 		{ok, _ASA} ->
 			{stop, {shutdown, SId}, Data}
 	end.
@@ -122,6 +124,7 @@ send_request(timeout = _EventType, EventContent,
 		Result :: gen_statem:event_handler_result(state()).
 %% @doc Handles events received in the <em>receive_response</em> state.
 %% @private
+%% @todo The needful.
 receive_response(_EventType, _EventContent, _Data) ->
 	keep_state_and_data.
 

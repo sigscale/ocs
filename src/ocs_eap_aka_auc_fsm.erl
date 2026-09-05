@@ -15,10 +15,11 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements the functions associated with an Authentication Center (AuC)
-%%% 	in the user's home domain within EAP 3rd Generation Authentication and
-%%% 	Key Agreement (EAP-AKA') in the {@link //ocs. ocs} application.
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements the functions associated with an Authentication
+%%% 	Center (AuC) in the user's home domain within EAP 3rd Generation
+%%% 	Authentication and Key Agreement (EAP-AKA')
+%%% 	in the {@link //ocs. ocs} application.
 %%%
 %%% 	The users of this module are the EAP-AKA/AKA' handlers which request
 %%% 	authentication vectors by sending the event:<br />
@@ -51,17 +52,12 @@
 -module(ocs_eap_aka_auc_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_eap_aka_auc_fsm API
--export([]).
-
-%% export the ocs_eap_aka_auc_fsm state callbacks
--export([idle/2, vector/2, register/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states.
+-export([idle/3, vector/3, register/3]).
 
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_3gpp.hrl").
@@ -93,6 +89,7 @@
 		aaa_failure = false :: boolean(),
 		attributes = [] :: radius_attributes:attributes()}).
 -type statedata() :: #statedata{}.
+-type state() :: idle | vector | register.
 
 -define(IANA_PEN_3GPP, 10415).
 -define(SWx_APPLICATION_ID, 16777265).
@@ -113,26 +110,27 @@
 -endif.
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_aka_auc_fsm API
+%%  The ocs_eap_aka_auc_fsm gen_statem call backs
 %%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  The ocs_eap_aka_auc_fsm gen_fsm call backs
-%%----------------------------------------------------------------------
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-		| {ok, StateName, StateData, Timeout}
-		| {ok, StateName, StateData, hibernate}
-		| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
 %%
 init([radius, _ServerAddress, _ServerPort, ClientAddress, _ClientPort,
@@ -194,52 +192,50 @@ init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 			hss_realm = HssRealm, hss_host = HssHost,
 			aaa_failure = AaaFailure}}.
 
--spec idle(Event, StateData) -> Result
+-spec idle(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>idle</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-idle({vector, {AkaFsm, Identity, undefined, RAT, ANID}}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity),
+idle(cast = _EventType,
+		{vector, {AkaFsm, Identity, undefined, RAT, ANID}} = _EventContent,
+		Data) when is_pid(AkaFsm), is_binary(Identity),
 		is_integer(RAT), is_list(ANID) ->
-	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+	NewData = Data#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT, anid = ANID},
-	idle1(ocs:find_service(Identity), NewStateData);
-idle({vector, {AkaFsm, Identity, undefined, RAT}}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity),
-		is_integer(RAT) ->
-	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+	idle1(ocs:find_service(Identity), NewData);
+idle(cast = _EventType,
+		{vector, {AkaFsm, Identity, undefined, RAT}},
+		Data)
+		when is_pid(AkaFsm), is_binary(Identity), is_integer(RAT) ->
+	NewData = Data#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT},
-	idle1(ocs:find_service(Identity), NewStateData);
-idle({vector, {AkaFsm, Identity, AUTS, RAT, ANID}}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity),
+	idle1(ocs:find_service(Identity), NewData);
+idle(cast = _EventType,
+		{vector, {AkaFsm, Identity, AUTS, RAT, ANID}},
+		Data) when is_pid(AkaFsm), is_binary(Identity),
 		is_binary(AUTS), is_integer(RAT), is_list(ANID) ->
-	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+	NewData = Data#statedata{aka_fsm = AkaFsm,
 			identity = Identity, auts = AUTS,
 			rat_type = RAT, anid = ANID},
-	idle1(ocs:find_service(Identity), NewStateData);
-idle({vector, {AkaFsm, Identity, AUTS, RAT}}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity),
+	idle1(ocs:find_service(Identity), NewData);
+idle(cast = _EventType,
+		{vector, {AkaFsm, Identity, AUTS, RAT}},
+		Data) when is_pid(AkaFsm), is_binary(Identity),
 		is_binary(AUTS), is_integer(RAT) ->
-	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+	NewData = Data#statedata{aka_fsm = AkaFsm,
 			identity = Identity, auts = AUTS, rat_type = RAT},
-	idle1(ocs:find_service(Identity), NewStateData);
-idle({register, {AkaFsm, Identity}},
+	idle1(ocs:find_service(Identity), NewData);
+idle(cast = _EventType,
+		{register, {AkaFsm, Identity}},
 		#statedata{hss_realm = HssRealm, hss_host = HssHost,
-		aka_fsm = AkaFsm, identity = Identity,
-		attributes = Attributes} = StateData)
+				aka_fsm = AkaFsm, identity = Identity,
+				attributes = Attributes} = _Data)
 		when is_pid(AkaFsm), is_binary(Identity),
 		HssRealm == undefined ->
 	SessionTimeout = case radius_attributes:find(?SessionTimeout,
@@ -251,12 +247,13 @@ idle({register, {AkaFsm, Identity}},
 	end,
 	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
 			'Session-Timeout' = SessionTimeout},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
-	{next_state, idle, StateData};
-idle({register, {AkaFsm, Identity, APN}},
+	gen_statem:cast(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
+	keep_state_and_data;
+idle(cast = _EventType,
+		{register, {AkaFsm, Identity, APN}},
 		#statedata{hss_realm = HssRealm, hss_host = HssHost,
-		aka_fsm = AkaFsm, identity = Identity,
-		attributes = Attributes} = StateData)
+				aka_fsm = AkaFsm, identity = Identity,
+				attributes = Attributes} = _Data)
 		when is_pid(AkaFsm), is_binary(Identity), is_binary(APN),
 		HssRealm == undefined ->
 	SessionTimeout = case radius_attributes:find(?SessionTimeout,
@@ -268,48 +265,54 @@ idle({register, {AkaFsm, Identity, APN}},
 	end,
 	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
 			'Session-Timeout' = SessionTimeout},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
-	{next_state, idle, StateData};
-idle({register, {AkaFsm, Identity}},
-		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
+	gen_statem:cast(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
+	keep_state_and_data;
+idle(cast = _EventType,
+		{register, {AkaFsm, Identity}},
+		#statedata{aka_fsm = AkaFsm, identity = Identity} = Data)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', [], StateData) of
+	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION',
+			[], Data) of
 		ok ->
-			{next_state, register, StateData, ?TIMEOUT};
+			Action = {timeout, ?TIMEOUT, timeout},
+			{next_state, register, Data, Action};
 		{error, Reason} ->
-			{stop, Reason, StateData}
+			{stop, Reason}
 	end;
-idle({register, {AkaFsm, Identity, APN}},
-		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
+idle(cast = _EventType,
+		{register, {AkaFsm, Identity, APN}},
+		#statedata{aka_fsm = AkaFsm, identity = Identity} = Data)
 		when is_pid(AkaFsm), is_binary(Identity), is_binary(APN) ->
-	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', [APN], StateData) of
+	case send_diameter_sar(?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION',
+			[APN], Data) of
 		ok ->
-			{next_state, register, StateData, ?TIMEOUT};
+			Action = {timeout, ?TIMEOUT, timeout},
+			{next_state, register, Data, Action};
 		{error, Reason} ->
-			{stop, Reason, StateData}
+			{stop, Reason}
 	end.
 %% @hidden
 idle1({ok, #service{enabled = false}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, disabled}),
-	{next_state, idle, StateData};
+		#statedata{aka_fsm = AkaFsm} = _Data) ->
+	gen_statem:cast(AkaFsm, {error, disabled}),
+	keep_state_and_data;
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 		attributes = Attributes}}, #statedata{anid = undefined,
-		auts = undefined, aka_fsm = AkaFsm} = StateData) ->
+		auts = undefined, aka_fsm = AkaFsm} = Data) ->
 	RAND = ocs_milenage:f0(),
-	NewStateData = StateData#statedata{rand = RAND, attributes = Attributes},
+	NewData = Data#statedata{rand = RAND, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	AMF = amf(false),
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
 	AUTN = autn(SQN, AK, AMF, MAC),
-	gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
-	{next_state, idle, NewStateData};
+	gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
+	{keep_state, NewData};
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 		attributes = Attributes}}, #statedata{anid = ANID,
-		auts = undefined, aka_fsm = AkaFsm} = StateData) ->
+		auts = undefined, aka_fsm = AkaFsm} = Data) ->
 	RAND = ocs_milenage:f0(),
-	NewStateData = StateData#statedata{rand = RAND, attributes = Attributes},
+	NewData = Data#statedata{rand = RAND, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	AMF = amf(true),
@@ -317,14 +320,14 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 	AUTN = autn(SQN, AK, AMF, MAC),
 	% if AMF separation bit = 1 use CK'/IK'
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
-	gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
-	{next_state, idle, NewStateData};
+	gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
+	{keep_state, NewData};
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 		attributes = Attributes}}, #statedata{anid = undefined,
 		rand = RAND, identity = Identity,
 		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
-		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
-	NewStateData = StateData#statedata{rand = undefined, attributes = Attributes},
+		aka_fsm = AkaFsm} = Data) when is_binary(RAND) ->
+	NewData = Data#statedata{rand = undefined, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQNhe = sqn(DIF),
 	SQNms = sqn_ms(SQN, OPc, K, RAND),
@@ -333,29 +336,29 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 		A when A =< 268435456 ->
 			MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
 			AUTN = autn(SQNhe, AK, AMF, MAC_A),
-			gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
-			{next_state, idle, NewStateData};
+			gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
+			{keep_state, NewData};
 		_ ->
 			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
 				MAC_S ->
 					MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
 					AUTN = autn(SQNms, AK, AMF, MAC_A),
-					gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
+					gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
 					save_dif(Identity, dif(SQNms)),
-					{next_state, idle, NewStateData};
+					{keep_state, NewData};
 				_ ->
 					error_logger:error_report(["AUTS verification failed",
 							{identity, Identity}, {auts, AUTS}]),
-					gen_fsm:send_event(AkaFsm, {error, invalid}),
-					{next_state, idle, NewStateData}
+					gen_statem:cast(AkaFsm, {error, invalid}),
+					{keep_state, NewData}
 			end
 	end;
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
 		attributes = Attributes}}, #statedata{anid = ANID,
 		rand = RAND, identity = Identity,
 		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
-		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
-	NewStateData = StateData#statedata{rand = undefined, attributes = Attributes},
+		aka_fsm = AkaFsm} = Data) when is_binary(RAND) ->
+	NewData = Data#statedata{rand = undefined, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQNhe = sqn(DIF1),
 	SQNms = sqn_ms(SQN, OPc, K, RAND),
@@ -366,8 +369,8 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
 			AUTN = autn(SQNhe, AK, AMF, MAC_A),
 			<<CKprime:16/binary,
 					IKprime:16/binary>> = kdf(CK, IK, ANID, SQNhe, AK),
-			gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
-			{next_state, idle, NewStateData};
+			gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
+			{keep_state, NewData};
 		_ ->
 			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
 				MAC_S ->
@@ -375,255 +378,189 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
 					AUTN = autn(SQNms, AK, AMF, MAC_A),
 					<<CKprime:16/binary,
 							IKprime:16/binary>> = kdf(CK, IK, ANID, SQNms, AK),
-					gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
+					gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
 					save_dif(Identity, dif(SQNms)),
-					{next_state, idle, NewStateData};
+					{keep_state, NewData};
 				_ ->
 					error_logger:error_report(["AUTS verification failed",
 							{identity, Identity}, {auts, AUTS}]),
-					gen_fsm:send_event(AkaFsm, {error, invalid}),
-					{next_state, idle, NewStateData}
+					gen_statem:cast(AkaFsm, {error, invalid}),
+					{keep_state, NewData}
 			end
 	end;
 idle1({error, not_found},
-		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
-	{next_state, idle, StateData};
+		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = _Data) ->
+	gen_statem:cast(AkaFsm, {error, user_unknown}),
+	keep_state_and_data;
 idle1({ok, #service{password = Password}},
-		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = StateData)
+		#statedata{hss_realm = undefined, aka_fsm = AkaFsm} = _Data)
 		when not is_record(Password, aka_cred) ->
-	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
-	{next_state, idle, StateData};
+	gen_statem:cast(AkaFsm, {error, user_unknown}),
+	keep_state_and_data;
 idle1({error, not_found},
-		#statedata{service = false, aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
-	{next_state, idle, StateData};
+		#statedata{service = false, aka_fsm = AkaFsm} = _Data) ->
+	gen_statem:cast(AkaFsm, {error, user_unknown}),
+	keep_state_and_data;
 idle1({ok, #service{password = Password}},
-		#statedata{service = false, aka_fsm = AkaFsm} = StateData)
+		#statedata{service = false, aka_fsm = AkaFsm} = _Data)
 		when not is_record(Password, aka_cred) ->
-	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
-	{next_state, idle, StateData};
+	gen_statem:cast(AkaFsm, {error, user_unknown}),
+	keep_state_and_data;
 idle1({error, not_found},
-		#statedata{hss_realm = _HssRealm} = StateData) ->
-	case send_diameter_mar(StateData) of
+		#statedata{hss_realm = _HssRealm} = Data) ->
+	case send_diameter_mar(Data) of
 		ok ->
-			{next_state, vector, StateData, ?TIMEOUT};
+			Action = {timeout, ?TIMEOUT, timeout},
+			{next_state, vector, Data, Action};
 		{error, Reason} ->
-			{stop, Reason, StateData}
+			{stop, Reason}
 	end;
 idle1({ok, #service{password = Password}},
-		#statedata{hss_realm = _HssRealm} = StateData)
+		#statedata{hss_realm = _HssRealm} = Data)
 		when not is_record(Password, aka_cred) ->
-	case send_diameter_mar(StateData) of
+	case send_diameter_mar(Data) of
 		ok ->
-			{next_state, vector, StateData, ?TIMEOUT};
+			Action = {timeout, ?TIMEOUT, timeout},
+			{next_state, vector, Data, Action};
 		{error, Reason} ->
-			{stop, Reason, StateData}
+			{stop, Reason}
 	end;
-idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
+idle1({error, Reason},
+		#statedata{aka_fsm = AkaFsm} = _Data) ->
 	error_logger:error_report(["Service lookup failure",
 			{module, ?MODULE}, {error, Reason}]),
-	gen_fsm:send_event(AkaFsm, {error, Reason}),
-	{next_state, idle, StateData}.
+	gen_statem:cast(AkaFsm, {error, Reason}),
+	keep_state_and_data.
 
--spec vector(Event, StateData) -> Result
+-spec vector(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>vector</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>vector</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-		'Origin-Realm' = HssRealm,
-		'Origin-Host' = HssHost,
-		'SIP-Number-Auth-Items' = [1],
-		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
-		% 'SIP-Item-Number' = [1],
-		'SIP-Authenticate' = [<<RAND:16/binary, AUTN:16/binary>>],
-		'SIP-Authorization' = [XRES],
-		'Confidentiality-Key' = [CK],
-		'Integrity-Key' = [IK]}]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
-	NewStateData  = StateData#statedata{hss_realm = HssRealm,
+vector(cast = _EventType,
+		{ok, #'3gpp_swx_MAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+				'Origin-Realm' = HssRealm,
+				'Origin-Host' = HssHost,
+				'SIP-Number-Auth-Items' = [1],
+				'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
+				% 'SIP-Item-Number' = [1],
+				'SIP-Authenticate' = [<<RAND:16/binary, AUTN:16/binary>>],
+				'SIP-Authorization' = [XRES],
+				'Confidentiality-Key' = [CK],
+				'Integrity-Key' = [IK]}]}} = _EventContent,
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
+	NewData  = Data#statedata{hss_realm = HssRealm,
 			hss_host = HssHost, rand = RAND},
-	{next_state, idle, NewStateData};
-vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]} = _MAA},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-vector({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
-	{next_state, idle, StateData};
-vector({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-vector({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-vector(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, timeout}),
-	{next_state, idle, StateData};
-vector({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, Reason}),
-	{next_state, idle, StateData}.
+	{next_state, idle, NewData};
+vector(cast = _EventType,
+		{ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]} = _MAA},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+vector(cast = _EventType,
+		{ok, #'3gpp_swx_MAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, user_unknown}),
+	{next_state, idle, Data};
+vector(cast = _EventType,
+		{ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+vector(cast = _EventType,
+		{ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+vector(cast = _EventType, {error, Reason},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, Reason}),
+	{next_state, idle, Data};
+vector(timeout = _EventType,  timeout = _EventContent,
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, timeout}),
+	{next_state, idle, Data}.
 
--spec register(Event, StateData) -> Result
+-spec register(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>register</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>register</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
-		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
-	{next_state, idle, NewStateData};
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-register({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-register({ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
-	{next_state, idle, StateData};
-register({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, Reason}),
-	{next_state, idle, StateData};
-register(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {error, timeout}),
-	{next_state, idle, StateData}.
+register(cast = _EventType,
+		{ok, #'3gpp_swx_SAA'{'Result-Code'
+				= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+				'Origin-Realm' = HssRealm,
+				'Origin-Host' = HssHost,
+				'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{
+						} = UserProfile]}} = _EventContent,
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	NewData  = Data#statedata{hss_realm = HssRealm, hss_host = HssHost},
+	gen_statem:cast(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
+	{next_state, idle, NewData};
+register(cast = _EventType,
+		{ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+register(cast = _EventType,
+		{ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+register(cast = _EventType,
+		{ok, #'diameter_base_answer-message'{'Result-Code' = ResultCode}},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, ResultCode}),
+	{next_state, idle, Data};
+register(cast = _EventType, {error, Reason},
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, Reason}),
+	{next_state, idle, Data};
+register(timeout = _EventType,  timeout = _EventContent,
+		#statedata{aka_fsm = AkaFsm} = Data) ->
+	gen_statem:cast(AkaFsm, {error, timeout}),
+	{next_state, idle, Data}.
 
--spec handle_event(Event, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Event :: term(),
-		StateName :: atom(),
-      StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(Event, _StateName, StateData) ->
-	{stop, Event, StateData}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(),
-		From :: {Pid, Tag},
-		Pid :: pid(),
-		Tag :: term(),
-      StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName ::atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(Event, _From, _StateName, StateData) ->
-	{stop, Event, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(),
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(Info, request, StateData) ->
-	{stop, Info, StateData}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(),
-		StateName :: atom(),
-      StateData :: statedata().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
+terminate(_Reason, _State, _Data) ->
 	ok.
 
--spec code_change(OldVsn, StateName, StateData, Extra ) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn | {down, Vsn}),
-		Vsn :: term(),
-      StateName :: atom(),
-		StateData :: statedata(),
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata().
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -743,68 +680,68 @@ save_dif(Identity, DIF)
 			exit(Reason)
 	end.
 
--spec send_diameter_mar(StateData) -> Result
+-spec send_diameter_mar(Data) -> Result
 	when
-		StateData :: #statedata{},
+		Data :: #statedata{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Send DIAMETER Multimedia-Auth-Request (MAR) to HSS.
 %% @hidden
 send_diameter_mar(#statedata{hss_host = undefined,
 		hss_realm = HssRealm, origin_host = OriginHost,
-		origin_realm = OriginRealm} = StateData) ->
+		origin_realm = OriginRealm} = Data) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_MAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm},
-	send_diameter_mar1(Request, StateData);
+	send_diameter_mar1(Request, Data);
 send_diameter_mar(#statedata{hss_host = HssHost,
 		hss_realm = HssRealm, origin_host = OriginHost,
-		origin_realm = OriginRealm} = StateData) ->
+		origin_realm = OriginRealm} = Data) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_MAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost]},
-	send_diameter_mar1(Request, StateData).
+	send_diameter_mar1(Request, Data).
 %% @hidden
 send_diameter_mar1(Request1, #statedata{anid = undefined,
-		identity = Identity} = StateData) ->
+		identity = Identity} = Data) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authentication-Scheme' = [<<"EAP-AKA">>]},
 	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
 			'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
-	send_diameter_mar2(Request2, StateData);
+	send_diameter_mar2(Request2, Data);
 send_diameter_mar1(Request1, #statedata{anid = ANID,
-		identity = Identity} = StateData) ->
+		identity = Identity} = Data) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authentication-Scheme' = [<<"EAP-AKA'">>]},
 	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
 			'ANID' = [ANID], 'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
-	send_diameter_mar2(Request2, StateData).
+	send_diameter_mar2(Request2, Data).
 %% @hidden
 send_diameter_mar2(Request,
-		#statedata{auts = undefined} = StateData) ->
-	send_diameter_mar3(Request, StateData);
+		#statedata{auts = undefined} = Data) ->
+	send_diameter_mar3(Request, Data);
 send_diameter_mar2(#'3gpp_swx_MAR'{
 		'SIP-Auth-Data-Item' = AuthData1} = Request1,
-		#statedata{auts = AUTS, rand = RAND} = StateData)
+		#statedata{auts = AUTS, rand = RAND} = Data)
 		when byte_size(AUTS) =:= 14, byte_size(RAND) =:= 16 ->
 	AuthData2 = AuthData1#'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authorization' = [<<RAND/binary, AUTS/binary>>]},
 	Request2 = Request1#'3gpp_swx_MAR'{'SIP-Auth-Data-Item' = AuthData2},
-	send_diameter_mar3(Request2, StateData).
+	send_diameter_mar3(Request2, Data).
 %% @hidden
 send_diameter_mar3(Request,
-		#statedata{aaa_failure = true} = StateData) ->
+		#statedata{aaa_failure = true} = Data) ->
 	Request1 = Request#'3gpp_swx_MAR'{'AAA-Failure-Indication' = [1]},
-	send_diameter_mar4(Request1, StateData);
-send_diameter_mar3(Request, StateData) ->
-	send_diameter_mar4(Request, StateData).
+	send_diameter_mar4(Request1, Data);
+send_diameter_mar3(Request, Data) ->
+	send_diameter_mar4(Request, Data).
 %% @hidden
 send_diameter_mar4(Request1,
-		#statedata{rat_type = RAT, service = Service} = _StateData) ->
+		#statedata{rat_type = RAT, service = Service} = _Data) ->
 	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1,
 			'Vendor-Specific-Application-Id'
 			= #'3gpp_swx_Vendor-Specific-Application-Id'{
@@ -814,35 +751,35 @@ send_diameter_mar4(Request1,
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request2, [detach, {extra, [self()]}]).
 
--spec send_diameter_sar(ServerAssignmentType, APN, StateData) -> Result
+-spec send_diameter_sar(ServerAssignmentType, APN, Data) -> Result
 	when
 		ServerAssignmentType :: ?'3GPP_SERVER-ASSIGNMENT-TYPE_REGISTRATION', 
 		APN :: [binary()],
-		StateData :: #statedata{},
+		Data :: #statedata{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Send DIAMETER Server-Assignment-Request (SAR) to HSS.
 %% @hidden
 send_diameter_sar(ServerAssignmentType, APN, #statedata{hss_host = undefined,
 		hss_realm = HssRealm, origin_host = OriginHost,
-		origin_realm = OriginRealm} = StateData) ->
+		origin_realm = OriginRealm} = Data) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Service-Selection' = APN},
-	send_diameter_sar1(Request, ServerAssignmentType, StateData);
+	send_diameter_sar1(Request, ServerAssignmentType, Data);
 send_diameter_sar(ServerAssignmentType, APN, #statedata{hss_host = HssHost,
 		hss_realm = HssRealm, origin_host = OriginHost,
-		origin_realm = OriginRealm} = StateData) ->
+		origin_realm = OriginRealm} = Data) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost],
 			'Service-Selection' = APN},
-	send_diameter_sar1(Request, ServerAssignmentType, StateData).
+	send_diameter_sar1(Request, ServerAssignmentType, Data).
 %% @hidden
 send_diameter_sar1(Request1, SAT,
-		#statedata{identity = Identity, service = Service} = _StateData) ->
+		#statedata{identity = Identity, service = Service} = _Data) ->
 	Request2 = Request1#'3gpp_swx_SAR'{'Auth-Session-State' = 1,
 			'User-Name' = Identity,
 			'Server-Assignment-Type' = SAT,

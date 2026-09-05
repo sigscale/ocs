@@ -255,7 +255,7 @@ process_request1(ServiceName, ServerAddress, ServerPort, ClientAddress,
 			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
-			{reply, gen_fsm:sync_send_event(Fsm, Request)};
+			{reply, gen_statem:call(Fsm, Request)};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting PGW session handler",
 					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),

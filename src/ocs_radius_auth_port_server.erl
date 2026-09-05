@@ -393,7 +393,7 @@ request2({legacy_nak, EapId, AlternateMethods}, {value, {Fsm, Identity}},
 		#state{method_order = MethodOrder, address = ServerAddress, port = ServerPort} = State) ->
 	case get_alternate(MethodOrder, AlternateMethods, State) of
 		{ok , Sup} ->
-			gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+			gen_statem:cast(Fsm, {AccessRequest, RadiusFsm}),
 			NewEapPacket = #eap_packet{code = response,
 					type = ?Identity, identifier = EapId, data = Identity},
 			NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
@@ -420,11 +420,11 @@ request2({legacy_nak, EapId, AlternateMethods}, {value, {Fsm, Identity}},
 	end;
 request2({eap, _}, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
 		_PasswordReq, _Trusted, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
-	gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+	gen_statem:cast(Fsm, {AccessRequest, RadiusFsm}),
 	{reply, {ok, wait}, State};
 request2(none, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
 		_PasswordReq, _Trusted, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
-	gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+	gen_statem:cast(Fsm, {AccessRequest, RadiusFsm}),
 	{reply, {ok, wait}, State}.
 
 -spec start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,

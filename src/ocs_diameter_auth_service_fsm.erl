@@ -15,33 +15,26 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
 %%% 	module implements functions to subscribe to a {@link //diameter. diameter}
 %%% 	service and to react to events sent by {@link //diameter. diameter} service.
 %%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc6733/">
 %%% 	RFC6733 - DIAMETER base protocol</a>
-%%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc7155/">
 %%% 	RFC7155 - DIAMETER Network Access Server Application</a>
-%%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc4072.pdf">
+%%% @reference <a href="https://www.rfc-editor.org/info/rfc4072/">
 %%% 	RFC4072 - DIAMETER Extensible Authentication Protocol (EAP) Application</a>
 %%%
 -module(ocs_diameter_auth_service_fsm).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
 
-%% export the ocs_diameter_auth_service_fsm API
--export([]).
-
-%% export the ocs_diameter_auth_service_fsm state callbacks
--export([wait_for_start/2, started/2, wait_for_stop/2]).
-
-%% export the call backs needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-			terminate/3, code_change/4]).
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states
+-export([wait_for_start/3, started/3]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("kernel/include/inet.hrl").
@@ -52,6 +45,8 @@
 		address :: inet:ip_address(),
 		port :: inet:port_number(),
 		options :: list()}).
+-type statedata() :: #statedata{}.
+-type state() :: wait_for_start | started.
 
 -define(DIAMETER_AUTH_SERVICE(A, P), {ocs_diameter_auth_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
@@ -94,22 +89,27 @@
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_diameter_auth_service_fsm gen_fsm call backs
+%%  The ocs_diameter_auth_service_fsm gen_statem call backs
 %%----------------------------------------------------------------------
+
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData}
-			| {ok, StateName, StateData, Timeout}
-			| {ok, StateName, StateData, hibernate}
-			| {stop, Reason} | ignore,
-		StateName :: atom(),
-		StateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
 %% @doc Initialize the {@module} finite state machine.
-%% @see //stdlib/gen_fsm:init/1
+%% @see //stdlib/gen_statem:init/1
 %% @private
 %%
 init([Address, Port, Options] = _Args) ->
@@ -123,10 +123,10 @@ init([Address, Port, Options] = _Args) ->
 		ok ->
 			case diameter:add_transport(SvcName, TOptions2) of
 				{ok, Ref} ->
-					StateData = #statedata{transport_ref = Ref, address = Address,
+					Data = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
 					process_flag(trap_exit, true),
-					{ok, wait_for_start, StateData, 0};
+					{ok, wait_for_start, Data};
 				{error, Reason} ->
 					{stop, Reason}
 			end;
@@ -134,202 +134,110 @@ init([Address, Port, Options] = _Args) ->
 			{stop, Reason}
 	end.
 
--spec wait_for_start(Event, StateData) -> Result
+-spec wait_for_start(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>wait_for_start</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>wait_for_start</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-wait_for_start(timeout, StateData) ->
-	{next_state, wait_for_start, StateData}.
+wait_for_start(info = _EventType,
+		#diameter_event{info = start} = _EventContent,
+		Data) ->
+	{next_state, started, Data}.
 
--spec started(Event, StateData) -> Result
+-spec started(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>started</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>started</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
 %%
-started(timeout, StateData) ->
-	{next_state, started, StateData}.
-
--spec wait_for_stop(Event, StateData) -> Result
-	when
-		Event :: timeout | term(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>wait_for_stop</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-%%
-wait_for_stop(timeout, StateData) ->
-	{stop, shutdown, StateData}.
-
--spec handle_event(Event, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason , NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
-%% 	gen_fsm:send_all_state_event/2}.
-%% @see //stdlib/gen_fsm:handle_event/3
-%% @private
-%%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData}
-			| {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
-
--spec handle_info(Info, StateName, StateData) -> Result
-	when
-		Info :: term(), 
-		StateName :: atom(), 
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info(#diameter_event{info = start}, wait_for_start, StateData) ->
-	{next_state, started, StateData};
-handle_info(#diameter_event{info = Info, service = Service},
-		StateName, StateData) when element(1, Info) == up;
-		element(1, Info) == down ->
+started(info = _EventType,
+		#diameter_event{info = Info, service = Service} = _EventContent,
+		_Data) when element(1, Info) == up; element(1, Info) == down ->
 	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Info),
 	error_logger:info_report(["DIAMETER peer connection state changed",
 			{service, Service}, {event, element(1, Info)},
 			{peer, binary_to_list(Peer)}]),
-	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = {closed, _,
-		{Command, {capabilities_cb, _, ResultCode},
-		#diameter_caps{origin_host = {_, Peer}}, _}, _},
-		service = Service}, StateName, StateData)
-		when Command == 'CER'; Command == 'CEA' ->
+	keep_state_and_data;
+started(info = _EventType,
+		#diameter_event{info = {closed, _, {Command,
+				{capabilities_cb, _, ResultCode},
+				#diameter_caps{origin_host = {_, Peer}}, _}, _},
+				service = Service} = _EventContent,
+		_Data) when Command == 'CER'; Command == 'CEA' ->
 	error_logger:info_report(["DIAMETER peer address not found in client table",
 			{service, Service}, {result, ResultCode},
 			{peer, binary_to_list(Peer)}]),
-	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = {closed, _,
-		{Command, ResultCode, #diameter_caps{origin_host = {_, Peer}}, _}, _},
-		service = Service}, StateName, StateData)
-		when Command == 'CER'; Command == 'CEA' ->
+	keep_state_and_data;
+started(info = _EventType,
+		#diameter_event{info = {closed, _, {Command, ResultCode,
+				#diameter_caps{origin_host = {_, Peer}}, _}, _},
+				service = Service} = _EventContent,
+		_Data) when Command == 'CER'; Command == 'CEA' ->
 	error_logger:info_report(["DIAMETER peer capabilities negotiation failed",
 			{service, Service}, {result, ResultCode},
 			{peer, binary_to_list(Peer)}]),
-	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = {watchdog, _, _, _, _}},
-		StateName, StateData) ->
-	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = {reconnect, _Ref, _Opts}},
-		StateName, StateData) ->
-	{next_state, StateName, StateData};
-handle_info(#diameter_event{info = Info, service = Service},
-		StateName, StateData) ->
+	keep_state_and_data;
+started(info = _EventType,
+		#diameter_event{info = {watchdog, _, _, _, _}} = _EventContent,
+		_Data) ->
+	keep_state_and_data;
+started(info = _EventType,
+		#diameter_event{info = {reconnect, _Ref, _Opts}} = _EventContent,
+		_Data) ->
+	keep_state_and_data;
+started(info = _EventType,
+		#diameter_event{info = Info, service = Service} = _EventContent,
+		_Data) ->
 	error_logger:info_report(["DIAMETER event",
 			{service, Service}, {event, Info}]),
-	{next_state, StateName, StateData};
-handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+	keep_state_and_data;
+started(info = _EventType,
+		{'EXIT', _Pid, noconnection} = _EventContent,
+		_Data) ->
+	keep_state_and_data.
 
--spec terminate(Reason, StateName, StateData) -> any()
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Reason :: normal | shutdown | term(), 
-		StateName :: atom(),
-		StateData :: #statedata{}.
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
-		address = Address, port = Port}= _StateData) ->
+terminate(_Reason, _State, #statedata{transport_ref = TransRef,
+		address = Address, port = Port} = _Data) ->
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	catch diameter:stop_service(SvcName),
 	catch diameter:remove_transport(SvcName, TransRef).
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: #statedata{}, 
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -580,10 +488,10 @@ split_options([{transport_config, _} = H | T], [], Acc2) ->
 split_options([{transport_config, _} = H | T],  {listen, Acc}, Acc2) ->
 	% deprecated in ocs-3.4.12
 	split_options(T, {listen, [H | Acc]}, Acc2);
-split_options([{listen, Opts} = H | T],  Acc1, Acc2)
+split_options([{listen, Opts} | T],  Acc1, Acc2)
 		when is_list(Acc1) ->
 	split_options(T, {listen, Opts ++ Acc1}, Acc2);
-split_options([{connect, Opts} = H | T],  Acc1, Acc2)
+split_options([{connect, Opts} | T],  Acc1, Acc2)
 		when is_list(Acc1) ->
 	split_options(T, {connect, Opts ++ Acc1}, Acc2);
 split_options([_H | T], Acc1, Acc2) ->

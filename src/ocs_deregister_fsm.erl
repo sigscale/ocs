@@ -57,7 +57,7 @@
 		request :: #'3gpp_swx_RTR'{} | undefined,
 		session_id :: string(),
 		sessions = [] :: [#session{}] | undefined,
-		from :: gen_statme:from() | undefined}).
+		from :: gen_statem:from() | undefined}).
 -type statedata() :: #statedata{}.
 -type state() :: idle | abort.
 
@@ -138,9 +138,9 @@ idle({call, From} = _EventType,
 				'Deregistration-Reason' = #'3gpp_swx_Deregistration-Reason'{
 						'Reason-Code' = ReasonCode,
 						'Reason-Info' = ReasonInfo}} = EventContent,
-		#statedata{session_id = SessionId} = StateData) ->
+		#statedata{session_id = SessionId} = Data) ->
 	[IMSI | _] = binary:split(Identity, <<$@>>, []),
-	NewStateData = StateData#statedata{request = EventContent,
+	NewData = Data#statedata{request = EventContent,
 			from = From, imsi = IMSI, identity = Identity,
 			hss_realm = HssRealm, hss_host = HssHost},
 	F = fun() ->
@@ -151,18 +151,18 @@ idle({call, From} = _EventType,
 	case mnesia:transaction(F) of
 		{atomic, []} ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
-			Reply = response(ResultCode, NewStateData),
-			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData};
+			ReplyAction = {reply, From, response(ResultCode, NewData)},
+			{stop_and_reply, shutdown, ReplyAction, NewData};
 		{atomic, Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_PERMANENT_TERMINATION' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			gen_statem:reply(From, response(ResultCode, NewStateData)),
-			send_abort(Sessions, NewStateData);
+			gen_statem:reply(From, response(ResultCode, NewData)),
+			send_abort(Sessions, NewData);
 		{atomic, _Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_NEW_SERVER_ASSIGNED' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			Reply = response(ResultCode, NewStateData),
-			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData};
+			ReplyAction = {reply, From, response(ResultCode, NewData)},
+			{stop_and_reply, shutdown, ReplyAction, NewData};
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{hss_host, HssHost}, {hss_realm, HssRealm},
@@ -170,8 +170,8 @@ idle({call, From} = _EventType,
 					{reason_info, ReasonInfo}, {session, SessionId},
 					{error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			Reply = response(ResultCode, NewStateData),
-			{stop_and_reply, shutdown, {reply, From, Reply}, NewStateData}
+			ReplyAction = {reply, From, response(ResultCode, NewData)},
+			{stop_and_reply, shutdown, ReplyAction, NewData}
 	end.
 
 -spec abort(EventType, EventContent, Data) -> Result
@@ -185,30 +185,32 @@ idle({call, From} = _EventType,
 abort(info = _EventType,
 		{ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}} = _EventContent,
-		#statedata{sessions = Sessions} = StateData) ->
+		#statedata{sessions = Sessions} = Data) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
 		[] ->
-			{stop, shutdown, StateData};
+			{stop, shutdown};
 		NewSessions ->
-			NewStateData = StateData#statedata{sessions = NewSessions},
-			{next_state, abort, NewStateData, ?TIMEOUT}
+			NewData = Data#statedata{sessions = NewSessions},
+			TimeoutAction = {timeout, ?TIMEOUT, timeout},
+			{next_state, abort, NewData, TimeoutAction}
 	end;
 abort(info = _EventType,
 		{ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
-		#statedata{sessions = Sessions} = StateData) ->
+		#statedata{sessions = Sessions} = Data) ->
 	case lists:keydelete(SessionId, #session.id, Sessions) of
 		[] ->
-			{stop, shutdown, StateData};
+			{stop, shutdown};
 		NewSessions ->
-			NewStateData = StateData#statedata{sessions = NewSessions},
-			{next_state, abort, NewStateData, ?TIMEOUT}
+			NewData = Data#statedata{sessions = NewSessions},
+			TimeoutAction = {timeout, ?TIMEOUT, timeout},
+			{next_state, abort, NewData, TimeoutAction}
 	end;
 abort(info = _EventType,
 		{ok, #'3gpp_sta_ASA'{'Session-Id' = SessionId,
 				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
 				'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
-		#statedata{sessions = Sessions} = StateData) ->
+		#statedata{sessions = Sessions} = Data) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
 			application = Application},
@@ -223,16 +225,17 @@ abort(info = _EventType,
 			{result_code, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	case NewSessions of
 		[] ->
-			{stop, shutdown, StateData};
+			{stop, shutdown};
 		NewSessions ->
-			NewStateData = StateData#statedata{sessions = NewSessions},
-			{next_state, abort, NewStateData, ?TIMEOUT}
+			NewData = Data#statedata{sessions = NewSessions},
+			TimeoutAction = {timeout, ?TIMEOUT, timeout},
+			{next_state, abort, NewData, TimeoutAction}
 	end;
 abort(info = _EventType,
 		{ok, #'3gpp_swm_ASA'{'Session-Id' = SessionId,
 				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
 				'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
-		#statedata{sessions = Sessions} = StateData) ->
+		#statedata{sessions = Sessions} = Data) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
 			application = Application},
@@ -247,16 +250,17 @@ abort(info = _EventType,
 			{result_code, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	case NewSessions of
 		[] ->
-			{stop, shutdown, StateData};
+			{stop, shutdown};
 		NewSessions ->
-			NewStateData = StateData#statedata{sessions = NewSessions},
-			{next_state, abort, NewStateData, ?TIMEOUT}
+			NewData = Data#statedata{sessions = NewSessions},
+			TimeoutAction = {timeout, ?TIMEOUT, timeout},
+			{next_state, abort, NewData, TimeoutAction}
 	end;
 abort(info = _EventType,
 		{ok, #'diameter_base_answer-message'{'Session-Id' = SessionId,
 				'Origin-Host' = NasHost, 'Origin-Realm' = NasRealm,
 				'Result-Code' = ResultCode}},
-		#statedata{sessions = Sessions} = StateData) ->
+		#statedata{sessions = Sessions} = Data) ->
 	{value, #session{imsi = IMSI, identity = Identity,
 			hss_host = HssHost, hss_realm = HssRealm,
 			application = Application},
@@ -271,14 +275,15 @@ abort(info = _EventType,
 			{result_code, ResultCode}]),
 	case NewSessions of
 		[] ->
-			{stop, shutdown, StateData};
+			{stop, shutdown};
 		NewSessions ->
-			NewStateData = StateData#statedata{sessions = NewSessions},
-			{next_state, abort, NewStateData, ?TIMEOUT}
+			NewData = Data#statedata{sessions = NewSessions},
+			TimeoutAction = {timeout, ?TIMEOUT, timeout},
+			{next_state, abort, NewData, TimeoutAction}
 	end;
-abort(info = _EventType, timeout,
-		#statedata{sessions = []} = StateData) ->
-	{stop, shutdown, StateData}.
+abort(timeout = _EventType, timeout = _EventContent,
+		#statedata{sessions = []} = _Data) ->
+	{stop, shutdown}.
 
 -spec terminate(Reason, State, Data) -> any()
 	when
@@ -314,10 +319,10 @@ code_change(_OldVsn, OldState, OldData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec response(ResultCode, StateData) -> Result
+-spec response(ResultCode, Data) -> Result
 	when
 		ResultCode :: pos_integer(),
-		StateData :: #statedata{},
+		Data :: #statedata{},
 		Result :: #'3gpp_swx_RTA'{}.
 %% @doc Create DIAMETER response.
 %% @hidden
@@ -329,7 +334,7 @@ response(ResultCode,
 				client_address = ClientAddress,
 				client_port = ClientPort,
 				origin_host = OriginHost,
-				origin_realm = OriginRealm} = _StateData)
+				origin_realm = OriginRealm} = _Data)
 		when is_integer(ResultCode), is_binary(OriginHost),
 		is_binary(OriginRealm) ->
 	Server = {ServerAddress, ServerPort},
@@ -345,12 +350,12 @@ response(ResultCode,
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer.
 
--spec send_abort(Sessions, StateData) -> Result
+-spec send_abort(Sessions, Data) -> Result
 	when
 		Sessions :: [#session{}],
-		StateData :: #statedata{},
-		Result :: {next_state, abort, StateData, Timeout},
-		Timeout :: non_neg_integer().
+		Data :: #statedata{},
+		Result :: {next_state, abort, Data, Action},
+		Action :: tuple().
 %% @doc Send DIAMETER Abort-Session-Reqest (ASR).
 %% @hidden
 send_abort([#session{id = AccessSessionId,
@@ -361,7 +366,7 @@ send_abort([#session{id = AccessSessionId,
 		#statedata{origin_host = OriginHost,
 				origin_realm = OriginRealm,
 				service = Service,
-				sessions = Sessions} = StateData) ->
+				sessions = Sessions} = Data) ->
 	Request = #'3gpp_sta_ASR'{'Session-Id' = AccessSessionId,
 			'User-Name' = [Identity],
 			'Origin-Realm' = OriginRealm,
@@ -372,8 +377,8 @@ send_abort([#session{id = AccessSessionId,
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED'},
 	diameter:call(Service, ?STa_APPLICATION,
 			Request, [detach, {extra, [self()]}]),
-	NewStateData = StateData#statedata{sessions = [H | Sessions]},
-	send_abort(T, NewStateData);
+	NewData = Data#statedata{sessions = [H | Sessions]},
+	send_abort(T, NewData);
 send_abort([#session{id = AccessSessionId,
 				application = ?SWm_APPLICATION_ID,
 				identity = Identity,
@@ -382,7 +387,7 @@ send_abort([#session{id = AccessSessionId,
 		#statedata{origin_host = OriginHost,
 				origin_realm = OriginRealm,
 				service = Service,
-				sessions = Sessions} = StateData) ->
+				sessions = Sessions} = Data) ->
 	Request = #'3gpp_swm_ASR'{'Session-Id' = AccessSessionId,
 			'User-Name' = [Identity],
 			'Origin-Realm' = OriginRealm,
@@ -393,14 +398,14 @@ send_abort([#session{id = AccessSessionId,
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED'},
 	diameter:call(Service, ?STa_APPLICATION,
 			Request, [detach, {extra, [self()]}]),
-	NewStateData = StateData#statedata{sessions = [H | Sessions]},
-	send_abort(T, NewStateData);
+	NewData = Data#statedata{sessions = [H | Sessions]},
+	send_abort(T, NewData);
 send_abort([#session{id = AccessSessionId,
 				application = undefined,
 				nas_address = NasAddress,
 				imsi = IMSI,
 				identity = Identity} | T],
-		StateData) ->
+		Data) ->
 	case ?PG_CLOSEST(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect",
@@ -411,8 +416,9 @@ send_abort([#session{id = AccessSessionId,
 			DiscArgs = [Identity, AccessSessionId],
 			StartArgs = [DiscArgs, []],
 			supervisor:start_child(DiscSup, StartArgs),
-			send_abort(T, StateData)
+			send_abort(T, Data)
 	end;
-send_abort([], StateData) ->
-	{next_state, abort, StateData, ?TIMEOUT}.
+send_abort([], Data) ->
+	Action = {timeout, ?TIMEOUT, timeout},
+	{next_state, abort, Data, Action}.
 

@@ -168,7 +168,7 @@ close(TlsFsm) when is_pid(TlsFsm) ->
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
 send(TlsFsm, Data) when is_pid(TlsFsm) ->
-	gen_fsm:send_event(TlsFsm, {eap_tls, self(), iolist_to_binary(Data)}).
+	gen_statem:cast(TlsFsm, {eap_tls, self(), iolist_to_binary(Data)}).
 
 -spec controlling_process(TlsFsm, Pid) ->
 	ok | {error, Reason} when
@@ -177,7 +177,7 @@ send(TlsFsm, Data) when is_pid(TlsFsm) ->
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
 controlling_process(TlsFsm, Pid) when is_pid(TlsFsm) ->
-	gen_fsm:send_event(TlsFsm, {ssl_pid, Pid}).
+	gen_statem:cast(TlsFsm, {ssl_pid, Pid}).
 
 %%----------------------------------------------------------------------
 %%  internal functions

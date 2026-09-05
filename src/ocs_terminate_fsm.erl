@@ -67,7 +67,7 @@
 		nas_address :: inet:ip_address() | undefined,
 		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | undefined,
 		session_id :: string(),
-		from :: {pid(), reference()} | undefined}).
+		from :: gen_statem:from() | undefined}).
 -type statedata() :: #statedata{}.
 -type state() :: idle | abort.
 
