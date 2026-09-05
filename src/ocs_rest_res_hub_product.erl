@@ -15,6 +15,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This library module implements resource handling functions
+%%% 	for a REST server
+%%% 	in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_hub_product).
 -copyright('Copyright (c) 2020 - 2026 SigScale Global Inc.').
@@ -61,7 +64,7 @@ content_types_provided() ->
 %% @doc Respond to `POST /productInventoryManagement/v2/hub/{id}'
 delete_hub(Id) ->
 	try
-		gen_fsm:sync_send_all_state_event({global, Id}, delete)
+		gen_statem:call({global, Id}, delete)
 	of
 		ok ->
 			{ok, [], []}
@@ -130,7 +133,7 @@ get_product_hubs() ->
 %% @hidden
 get_product_hubs([{_, Pid, _, _} | T], Acc) when is_pid(Pid) ->
 	try
-		gen_fsm:sync_send_all_state_event(Pid, get)
+		gen_statem:call(Pid, get)
 	of
 		#hub{href = ?PathProductHub ++ _} = Hub ->
 			get_product_hubs(T, [Hub | Acc]);
@@ -161,7 +164,7 @@ get_product_hubs([], Acc) ->
 get_product_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->
-			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+			case gen_statem:call(Fsm, get) of
 				#hub{id = Id} = Hub ->
 					Body = mochijson:encode(hub(Hub)),
 					Headers = [{content_type, "application/json"}],
@@ -232,7 +235,7 @@ get_catalog_hubs() ->
 	get_catalog_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
 get_catalog_hubs([{_, Pid, _, _} | T], Acc) ->
-	case gen_fsm:sync_send_all_state_event(Pid, get) of
+	case gen_statem:call(Pid, get) of
 		#hub{href = ?PathCatalogHub ++ _} = Hub ->
 			get_catalog_hubs(T, [Hub | Acc]);
 		_Hub ->
@@ -258,7 +261,7 @@ get_catalog_hubs([], Acc) ->
 get_catalog_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->
-			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+			case gen_statem:call(Fsm, get) of
 				#hub{id = Id} = Hub ->
 					Body = mochijson:encode(hub(Hub)),
 					Headers = [{content_type, "application/json"}],

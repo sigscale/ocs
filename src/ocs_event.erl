@@ -16,8 +16,8 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_event. gen_event} behaviour callback
-%%% 	module implements an event handler of the
-%%% 	{@link //ocs. ocs} application.
+%%% 	module implements an event handler
+%%% 	in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_event).
 -copyright('Copyright (c) 2020 - 2026 SigScale Global Inc.').
@@ -100,7 +100,7 @@ init([Fsm, Id, Category] = _Args) ->
 %%
 handle_event({_Type, _Resource, Category} = Event,
 		#state{fsm = Fsm, category = Category} = State) ->
-	gen_fsm:send_event(Fsm, Event),
+	gen_statem:cast(Fsm, Event),
 	{ok, State};
 handle_event(_Event, State) ->
 	{ok, State}.

@@ -54,7 +54,7 @@ init([] = _Args) ->
 		StartMod :: atom(),
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
+%% 	{@link //stdlib/gen_statem. gen_statem} behaviour.
 %% @private
 %%
 fsm(StartMod) ->

@@ -187,7 +187,7 @@ end_per_testcase(TestCase, Config)
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
 	Fhub = fun({_, Fsm, _, _}) ->
-			catch gen_fsm:sync_send_all_state_event(Fsm, delete)
+			catch gen_statem:call(Fsm, delete)
 	end,
 	lists:foreach(Fhub, supervisor:which_children(ocs_rest_hub_sup)),
 	case lists:keyfind(listener_pid, 1, Config) of
@@ -235,7 +235,7 @@ end_per_testcase(TestCase, _Config)
 		TestCase == delete_hub_usage;
 		TestCase == delete_hub_user ->
 	F = fun({_, Fsm, _, _} = _ChildSpec) ->
-			catch gen_fsm:sync_send_all_state_event(Fsm, delete)
+			catch gen_statem:call(Fsm, delete)
 	end,
 	lists:foreach(F, supervisor:which_children(ocs_rest_hub_sup));
 end_per_testcase(_TestCase, _Config) ->

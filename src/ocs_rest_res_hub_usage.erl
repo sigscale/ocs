@@ -15,6 +15,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This library module implements resource handling functions
+%%% 	for a REST server
+%%% 	in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_hub_usage).
 -copyright('Copyright (c) 2020 - 2026 SigScale Global Inc.').
@@ -59,7 +62,7 @@ content_types_provided() ->
 %% @doc Respond to `POST /usageManagement/v1/hub/{id}'
 delete_hub(Id) ->
 	try
-		gen_fsm:sync_send_all_state_event({global, Id}, delete)
+		gen_statem:call({global, Id}, delete)
 	of
 		ok ->
 			{ok, [], []}
@@ -129,7 +132,7 @@ get_hubs() ->
 %% @hidden
 get_hubs([{_, Pid, _, _} | T], Acc) when is_pid(Pid) ->
 	try
-		gen_fsm:sync_send_all_state_event(Pid, get)
+		gen_statem:call(Pid, get)
 	of
 		#hub{href = ?PathUsageHub ++ _} = Hub ->
 			get_hubs(T, [Hub | Acc]);
@@ -160,7 +163,7 @@ get_hubs([], Acc) ->
 get_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->
-			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+			case gen_statem:call(Fsm, get) of
 				#hub{id = Id} = Hub ->
 					Body = mochijson:encode(hub(Hub)),
 					Headers = [{content_type, "application/json"}],

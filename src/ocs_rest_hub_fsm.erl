@@ -15,24 +15,28 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This {@link //stdlib/gen_statem. gen_statem} behaviour callback
+%%% 	module implements {@link //stdlib/gen_event. gen_event} handlers
+%%% 	for REST notification callbacks
+%%% 	in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_hub_fsm).
 -copyright('Copyright (c) 2020 - 2026 SigScale Global Inc.').
 
--behaviour(gen_fsm).
+-behaviour(gen_statem).
+
 -include("ocs.hrl").
 
 %% export the public API
 -export([start_link/3, start_link/4]).
 
+%% export the callbacks needed for gen_statem behaviour
+-export([init/1, callback_mode/0, terminate/3, code_change/4]).
+%% export the callbacks for gen_statem states
+-export([register/3, registered/3]).
+
 %% export the private API
 -export([handle_async/2]).
-%% export the ocs_rest_hub_fsm states
--export([register/2, registered/2]).
-
-%% export the callbacks needed for gen_fsm behaviour
--export([init/1, handle_event/3, handle_sync_event/4,
-			terminate/3, handle_info/3, code_change/4]).
 
 -record(statedata,
 		{id :: string(),
@@ -46,6 +50,7 @@
 		args :: list() | undefined,
 		sync = true :: boolean()}).
 -type statedata() :: #statedata{}.
+-type state() :: register | registered.
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_hub_fsm API
@@ -62,7 +67,7 @@
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri) ->
 	{Id, _} = unique(),
-	case gen_fsm:start_link({global, Id}, ?MODULE,
+	case gen_statem:start_link({global, Id}, ?MODULE,
 			[Id, Query, Callback, Uri], []) of
 		{ok, Child} ->
 			{ok, Child, Id};
@@ -82,7 +87,7 @@ start_link(Query, Callback, Uri) ->
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri, Authorization) ->
 	{Id, _} = unique(),
-	case gen_fsm:start_link({global, Id}, ?MODULE,
+	case gen_statem:start_link({global, Id}, ?MODULE,
 			[Id, Query, Callback, Uri, Authorization], []) of
 		{ok, Child} ->
 			{ok, Child, Id};
@@ -91,86 +96,93 @@ start_link(Query, Callback, Uri, Authorization) ->
 	end.
 
 %%----------------------------------------------------------------------
-%%  The ocs_rest_hub_fsm gen_fsm call backs
+%%  The ocs_rest_hub_fsm gen_statem call backs
 %%----------------------------------------------------------------------
+
+-spec callback_mode() -> Result
+	when
+		Result :: gen_statem:callback_mode_result().
+%% @doc Set the callback mode of the callback module.
+%% @see //stdlib/gen_statem:callback_mode/0
+%% @private
+%%
+callback_mode() ->
+	[state_functions].
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok, StateName, StateData} | {ok, StateName, StateData, Timeout}
-			| {ok, StateName, StateData, hibernate} | {stop, Reason} | ignore,
-		StateName ::atom(),
-		StateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: term().
-%% @doc Initialize the {@module} fsm.
-%% @see //stdlib/gen_fsm:init/1
+		Args :: [term()],
+		State :: state(),
+		Data :: statedata(),
+		Result :: gen_statem:init_result(State, Data).
+%% @doc Initialize the {@module} finite state machine.
+%% @see //stdlib/gen_statem:init/1
 %% @private
 %%
 init([Id, Query, Callback, Uri] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, Profile} = application:get_env(hub_profile),
-	State = #statedata{id = Id, profile = Profile,
+	Data = #statedata{id = Id, profile = Profile,
 			query = Query, callback = Callback, href = Uri ++ Id},
-	{ok, register, State, 0};
+	Action = {next_event, internal, start},
+	{ok, register, Data, Action};
 init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, Profile} = application:get_env(hub_profile),
-	State = #statedata{id = Id, profile = Profile,
+	Data = #statedata{id = Id, profile = Profile,
 			query = Query, callback = Callback, href = Uri ++ Id,
 			authorization = Authorization},
-	{ok, register, State, 0}.
+	Action = {next_event, internal, start},
+	{ok, register, Data, Action}.
 
--spec register(Event, State) -> Result
+-spec register(EventType, EventContent, Data) -> Result
 	when
-		Event :: timeout | pos_integer(),
-		State :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Reason :: normal | term().
-%% @doc Handle event received in `register' state.
+		EventType :: gen_statem:event_type(),
+		EventContent :: term(),
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>register</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-register(timeout,
-		#statedata{href = "/balanceManagement" ++ _} = State) ->
-	register1(balance, State);
-register(timeout,
-		#statedata{href = "/usageManagement" ++ _} = State) ->
-	register1(usage, State);
-register(timeout,
-		#statedata{href = "/partyManagement" ++ _} = State) ->
-	register1(user, State);
-register(timeout,
-		#statedata{href = "/partyRoleManagement" ++ _} = State) ->
-	register1(role, State);
-register(timeout,
-		#statedata{href = "/productCatalog" ++ _} = State) ->
-	register1(product, State);
-register(timeout,
-		#statedata{href = "/productInventory" ++ _} = State) ->
-	register1(product, State);
-register(timeout,
-		#statedata{href = "/resourceInventory" ++ _} = State) ->
-	register1(resource, State);
-register(timeout,
-		#statedata{href = "/serviceInventory" ++ _} = State) ->
-	register1(service, State).
+%%
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/balanceManagement" ++ _} = Data) ->
+	register1(balance, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/usageManagement" ++ _} = Data) ->
+	register1(usage, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/partyManagement" ++ _} = Data) ->
+	register1(user, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/partyRoleManagement" ++ _} = Data) ->
+	register1(role, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/productCatalog" ++ _} = Data) ->
+	register1(product, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/productInventory" ++ _} = Data) ->
+	register1(product, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/resourceInventory" ++ _} = Data) ->
+	register1(resource, Data);
+register(internal = _EventType, start = _EventContent,
+		#statedata{href = "/serviceInventory" ++ _} = Data) ->
+	register1(service, Data).
 %% @hidden
-register1(Category, #statedata{id = Id} = State) ->
+register1(Category, #statedata{id = Id} = Data) ->
 	case gen_event:add_sup_handler(ocs_event,
 			{ocs_event, Id}, [self(), Id, Category]) of
 		ok ->
-			{next_state, registered, State};
+			{next_state, registered, Data};
 		{'EXIT', Reason} ->
-			{stop, Reason, State}
+			{stop, Reason}
 	end.
 
--spec registered(Event, State) -> Result
+-spec registered(EventType, EventContent, Data) -> Result
 	when
-		Event :: {Type, Resource, Category},
+		EventType :: gen_statem:event_type(),
+		EventContent :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
 				| create_offer | delete_offer | create_resource | delete_resource
@@ -178,21 +190,19 @@ register1(Category, #statedata{id = Id} = State) ->
 		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #resource{}
 				| [#adjustment{}] | [#acc_balance{}] | ocs_log:acct_event(),
 		Category :: balance | product | service | resource | usage,
-		State :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Reason :: normal | term().
-%% @doc Handle event received in `registered' state.
+		Data :: statedata(),
+		Result :: gen_statem:event_handler_result(state()).
+%% @doc Handles events received in the <em>registered</em> state.
+%% @@see //stdlib/gen_statem:StateName/3
 %% @private
-registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
-	send_request({Type, Resource, Category}, StateData);
-registered({Type, [#acc_balance{} | _] = Resource, Category},
-		#statedata{query = Query} = StateData) when is_list(Query),
-		length(Query) > 0 ->
+%%
+registered(cast = _EventType, EventContent,
+		#statedata{query = []} = Data) ->
+	send_request(EventContent, Data);
+registered(cast = _EventType,
+		{_Type, [#acc_balance{} | _] = Resource, _Category} = EventContent,
+		#statedata{query = Query} = Data)
+		when is_list(Query), length(Query) > 0 ->
 	case string:tokens(Query, "&=") of
 		["totalBalance.units", Units, "totalBalance.amount.lt", Threshold] ->
 			UnitsA = list_to_existing_atom(Units),
@@ -204,145 +214,105 @@ registered({Type, [#acc_balance{} | _] = Resource, Category},
 			end,
 			case lists:filter(F, Resource) of
 				[] ->
-					{next_state, registered, StateData};
+					keep_state_and_data;
 				[#acc_balance{total_balance = [#quantity{amount = TotalBalance}]}]
 						when TotalBalance < Threshold ->
-					send_request({Type, Resource, Category}, StateData);
+					send_request(EventContent, Data);
 				_ ->
-					{next_state, registered, StateData}
+					keep_state_and_data
 			end;
 		_ ->
-			{next_state, registered, StateData}
+			keep_state_and_data
 	end;
-registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
+registered(cast = _EventType,
+		{_Type, Resource, _Category} = EventContent,
+		#statedata{query = Query} = Data)
 		when is_list(Query), is_list(Resource) ->
-	send_request({Type, Resource, Category}, StateData);
-registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
+	send_request(EventContent, Data);
+registered(cast = _EventType,
+		{Type, Resource, _Category} = EventContent,
+		#statedata{query = Query} = Data)
 		when is_list(Query) ->
 	ResourceId = get_resource_id(Resource),
-	EventType = event_type(Type),
+	EventName = event_type(Type),
 	case string:tokens(Query, "&=") of
-		["eventType", EventType, "id", ResourceId] ->
-			send_request({Type, Resource, Category}, StateData);
-		["id", ResourceId, "eventType", EventType] ->
-			send_request({Type, Resource, Category}, StateData);
+		["eventType", EventName, "id", ResourceId] ->
+			send_request(EventContent, Data);
+		["id", ResourceId, "eventType", EventName] ->
+			send_request(EventContent, Data);
 		["id", ResourceId] ->
-			send_request({Type, Resource, Category}, StateData);
-		["eventType", EventType] ->
-			send_request({Type, Resource, Category}, StateData);
+			send_request(EventContent, Data);
+		["eventType", EventName] ->
+			send_request(EventContent, Data);
 		_ ->
-			{next_state, registered, StateData}
-	end.
-
--spec handle_event(Event, StateName, State) -> Result
-	when
-		Event :: term(),
-		StateName :: atom(),
-		State :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a request sent using
-%% 	{@link //stdlib/gen_fsm:send_all_state_event/2}.
-%% @private
-%%
-handle_event(Reason, _StateName, State) ->
-	{stop, Reason, State}.
-
--spec handle_sync_event(Event, From, StateName, StateData) -> Result
-	when
-		Event :: term(),
-		From :: {Pid, Tag},
-		Pid :: pid(),
-		Tag :: term(),
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {reply, Reply, NextStateName, NewStateData}
-			| {reply, Reply, NextStateName, NewStateData, Timeout}
-			| {reply, Reply, NextStateName, NewStateData, hibernate}
-			| {next_state, NextStateName, NewStateData }
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
-		Reply :: term(),
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle an event sent with
-%% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
-%% 	gen_fsm:sync_send_all_state_event/2,3}.
-%% @see //stdlib/gen_fsm:handle_sync_event/4
-%% @private
-%%
-handle_sync_event(get, _From, StateName,
+			keep_state_and_data
+	end;
+registered(cast = _EventType,
+		{async, RequestId, StatusCode} = _EventContent,
+		_Data) when is_integer(StatusCode) ->
+	error_logger:warning_report(["Notification delivery failed",
+			{module, ?MODULE}, {fsm, self()},
+			{request, RequestId}, {status, StatusCode}]),
+	{stop, StatusCode};
+registered(cast = _EventType,
+		{async, RequestId, {error, Reason}} = _EventContent,
+		_Data) ->
+	error_logger:warning_report(["Notification delivery failed",
+			{module, ?MODULE}, {fsm, self()},
+			{request, RequestId}, {error, Reason}]),
+	{stop, Reason};
+registered({call, From} = _EventType, get = _EventContent,
 		#statedata{id = Id, query = Query, callback = Callback,
-		href = Href} = StateData) ->
+				href = Href} = _Data) ->
 	Hub = #hub{id = Id, query = Query, callback = Callback, href = Href},
-	{reply, Hub, StateName, StateData};
-handle_sync_event(delete, _From, StateName, StateData) ->
-	{stop, shutdown, ok, StateData}.
+	ReplyAction = {reply, From, Hub},
+	{keep_state_and_data, ReplyAction};
+registered({call, From} = _EventType, delete = _EventContent,
+		_Data) ->
+	ReplyAction = {reply, From, ok},
+	{stop_and_reply, shutdown, ReplyAction};
+registered(info = _EventType,
+		{gen_event_EXIT, _Handler, Reason} = _EventContent,
+		_Data) ->
+	{stop, Reason}.
 
--spec handle_info(Info, StateName, StateData) -> Result
+-spec terminate(Reason, State, Data) -> any()
 	when
-		Info :: term(),
-		StateName :: atom(),
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Handle a received message.
-%% @see //stdlib/gen_fsm:handle_info/3
-%% @private
-%%
-handle_info({gen_event_EXIT, _Handler, Reason}, _StateName, StateData) ->
-	{stop, Reason, StateData}.
-
--spec terminate(Reason, StateName, StateData) -> any()
-	when
-		Reason :: normal | shutdown | term(),
-		StateName :: atom(),
-		StateData :: statedata().
+		Reason :: normal | shutdown | {shutdown, term()} | term(),
+		State :: state(),
+		Data ::  statedata().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_fsm:terminate/3
+%% @see //stdlib/gen_statem:terminate/3
 %% @private
 %%
-terminate(Reason, _StateName, _StateData)
+terminate(Reason, _State, _Data)
 		when Reason == shutdown; Reason == normal ->
 	ok;
-terminate({shutdown, Reason}, StateName, StateData) ->
-	terminate(Reason, StateName, StateData);
-terminate(Reason, StateName,
+terminate({shutdown, Reason}, State, Data) ->
+	terminate(Reason, State, Data);
+terminate(Reason, State,
 		#statedata{href = Href, query = Query, callback = Callback}) ->
 	error_logger:warning_report(["Notification subscription cancelled",
-			{reason, Reason}, {pid, self()}, {state, StateName},
+			{reason, Reason}, {pid, self()}, {state, State},
 			{href, Href}, {query, Query}, {callback, Callback}]).
 
--spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+-spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(),
-		StateData :: statedata(),
+		OldVsn :: Version | {down, Version},
+		Version ::  term(),
+		OldState :: state(),
+		OldData :: statedata(),
 		Extra :: term(),
-		Result :: {ok, NextStateName, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: statedata().
+		Result :: {ok, NewState, NewData} |  Reason,
+		NewState :: state(),
+		NewData :: statedata(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
-%% @see //stdlib/gen_fsm:code_change/4
+%% @see //stdlib/gen_statem:code_change/3
 %% @private
 %%
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-	{ok, StateName, StateData}.
+code_change(_OldVsn, OldState, OldData, _Extra) ->
+	{ok, OldState, OldData}.
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_hub_fsm private API
@@ -355,20 +325,15 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Handle result of httpc:request/3.
 %% @private
 handle_async({_RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}, _Fsm)
-		when StatusCode >= 200, StatusCode  < 300 ->
+		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}},
+		_Fsm) when StatusCode >= 200, StatusCode  < 300 ->
 	ok;
 handle_async({RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}, Fsm) ->
-	error_logger:warning_report(["Notification delivery failed",
-			{module, ?MODULE}, {fsm, Fsm},
-			{status, StatusCode}, {request, RequestId}]),
-	gen_fsm:send_all_state_event(Fsm, {shutdown, StatusCode});
+		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}},
+		Fsm) ->
+	gen_statem:cast(Fsm, {async, RequestId, StatusCode});
 handle_async({RequestId, {error, Reason}}, Fsm) ->
-	error_logger:warning_report(["Notification delivery failed",
-			{module, ?MODULE}, {fsm, Fsm},
-			{error, Reason}, {request, RequestId}]),
-	gen_fsm:send_all_state_event(Fsm, Reason).
+	gen_statem:cast(Fsm, {async, RequestId, {error, Reason}}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -469,9 +434,10 @@ event_type(Type) ->
 	end.
 
 %% @hidden
-send_request({Type, Resource, Category} = _Event, #statedata{sync = Sync,
-		profile = Profile, callback = Callback,
-		authorization = Authorization} = StateData) ->
+send_request({Type, Resource, Category} = _EventContent,
+		#statedata{sync = Sync,
+				profile = Profile, callback = Callback,
+				authorization = Authorization} = Data) ->
 	Options = case Sync of
 		true ->
 			[{sync, true}];
@@ -495,20 +461,20 @@ send_request({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	Request = {Callback, Headers, "application/json", Body},
 	case httpc:request(post, Request, [], Options, Profile) of
 		{ok, RequestId} when is_reference(RequestId), Sync == false  ->
-			{next_state, registered, StateData};
+			keep_state_and_data;
 		{ok, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}
 				when StatusCode >= 200, StatusCode  < 300 ->
-			{next_state, registered, StateData#statedata{sync = false}};
+			{keep_state, Data#statedata{sync = false}};
 		{ok, {{_HttpVersion, StatusCode, Reason}, _Headers, _Body}} ->
 			error_logger:warning_report(["Notification delivery failed",
 					{module, ?MODULE}, {fsm, self()},
 					{status, StatusCode}, {reason, Reason}]),
-			{stop, {shutdown, StatusCode}, StateData};
+			{stop, {shutdown, StatusCode}};
 		{error, {failed_connect, _} = Reason} ->
 			error_logger:warning_report(["Notification delivery failed",
 					{module, ?MODULE}, {fsm, self()}, {error, Reason}]),
-			{stop, {shutdown, Reason}, StateData};
+			{stop, {shutdown, Reason}};
 		{error, Reason} ->
-			{stop, Reason, StateData}
+			{stop, Reason}
 	end.
 
