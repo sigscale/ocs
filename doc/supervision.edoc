@@ -6,7 +6,7 @@ The supervision heirachy is depicted in
 <a href="supervision.svg">Figure 1-1</a> as a directed graph starting
 from the top. The {@link //stdlib/supervisor. supervisor} behaviour
 nodes are depicted as blue boxes while
-{@link //stdlib/gen_server. gen_server} and {@link //stdlib/gen_fsm. gen_fsm}
+{@link //stdlib/gen_server. gen_server} and {@link //stdlib/gen_statem. gen_statem}
 behaviours are depicted as yellow and green ovals respectively.  The edge
 (line) between nodes is labeled with the number of identical nodes which may
 exist (<tt>N</tt> indicates any number).  The node label for child workers
