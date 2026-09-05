@@ -251,11 +251,11 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 				{ok, #httpd_user{user_data = UserData1} = User1} ->
 					case lists:keyfind(last_modified, 1, UserData1) of
 						{_, Etag3} when Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
-							case catch ocs_rest:patch(Operations, user(User1)) of
+							try ocs_rest:patch(Operations, user(User1)) of
 								{struct, _} = Result ->
 									#httpd_user{user_data = UserData2,
 										password = Password} = user(Result),
-									case catch ocs:update_user(ID, Password, UserData2) of
+									try ocs:update_user(ID, Password, UserData2) of
 										{ok, Etag4} ->
 											Location = "/partyManagement/v1/individual/" ++ ID,
 											Headers = [{content_type, "application/json"},
@@ -266,8 +266,20 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 													title => "Internal Server Error",
 													detail => "Exception occurred updating Party Individual"},
 											{error, 400, Problem}
+									catch
+										_:_ ->
+											Problem = #{type => "about:blank",
+													title => "Internal Server Error",
+													detail => "Exception occurred updating Party Individual"},
+											{error, 400, Problem}
 									end;
 								_ ->
+									Problem = #{type => "about:blank",
+											title => "Bad Request",
+											detail => "Exception occurred parsing patch operations"},
+									{error, 400, Problem}
+							catch
+								_:_ ->
 									Problem = #{type => "about:blank",
 											title => "Bad Request",
 											detail => "Exception occurred parsing patch operations"},

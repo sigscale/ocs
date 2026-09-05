@@ -2066,7 +2066,7 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(Table, Address) of
+			try ocs_gtt:lookup_last(Table, Address) of
 				{_Description, Amount, _TS}
 						when is_integer(Amount), Amount >= 0 ->
 					authorize4(Protocol, ServiceType, Service, Buckets,
@@ -2082,6 +2082,9 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 							Price#price{amount = RateInitial}, SessionAttributes,
 							Reserve, ReserveUnits, Now);
 				_Other ->
+					mnesia:abort(table_lookup_failed)
+			catch
+				_:_ ->
 					mnesia:abort(table_lookup_failed)
 			end;
 		false ->
@@ -3762,7 +3765,7 @@ tariff_rate(undefined = _Address, ServiceNetwork,
 		{RoamingTable, ServiceNetwork}
 				when is_list(RoamingTable), is_list(ServiceNetwork) ->
 			Table = list_to_existing_atom(RoamingTable),
-			case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
+			case ocs_gtt:lookup_last(Table, ServiceNetwork) of
 				{Description, UnitPrice, _TS} ->
 					{Description, UnitSize, UnitPrice, UnitSize, UnitPrice};
 				undefined ->
@@ -3794,7 +3797,7 @@ tariff_rate(Address, ServiceNetwork,
 	case {RoamingTable, ServiceNetwork, DestinationTable} of
 		{undefined, _, TariffTable} when is_list(TariffTable) ->
 			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(Table, Address) of
+			case ocs_gtt:lookup_last(Table, Address) of
 				{Description, UnitPrice, _TS}
 						when is_integer(UnitPrice), UnitPrice >= 0 ->
 					{Description, UnitSize, UnitPrice, UnitSize, UnitPrice};
@@ -3815,12 +3818,12 @@ tariff_rate(Address, ServiceNetwork,
 		{RoamingTable, ServiceNetwork, TariffTable}
 				when is_list(RoamingTable), is_list(TariffTable) ->
 			Table1 = list_to_existing_atom(RoamingTable),
-			case catch ocs_gtt:lookup_last(Table1, ServiceNetwork) of
+			case ocs_gtt:lookup_last(Table1, ServiceNetwork) of
 				{_DescriptionSN, TablePrefix, _TS1}
 						when is_list(TablePrefix) ->
 					Table2 = list_to_existing_atom(TablePrefix
 							++ "-" ++ TariffTable),
-					case catch ocs_gtt:lookup_last(Table2, Address) of
+					case ocs_gtt:lookup_last(Table2, Address) of
 						{Description, UnitPrice, _TS2}
 								when is_integer(UnitPrice), UnitPrice >= 0 ->
 							{Description, UnitSize, UnitPrice, UnitSize, UnitPrice};

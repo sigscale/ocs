@@ -1277,10 +1277,11 @@ insert_ref(SessionId, SessionState,
 	insert_ref1(SessionId, F(SessionState, [])).
 %% @hidden
 insert_ref1(SessionId, SessionState) ->
-	case catch ets:insert(?NRF_TABLE, {SessionId, SessionState}) of
+	try ets:insert(?NRF_TABLE, {SessionId, SessionState}) of
 		true ->
-			ok;
-		{'EXIT', Reason} ->
+			ok
+	catch
+		exit:Reason ->
 			{error, Reason}
 	end.
 
@@ -1310,10 +1311,11 @@ get_ref(SessionId)
 %% @hidden
 remove_ref(SessionId)
 		when is_binary(SessionId) ->
-	case catch ets:delete(?NRF_TABLE, SessionId) of
+	try ets:delete(?NRF_TABLE, SessionId) of
 		true ->
-			ok;
-		{'EXIT', Reason} ->
+			ok
+	catch
+		exit:Reason ->
 			{error, Reason}
 	end.
 
@@ -1332,16 +1334,16 @@ build_mscc([H | T], Container) ->
 	F = fun F(#{serviceId := SI, ratingGroup := RG, resultCode := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = [RG]} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
+				MSCC2 = case maps:get(grantedUnit, ServiceRating, undefined) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-					_ ->
+					undefined ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get(finalUnitIndication, ServiceRating) of
+				MSCC3 = case maps:get(finalUnitIndication, ServiceRating, undefined) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
-					_ ->
+					undefined ->
 						MSCC2
 				end,
 				case MSCC3 of
@@ -1354,16 +1356,16 @@ build_mscc([H | T], Container) ->
 		F(#{serviceId := SI, resultCode := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
+				MSCC2 = case maps:get(grantedUnit, ServiceRating, undefined) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-					_ ->
+					undefined ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get(finalUnitIndication, ServiceRating) of
+				MSCC3 = case maps:get(finalUnitIndication, ServiceRating, undefined) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
-					_ ->
+					undefined ->
 						MSCC2
 				end,
 				MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
@@ -1371,16 +1373,16 @@ build_mscc([H | T], Container) ->
 			F(#{ratingGroup := RG, resultCode := RC} = ServiceRating,
 					[#'3gpp_ro_Multiple-Services-Credit-Control'
 							{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
+				MSCC2 = case maps:get(grantedUnit, ServiceRating, undefined) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-					_ ->
+					undefined ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get(finalUnitIndication, ServiceRating) of
+				MSCC3 = case maps:get(finalUnitIndication, ServiceRating, undefined) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
-					_ ->
+					undefined ->
 						MSCC2
 				end,
 				MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
@@ -1436,8 +1438,8 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 			Acc1
 	end,
 	ServiceRatingMap = F(Elements, #{}),
-	case catch maps:get(finalResultCode, ServiceRatingMap) of
-		{'EXIT', _Reason} ->
+	case maps:get(finalResultCode, ServiceRatingMap, undefined) of
+		undefined ->
 			map_service_rating(T, undefined, [ServiceRatingMap | Acc]);
 		RC3 ->
 			map_service_rating(T, RC3, [ServiceRatingMap | Acc])
@@ -1917,16 +1919,12 @@ final_service_rating1([], _SCID, _SI, Acc) ->
 %% @hidden
 service_type(Id) ->
 	% allow ".3gpp.org" or the proper "@3gpp.org"
-	case binary:part(Id, size(Id), -8) of
-		<<"3gpp.org">> ->
-			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
-			case catch binary_to_integer(ServiceContext) of
-				{'EXIT', _} ->
-					undefined;
-				SeviceType ->
-					SeviceType
-			end;
-		_ ->
+	try
+		<<"3gpp.org">> = binary:part(Id, size(Id), -8),
+		ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+		binary_to_integer(ServiceContext)
+	catch
+		_:_ ->
 			undefined
 	end.
 
@@ -2082,7 +2080,8 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 %% @doc Rate all the MSCCs.
 %% @hidden
 rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
-		Address, Direction, Flag, SessionId, Amounts) ->
+		Address, Direction, Flag, SessionId, Amounts)
+		when is_integer(ServiceType) ->
 	rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 			Address, Direction, Flag, SessionId,
 			Amounts, [], [], [], undefined, undefined).

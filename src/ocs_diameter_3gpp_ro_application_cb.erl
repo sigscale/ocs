@@ -762,16 +762,12 @@ destination(Dest) ->
 %% @hidden
 service_type(Id) ->
 	% allow ".3gpp.org" or the proper "@3gpp.org"
-	case binary:part(Id, size(Id), -8) of
-		<<"3gpp.org">> ->
-			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
-			case catch binary_to_integer(ServiceContext) of
-				{'EXIT', _} ->
-					undefined;
-				SeviceType ->
-					SeviceType
-			end;
-		_ ->
+	try
+		<<"3gpp.org">> = binary:part(Id, size(Id), -8),
+		ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+		binary_to_integer(ServiceContext)
+	catch
+		_:_ ->
 			undefined
 	end.
 
@@ -913,7 +909,7 @@ get_rg(_) ->
 -spec rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 		Address, Direction, Flag, SessionAttributes, Amounts) -> Result
 	when
-		ServiceType :: binary(),
+		ServiceType :: pos_integer(),
 		ServiceNetwork :: binary(),
 		SubscriberIDs :: [binary()],
 		Timestamp :: calendar:datetime(),
@@ -936,7 +932,8 @@ get_rg(_) ->
 %% @doc Rate all the MSCCs.
 %% @hidden
 rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
-		Address, Direction, Flag, SessionAttributes, Amounts) ->
+		Address, Direction, Flag, SessionAttributes, Amounts)
+		when is_integer(ServiceType) ->
 	rate(ServiceType, ServiceNetwork, SubscriberIDs, Timestamp,
 			Address, Direction, Flag, SessionAttributes,
 			Amounts, [], undefined, undefined).

@@ -659,13 +659,16 @@ patch_resource(Id, Etag, RequestBody) ->
 					case mnesia:read(resource, Id, write) of
 						[#resource{last_modified = LM1} = Resource1]
 								when LM1 == Etag2; Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations,
+							try ocs_rest:patch(Operations,
 									resource(Resource1)) of
 								{struct, _} = Resource2 ->
 									Resource3 = resource(Resource2),
 									Resource4 = Resource3#resource{last_modified = LM1},
 									ocs:update_resource(Resource4);
 								_ ->
+									mnesia:abort(bad_request)
+							catch
+								_:_ ->
 									mnesia:abort(bad_request)
 							end;
 						[#resource{}] ->

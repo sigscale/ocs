@@ -132,7 +132,7 @@ unload(Agent) ->
 %% @private
 client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 		when length(Key) == 4 ->
-	case catch ocs:find_client(list_to_tuple(Key)) of
+	try ocs:find_client(list_to_tuple(Key)) of
 		{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 			F2 = fun(1, Acc) ->
 						[{value, ipv4} | Acc];
@@ -153,8 +153,9 @@ client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 			end,
 			lists:reverse(lists:foldl(F2, [], Columns));
 		{error, not_found} ->
-			{noValue, noSuchInstance};
-		{'EXIT', _Reason} ->
+			{noValue, noSuchInstance}
+	catch
+		exit:_Reason ->
 			{genErr, 0}
 	end;
 client_table(get, _RowIndex, _Columns) ->
@@ -267,17 +268,18 @@ dbp_local_config(get, Item) ->
 %% @doc Handle SNMP requests for `DIAMETER-BASE-PROTOCOL-MIB::dbpLocalStats'.
 %% @private
 dbp_local_stats(get, uptime) ->
-	case catch diameter_stats:uptime() of
-		{'EXIT', _Reason} ->
-			genErr;
+	try diameter_stats:uptime() of
 		{Hours, Mins, Secs, MicroSecs} ->
 			{value, (Hours * 360000) + (Mins * 6000)
 					+ (Secs * 100) + (MicroSecs div 10)}
+	catch
+		exit:_Reason ->
+			genErr
 	end;
 dbp_local_stats(get, Item) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-			case catch diameter:service_info(Service, transport) of
+			try diameter:service_info(Service, transport) of
 				Info when is_list(Info) ->
 					case total_packets(Info) of
 						{ok, {PacketsIn, _}} when Item == in ->
@@ -288,6 +290,9 @@ dbp_local_stats(get, Item) ->
 							{noValue, noSuchInstance}
 					end;
 				_ ->
+					genErr
+			catch
+				_:_ ->
 					genErr
 			end;
 		false ->
@@ -315,7 +320,7 @@ dcca_peer_info(get, [N], Columns) ->
 dcca_peer_info_get_next(Index, Columns, First) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-			case catch diameter:service_info(Service, connections) of
+			try diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_info(Index, Info) of
 						{ok, {PeerId, Rev}} ->
@@ -358,6 +363,9 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 					end;
 				_Info ->
 					[endOfTable || _ <- Columns]
+			catch
+				_:_ ->
+					[endOfTable || _ <- Columns]
 			end;
 		false ->
 			{genErr, 0}
@@ -366,7 +374,7 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 dcca_peer_info_get(Index, Columns) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-			case catch diameter:service_info(Service, connections) of
+			try diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_info(Index, Info) of
 						{ok, {PeerId, Rev}} ->
@@ -392,7 +400,10 @@ dcca_peer_info_get(Index, Columns) ->
 							{noValue, noSuchInstance}
 					end;
 				_Info ->
-						{noValue, noSuchInstance}
+					{noValue, noSuchInstance}
+			catch
+				_:_ ->
+					{noValue, noSuchInstance}
 			end;
 		false ->
 			{genErr, 0}
@@ -420,7 +431,7 @@ dcca_peer_stats(get, [N], Columns) ->
 dcca_peer_stats_get_next(Index, Columns, First) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-			case catch diameter:service_info(Service, connections) of
+			try diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_stats(Index, Info) of
 						{ok, Stats} ->
@@ -487,6 +498,9 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 					end;
 				_Info ->
 					[endOfTable || _ <- Columns]
+			catch
+				_:_ ->
+					[endOfTable || _ <- Columns]
 			end;
 		false ->
 			{genErr, 0}
@@ -495,7 +509,7 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 dcca_peer_stats_get(Index, Columns) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-			case catch diameter:service_info(Service, connections) of
+			try diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_stats(Index, Info) of
 						{ok, Stats} ->
@@ -555,7 +569,10 @@ dcca_peer_stats_get(Index, Columns) ->
 							{noValue, noSuchInstance}
 					end;
 				_Info ->
-						{noValue, noSuchInstance}
+					{noValue, noSuchInstance}
+			catch
+				_:_ ->
+					{noValue, noSuchInstance}
 			end;
 		false ->
 			{genErr, 0}
@@ -649,10 +666,13 @@ total_packets4(L, {PacketsIn, PacketsOut}) ->
 %% @doc Get peer entry table.
 %% @hidden
 peer_info(Index, Info) ->
-	case catch lists:nth(Index, Info) of
+	try lists:nth(Index, Info) of
 		Connection when is_list(Connection) ->
 			peer_info(Connection);
 		_ ->
+			{error, not_found}
+	catch
+		_:_ ->
 			{error, not_found}
 	end.
 %% @hidden
@@ -694,10 +714,13 @@ peer_info3(PeerId, Rev) ->
 %% @doc Get peer stats table entry.
 %% @hidden
 peer_stats(Index, Info) ->
-	case catch lists:nth(Index, Info) of
+	try lists:nth(Index, Info) of
 		Connection when is_list(Connection) ->
 			peer_stats(Connection);
 		_ ->
+			{error, not_found}
+	catch
+		_:_ ->
 			{error, not_found}
 	end.
 %% @hidden

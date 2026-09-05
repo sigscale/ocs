@@ -534,9 +534,9 @@ patch_offer(OfferId, Etag, RequestBody) ->
 						[Offer1] when
 								Offer1#offer.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, offer(Offer1)) of
+							try ocs_rest:patch(Operations, offer(Offer1)) of
 								{struct, _} = Offer2  ->
-									case catch offer(Offer2) of
+									try offer(Offer2) of
 										#offer{price = Price} = Offer3 ->
 											F1 = fun F1([#price{type = tariff,
 												char_value_use = []} | _]) ->
@@ -554,8 +554,14 @@ patch_offer(OfferId, Etag, RequestBody) ->
 											F1(Price);
 										_ ->
 											throw(bad_offer)
+									catch
+										_:_ ->
+											throw(bad_offer)
 									end;
 								_ ->
+									throw(bad_patch)
+							catch
+								_:_ ->
 									throw(bad_patch)
 							end;
 						[#offer{}] ->
@@ -669,7 +675,7 @@ patch_product(ProdId, Etag, RequestBody) ->
 						[#product{service = OldServices} = Product1] when
 								Product1#product.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, product(Product1)) of
+							try ocs_rest:patch(Operations, product(Product1)) of
 								{struct, _} = Product2 ->
 									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
@@ -694,6 +700,9 @@ patch_product(ProdId, Etag, RequestBody) ->
 											{Product2, LM}
 									end;
 								_ ->
+									throw(bad_patch)
+							catch
+								_:_ ->
 									throw(bad_patch)
 							end;
 						[#product{}] ->
@@ -2268,7 +2277,7 @@ product([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	F1 = fun() ->
 			[mnesia:read(bucket, BucketRef) || BucketRef <- BucketRefs]
 	end,
-	case catch mnesia:transaction(F1) of
+	try mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
 			Now = erlang:system_time(millisecond),
@@ -2338,6 +2347,9 @@ product([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			product(T, Product, [Balance | Acc]);
 		{aborted, Reason} ->
 			throw(Reason)
+	catch
+		_:Reason1 ->
+			throw(Reason1)
 	end;
 product([status | T], #product{status = undefined} = Product, Acc) ->
 	product(T, Product,  Acc);

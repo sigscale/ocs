@@ -238,7 +238,7 @@ patch_service(ServiceId, Etag, RequestBody) ->
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined,
 								ProductRef =/= undefined ->
-							case catch ocs_rest:patch(Operations, service(Service1)) of
+							try ocs_rest:patch(Operations, service(Service1)) of
 								{struct, _} = Service2 ->
 									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
@@ -278,11 +278,14 @@ patch_service(ServiceId, Etag, RequestBody) ->
 									end;
 								_ ->
 									throw(bad_patch)
+							catch
+								_:_ ->
+									throw(bad_patch)
 							end;
 						[Service1] when
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, service(Service1)) of
+							try ocs_rest:patch(Operations, service(Service1)) of
 								{struct, _} = Service2 ->
 									Service3 = service(Service2),
 									TS = erlang:system_time(millisecond),
@@ -291,6 +294,9 @@ patch_service(ServiceId, Etag, RequestBody) ->
 									Service4 = Service3#service{last_modified = LM},
 									ok = mnesia:write(Service4),
 									{Service2, LM}
+							catch
+								_:_ ->
+									throw(bad_patch)
 							end;
 						[#service{}] ->
 							throw(precondition_failed);

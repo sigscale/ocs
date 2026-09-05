@@ -216,9 +216,17 @@ started(info = _EventType,
 %%
 terminate(_Reason, _State, #statedata{transport_ref = TransRef,
 		address = Address, port = Port} = _Data) ->
-	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
-	catch diameter:stop_service(SvcName),
-	catch diameter:remove_transport(SvcName, TransRef).
+	ServiceName = ?DIAMETER_AUTH_SERVICE(Address, Port),
+	try diameter:stop_service(ServiceName)
+	catch
+		_:_ ->
+			ok
+	end,
+	try diameter:remove_transport(ServiceName, TransRef)
+	catch
+		_:_ ->
+			ok
+	end.
 
 -spec code_change(OldVsn, OldState, OldData, Extra) -> Result
 	when

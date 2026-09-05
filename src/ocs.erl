@@ -2958,23 +2958,25 @@ query_users2({like, String} = _MatchLocale, Cont, Users)
 		Reason :: term().
 %% @doc Get system statistics.
 statistics(Item) ->
-	case catch gen_server:call(ocs_statistics, Item) of
+	try gen_server:call(ocs_statistics, Item) of
 		{Etag, Interval, Report} ->
 			{ok, {Etag, Interval, Report}};
 		{error, Reason} ->
-			{error, Reason};
-		{'EXIT', {noproc,_}} ->
-			case catch supervisor:start_child(ocs_statistics_sup, []) of
+			{error, Reason}
+	catch
+		exit:{noproc, _} ->
+			try supervisor:start_child(ocs_statistics_sup, []) of
 				{ok, Child} ->
-					case catch gen_server:call(Child, Item) of
+					case gen_server:call(Child, Item) of
 						{Etag, Interval, Report} ->
 							{ok, {Etag, Interval, Report}};
 						{error, Reason} ->
 							{error, Reason}
 					end;
 				{error, Reason} ->
-					{error, Reason};
-				{'EXIT', {noproc,_}} ->
+					{error, Reason}
+			catch
+				exit:{noproc, _} ->
 					{error, ocs_down}
 			end
 	end.

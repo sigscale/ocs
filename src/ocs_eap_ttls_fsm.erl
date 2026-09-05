@@ -276,7 +276,7 @@ eap_start(internal = _EventType, start = _EventContent,
 					Secret, RadiusFsm, NewData),
 			{next_state, client_hello, NewData, Action};
 		{ok, EAPMessage} ->
-			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+			try ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
 					NewEapID = (StartEapID rem 255) + 1,
@@ -307,8 +307,9 @@ eap_start(internal = _EventType, start = _EventContent,
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator,
 							Attributes, Secret, RadiusFsm, NewData),
-					{stop, {shutdown, SessionID}, NewData};
-				{'EXIT', _Reason} ->
+					{stop, {shutdown, SessionID}, NewData}
+			catch
+				exit:_Reason ->
 					NewEapPacket = #eap_packet{code = failure,
 							identifier = EapID},
 					send_response(NewEapPacket, ?AccessReject,
@@ -342,7 +343,7 @@ eap_start(internal = _EventType, start = _EventContent,
 					Data),
 			{next_state, client_hello, Data, Action};
 		EAPMessage ->
-			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+			try ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
 					NewEapID = (StartEapID rem 255) + 1,
@@ -376,8 +377,9 @@ eap_start(internal = _EventType, start = _EventContent,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 							OH, OR, NewEapPacket, PortServer,
 							DiameterRequest, Data),
-					{stop, {shutdown, SessionID}};
-				{'EXIT', _Reason} ->
+					{stop, {shutdown, SessionID}}
+			catch
+				exit:_Reason ->
 					NewEapPacket = #eap_packet{code = failure,
 							identifier = EapID},
 					send_diameter_response(SessionID, AuthType,
@@ -484,7 +486,7 @@ client_hello(cast = _EventType,
 				{keep_state, NextData, Action}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket2 = #eap_packet{code = failure,
 					identifier = EapID},
 			send_response(EapPacket2, ?AccessReject, RadiusID,
@@ -559,7 +561,7 @@ client_hello(cast = _EventType,
 				{keep_state, NextData, Action}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket2 = #eap_packet{code = failure,
 					identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
@@ -636,7 +638,7 @@ server_hello(cast = _EventType,
 				data = <<>>} = ocs_eap_codec:eap_ttls(EapData),
 		server_hello2(Attributes, NewData)
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID, [],
 					RequestAuthenticator, Attributes, Secret, RadiusFsm,
@@ -657,7 +659,7 @@ server_hello(cast = _EventType,
 				data = <<>>} = ocs_eap_codec:eap_ttls(EapData),
 		server_hello2([], Data)
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -819,7 +821,7 @@ client_cipher(cast = _EventType,
 				{keep_state, NextData, Action}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket2, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Attributes, Secret,
@@ -879,7 +881,7 @@ client_cipher(cast = _EventType,
 				{keep_state, NextData, Action}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -1023,7 +1025,7 @@ client_passthrough(cast = _EventType,
 				{stop, {shutdown, SessionID}, NewData}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket1, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Attributes, Secret,
@@ -1066,7 +1068,7 @@ client_passthrough(cast = _EventType,
 				{stop, {shutdown, SessionID}}
 		end
 	catch
-		_:_ ->
+		exit:_Reason ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -1335,10 +1337,11 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key)
 %% @doc Use the Pseudo-Random Function (PRF) of a TLS session
 %%	to generate extra key material.
 prf(SslSocket, Secret, Label, Seed, WantedLength) when is_list(Seed) ->
-	case catch ssl:prf(SslSocket, Secret, Label, Seed, WantedLength) of
+	try ssl:prf(SslSocket, Secret, Label, Seed, WantedLength) of
 		{ok, <<MSK:64/binary, EMSK:64/binary>>} ->
-			{MSK, EMSK};
-		{'EXIT', _Reason} -> % fake dialyzer out
+			{MSK, EMSK}
+	catch
+		exit:_Reason -> % fake dialyzer out
 			{<<0:512>>, <<0:512>>}
 	end.
 
@@ -1351,18 +1354,16 @@ prf(SslSocket, Secret, Label, Seed, WantedLength) when is_list(Seed) ->
 		NasPortType :: undefined | integer().
 get_diameter_attributes(Packet) ->
 	EapPacket = Packet#diameter_eap_app_DER.'EAP-Payload',
-	FramedMTU = try
-		[MTU] = Packet#diameter_eap_app_DER.'Framed-MTU',
-		MTU
-	catch
-		_:_ ->
+	FramedMTU = case Packet#diameter_eap_app_DER.'Framed-MTU' of
+		[MTU] ->
+			MTU;
+		_ ->
 			undefined
 	end,
-	NasPortType = try
-		[NPT] = Packet#diameter_eap_app_DER.'NAS-Port-Type',
-		NPT
-	catch
-		_:_ ->
+	NasPortType = case Packet#diameter_eap_app_DER.'NAS-Port-Type' of
+		[NPT] ->
+			NPT;
+		_ ->
 			undefined
 	end,
 	{EapPacket, FramedMTU, NasPortType}.
@@ -1397,14 +1398,14 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 				{ClientAddress, ClientPort}, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
-		_:_ ->
-		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
-				'Auth-Application-Id' = 5,
-				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				'Origin-Host' = OH, 'Origin-Realm' = OR},
-		ok = ocs_log:auth_log(diameter, {ServerAddress, ServerPort},
-				{ClientAddress, ClientPort}, Request, Answer1),
-		gen_server:cast(PortServer, {self(), Answer1})
+		exit:_Reason ->
+			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+					'Auth-Application-Id' = 5,
+					'Auth-Request-Type' = AuthType,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OH, 'Origin-Realm' = OR},
+			ok = ocs_log:auth_log(diameter, {ServerAddress, ServerPort},
+					{ClientAddress, ClientPort}, Request, Answer1),
+			gen_server:cast(PortServer, {self(), Answer1})
 	end.
 

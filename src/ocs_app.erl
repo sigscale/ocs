@@ -340,8 +340,19 @@ start16(CdrLogs) ->
 	end.
 %% @hidden
 start17(Sup) ->
-	catch ocs_mib:load(),
-	start18(Sup).
+	try ocs_mib:load() of
+		ok ->
+			start18(Sup);
+		{error, Reason} ->
+			error_logger:warning_report(["Failed to load OCS SNMP MIB",
+					{error, Reason}]),
+			start18(Sup)
+	catch
+		_:Reason ->
+			error_logger:error_report(["Failed to load OCS SNMP MIB",
+					{error, Reason}]),
+			start18(Sup)
+	end.
 %% @hidden
 start18(Sup) ->
 	case ocs_scheduler:start() of
