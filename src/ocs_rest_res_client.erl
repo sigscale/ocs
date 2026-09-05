@@ -193,7 +193,7 @@ post_client(RequestBody) ->
 	try client(mochijson:decode(RequestBody)) of
 		#client{address = Address, port = Port, protocol = Protocol,
 				secret = Secret, password_required = PasswordReq,
-				trusted = Trusted} = Client ->
+				trusted = Trusted} = _Client ->
 			{ok, #client{last_modified = Etag} = Client1} =
 					ocs:add_client(Address, Port, Protocol,
 					Secret, PasswordReq, Trusted),

@@ -1911,7 +1911,7 @@ acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
 		false ->
 			acct_query9(T, Matches, RatedMatchSpec, Acc)
 	end;
-acct_query9([H | T] = _Events, Matches, RatedMatchSpec, Acc)
+acct_query9([_H | T] = _Events, Matches, RatedMatchSpec, Acc)
 		when length(RatedMatchSpec) > 0 ->
 	acct_query9(T, Matches, RatedMatchSpec, Acc);
 acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
@@ -2157,7 +2157,7 @@ abmf_query6(Attributes, [{product, {like, [H | _T1]}} | _])
 			false ->
 				false
 		end;
-abmf_query6(Attributes, [_H | T]) ->
+abmf_query6(_Attributes, [_H | _T]) ->
 	false;
 abmf_query6(_Attributes, []) ->
 	false.
@@ -3194,10 +3194,10 @@ ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, [H | T], Acc)
 		when Protocol == diameter; Protocol == nrf ->
 	IPDR = ipdr_codec2(Protocol, TimeStamp, ReqType, Req, Res, H),
 	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, T, [IPDR | Acc]);
-ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, undefined, Acc)
+ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, undefined, _Acc)
 		when Protocol == diameter; Protocol == nrf ->
 	[ipdr_codec2(Protocol, TimeStamp, ReqType, Req, Res, undefined)];
-ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated, Acc) ->
+ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated, _Acc) ->
 	[ipdr_codec2(radius, TimeStamp, ReqType, Req, Res, Rated)];
 ipdr_codec1(_Protocol, _TimeStamp, _ReqType, _Req, _Res, [], Acc) ->
 	lists:reverse(Acc).

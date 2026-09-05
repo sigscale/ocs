@@ -1355,9 +1355,9 @@ specification_ref([], _, Acc) ->
 match(Key, Complex, Query) ->
 	match1(Key, lists:keyfind(Key, 1, Complex), Query).
 %% @hidden
-match1(Key, {_, like, [Value]}, _Query) ->
+match1(_Key, {_, like, [Value]}, _Query) ->
 	{like, Value};
-match1(Key, {_, exact, [Value]}, _Query) ->
+match1(_Key, {_, exact, [Value]}, _Query) ->
 	{exact, Value};
 match1(Key, {_, contains, [{complex, Complex}]}, _Query) ->
 	match4(Key, Complex);

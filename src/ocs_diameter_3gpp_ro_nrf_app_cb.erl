@@ -2323,7 +2323,7 @@ charge(SubscriberIDs, SessionId, Flag, Prices) ->
 	charge1(SubscriberIDs, SessionId, Flag, Prices, [], undefined).
 %% @hidden
 charge1(SubscriberIDs, SessionId, Flag, [#{rg := RG, si := SI,
-		units := Units, unitSize := UnitSize, unitPrice := UnitPrice,
+		units := _Units, unitSize := _UnitSize, unitPrice := _UnitPrice,
 		debits := Debits, reserves := Reserves} | T], Acc, ResultCode1) ->
 	case ocs_rating:charge(diameter, Flag, SubscriberIDs, SI, RG,
 			[], [], [], Debits, Reserves, [{'Session-Id', SessionId}]) of

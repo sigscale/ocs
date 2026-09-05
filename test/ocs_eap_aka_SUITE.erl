@@ -213,7 +213,7 @@ identity_radius(Config) ->
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_aka_identity{fullauth_id_req = true,
-			identity = ServerId} = ocs_eap_codec:eap_aka(EapData).
+			identity = _ServerId} = ocs_eap_codec:eap_aka(EapData).
 
 identity_diameter_eap() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].

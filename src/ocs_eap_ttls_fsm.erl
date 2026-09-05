@@ -671,16 +671,16 @@ server_hello(timeout = _EventType, timeout = _EventContent, Data) ->
 	server_hello2([], Data).
 %% @hidden
 server_hello1(<<_:24, Length:16, _/binary>> = TlsData,
-		#statedata{ssl_pid = SslPid, tx_buf = TxBuf} = Data) ->
+		#statedata{tx_buf = TxBuf} = Data) ->
 	Action = {timeout, ?TIMEOUT, timeout},
 	case TlsData of
 		<<_:40, _:Length/binary>> = TRLayer ->
 			NextTxBuf = <<TxBuf/binary, TRLayer/binary>>,
 			NewData = Data#statedata{tx_buf = NextTxBuf},
 			{keep_state, NewData, Action};
-		<<_:40, _:Length/binary, Rest/binary>> = TRLayer ->
+		<<_:40, _:Length/binary, _Rest/binary>> = TRLayer ->
 			Size = Length + 5,
-			<<Msg:Size/binary, _/binary>>  = TRLayer,
+			<<Msg:Size/binary, _/binary>> = TRLayer,
 			NextTxBuf = <<TxBuf/binary, Msg/binary>>,
 			NewData = Data#statedata{tx_buf = NextTxBuf},
 			{keep_state, NewData, Action}

@@ -1594,7 +1594,7 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 				true;
 			(#price{name = Name, type = one_time, period = undefined,
 					units = undefined, size = undefined, amount = Amount,
-					alteration = #alteration{type = Type} = Alteration})
+					alteration = #alteration{type = _AltType} = Alteration})
 					when length(Name) > 0, is_integer(Amount) ->
 				Fvala(Alteration);
 			(#price{name = Name, type = recurring, period = Period,
@@ -3497,7 +3497,7 @@ bucket_price(PriceName,
 	PriceName;
 bucket_price(PriceName, [_ | T]) ->
 	bucket_price(PriceName, T);
-bucket_price(PriceName, []) ->
+bucket_price(_PriceName, []) ->
 	[].
 
 %% @hidden
