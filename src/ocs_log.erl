@@ -630,12 +630,12 @@ cdr_log1(CdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 			{module, ?MODULE}, {function, ?FUNCTION_NAME},
 			{log, AcctLog}, {error, Reason}]),
 	cdr_log4(CdrLog);
+cdr_log1(CdrLog, Start, End, AcctLog, start = Cont) ->
+	cdr_log2(CdrLog, Start, End, AcctLog, [],
+			disk_log:chunk(AcctLog, Cont));
 cdr_log1(CdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	cdr_log2(CdrLog, Start, End, AcctLog, [],
-			disk_log:chunk(Pid, Cont));
-cdr_log1(CdrLog, Start, End, AcctLog, Cont) ->
-	cdr_log2(CdrLog, Start, End, AcctLog, [],
-			disk_log:chunk(AcctLog, Cont)).
+			disk_log:chunk(Pid, Cont)).
 %% @hidden
 cdr_log2(CdrLog, _Start, _End, AcctLog,
 		_PrevChunk, {error, Reason}) ->
@@ -867,12 +867,12 @@ ipdr_log1(IpdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	error_logger:error_report([Desc, {module, ?MODULE},
 			{log, AcctLog}, {error, Reason}]),
 	ipdr_log5(IpdrLog, 0);
+ipdr_log1(IpdrLog, Start, End, AcctLog, start = Cont) ->
+	ipdr_log2(IpdrLog, Start, End, AcctLog,
+			[], disk_log:chunk(AcctLog, Cont));
 ipdr_log1(IpdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	ipdr_log2(IpdrLog, Start, End, AcctLog,
-			[], disk_log:chunk(Pid, Cont));
-ipdr_log1(IpdrLog, Start, End, AcctLog, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, AcctLog,
-			[], disk_log:chunk(AcctLog, Cont)).
+			[], disk_log:chunk(Pid, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End,
 		AcctLog, _PrevChunk, {error, Reason}) ->
@@ -2922,7 +2922,7 @@ file_chunk2(Log, IoDevice, Type, Cont, []) ->
 	when
 		Log :: disk_log:log(),
 		Start :: timestamp() | calendar:datetime1970(),
-		Result :: disk_log:continuation() | {error, Reason},
+		Result :: start | disk_log:continuation() | {error, Reason},
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
