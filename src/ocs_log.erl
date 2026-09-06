@@ -5472,9 +5472,9 @@ chf_vcs5(diameter = Protocol, ReqType,
 		VcsInfo ->
 			ImsInfo1 = maps:get(iMSChargingInformation, CFR2, #{}),
 			ImsInfo2 = maps:merge(ImsInfo1, VcsInfo),
-			CFR1#{iMSChargingInformation => ImsInfo2}
+			CFR2#{iMSChargingInformation => ImsInfo2}
 	end,
-	chf_vcs6(Protocol, ReqType, Req, Res, CFR2);
+	chf_vcs6(Protocol, ReqType, Req, Res, CFR3);
 chf_vcs5(Protocol, ReqType, Req, Res, CFR) ->
 	chf_vcs6(Protocol, ReqType, Req, Res, CFR).
 %% @hidden
