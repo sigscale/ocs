@@ -335,5 +335,5 @@ ocs_rest_query_parser.beam:$(top_builddir)/src/ocs_rest_query_parser.erl
 			-e 's/%APP_VERSION%/$(PACKAGE_VERSION)/' \
 			-e 's#%APP_PRIV%#$(ERLANG_INSTALL_LIB_DIR)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)/priv#' < $< > $@ 
 
-CLEANFILES = $(beam_DATA) $(app_DATA)
+CLEANFILES = $(beam_DATA) ocs.app
 
