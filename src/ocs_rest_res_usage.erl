@@ -1795,7 +1795,7 @@ spec_attr_service_type() ->
 	Val3 = {"value", "authenticate-only"},
 	Value3 = {struct, [TypS, Val3]},
 	Value4 = {struct, [TypN]},
-	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3]}},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3, Value4]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
