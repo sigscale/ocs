@@ -632,7 +632,10 @@ cdr_log1(CdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	cdr_log4(CdrLog);
 cdr_log1(CdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	cdr_log2(CdrLog, Start, End, AcctLog, [],
-			disk_log:chunk(Pid, Cont)).
+			disk_log:chunk(Pid, Cont));
+cdr_log1(CdrLog, Start, End, AcctLog, Cont) ->
+	cdr_log2(CdrLog, Start, End, AcctLog, [],
+			disk_log:chunk(AcctLog, Cont)).
 %% @hidden
 cdr_log2(CdrLog, _Start, _End, AcctLog,
 		_PrevChunk, {error, Reason}) ->
@@ -866,7 +869,10 @@ ipdr_log1(IpdrLog, _Start, _End, AcctLog, {error, Reason}) ->
 	ipdr_log5(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, AcctLog, {_, Pid, _, _} = Cont) ->
 	ipdr_log2(IpdrLog, Start, End, AcctLog,
-			[], disk_log:chunk(Pid, Cont)).
+			[], disk_log:chunk(Pid, Cont));
+ipdr_log1(IpdrLog, Start, End, AcctLog, Cont) ->
+	ipdr_log2(IpdrLog, Start, End, AcctLog,
+			[], disk_log:chunk(AcctLog, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End,
 		AcctLog, _PrevChunk, {error, Reason}) ->
@@ -2878,12 +2884,12 @@ dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
 	end.
 
 %% @hidden
-file_chunk(Log, IoDevice, Type, start = Cont)
-		when Type == binary; Type == tuple ->
-	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Log, Cont));
 file_chunk(Log, IoDevice, Type, {_, Pid, _, _} = Cont)
 		when Type == binary; Type == tuple ->
-	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Pid, Cont)).
+	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Pid, Cont));
+file_chunk(Log, IoDevice, Type, Cont)
+		when Type == binary; Type == tuple ->
+	file_chunk1(Log, IoDevice, Type, disk_log:chunk(Log, Cont)).
 %% @hidden
 file_chunk1(_Log, IoDevice, _Type, eof) ->
 	file:close(IoDevice);
