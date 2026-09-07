@@ -91,7 +91,6 @@ install-data-local:
 	$(INSTALL_DATA) $(abs_builddir)/workbox-*.js.map $(DESTDIR)$(wwwdir)/
 
 clean-local:
-	-rm -rf yarn.lock build
 	-rm $(abs_builddir)/src/sig-help.js
 	-rm  $(abs_builddir)/service-worker.js
 	-rm  $(abs_builddir)/service-worker.js.map
