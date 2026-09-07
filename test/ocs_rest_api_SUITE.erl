@@ -151,9 +151,9 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		{error, Reason} ->
 			{error, Reason}
 	end;
-init_per_testcase(get_ipdr_usage = _TestCase, Config) ->
+init_per_testcase(get_ipdr_usage = _TestCase, _Config) ->
 	{skip, deprecated};
-init_per_testcase(delete_policy_table = _TestCase, Config) ->
+init_per_testcase(delete_policy_table = _TestCase, _Config) ->
 	{skip, not_implemented};
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -187,7 +187,11 @@ end_per_testcase(TestCase, Config)
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
 	Fhub = fun({_, Fsm, _, _}) ->
-			catch gen_statem:call(Fsm, delete)
+			try gen_statem:call(Fsm, delete)
+			catch
+				_:_ ->
+					ok
+			end
 	end,
 	lists:foreach(Fhub, supervisor:which_children(ocs_rest_hub_sup)),
 	case lists:keyfind(listener_pid, 1, Config) of
@@ -235,7 +239,11 @@ end_per_testcase(TestCase, _Config)
 		TestCase == delete_hub_usage;
 		TestCase == delete_hub_user ->
 	F = fun({_, Fsm, _, _} = _ChildSpec) ->
-			catch gen_statem:call(Fsm, delete)
+			try gen_statem:call(Fsm, delete)
+			catch
+				_:_ ->
+					ok
+			end
 	end,
 	lists:foreach(F, supervisor:which_children(ocs_rest_hub_sup));
 end_per_testcase(_TestCase, _Config) ->
@@ -684,7 +692,7 @@ get_all_clients(Config) ->
 			[Accept, auth_header(Config)], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{_, _URI} = lists:keyfind("location", 1, Headers),
 	Request2 = {HostUrl ++ "/ocs/v1/client",
 			[Accept, auth_header(Config)]},
 	{ok, Result1} = httpc:request(get, Request2, HttpOpt, []),
@@ -2565,7 +2573,7 @@ acct_usage_nrf(Config) ->
 	ServingNFInformation = #{"nodeFunctionality" => "CHF",
 			"nFName" => ServingNFName,
 			"nFIPv4Address" => ServingNFAddress,
-			"nFPLMNID" => #{"mnc" => MNC, "mnc" => MNC}},
+			"nFPLMNID" => #{"mcc" => MCC, "mnc" => MNC}},
 	ServingNetworkFunctionID = #{"aMFId" => AMFId,
 			"servingNetworkFunctionInformation" => ServingNFInformation},
 	PDUSessionInformation = #{"pduSessionID" => PDUSessionId,
@@ -3470,7 +3478,7 @@ simultaneous_updates_on_client_failure(Config) ->
 	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header(Config)],
 			ContentType1, RequestBody1},
 	{ok, Result11} = httpc:request(post, Request1, HttpOpt, []),
-	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result11,
+	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result11,
 	{_, Etag} = lists:keyfind("etag", 1, Headers1),
 	{_, URI} = lists:keyfind("location", 1, Headers1),
 	{"/ocs/v1/client/" ++ Address, _} = httpd_util:split_path(URI),
@@ -6475,7 +6483,6 @@ update_tariff_row(Config) ->
 	TableName = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(TableName, []),
 	{ok, TableResource} = add_table("1", "Tariff table", TableName),
-	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = random_string(rand:uniform(10) + 2),
 	State = "Inactive",
 	Specification = #specification_ref{id = "2",
@@ -6524,7 +6531,7 @@ update_tariff_row(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Description} = lists:keyfind("description", 1, ResList),
 	{_, NewState} = lists:keyfind("lifecycleState", 1, ResList),
-	{_, CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	{_, _CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
 	{ok, #resource{description = Description, state = NewState,
 			characteristic = NewChars}} = ocs:get_resource(Id),
 	#resource_char{value = Prefix} = lists:keyfind("prefix",
@@ -6592,7 +6599,6 @@ update_periods_row(Config) ->
 	TableName = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(TableName, []),
 	{ok, TableResource} = add_table("5", "Tariff periods table", TableName),
-	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = random_string(rand:uniform(10) + 2),
 	State = "Inactive",
 	Specification = #specification_ref{id = "6",
@@ -6665,7 +6671,7 @@ update_periods_row(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Description} = lists:keyfind("description", 1, ResList),
 	{_, NewState} = lists:keyfind("lifecycleState", 1, ResList),
-	{_, CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	{_, _CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
 	{ok, #resource{description = Description, state = NewState,
 			characteristic = NewChars}} = ocs:get_resource(Id),
 	#resource_char{value = Prefix} = lists:keyfind("prefix",
@@ -6739,7 +6745,6 @@ update_roaming_row(Config) ->
 	TableName = random_string(rand:uniform(10) + 3),
 	ok = ocs_gtt:new(TableName, []),
 	{ok, TableResource} = add_table("7", "Roaming tariff table", TableName),
-	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = random_string(rand:uniform(10) + 2),
 	State = "Inactive",
 	Specification = #specification_ref{id = "8",
@@ -6788,7 +6793,7 @@ update_roaming_row(Config) ->
 	{struct, ResList} = mochijson:decode(ResponseBody),
 	{_, Description} = lists:keyfind("description", 1, ResList),
 	{_, NewState} = lists:keyfind("lifecycleState", 1, ResList),
-	{_, CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
+	{_, _CharList} = lists:keyfind("resourceCharacteristic", 1, ResList),
 	{ok, #resource{description = Description, state = NewState,
 			characteristic = NewChars}} = ocs:get_resource(Id),
 	#resource_char{value = Prefix} = lists:keyfind("prefix",

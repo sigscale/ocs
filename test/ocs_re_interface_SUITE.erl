@@ -618,7 +618,7 @@ post_scur_until_out(Config) ->
 						{_, {_, GU2}} = lists:keyfind("grantedUnit", 1, ServiceRating1),
 						{_, Quota3} = lists:keyfind("totalVolume", 1, GU2),
 						F(Quota3, Acc + Consumed);
-					{ok, {{_, 403, _}, _, ResponseBody1}} ->
+					{ok, {{_, 403, _}, _, _ResponseBody1}} ->
 						Acc + Consumed
 				end
 	end,
@@ -627,7 +627,7 @@ post_scur_until_out(Config) ->
 	RequestBody2 = lists:flatten(mochijson:encode(Body2)),
 	Request2 = {HostUrl ++ Location ++ "/release",
 	[Accept, auth_header()], ContentType, RequestBody2},
-	{ok, Result1} = httpc:request(post, Request2, HttpOpt, []),
+	{ok, _Result1} = httpc:request(post, Request2, HttpOpt, []),
 	[#bucket{remain_amount = Remain}] = ocs:get_buckets(ProdRef),
 	Remain = Balance - InterimConsumed.
 
@@ -939,7 +939,7 @@ receive_interim_scur_class_a(Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = [MSCC1, MSCC2]} = Answer1,
+			'Multiple-Services-Credit-Control' = [MSCC1, _MSCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]} = MSCC1,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
@@ -2029,7 +2029,7 @@ basic_auth() ->
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
 
-init_diameter(Config, a = RfClass) ->
+init_diameter(_Config, a = _RfClass) ->
 	{skip, not_implemented};
 init_diameter(Config, RfClass) ->
 	Realm = proplists:get_value(realm, Config),

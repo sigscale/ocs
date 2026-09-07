@@ -347,8 +347,13 @@ ignore_delete_offer(_Config) ->
 			status = active, price = Prices},
 	{ok, _Offer} = ocs:add_offer(Offer),
 	{ok, #product{}} = ocs:add_product(OfferId, [], []),
-	{'EXIT', unable_to_delete} = (catch ocs:delete_offer(OfferId)),
-	{ok, #product{}} = ocs:find_offer(OfferId).
+	try ocs:delete_offer(OfferId) of
+		ok ->
+			{fail, not_ignored}
+	catch
+		exit:unable_to_delete ->
+			{ok, #product{}} = ocs:find_offer(OfferId)
+	end.
 
 add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].
@@ -496,8 +501,13 @@ ignore_delete_product(_Config) ->
 	{ok, #product{}} = ocs:find_product(ProdRef),
 	{ok, #service{}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	{'EXIT', service_exists} = (catch ocs:delete_product(ProdRef)),
-	{ok, #product{}} = ocs:find_product(ProdRef).
+	try ocs:delete_product(ProdRef) of
+		ok ->
+			{fail, not_ignored}
+	catch
+		exit:service_exists ->
+			{ok, #product{}} = ocs:find_product(ProdRef)
+	end.
 
 add_bucket() ->
 	[{userdata, [{doc, "Add new bucket"}]}].
