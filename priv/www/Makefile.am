@@ -70,7 +70,7 @@ yarn.lock:
 
 $(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
 	if [ ! -e $(abs_builddir)/polymer.json ]; then \
-		cp $(srcdir)/polymer.json $(abs_builddir); \
+		$(INSTALL_DATA) $(srcdir)/polymer.json $(abs_builddir); \
 	fi
 	polymer build
 	workbox generateSW $(srcdir)/workbox-config.js
@@ -84,11 +84,11 @@ install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
 	cp -R $(abs_builddir)/build/esm-bundled/* $(DESTDIR)$(wwwdir)
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
-	cp $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales
-	cp $(abs_builddir)/service-worker.js $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/service-worker.js.map $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/workbox-*.js $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/workbox-*.js.map $(DESTDIR)$(wwwdir)/
+	$(INSTALL_DATA) $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales
+	$(INSTALL_DATA) $(abs_builddir)/service-worker.js $(DESTDIR)$(wwwdir)/
+	$(INSTALL_DATA) $(abs_builddir)/service-worker.js.map $(DESTDIR)$(wwwdir)/
+	$(INSTALL_DATA) $(abs_builddir)/workbox-*.js $(DESTDIR)$(wwwdir)/
+	$(INSTALL_DATA) $(abs_builddir)/workbox-*.js.map $(DESTDIR)$(wwwdir)/
 
 clean-local:
 	-rm -rf yarn.lock build

@@ -172,25 +172,25 @@ overview.edoc: overview.edoc-in
 					-e 's!erlang.png!sigscale-logo.png!' $$i > $$i.tmp; \
 			mv $$i.tmp $$i; \
 	done
-	-cp -n $(top_srcdir)/doc/sigscale-logo.png .
-	-cp -n $(top_srcdir)/doc/oas-logo.svg .
-	-cp -n $(top_srcdir)/doc/swaggerhub-logo.svg .
-	-cp -n $(top_srcdir)/doc/supervision.svg .
-	-cp -n $(top_srcdir)/doc/bss-integration.svg .
-	-cp -n $(top_srcdir)/doc/bss-rating-function.svg .
-	-cp -n $(top_srcdir)/doc/interfaces.svg .
-	-cp -n $(top_srcdir)/doc/non-3gpp-trusted.svg .
-	-cp -n $(top_srcdir)/doc/non-3gpp-untrusted.svg .
-	-cp -n $(top_srcdir)/doc/schema.svg .
-	-cp -n $(top_srcdir)/doc/product-specifications.svg .
-	-cp -n $(top_srcdir)/doc/disk_logs.svg .
-	-cp -n $(top_srcdir)/doc/event_log.svg .
-	-cp -n $(top_srcdir)/doc/pub_sub_events.svg .
-	-cp -n $(top_srcdir)/doc/pagination-msc.svg .
-	-cp -n $(top_srcdir)/doc/ctf-ro-msc.svg .
-	-cp -n $(top_srcdir)/doc/pcef-gx-msc.svg .
-	-cp -n $(top_srcdir)/doc/swm-swx-msc.svg .
-	-cp -n $(top_srcdir)/doc/wifi-direct.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/sigscale-logo.png .
+	$(INSTALL_DATA) $(top_srcdir)/doc/oas-logo.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/swaggerhub-logo.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/supervision.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/bss-integration.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/bss-rating-function.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/interfaces.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/non-3gpp-trusted.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/non-3gpp-untrusted.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/schema.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/product-specifications.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/disk_logs.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/event_log.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/pub_sub_events.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/pagination-msc.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/ctf-ro-msc.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/pcef-gx-msc.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/swm-swx-msc.svg .
+	$(INSTALL_DATA) $(top_srcdir)/doc/wifi-direct.svg .
 
 CLEANFILES = overview.edoc \
 		edoc-info \
