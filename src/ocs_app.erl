@@ -343,14 +343,12 @@ start17(Sup) ->
 	try ocs_mib:load() of
 		ok ->
 			start18(Sup);
-		{error, Reason} ->
-			error_logger:warning_report(["Failed to load OCS SNMP MIB",
-					{error, Reason}]),
+		{error, _Reason} ->
+			error_logger:warning_msg("Failed to load OCS SNMP MIB"),
 			start18(Sup)
 	catch
-		_:Reason ->
-			error_logger:error_report(["Failed to load OCS SNMP MIB",
-					{error, Reason}]),
+		_:_Reason ->
+			error_logger:warning_msg("Failed to load OCS SNMP MIB"),
 			start18(Sup)
 	end.
 %% @hidden
