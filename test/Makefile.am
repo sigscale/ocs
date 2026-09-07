@@ -151,4 +151,8 @@ sys.config:	$(top_srcdir)/test/sys.config-in
 
 clean-local:
 	-rm -r *.beam certificates/* log/*
+	-rm ocs_re_interface_SUITE_data/CAcert.pem
+	-rm ocs_eap_ttls_SUITE_data/CAcert.pem
+	-rm ocs_rest_api_SUITE_data/CAcert.pem
+	-rm ocs_rest_api_SUITE_data/key.pem
 
