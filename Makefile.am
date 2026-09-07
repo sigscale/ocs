@@ -30,13 +30,13 @@ RELEASE_NAME = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 release: $(RELEASE_NAME).tar.gz
 
 $(RELEASE_NAME).rel: $(PACKAGE_NAME).rel
-	cp $< $@
+	$(INSTALL_DATA) $< $@
 
 ERLTMP := $(shell mktemp -d)
 
 if MAKE_TAR_EXTRA_FILES
 $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.config
-	mkdir -p $(ERLTMP)/lib/$(RELEASE_NAME)
+	$(MKDIR_P) $(ERLTMP)/lib/$(RELEASE_NAME)
 	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME)/* $(ERLTMP)/lib/$(RELEASE_NAME)
 	ERL_LIBS=$(ERLTMP)/lib:$(ERL_LIBS) RELDIR=releases $(ERL) \
 			-noinput -boot_var OTPHOME lib \
@@ -54,7 +54,7 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 	rm -rf $(ERLTMP)
 else
 $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.config
-	mkdir -p $(ERLTMP)/lib/$(RELEASE_NAME)
+	$(MKDIR_P) $(ERLTMP)/lib/$(RELEASE_NAME)
 	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME)/* $(ERLTMP)/lib/$(RELEASE_NAME)
 	ERL_LIBS=$(ERLTMP)/lib:$(ERL_LIBS) RELDIR=releases $(ERL) \
 			-noinput -boot_var OTPHOME lib \

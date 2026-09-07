@@ -82,21 +82,21 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
 
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
-	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
-	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi
-	@if [ ! -d ocs_rest_api_SUITE_data ]; then mkdir ocs_rest_api_SUITE_data; fi
-	@if [ ! -d ocs_re_interface_SUITE_data ]; then mkdir ocs_re_interface_SUITE_data; fi
-	@if [ ! -d log ]; then mkdir log; fi
-	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
-	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
+	$(MKDIR_P) $(CERT_DIR)
+	$(MKDIR_P) ocs_eap_ttls_SUITE_data
+	$(MKDIR_P) ocs_rest_api_SUITE_data
+	$(MKDIR_P) ocs_re_interface_SUITE_data
+	$(MKDIR_P) log
+	@if [ ! -f ct.cfg ]; then $(INSTALL_DATA) $(top_srcdir)/test/ct.cfg .; fi
+	@if [ ! -f test.spec ]; then $(INSTALL_DATA) $(top_srcdir)/test/test.spec .; fi
 	for i in $(addsuffix _data,$(testmods)); do \
 		if [ -d $(top_srcdir)/test/$$i ]; then \
 			if [ ! -d $$i ]; then \
-				mkdir $$i; \
+				$(MKDIR_P) $$i; \
 			fi; \
 			for j in `ls $(top_srcdir)/test/$$i`; do \
 				if [ $(top_srcdir)/test/$$i/$$j -nt $$i/$$j ]; then \
-					cp $(top_srcdir)/test/$$i/$$j $$i/$$j; \
+					$(INSTALL_DATA) $(top_srcdir)/test/$$i/$$j $$i/$$j; \
 				fi; \
 			done; \
 		fi; \
@@ -122,17 +122,17 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 					-extfile extensions -in cert.csr -out cert.pem; \
 		fi)
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
-		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
+		$(INSTALL_DATA) $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
 	fi
 	if [ ! -f ocs_rest_api_SUITE_data/CAcert.pem ]; then \
-		cp $(CERT_DIR)/CAcert.pem ocs_rest_api_SUITE_data; \
+		$(INSTALL_DATA) $(CERT_DIR)/CAcert.pem ocs_rest_api_SUITE_data; \
 	fi
 	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
 		openssl rsa -in $(CERT_DIR)/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
 		chmod 600 ocs_rest_api_SUITE_data/key.pem; \
 	fi
 	if [ ! -f ocs_re_interface_SUITE_data/CAcert.pem ]; then \
-		cp $(CERT_DIR)/CAcert.pem ocs_re_interface_SUITE_data; \
+		$(INSTALL_DATA) $(CERT_DIR)/CAcert.pem ocs_re_interface_SUITE_data; \
 	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg \
