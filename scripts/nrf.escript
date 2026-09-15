@@ -61,7 +61,7 @@ data_session(Options) ->
 				print_response(Verbose, Result),
 				throw(StatusCode);
 			{error, Reason} ->
-				throw(Reason)
+				error(Reason)
 		end,
 		timer:sleep(maps:get(interval, Options, 1000)),
 		Fupdate = fun F(0, SeqNum) ->
@@ -87,7 +87,7 @@ data_session(Options) ->
 							print_response(Verbose, Result1),
 							throw(StatusCode1);
 						{error, Reason1} ->
-							throw(Reason1)
+							error(Reason1)
 					end,
 					timer:sleep(maps:get(interval, Options, 1000)),
 					F(N - 1, NewSeqNum)
@@ -109,11 +109,16 @@ data_session(Options) ->
 				print_response(Verbose, Result2),
 				throw(StatusCode2);
 			{error, Reason2} ->
-				throw(Reason2)
+				error(Reason2)
 		end
 	catch
-		Error:Reason3 ->
-			io:fwrite("~w: ~w~n", [Error, Reason3]),
+		throw:_Reason3 ->
+			halt(1);
+		error:Reason3 ->
+			io:fwrite("~w: ~p~n", [error, Reason3]),
+			halt(1);
+		exit:Reason3 ->
+			io:fwrite("~w: ~p~n", [error, Reason3]),
 			usage()
 	end.
 

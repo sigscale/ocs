@@ -58,7 +58,9 @@ data_session(Options) ->
 		receive
 			#diameter_event{service = Name, info = Info}
 					when element(1, Info) == up ->
-				ok
+				ok;
+			#diameter_event{service = Name, info = Info} ->
+				error(Info)
 		end,
 		SId = list_to_binary(diameter:session_id(Hostname)),
 		RequestNum1 = 0,
@@ -205,10 +207,10 @@ data_session(Options) ->
 		throw:_Reason4 ->
 			halt(1);
 		error:Reason4 ->
-			io:fwrite("~w: ~w~n", [error, Reason4]),
+			io:fwrite("~w: ~p~n", [error, Reason4]),
 			halt(1);
 		exit:Reason4 ->
-			io:fwrite("~w: ~w~n", [error, Reason4]),
+			io:fwrite("~w: ~p~n", [error, Reason4]),
 			usage()
 	end.
 

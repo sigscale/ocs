@@ -58,7 +58,9 @@ send_sms(Options) ->
 		receive
 			#diameter_event{service = Name, info = Info}
 					when element(1, Info) == up ->
-				ok
+				ok;
+			#diameter_event{service = Name, info = Info} ->
+				error(Info)
 		end,
 		SId = list_to_binary(diameter:session_id(Hostname)),
 		MSISDN = maps:get(msisdn, Options, "14165551234"),
@@ -154,10 +156,10 @@ send_sms(Options) ->
 		throw:_Reason2 ->
 			halt(1);
 		error:Reason2 ->
-			io:fwrite("~w: ~w~n", [error, Reason2]),
+			io:fwrite("~w: ~p~n", [error, Reason2]),
 			halt(1);
 		exit:Reason2 ->
-			io:fwrite("~w: ~w~n", [error, Reason2]),
+			io:fwrite("~w: ~p~n", [error, Reason2]),
 			usage()
 	end.
 

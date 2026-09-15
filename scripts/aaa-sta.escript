@@ -66,7 +66,9 @@ auth_session(Options) ->
 		receive
 			#diameter_event{service = Name, info = Info}
 					when element(1, Info) == up ->
-				ok
+				ok;
+			#diameter_event{service = Name, info = Info} ->
+				error(Info)
 		end,
 		Frequest = fun F(0) ->
 					 ok;
@@ -99,15 +101,20 @@ auth_session(Options) ->
 						#'diameter_base_answer-message'{'Session-Id' = SId} = Answer ->
 								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
 						{error, Reason} ->
-									throw(Reason)
+									error(Reason)
 					end,
 					timer:sleep(maps:get(interval, Options, 1000)),
 					F(N-1)
 		end,
 		Frequest(maps:get(repeats, Options, 1))
 	catch
-		Error:Reason3 ->
-			io:fwrite("~w: ~w~n", [Error, Reason3]),
+		throw:_Reason3 ->
+			halt(1);
+		error:Reason3 ->
+			io:fwrite("~w: ~p~n", [error, Reason3]),
+			halt(1);
+		exit:Reason3 ->
+			io:fwrite("~w: ~p~n", [error, Reason3]),
 			usage()
 	end.
 
