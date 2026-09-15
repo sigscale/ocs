@@ -279,11 +279,15 @@ radius_accounting(Config) ->
 	AuthPort = proplists:get_value(radius_auth_port, Config),
 	AcctAddress = proplists:get_value(radius_address, Config),
 	AcctPort = proplists:get_value(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = PeerID, password = Password} =  add_service(ProdRef),
-	B1 = bucket(octets, rand:uniform(100000)),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Secret = proplists:get_value(radius_secret, Config),
 	ReqAuth = radius:authenticator(),
@@ -309,11 +313,15 @@ radius_disconnect_session(Config) ->
 	AuthPort = proplists:get_value(radius_auth_port, Config),
 	AcctAddress = proplists:get_value(radius_address, Config),
 	AcctPort = proplists:get_value(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = PeerID, password = Password} =  add_service(ProdRef),
-	B1 = bucket(octets, rand:uniform(100000)),
+	Balance = UnitSize + rand:uniform(UnitSize),
+	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Secret = proplists:get_value(radius_secret, Config),
 	ReqAuth = radius:authenticator(),
@@ -325,11 +333,17 @@ radius_disconnect_session(Config) ->
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadId2),
 	RadId3 = RadId2 + 1,
+	InputOctets1 = rand:uniform(UnitSize),
+	OutputOctets1 = Balance + rand:uniform(UnitSize),
 	accounting_interim(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadId3, 750000123, 750000456),
+			PeerID, Secret, NasID, AcctSessionID, RadId3,
+			InputOctets1, OutputOctets1),
 	RadId4 = RadId3 + 1,
+	InputOctets2 = rand:uniform(UnitSize),
+	OutputOctets2 = UnitSize + rand:uniform(UnitSize),
 	accounting_stop(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadId4, 1350000987, 1350000654),
+			PeerID, Secret, NasID, AcctSessionID, RadId4,
+			InputOctets2, OutputOctets2),
 	DiscSocket = proplists:get_value(radius_disc_socket, Config),
 	disconnect_request(DiscSocket).
 
@@ -346,12 +360,16 @@ radius_multisession_disallowed(Config) ->
 	AuthPort = proplists:get_value(radius_auth_port, Config),
 	AcctAddress = proplists:get_value(radius_address, Config),
 	AcctPort = proplists:get_value(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = User, password = Password} =  add_service(ProdRef),
 	PeerID = binary_to_list(User),
-	B1 = bucket(octets, rand:uniform(100000)),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Secret = proplists:get_value(radius_secret, Config),
 	ReqAuth = radius:authenticator(),
@@ -409,7 +427,10 @@ radius_multisession(Config) ->
 	AuthPort = proplists:get_value(radius_auth_port, Config),
 	AcctAddress = proplists:get_value(radius_address, Config),
 	AcctPort = proplists:get_value(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	PeerID = ocs:generate_identity(),
@@ -417,7 +438,8 @@ radius_multisession(Config) ->
 	State = active,
 	{ok, #service{}} = ocs:add_service(PeerID, Password, State,
 			ProdRef, [], [], true, true),
-	B1 = bucket(octets, rand:uniform(100000)),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Secret = proplists:get_value(radius_secret, Config),
 	ReqAuth = radius:authenticator(),
@@ -495,13 +517,16 @@ diameter_scur() ->
 	[{userdata, [{doc, "DIAMETER Session Charging with Unit Reservation (SCUR)"}]}].
 
 diameter_scur(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Username = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -527,13 +552,15 @@ diameter_scur_cud() ->
 	[{userdata, [{doc, "DIAMETER SCUR voice with Centralized Unit Determination"}]}].
 
 diameter_scur_cud(_Config) ->
-	UnitSize = 60,
-	P1 = price(usage, seconds, UnitSize, rand:uniform(10000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, seconds, UnitSize, Amount),
 	OfferId = add_offer([P1], 5),
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance = UnitSize * rand:uniform(100),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(seconds, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -595,14 +622,15 @@ diameter_scur_no_credit() ->
 	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit"}]}].
 
 diameter_scur_no_credit(_Config) ->
-	UnitSize = 1000000 + rand:uniform(10000),
-	Amount = rand:uniform(100),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
 	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceID = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	Balance = rand:uniform(100000),
+	Balance = rand:uniform(UnitSize) - 1,
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -611,20 +639,21 @@ diameter_scur_no_credit(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = 0}
-			= diameter_scur_start(SId, ServiceID, 0,
-			Balance + rand:uniform(Balance)).
+			= diameter_scur_cud_start(?MODULE, SId, ServiceID, 0).
 
 diameter_scur_depletion() ->
 	[{userdata, [{doc, "DIAMETER SCUR mid-session out of credit"}]}].
 
 diameter_scur_depletion(_Config) ->
-	UnitSize = 1000000 + rand:uniform(10000),
-	P1 = price(usage, octets, UnitSize, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceID = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	Balance = 1000000 + rand:uniform(1000000000),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -666,13 +695,17 @@ diameter_ecur() ->
 	[{userdata, [{doc, "DIAMETER Event Charging with Unit Reservation (ECUR)"}]}].
 
 diameter_ecur(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_messages),
+	UnitSize = MinReserve + rand:uniform(MinReserve) - 1,
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, messages, UnitSize, Amount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
-	B1 = bucket(messages, 5),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(messages, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -680,7 +713,7 @@ diameter_ecur(_Config) ->
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = CallingParty},
 	RSU = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Service-Specific-Units' = [1]},
+			'CC-Service-Specific-Units' = [UnitSize]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{
 			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
 			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
@@ -706,8 +739,8 @@ diameter_ecur(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = GSU,
-	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [UnitSize]} = GSU,
+	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [UnitSize]},
 	MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [USU]},
 	CCR2 = #'3gpp_ro_CCR'{'Session-Id' = SId,
@@ -730,13 +763,17 @@ diameter_ecur_no_credit() ->
 	[{userdata, [{doc, "DIAMETER ECUR with insufficient credit"}]}].
 
 diameter_ecur_no_credit(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_messages),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, messages, UnitSize, Amount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
-	B1 = bucket(messages, 2),
+	Balance = rand:uniform(UnitSize) - 1,
+	B1 = bucket(messages, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -744,7 +781,7 @@ diameter_ecur_no_credit(_Config) ->
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = CallingParty},
 	RSU = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Service-Specific-Units' = [5]},
+			'CC-Service-Specific-Units' = [UnitSize + 5]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{
 			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
 			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
@@ -772,13 +809,17 @@ diameter_iec_dud() ->
 	[{userdata, [{doc, "DIAMETER Immediate Event Charging (IEC) with decentralized unit determination"}]}].
 
 diameter_iec_dud(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_messages),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, messages, UnitSize, Amount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
-	B1 = bucket(messages, 5),
+	Balance1 = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(messages, Balance1),
 	BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -786,7 +827,7 @@ diameter_iec_dud(_Config) ->
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = CallingParty},
 	RSU = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Service-Specific-Units' = [1]},
+			'CC-Service-Specific-Units' = [UnitSize]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{
 			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
 			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
@@ -813,20 +854,25 @@ diameter_iec_dud(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = GSU,
-	{ok, #bucket{remain_amount = 4}} = ocs:find_bucket(BId).
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [UnitSize]} = GSU,
+	Balance2 = Balance1 - UnitSize,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(BId).
 
 diameter_iec_cud() ->
 	[{userdata, [{doc, "DIAMETER Immediate Event Charging (IEC) with centralized unit determination"}]}].
 
 diameter_iec_cud(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_messages),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, messages, UnitSize, Amount),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
-	B1 = bucket(messages, 5),
+	Balance1 = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(messages, Balance1),
 	BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -856,15 +902,18 @@ diameter_iec_cud(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GSU]} = MSCC,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = GSU,
-	{ok, #bucket{remain_amount = 4}} = ocs:find_bucket(BId).
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [UnitSize]} = GSU,
+	Balance2 = Balance1 - UnitSize,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(BId).
 
 diameter_voice_out() ->
 	[{userdata, [{doc, "DIAMETER SCUR for outgoing voice call"}]}].
 
 diameter_voice_out(_Config) ->
-	UnitSize = 60,
-	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, seconds, UnitSize, Amount),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Incoming]},
@@ -878,7 +927,7 @@ diameter_voice_out(_Config) ->
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance1 = rand:uniform(1000000000),
+	Balance1 = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(seconds, Balance1),
 	B1ref = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -938,8 +987,10 @@ diameter_voice_in() ->
 	[{userdata, [{doc, "DIAMETER SCUR for answered voice call"}]}].
 
 diameter_voice_in(_Config) ->
-	UnitSize = 60,
-	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, seconds, UnitSize, Amount),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Incoming]},
@@ -953,7 +1004,7 @@ diameter_voice_in(_Config) ->
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance1 = rand:uniform(1000000000),
+	Balance1 = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(seconds, Balance1),
 	B1ref = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -1013,7 +1064,8 @@ diameter_voice_out_tariff() ->
 	[{userdata, [{doc, "DIAMETER SCUR for originated voice call using tariff table"}]}].
 
 diameter_voice_out_tariff(_Config) ->
-	UnitSize = 60,
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
 	TariffRateIn = rand:uniform(100000),
 	TariffRateOut = rand:uniform(100000),
 	CallingAddress = ocs:generate_identity(),
@@ -1044,7 +1096,7 @@ diameter_voice_out_tariff(_Config) ->
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance1 = rand:uniform(1000000000),
+	Balance1 = TariffRateOut * 10 + rand:uniform(TariffRateOut),
 	B1 = bucket(cents, Balance1),
 	B1ref = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -1110,7 +1162,8 @@ diameter_voice_in_tariff() ->
 	[{userdata, [{doc, "DIAMETER SCUR for answered voice call using tariff table"}]}].
 
 diameter_voice_in_tariff(_Config) ->
-	UnitSize = 60,
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
 	TariffRateIn = rand:uniform(100000),
 	TariffRateOut = rand:uniform(100000),
 	CallingAddress = ocs:generate_identity(),
@@ -1141,7 +1194,7 @@ diameter_voice_in_tariff(_Config) ->
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance1 = rand:uniform(1000000000),
+	Balance1 = TariffRateIn * 10 + rand:uniform(TariffRateIn),
 	B1 = bucket(cents, Balance1),
 	B1ref = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -1207,10 +1260,11 @@ scur_start_redirect_server() ->
 	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit and 'Final-Unit-Indication' AVP"}]}].
 
 scur_start_redirect_server(_Config) ->
-	UnitSize = 1000000 + rand:uniform(10000),
-	Amount = rand:uniform(100),
-	RedirectServer = "http://redirectserver.com",
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
 	P1 = price(usage, octets, UnitSize, Amount),
+	RedirectServer = "http://redirectserver.com",
 	Offer =  #offer{name = "Redirect Server", specification = "8",
 			price = [P1],
 			char_value_use = [#char_value_use{name = "redirectServer",
@@ -1220,12 +1274,12 @@ scur_start_redirect_server(_Config) ->
 	ProdRef = add_product(OfferId),
 	ServiceID = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	Balance = rand:uniform(100000),
+	Balance = rand:uniform(UnitSize) - 1,
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	Answer = diameter_scur_start(SId, ServiceID, 0, Balance + rand:uniform(Balance)),
+	Answer = diameter_scur_cud_start(?MODULE, SId, ServiceID, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
@@ -1241,19 +1295,22 @@ diameter_scur_price_discrimination_by_rg() ->
 	[{userdata, [{doc, "DIAMETER SCUR Price Discrimination By Rating Group"}]}].
 
 diameter_scur_price_discrimination_by_rg(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Username = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
-	Answer0 = diameter_scur_start(SId, Username, RequestNum, rand:uniform(Balance)),
+	Answer0 = diameter_scur_cud_start(?MODULE, SId, Username, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
@@ -1340,10 +1397,11 @@ diameter_scur_multiple_rg(_Config) ->
 	RemainAmount = Balance - UsedOctets.
 
 diameter_scur_roaming_voice_ims() ->
-	[{userdata, [{doc, "DIAMETER SCUR "}]}].
+	[{userdata, [{doc, "DIAMETER SCUR IMS roaming"}]}].
 
 diameter_scur_roaming_voice_ims(_Config) ->
-	UnitSize = rand:uniform(6000000),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_seconds),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
 	TariffRateIn = rand:uniform(100),
 	TariffRateOut = rand:uniform(200),
 	SN = "00101",
@@ -1380,8 +1438,8 @@ diameter_scur_roaming_voice_ims(_Config) ->
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance1 = rand:uniform(1000000000),
-	B1 = bucket(seconds, Balance1),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
+	B1 = bucket(seconds, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -1447,13 +1505,16 @@ client_authorized(Config) ->
 			{fail, diameter_service_not_started}
 	end.
 client_authorized(ServiceName, _Config) ->
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100000)),
+	{ok, MinReserve} = application:get_env(ocs, min_reserve_octets),
+	UnitSize = MinReserve + rand:uniform(MinReserve),
+	Amount = rand:uniform(1000000),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Subscriber = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(Subscriber, Password, ProdRef, []),
-	Balance = rand:uniform(100000000),
+	Balance = UnitSize * 10 + rand:uniform(UnitSize),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -1677,7 +1738,7 @@ diameter_scur_start(SId, Username, RequestNum, Requested) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
-	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'{
 			'CC-Total-Octets' = [Requested]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]},
@@ -1708,8 +1769,9 @@ diameter_scur_cud_start(ServiceName, SId, Username, RequestNum) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'{},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Requested-Service-Unit' = []},
+			'Requested-Service-Unit' = [RequestedUnits]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
 			[#'3gpp_ro_PS-Information'{
 					'3GPP-PDP-Type' = [3],
