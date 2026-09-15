@@ -735,7 +735,8 @@ add_service(Identity, Password, ProductRef) ->
 		Password :: string() | binary() | aka_cred() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
-		Result :: {ok, #service{}} | {error, Reason},
+		Result :: {ok, Service} | {error, Reason},
+		Service :: #service{},
 		Reason :: term().
 %% @equiv add_service(Identity, Password, ProductRef, Chars, [], true, false)
 add_service(Identity, Password, ProductRef, Chars) ->
@@ -765,7 +766,8 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean() | undefined,
-		Result :: {ok, #service{}} | {error, Reason},
+		Result :: {ok, Service} | {error, Reason},
+		Service :: #service{},
 		Reason :: term().
 %% @doc Create an entry in the service table.
 %%
@@ -902,6 +904,7 @@ add_service1(Identity, Password, State, ProductRef,
 -spec update_service(Service) -> Result
 	when
 		Result :: {ok, Service} | {error, Reason},
+		Service :: #service{},
 		Reason :: not_found | stale | term().
 %% @doc Update an existing Service.
 update_service(#service{name = Name, last_modified = LM} = Service)
