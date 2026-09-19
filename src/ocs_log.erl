@@ -6435,36 +6435,48 @@ diameter_pdu_session_charging_info9(_PSI, Acc) ->
 	Acc.
 
 %% @hidden
-% CGI (3GPP TS 29.274 8.21.1)
-diameter_user_location_info(<<0, MCCMNC:3/binary, LAC:16, CI:16>>) ->
+% CGI (3GPP TS 29.060 7.7.51)
+diameter_user_location_info(<<0,
+		MCCMNC:3/binary, LAC:16, CI:16>>) ->
 	CGI = #{plmnId => plmn_id(MCCMNC),
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
 			cellId => list_to_binary(io_lib:fwrite("~4.16.0b", [CI]))},
 	#{utraLocation => #{cgi => CGI}};
-% SAI (3GPP TS 29.274 8.21.2)
-diameter_user_location_info(<<1, MCCMNC:3/binary, LAC:16, SAC:16>>) ->
+% SAI (3GPP TS 29.060 7.7.51)
+diameter_user_location_info(<<1,
+		MCCMNC:3/binary, LAC:16, SAC:16>>) ->
 	SAI = #{plmnId => plmn_id(MCCMNC),
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
 			sac => list_to_binary(io_lib:fwrite("~4.16.0b", [SAC]))},
 	#{utraLocation => #{sai => SAI}};
-% RAI (3GPP TS 29.274 8.21.3)
-diameter_user_location_info(<<2, MCCMNC:3/binary, LAC:16, RAC:16>>) ->
+% RAI (3GPP TS 29.060 7.7.51)
+diameter_user_location_info(<<2,
+		MCCMNC:3/binary, LAC:16, RAC:16>>) ->
+	RAI = #{plmnId => plmn_id(MCCMNC),
+			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
+			rac => list_to_binary(io_lib:fwrite("~4.16.0b", [RAC]))},
+	#{utraLocation => #{rai => RAI}};
+% LAI (3GPP TS 29.060 8.2.16)
+diameter_user_location_info(<<32,
+		MCCMNC:3/binary, LAC:16, RAC:16>>) ->
 	RAI = #{plmnId => plmn_id(MCCMNC),
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
 			rac => list_to_binary(io_lib:fwrite("~4.16.0b", [RAC]))},
 	#{utraLocation => #{rai => RAI}};
 % TAI (3GPP TS 29.274 8.21.4)
-diameter_user_location_info(<<128, MCCMNC:3/binary, TAC:16>>) ->
+diameter_user_location_info(<<8, MCCMNC:3/binary, TAC:16>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	#{eutraLocation => #{tai => TAI}};
 % ECGI (3GPP TS 29.274 8.21.5)
-diameter_user_location_info(<<129, MCCMNC:3/binary, _:4, ECI:28>>) ->
+diameter_user_location_info(<<16,
+		MCCMNC:3/binary, _:4, ECI:28>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
 	#{eutraLocation => #{ecgi => ECGI}};
-% TAI and ECGI
-diameter_user_location_info(<<130, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+% TAI and ECGI (3GPP TS 29.274 8.21.4-5)
+diameter_user_location_info(<<24,
+		MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 		_:4, ECI:28>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
@@ -6472,12 +6484,12 @@ diameter_user_location_info(<<130, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
 % Macro eNodeB ID (3GPP TS 29.274 8.21.7)
-diameter_user_location_info(<<131, MCCMNC:3/binary, _:4, ENBID:20>>) ->
+diameter_user_location_info(<<64, MCCMNC:3/binary, _:4, ENBID:20>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
 % TAI and eNodeB ID
-diameter_user_location_info(<<132, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+diameter_user_location_info(<<72, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 		_:4, ENBID:20>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
@@ -6485,17 +6497,17 @@ diameter_user_location_info(<<132, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
 % Extended long macro eNodeB ID (3GPP TS 29.274 8.21.8)
-diameter_user_location_info(<<133, MCCMNC:3/binary, 0:1, _:2, ENBID:21>>) ->
+diameter_user_location_info(<<128, MCCMNC:3/binary, 0:1, _:2, ENBID:21>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
 % Extended short macro eNodeB ID (3GPP TS 29.274 8.21.8)
-diameter_user_location_info(<<133, MCCMNC:3/binary, 1:1, _:5, ENBID:18>>) ->
+diameter_user_location_info(<<128, MCCMNC:3/binary, 1:1, _:5, ENBID:18>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
 % TAI and extended long macro eNodeB ID
-diameter_user_location_info(<<134, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+diameter_user_location_info(<<136, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 		0:1, _:2, ENBID:21>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
@@ -6503,13 +6515,15 @@ diameter_user_location_info(<<134, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
 % TAI and extended short macro eNodeB ID
-diameter_user_location_info(<<134, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
+diameter_user_location_info(<<136, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 		1:1, _:5, ENBID:18>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
-	#{eutraLocation => #{tai => TAI, ecgi => ECGI}}.
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+diameter_user_location_info(_) ->
+	#{}.
 
 %% @hidden
 plmn_id(<<MCC2:4, MCC1:4, 15:4, MCC3:4, MNC2:4, MNC1:4>>) ->
