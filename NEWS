@@ -1,3 +1,15 @@
+September 19, 2026
+------------------
+	- Correct User Location Information in CDR 
+	- Improved error hreporting in escripts
+	- Warn on failure to load (optional) SNMP MIBs
+	- Fix missing VCS charging information in CDR
+	- Modernize FSMs with gen_statem behaviour
+	- Modernize gen_server for deterministic timeouts
+	- Accept logic operators in REST date query of usage
+	- Optimize repeated disk_log chunking
+	- Correct AAA usage JSON CODEC
+
 August 18, 2026
 ---------------
 	- Fix balance threshold notification when multiple unit types

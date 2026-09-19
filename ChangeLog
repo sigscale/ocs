@@ -1,3 +1,56 @@
+2026-09-19   Vance Shipley <vances@sigscale.org>
+
+	* guard against unknown/missing user location in cdr
+	* correct geographic location type coding in cdr
+	* improve error handling in escripts
+	* edoc type specs for service in ocs api
+	* refactor accounting test suite for consistent random values
+	* less dire sounding warning on failure to load optional snmp mib
+	* do not remove yarn.lock on make clean (keep downloaded npm packages)
+	* make clean removes generated certificates/keys in test suite data dirs
+	* autotools macros for installing files/directories
+	* less concerning looking error message on snmp mib load failure
+	* suppress warnings for unused variables and deprecated catch
+	* use autotools macros for installing files/directories
+	* do not remove configure generated .appup on make clean
+	* correct result in type specification of ocs_log:btree_search/1
+	* include (optional) snmp in application specification
+	* fix missing number type for radius service-type in resource specification
+	* fix handling start continuation after optimizations
+	* fix missing vcs charging information in cdr
+	* port deprecated 'catch' to 'try ... catch ... end'
+	* suppress unused variable warnings where appropriate
+	* update edoc supervision diagram description for gen_statem
+	* port event logging and rest notifications from gen_fsm to gen_statem
+	* port acct diameter service state machine from gen_fsm to gen_statem
+	* port auth state machines from gen_fsm to gen_statem
+	* diameter escripts validate session-id in answer
+	* modernize scheculer statistics server
+	* modernize diameter auth port server with handle_continue/2
+	* modernize radius acct port server with handle_continue/2
+	* argument variable assignment for edoc; remove unused macros
+	* update edoc template on ocs server
+	* modernize radius auth port server with handle_continue/2
+	* portably skip handle_continue in log rotate server
+	* update edoc template on log rotate server
+	* start terminate fsm as gen_statem
+	* modernize aaa termination server as gen_statem
+	* modernize pagination server with handle_continue/2
+	* handle full logs in test cases
+	* test lib creates radius [called|calling]-station-id format random mac
+	* accept logic operators in rest date query of usage
+	* ignore gmt timezone in rest timestamp
+	* test cases: query since, not sort on date
+	* test case: get client with valid (unknown) ip address
+	* strict ip address parsing in client rest api handler
+	* test case coverage fix for get filtered clients
+	* correct address guards in add client
+	* test lib generates full range of rfc1918 addresses
+	* optimize repeated disk_log chunking by using pid() instead of log name
+	* test suite syncs logs before rest reads
+	* correct aaa usage json codec
+	* get all clients test case coverage limited to intended scope
+
 2026-08-18   Vance Shipley <vances@sigscale.org>
 
 	* updates for nrf v1.3.0
