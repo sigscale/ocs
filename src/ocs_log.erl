@@ -5693,7 +5693,12 @@ nrf_pdu_session_charging_info6(SI, Acc) ->
 	nrf_pdu_session_charging_info7(SI, Acc).
 %% @hidden
 nrf_pdu_session_charging_info7(#{"userLocationinfo" := ULI} = SI, Acc) ->
-	Acc1 = Acc#{userLocationInformation => nrf_user_location_info(ULI)},
+	Acc1 = case nrf_user_location_info(ULI) of
+		ULI1 when map_size(ULI1) > 0 ->
+			Acc#{userLocationInformation => ULI};
+		_ULI1 ->
+			Acc
+	end,
 	nrf_pdu_session_charging_info8(SI, Acc1);
 nrf_pdu_session_charging_info7(SI, Acc) ->
 	nrf_pdu_session_charging_info8(SI, Acc).
@@ -6370,7 +6375,12 @@ diameter_pdu_session_charging_info2(PSI, Acc) ->
 %% @hidden
 diameter_pdu_session_charging_info3(#'3gpp_ro_PS-Information'{
 		'3GPP-User-Location-Info' = [ULI]} = PSI, Acc) ->
-	Acc1 = Acc#{userLocationInformation => diameter_user_location_info(ULI)},
+	Acc1 = case diameter_user_location_info(ULI) of
+		ULI1 when map_size(ULI1) > 0 ->
+			Acc#{userLocationInformation => ULI1};
+		_ULI1 ->
+			Acc
+	end,
 	diameter_pdu_session_charging_info4(PSI, Acc1);
 diameter_pdu_session_charging_info3(PSI, Acc) ->
 	diameter_pdu_session_charging_info4(PSI, Acc).
@@ -6522,6 +6532,7 @@ diameter_user_location_info(<<136, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% unknown
 diameter_user_location_info(_) ->
 	#{}.
 
