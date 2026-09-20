@@ -6445,6 +6445,8 @@ diameter_pdu_session_charging_info9(_PSI, Acc) ->
 	Acc.
 
 %% @hidden
+%% 3GPP-User-Location-Info AVP (3GPP TS 29.061 16.4.7.2)
+%%
 % CGI (3GPP TS 29.060 7.7.51)
 diameter_user_location_info(<<0,
 		MCCMNC:3/binary, LAC:16, CI:16>>) ->
@@ -6466,72 +6468,210 @@ diameter_user_location_info(<<2,
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
 			rac => list_to_binary(io_lib:fwrite("~4.16.0b", [RAC]))},
 	#{utraLocation => #{rai => RAI}};
-% LAI (3GPP TS 29.060 8.2.16)
-diameter_user_location_info(<<32,
+% LAI (3GPP TS 29.060 8.2.16) (interpretation)
+diameter_user_location_info(<<32, % spare
 		MCCMNC:3/binary, LAC:16, RAC:16>>) ->
 	RAI = #{plmnId => plmn_id(MCCMNC),
 			lac => list_to_binary(io_lib:fwrite("~4.16.0b", [LAC])),
 			rac => list_to_binary(io_lib:fwrite("~4.16.0b", [RAC]))},
 	#{utraLocation => #{rai => RAI}};
-% TAI (3GPP TS 29.274 8.21.4)
-diameter_user_location_info(<<8, MCCMNC:3/binary, TAC:16>>) ->
+% TAI (3GPP TS 29.274 8.21.4) (interpretation)
+diameter_user_location_info(<<8, % spare
+		MCCMNC:3/binary, TAC:16>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	#{eutraLocation => #{tai => TAI}};
-% ECGI (3GPP TS 29.274 8.21.5)
-diameter_user_location_info(<<16,
+% ECGI (3GPP TS 29.274 8.21.5) (interpretation)
+diameter_user_location_info(<<16, % spare
 		MCCMNC:3/binary, _:4, ECI:28>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
 	#{eutraLocation => #{ecgi => ECGI}};
-% TAI and ECGI (3GPP TS 29.274 8.21.4-5)
-diameter_user_location_info(<<24,
-		MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
-		_:4, ECI:28>>) ->
+% TAI and ECGI (3GPP TS 29.274 8.21.4-5) (interpretation)
+diameter_user_location_info(<<24, % spare
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, _:4, ECI:28>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
-% Macro eNodeB ID (3GPP TS 29.274 8.21.7)
-diameter_user_location_info(<<64, MCCMNC:3/binary, _:4, ENBID:20>>) ->
+% Macro eNodeB ID (3GPP TS 29.274 8.21.7) (interpretation)
+diameter_user_location_info(<<64, %spare
+		MCCMNC:3/binary, _:4, ENBID:20>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
-% TAI and eNodeB ID
-diameter_user_location_info(<<72, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
-		_:4, ENBID:20>>) ->
+% TAI and eNodeB ID (3GPP TS 29.274 8.21.4 and 8.21.7) (interpretation)
+diameter_user_location_info(<<72, % spare
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, _:4, ENBID:20>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
-% Extended long macro eNodeB ID (3GPP TS 29.274 8.21.8)
-diameter_user_location_info(<<128, MCCMNC:3/binary, 0:1, _:2, ENBID:21>>) ->
+% TAI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<128,
+		MCCMNC:3/binary, TAC:16>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	#{eutraLocation => #{tai => TAI}};
+% ECGI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<129,
+		MCCMNC:3/binary, _:4, ECI:28>>) ->
+	ECGI = #{plmnId => plmn_id(MCCMNC),
+			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% TAI and ECGI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<130,
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, _:4, ECI:28>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => plmn_id(MCCMNC2),
+			eutraCellId => list_to_binary(io_lib:fwrite("~7.16.0b", [ECI]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% Macro eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<131,
+		MCCMNC:3/binary, _:4, ENBID:20>>) ->
+	ECGI = #{plmnId => plmn_id(MCCMNC),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{ecgi => ECGI}};
+% TAI and eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<132,
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, _:4, ENBID:20>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
+	ECGI = #{plmnId => plmn_id(MCCMNC2),
+			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
+	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% Extended long macro eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<133,
+		MCCMNC:3/binary, 0:1, _:2, ENBID:21>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
-% Extended short macro eNodeB ID (3GPP TS 29.274 8.21.8)
-diameter_user_location_info(<<128, MCCMNC:3/binary, 1:1, _:5, ENBID:18>>) ->
+% Extended short macro eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<133,
+		MCCMNC:3/binary, 1:1, _:5, ENBID:18>>) ->
 	ECGI = #{plmnId => plmn_id(MCCMNC),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{ecgi => ECGI}};
-% TAI and extended long macro eNodeB ID
-diameter_user_location_info(<<136, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
-		0:1, _:2, ENBID:21>>) ->
+% TAI and extended long macro eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<134,
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, 0:1, _:2, ENBID:21>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			globalENbId => list_to_binary(io_lib:fwrite("~6.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
-% TAI and extended short macro eNodeB ID
-diameter_user_location_info(<<136, MCCMNC1:3/binary, TAC:16, MCCMNC2:3/binary,
-		1:1, _:5, ENBID:18>>) ->
+% TAI and extended short macro eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<134,
+		MCCMNC1:3/binary, TAC:16,
+		MCCMNC2:3/binary, 1:1, _:5, ENBID:18>>) ->
 	TAI = #{plmnId => plmn_id(MCCMNC1),
 			tac => list_to_binary(io_lib:fwrite("~4.16.0b", [TAC]))},
 	ECGI = #{plmnId => plmn_id(MCCMNC2),
 			globalENbId => list_to_binary(io_lib:fwrite("~5.16.0b", [ENBID]))},
 	#{eutraLocation => #{tai => TAI, ecgi => ECGI}};
+% NCGI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<135,
+		MCCMNC:3/binary, _:4, NCID:36>>) ->
+	NCGI = #{plmnId => plmn_id(MCCMNC),
+			nrCellId => list_to_binary(io_lib:fwrite("~9.16.0b", [NCID]))},
+	#{nrLocation => #{ncgi => NCGI}};
+% 5GS TAI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<136,
+		MCCMNC:3/binary, TAC:24>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	#{nrLocation => #{tai => TAI}};
+% 5GS TAI and NCGI (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<137,
+		MCCMNC1:3/binary, TAC:24,
+		MCCMNC2:3/binary, _:4, NCID:36>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	NCGI = #{plmnId => plmn_id(MCCMNC2),
+			nrCellId => list_to_binary(io_lib:fwrite("~9.16.0b", [NCID]))},
+	#{nrLocation => #{tai => TAI, ncgi => NCGI}};
+% NG-RAN short ng-eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<138,
+		18, MCCMNC:3/binary, _:6, Value:18>>) ->
+	ENBID = #{bitLength => 18, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC), eNbId => ENBID},
+	#{nrLocation => #{globalGnbId => GlobalGNBId}};
+% NG-RAN ng-eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<138,
+		20, MCCMNC:3/binary, _:4, Value:20>>) ->
+	ENBID = #{bitLength => 20, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC), eNbId => ENBID},
+	#{nrLocation => #{globalGnbId => GlobalGNBId}};
+% NG-RAN long ng-eNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<138,
+		21, MCCMNC:3/binary, _:3, Value:21>>) ->
+	ENBID = #{bitLength => 21, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC), eNbId => ENBID},
+	#{nrLocation => #{globalGnbId => GlobalGNBId}};
+% NG-RAN gNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<138,
+		L, MCCMNC:3/binary, Rest/binary>>)
+		when L >= 22, L =< 32 ->
+	try
+		GnbValue = gnb_value(L, Rest),
+		GNBID = #{bitLength => L, gNbValue => GnbValue},
+		GlobalGNBId = #{pLMNId => plmn_id(MCCMNC), gNbId => GNBID},
+		#{nrLocation => #{globalGnbId => GlobalGNBId}}
+	catch
+		_:_ ->
+			#{}
+	end;
+% 5GS TAI and NG-RAN short ng-eNodeB (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<139,
+		MCCMNC1:3/binary, TAC:24,
+		18, MCCMNC2:3/binary, _:6, Value:18>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	ENBID = #{bitLength => 18, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC2), eNbId => ENBID},
+	#{nrLocation => #{tai => TAI, globalGnbId => GlobalGNBId}};
+% 5GS TAI and NG-RAN ng-eNodeB (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<139,
+		MCCMNC1:3/binary, TAC:24,
+		20, MCCMNC2:3/binary, _:4, Value:20>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	ENBID = #{bitLength => 20, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC2), eNbId => ENBID},
+	#{nrLocation => #{tai => TAI, globalGnbId => GlobalGNBId}};
+% 5GS TAI and NG-RAN long ng-eNodeB (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<139,
+		MCCMNC1:3/binary, TAC:24,
+		21, MCCMNC2:3/binary, _:3, Value:21>>) ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	ENBID = #{bitLength => 21, gNbValue => Value},
+	GlobalGNBId = #{pLMNId => plmn_id(MCCMNC2), eNbId => ENBID},
+	#{nrLocation => #{tai => TAI, globalGnbId => GlobalGNBId}};
+% 5GS TAI and NG-RAN gNodeB ID (3GPP TS 29.061 16.4.7.2)
+diameter_user_location_info(<<139,
+		MCCMNC1:3/binary, TAC:24,
+		L, MCCMNC2:3/binary, Rest/binary>>)
+		when L >= 22, L =< 32 ->
+	TAI = #{plmnId => plmn_id(MCCMNC1),
+			tac => list_to_binary(io_lib:fwrite("~6.16.0b", [TAC]))},
+	try
+		GnbValue = gnb_value(L, Rest),
+		GNBID = #{bitLength => L, gNbValue => GnbValue},
+		GlobalGNBId = #{pLMNId => plmn_id(MCCMNC2), gNbId => GNBID},
+		#{nrLocation => #{tai => TAI, globalGnbId => GlobalGNBId}}
+	catch
+		_:_ ->
+			#{}
+	end;
 % unknown
 diameter_user_location_info(_) ->
 	#{}.
@@ -6554,6 +6694,30 @@ tbcd(<<A2:4, A1:4, Rest/binary>>, Acc)
 	tbcd(Rest, [A2 + 48, A1 + 48 | Acc]);
 tbcd(<<>>, Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+gnb_value(22, <<_:2, Value:22>>) ->
+	Value;
+gnb_value(23, <<_:1, Value:23>>) ->
+	Value;
+gnb_value(24, <<Value:24>>) ->
+	Value;
+gnb_value(25, <<_:7, Value:25>>) ->
+	Value;
+gnb_value(26, <<_:6, Value:26>>) ->
+	Value;
+gnb_value(27, <<_:5, Value:27>>) ->
+	Value;
+gnb_value(28, <<_:4, Value:28>>) ->
+	Value;
+gnb_value(29, <<_:3, Value:29>>) ->
+	Value;
+gnb_value(30, <<_:2, Value:30>>) ->
+	Value;
+gnb_value(31, <<_:1, Value:31>>) ->
+	Value;
+gnb_value(32, <<Value:32>>) ->
+	Value.
 
 %% @hidden
 diameter_ims_charging_info(#'3gpp_ro_Service-Information'{
