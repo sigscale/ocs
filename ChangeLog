@@ -1,3 +1,10 @@
+2026-09-20    Vance Shipley <vances@sigscale.org>
+
+	*  implement all geographic location types in cdr, and some which are not
+	*  ng-enodeb id is prefix bit length and value as integers
+	*  gnodeb id is prefix bit length and value as integers
+	*  Revert "autotools macros for installing files/directories"
+
 2026-09-19   Vance Shipley <vances@sigscale.org>
 
 	* guard against unknown/missing user location in cdr
