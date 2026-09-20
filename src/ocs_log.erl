@@ -4420,7 +4420,7 @@ nf_name4(_) ->
 
 -type gnb_id() :: #{
 		bitLength => pos_integer(),
-		gNbValue => binary()}.
+		gNbValue => non_neg_integer()}.
 %% 5G NR gNodeB ID
 
 -type global_ran_node_id() :: #{
