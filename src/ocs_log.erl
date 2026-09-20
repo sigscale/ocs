@@ -4431,7 +4431,7 @@ nf_name4(_) ->
 		wagfId => binary(),
 		tngfId => binary(),
 		nid => binary(),
-		eNbId => binary()}.
+		eNbId => gnb_id()}.
 %% Global RAN node ID
 
 -type nr_location() :: #{
