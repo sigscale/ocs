@@ -55,7 +55,8 @@
     "@vaadin/vaadin-grid": "^6.0.0"
   },
   "devDependencies": {
-    "polymer-cli": "^1.9.11"
+    "polymer-cli": "^1.9.11",
+    "workbox-cli": "7.3.0"
   },
   "engines": {
     "node": ">=8.0"
