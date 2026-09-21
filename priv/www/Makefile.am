@@ -63,7 +63,7 @@ $(abs_builddir)/index.html:
 package.json: yarn.lock
 
 yarn.lock:
-	yarn install
+	yarn install --no-immutable
 
 $(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
 	if [ ! -e $(abs_builddir)/polymer.json ]; then \
