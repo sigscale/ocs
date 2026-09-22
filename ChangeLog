@@ -1,3 +1,12 @@
+2026-09-22    Vance Shipley <vances@sigscale.org>
+
+	* remove bogus d3 imports from dashboard
+	* modernize pwa build with vite and workbox-cli
+	* install polymer-cli with yarn to get polymer command
+	* remove (default) immutable flag from yarn install
+	* modernize yarn install (no check engines)
+	* no global install of polymer build dependencies
+
 2026-09-20    Vance Shipley <vances@sigscale.org>
 
 	*  implement all geographic location types in cdr, and some which are not
