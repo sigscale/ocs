@@ -14,7 +14,7 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { select, selectAll } from 'd3-selection';
 import { arc, pie, line, curveLinear } from 'd3-shape';
 import { scaleOrdinal, scaleLinear, scaleUtc } from 'd3-scale';
-import { axisBottom, axisLeft, ticks, tickSizeOuter } from 'd3-axis';
+import { axisBottom, axisLeft } from 'd3-axis';
 import { min, mean, max, extent, group, InternSet, range } from 'd3-array';
 import { transition } from 'd3-transition';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js';
