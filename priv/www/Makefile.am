@@ -3,7 +3,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-www_DATA = $(abs_builddir)/build/polymer.json
+www_DATA = $(abs_builddir)/dist/index.html
 
 LINKS = index.html manifest.json images src
 
@@ -60,40 +60,23 @@ $(abs_builddir)/index.html:
 		fi; \
 	done
 
-package.json: yarn.lock
-
-yarn.lock:
-	yarn add polymer-cli
-	yarn install --no-immutable
-
-$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
-	if [ ! -e $(abs_builddir)/polymer.json ]; then \
-		cp $(srcdir)/polymer.json $(abs_builddir); \
+$(abs_builddir)/dist/index.html: vite.config.js $(abs_builddir)/index.html ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+	$(MKDIR_P) $(abs_builddir)/dist
+	if [ ! -e $(abs_builddir)/package.json ]; then \
+		cp $(srcdir)/package.json $(abs_builddir); \
 	fi
-	polymer build
-	workbox generateSW $(srcdir)/workbox-config.js
-
-check_DATA = .polymer_lint_ok
-
-.polymer_lint_ok:
-	yarn run lint
+	if [ ! -e $(abs_builddir)/vite.config.js ]; then \
+		cp $(srcdir)/vite.config.js $(abs_builddir); \
+	fi
+	npm install vite vite-plugin-pwa workbox-cli --save-dev
+	npm run build
 
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
-	cp -R $(abs_builddir)/build/esm-bundled/* $(DESTDIR)$(wwwdir)
-	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
-	cp $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales
-	cp $(abs_builddir)/service-worker.js $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/service-worker.js.map $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/workbox-*.js $(DESTDIR)$(wwwdir)/
-	cp $(abs_builddir)/workbox-*.js.map $(DESTDIR)$(wwwdir)/
+	cp -R $(abs_builddir)/dist/* $(DESTDIR)$(wwwdir)
 
 clean-local:
 	-rm $(abs_builddir)/src/sig-help.js
-	-rm  $(abs_builddir)/service-worker.js
-	-rm  $(abs_builddir)/service-worker.js.map
-	-rm  $(abs_builddir)/workbox-*.js
-	-rm  $(abs_builddir)/workbox-*.js.map
 	for i in $(LINKS); do \
 		if [ -L $$i ]; then \
 			rm $$i; \
