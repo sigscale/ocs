@@ -947,5 +947,9 @@ dia_count({318, 1, Error}, Count) ->
 dia_count({321, 0, Error}, Count) ->
 	io:fwrite("        AIR ~w: ~b~n", [Error, Count]);
 dia_count({321, 1, Error}, Count) ->
-	io:fwrite("        PUR ~w: ~b~n", [Error, Count]).
+	io:fwrite("        PUR ~w: ~b~n", [Error, Count]);
+dia_count({unknown, 0, Error}, Count) ->
+	io:fwrite(" unknown Rx ~w: ~b~n", [Error, Count]);
+dia_count({unknown, 1, Error}, Count) ->
+	io:fwrite(" unknown Tx ~w: ~b~n", [Error, Count]).
 
