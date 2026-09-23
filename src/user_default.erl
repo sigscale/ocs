@@ -931,7 +931,7 @@ dia_count({301, 1, Error}, Count) ->
 dia_count({303, 0, Error}, Count) ->
 	io:fwrite("        MAA ~w: ~b~n", [Error, Count]);
 dia_count({303, 1, Error}, Count) ->
-	io:fwrite("        MAA ~w: ~b~n", [Error, Count]);
+	io:fwrite("        MAR ~w: ~b~n", [Error, Count]);
 dia_count({304, 0, Error}, Count) ->
 	io:fwrite("        RTA ~w: ~b~n", [Error, Count]);
 dia_count({304, 1, Error}, Count) ->
@@ -941,15 +941,15 @@ dia_count({316, 0, Error}, Count) ->
 dia_count({316, 1, Error}, Count) ->
 	io:fwrite("        ULR ~w: ~b~n", [Error, Count]);
 dia_count({318, 0, Error}, Count) ->
-	io:fwrite("        RTA ~w: ~b~n", [Error, Count]);
-dia_count({318, 1, Error}, Count) ->
 	io:fwrite("        AIA ~w: ~b~n", [Error, Count]);
-dia_count({321, 0, Error}, Count) ->
+dia_count({318, 1, Error}, Count) ->
 	io:fwrite("        AIR ~w: ~b~n", [Error, Count]);
+dia_count({321, 0, Error}, Count) ->
+	io:fwrite("        PUA ~w: ~b~n", [Error, Count]);
 dia_count({321, 1, Error}, Count) ->
 	io:fwrite("        PUR ~w: ~b~n", [Error, Count]);
 dia_count({unknown, 0, Error}, Count) ->
-	io:fwrite(" unknown Rx ~w: ~b~n", [Error, Count]);
+	io:fwrite(" unknown rx ~w: ~b~n", [Error, Count]);
 dia_count({unknown, 1, Error}, Count) ->
-	io:fwrite(" unknown Tx ~w: ~b~n", [Error, Count]).
+	io:fwrite(" unknown tx ~w: ~b~n", [Error, Count]).
 
