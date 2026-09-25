@@ -5,12 +5,12 @@
 ## Install SigScale package repository configuration:
 
 ### Debian 13 (trixie)
-	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/debian-trixie/sigscale-release_1.4.7-4+debian13_all_e343ec7ca89c2d2a33b78eab85cb58c2.deb
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/debian-trixie/sigscale-release_1.4.8-1+debian13_all_2da4401193b5a5378ad51d04b4c1cac0.deb
 	sudo dpkg -i sigscale-release_*.deb
 	sudo apt update
 
 ### Debian 12 (bookworm)
-	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/debian-bookworm/sigscale-release_1.4.7-5+debian12_all_ec0edc3a2c82a64d2b13d3b08dd2b272.deb
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/debian-bookworm/sigscale-release_1.4.8-1+debian12_all_65b9ded95cea6fb72261d229ffd42647.deb
 	sudo dpkg -i sigscale-release_*.deb
 	sudo apt update
 

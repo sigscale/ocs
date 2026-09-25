@@ -5,12 +5,12 @@
 ## Install SigScale package repository configuration:
 
 ### Ubuntu 26.04 LTS (resolute)
-	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-resolute/sigscale-release_1.4.7-5+ubuntu26.04_all_f7695edbbe769fc8448379721dfa03ff.deb
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-resolute/sigscale-release_1.4.8-1+ubuntu26.04_all_5043a960dd58c31f17a2bf82fec705b8.deb
 	sudo dpkg -i sigscale-release_*.deb
 	sudo apt update
 
 ### Ubuntu 24.04 LTS (noble)
-	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-noble/sigscale-release_1.4.7-2+ubuntu24.04_all_9df9e55b3b3b418648d5854c973b6cad.deb
+	curl -sLO https://asia-east1-apt.pkg.dev/projects/sigscale-release/pool/ubuntu-noble/sigscale-release_1.4.8-1+ubuntu24.04_all_755effbd9d7e97f0a0e6d012d55e4f0b.deb
 	sudo dpkg -i sigscale-release_*.deb
 	sudo apt update
 
