@@ -49,7 +49,7 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 							filename:join([lib, App ++ \"-\" ++ Vsn, \
 									ebin, App ++ \".appup\"])} \
 							|| {App, Vsn} <- Apps1], \
-					ExtraFiles = [{Apppup, Replace} \
+					ExtraFiles = [{AppUp, Replace} \
 							|| {AppUp, Replace} <- Apps2, \
 							filelib:is_regular(AppUp), \
 							lists:prefix(\"$(ERLANG_LIB_DIR)\", AppUp) == false], \
