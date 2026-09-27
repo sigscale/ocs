@@ -48,7 +48,7 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 							filename:join([lib, atom_to_list(App) ++ \"-\" ++ Vsn, ebin, \
 									atom_to_list(App) ++ \".appup\"])} \
 							|| {App, Vsn} <- Apps, \
-							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\")),
+							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\")), \
 							lists:prefix(\"$(ERLANG_LIB_DIR)\", App) == false], \
 					systools:make_tar(\"$(RELEASE_NAME)\", \
 							[{dirs, [include,mibs,doc]}, \
