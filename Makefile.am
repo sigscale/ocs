@@ -44,12 +44,15 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 			-eval "systools:make_script(\"$(RELEASE_NAME)\", \
 					[{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
 			-eval "{ok, [{release, _, _, Apps}]} = file:consult(\"$(RELEASE_NAME).rel\"), \
-					ExtraFiles = [{code:where_is_file(atom_to_list(App) ++ \".appup\"), \
-							filename:join([lib, atom_to_list(App) ++ \"-\" ++ Vsn, ebin, \
-									atom_to_list(App) ++ \".appup\"])} \
-							|| {App, Vsn} <- Apps, \
-							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\")), \
-							lists:prefix(\"$(ERLANG_LIB_DIR)\", App) == false], \
+					Apps1 = [{atom_to_list(App), Vsn} || {App, Vsn} <- Apps], \
+					Apps2 = [{code:where_is_file(App ++ \".appup\"), \
+							filename:join([lib, App ++ \"-\" ++ Vsn, \
+									ebin, App ++ \".appup\"])} \
+							|| {App, Vsn} <- Apps1], \
+					ExtraFiles = [{Apppup, Replace} \
+							|| {AppUp, Replace} <- Apps2, \
+							filelib:is_regular(AppUp), \
+							lists:prefix(\"$(ERLANG_LIB_DIR)\", AppUp) == false], \
 					systools:make_tar(\"$(RELEASE_NAME)\", \
 							[{dirs, [include,mibs,doc]}, \
 							{variables, [{\"omit\", \"$(ERLANG_LIB_DIR)\"}]}, \
