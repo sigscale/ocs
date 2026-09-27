@@ -1,3 +1,10 @@
+September 27, 2026
+------------------
+	- Package for Ubuntu 26.05 LTS (resolute)
+	- Package for Debian 13 (trixie)
+	- Architecture independent OTP release package
+	- Debian packages for ARM64
+
 September 22, 2026
 ------------------
 	- Modernize PWA build

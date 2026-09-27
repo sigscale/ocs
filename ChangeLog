@@ -1,3 +1,13 @@
+2026-09-27    Vance Shipley <vances@sigscale.org>
+
+	* omit otp applications from release package, needed for cross arch
+	* update installation instructions for sigscale-release 1.4.8
+	* update sigscale-release apt package installation instructions
+	* handle unknown command in diameter counts
+	* handle unknown diameter command error count
+	* package for ubuntu 26.05 lts (resolute)
+	* package for debian 13 (trixie)
+
 2026-09-22    Vance Shipley <vances@sigscale.org>
 
 	* remove bogus d3 imports from dashboard
