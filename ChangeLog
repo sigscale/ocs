@@ -1,5 +1,6 @@
 2026-09-27    Vance Shipley <vances@sigscale.org>
 
+	* do not include .appup files for otp applications
 	* omit otp applications from release package, needed for cross arch
 	* update installation instructions for sigscale-release 1.4.8
 	* update sigscale-release apt package installation instructions
