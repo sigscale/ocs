@@ -37,17 +37,19 @@ ERLTMP := $(shell mktemp -d)
 if MAKE_TAR_EXTRA_FILES
 $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.config
 	$(MKDIR_P) $(ERLTMP)/lib/$(RELEASE_NAME)
-	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME)/ocs-* $(ERLTMP)/lib/$(RELEASE_NAME)
+	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME) \
+			$(ERLTMP)/lib/
 	ERL_LIBS=$(ERLTMP)/lib:$(ERL_LIBS) RELDIR=releases $(ERL) \
 			-noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(RELEASE_NAME)\", \
 					[{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
-			-eval "Apps = [{$(PACKAGE_NAME), $(PACKAGE_VERSION)}],
+			-eval "{ok, [{release, _, _, Apps}]} = file:consult(\"$(RELEASE_NAME).rel\"), \
 					ExtraFiles = [{code:where_is_file(atom_to_list(App) ++ \".appup\"), \
 							filename:join([lib, atom_to_list(App) ++ \"-\" ++ Vsn, ebin, \
 									atom_to_list(App) ++ \".appup\"])} \
 							|| {App, Vsn} <- Apps, \
-							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\"))], \
+							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\")),
+							lists:prefix(\"$(ERLANG_LIB_DIR)\", App) == false], \
 					systools:make_tar(\"$(RELEASE_NAME)\", \
 							[{dirs, [include,mibs,doc]}, \
 							{variables, [{\"omit\", \"$(ERLANG_LIB_DIR)\"}]}, \
@@ -58,7 +60,8 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 else
 $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.config
 	$(MKDIR_P) $(ERLTMP)/lib/$(RELEASE_NAME)
-	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME)/ocs-* $(ERLTMP)/lib/$(RELEASE_NAME)
+	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(RELEASE_NAME) \
+			$(ERLTMP)/lib/
 	ERL_LIBS=$(ERLTMP)/lib:$(ERL_LIBS) RELDIR=releases $(ERL) \
 			-noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(RELEASE_NAME)\", \
