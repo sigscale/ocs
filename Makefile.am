@@ -49,7 +49,10 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 							|| {App, Vsn} <- Apps, \
 							filelib:is_regular(code:where_is_file(atom_to_list(App) ++ \".appup\"))], \
 					systools:make_tar(\"$(RELEASE_NAME)\", \
-							[{dirs, [include,mibs,doc]}, {extra_files, ExtraFiles}])" \
+							[{dirs, [include,mibs,doc]}, \
+							{variables, [{\"omit\", \"$(ERLANG_LIB_DIR)\"}]}, \
+							{var_tar, omit}, \
+							{extra_files, ExtraFiles}])" \
 			-s init stop
 	rm -rf $(ERLTMP)
 else
@@ -60,7 +63,10 @@ $(RELEASE_NAME).tar.gz: $(RELEASE_NAME).rel ebin/$(PACKAGE_NAME).appup sys.confi
 			-noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(RELEASE_NAME)\", \
 					[{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
-			-eval "systools:make_tar(\"$(RELEASE_NAME)\", [{dirs, [include,mibs,doc]}])" \
+			-eval "systools:make_tar(\"$(RELEASE_NAME)\", \
+					[{dirs, [include,mibs,doc]}, \
+					{variables, [{\"omit\", \"$(ERLANG_LIB_DIR)\"}]}, \
+					{var_tar, omit}])" \
 			-s init stop
 	rm -rf $(ERLTMP)
 endif
