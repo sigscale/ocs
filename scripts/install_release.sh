@@ -68,7 +68,7 @@ then
 		fi
 	fi
 fi
-APPDIRS=$(ERL_LIBS=${HOME}/lib erl -noinput -eval '{ok, [{release, _, _, Apps}]} = file:consult("releases/${APP_NEW}.rel"), AppDirs = [{App, Vsn, filename:dirname(code:lib_dir(App))} || {App, Vsn} <- Apps], io:fwrite("~0p", [AppDirs]), init:stop()')
+APPDIRS=$(ERL_LIBS=${HOME}/lib erl -noinput -eval '{ok, [{release, _, _, Apps}]} = file:consult("releases/'${APP_NEW}'.rel"), AppDirs = [{App, Vsn, filename:dirname(code:lib_dir(App))} || {App, Vsn} <- Apps], io:fwrite("~0p", [AppDirs]), init:stop()')
 SASLVER=$(erl -noinput -eval 'application:load(sasl), {ok, Vsn} = application:get_key(sasl, vsn), io:fwrite("~s", [Vsn]), init:stop()')
 
 # Compare old and new release versions
