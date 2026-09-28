@@ -1,3 +1,9 @@
+2026-09-28    Vance Shipley <vances@sigscale.org>
+
+	* absolute paths for release_handler
+	* refactor extrafiles list construction
+	* do not install extra files (.appup) for otp libs
+
 2026-09-27    Vance Shipley <vances@sigscale.org>
 
 	* do not include .appup files for otp applications
