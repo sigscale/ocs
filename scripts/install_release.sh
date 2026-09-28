@@ -68,8 +68,7 @@ then
 		fi
 	fi
 fi
-INSTDIR="${HOME}/lib"
-APPDIRS=$(sed -e 's|.*{\([a-z][a-zA-Z_0-9]*\),[[:blank:]]*\"\([0-9.]*\)\".*|{\1,\"\2\",\"'${INSTDIR}'\"},|' -e '1s|^.*$|[|' -e '$s|\,$|]|' releases/${APP_NEW}.rel | tr -d "\r\n")
+APPDIRS=$(ERL_LIBS=${HOME}/lib erl -noinput -eval '{ok, [{release, _, _, Apps}]} = file:consult("releases/ocs-3.4.78.rel"), AppDirs = [{App, Vsn, filename:dirname(code:lib_dir(App))} || {App, Vsn} <- Apps], io:fwrite("~0p", [AppDirs]), init:stop()')
 SASLVER=$(erl -noinput -eval 'application:load(sasl), {ok, Vsn} = application:get_key(sasl, vsn), io:fwrite("~s", [Vsn]), init:stop()')
 
 # Compare old and new release versions
