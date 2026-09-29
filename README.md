@@ -52,7 +52,7 @@ functions in the reference architecture.
 ## Interfaces
 |Interface | Description                          |
 |----------|--------------------------------------|
-|GUI       | Polymer Web Components               |
+|PWA       | Progressive Web Application          |
 |REST      | TM Forum Open APIs, Nrf_Rating SBI   |
 |CLI       | Erlang API                           |
 |RADIUS    | AAA NAS Clients                      |
@@ -64,23 +64,24 @@ functions in the reference architecture.
 |EAP-AKA'  | Android, Linux                       |
 |CDR       | 3GPP Bx                              |
 
-### Graphical User Interface (GUI)
-A web front end built with Google [Polymer](https://www.polymer-project.org)
-web components for
-[material design](https://material.io/guidelines/material-design/introduction.html) 
-provides simple guided management of Product Offerings & Prices, Subscribers,
-Balance Buckets and NAS clients. Provisioning common authorization attributes
-as well as viewing usage and access logs is supported. Uses REST APIs exclusively.
+### Progressive Web Application (PWA)
+A web front end runs as a browser resident PWA providing simple
+dialog guided management of Product Offerings & Prices, Tariff
+and Policy tables, Balance Buckets, Subscribers, NAS clients, Logs
+and an observability Dashboard.  The PWA uses TM Forum Open APIs
+(REST) exclusively, serving as a fully functional example for
+your own BSS integration.
 ![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
-The GUI provides a comfortable interface for administration however
-most CSPs shall want to integrate Operations & Business Support Systems
-(OSS/BSS) using machine-to-machine APIs.
+The PWA is ideal for managing the prepaid Product Catalog, and many
+MVNOs use it for subscriber provisioning, however MNOs with
+Operations & Business Support Systems (OSS/BSS) require machine-to-machine
+APIs.
 
 #### [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 Most aspects of provisioning and operations may be performed through
-integration using an HTTP RESTful interface. Specifically the
+integration using HTTP RESTful interfaces. Specifically the
 [TM Forum](https://www.tmforum.org)
 [Open APIs](https://www.tmforum.org/open-apis/) are supported including:
 Product Catalog, Product Inventory, Prepay Balance, Service Inventory,
