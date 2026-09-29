@@ -62,7 +62,7 @@ functions in the reference architecture.
 |EAP-TTLS  | Android, Linux, Apple, Windows       |
 |EAP-AKA   | Android, Linux, Apple                |
 |EAP-AKA'  | Android, Linux                       |
-|IPDR      | Billing Record Files                 |
+|CDR       | 3GPP Bx                              |
 
 ### Graphical User Interface (GUI)
 A web front end built with Google [Polymer](https://www.polymer-project.org)
@@ -165,9 +165,9 @@ negotiation and key exchange. The secure connection may then be used to
 allow the server to authenticate the client using existing, widely deployed
 methods such as PAP which is used in OCS.
 
-### [IPDR](https://www.tmforum.org/ipdr)
-The Internet Protocol (IP) Detail Record (IPDR) is an industry standard
-exchange format for usage records within the Internet Service Provider (ISP)
-ecosystem. OCS generates IPDR format usage logs which may be transfered with
-SFTP/SCP for offline processing.
+### [CDR](https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=298)
+Charging Data Records (CDR) are produced for the 3GPP Bx interface to the
+Billing Domain. The information model for OCS CDR is the CHF record format
+from 3GPP TS 32.298. Export formats include simple CSV.
+The old IPDR format is deprecated and will be removed in a future release.
 
