@@ -93,8 +93,8 @@
 		Node :: atom(),
 		Server :: ocs_log:server(),
 		Client :: ocs_log:server(),
-		RequestAttributes :: ocs_log:auth_request(),
-		ResponseAttributes :: ocs_log:auth_response()}.
+		Request :: ocs_log:auth_request(),
+		Response :: ocs_log:auth_response()}.
 %% DIAMETER event in the `auth' log.
 
 -type radius_auth_event() :: {
@@ -105,8 +105,8 @@
 		Server :: ocs_log:server(),
 		Client :: ocs_log:server(),
 		Type :: ocs_log:auth_type(),
-		RequestAttributes :: ocs_log:auth_request(),
-		ResponseAttributes :: ocs_log:auth_response()}.
+		Request :: ocs_log:auth_request(),
+		Response :: ocs_log:auth_response()}.
 %% RADIUS event in the `auth' log.
 
 -type auth_event() :: diameter_auth_event() | radius_auth_event().
@@ -119,8 +119,8 @@
 		Node :: atom(),
 		Server :: ocs_log:server(),
 		Type :: ocs_log:acct_type(),
-		RequestAttributes :: ocs_log:acct_request(),
-		ResponseAttributes :: ocs_log:acct_response(),
+		Request :: ocs_log:acct_request(),
+		Response :: ocs_log:acct_response(),
 		Rated :: [#rated{}] | undefined}.
 %% Event in the `acct' log.
 
@@ -377,21 +377,21 @@ auth_open() ->
 -type auth_response() :: auth_response_rad() | auth_response_dia().
 %% A response in an event of the `auth' log.
 
--spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
-		ResponseAttributes) -> Result
+-spec auth_log(Protocol, Server, Client, Type, Request,
+		Response) -> Result
 	when
 		Protocol :: radius,
 		Server :: server(),
 		Client :: server(),
 		Type :: auth_type(),
-		RequestAttributes :: auth_request_rad(),
-		ResponseAttributes :: auth_response_rad(),
+		Request :: auth_request_rad(),
+		Response :: auth_response_rad(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a RADIUS event to authorization log.
-auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
+auth_log(Protocol, Server, Client, Type, Request, Response) ->
 	Event = [Protocol, node(), Server, Client, Type,
-			RequestAttributes, ResponseAttributes],
+			Request, Response],
 	write_log(log_name(auth_log_name), Event).
 
 -spec auth_log(Protocol, Server, Client, Request, Response) -> Result
@@ -1444,15 +1444,15 @@ abmf_query(Continuation, Start, End, Type, Subscriber, Bucket, Units, Product)
 		ECS :: {struct, list()}.
 %% @doc Convert auth_event to ECS.
 auth_to_ecs({TS, N, radius = P, Node, Server,
-		Client, EventType, ReqAttributes, ResAttributes}) ->
-	auth_to_ecs({TS, N, P, Node, Server, Client, EventType, ReqAttributes,
-			ResAttributes}, lists:keyfind(?NasIdentifier, 1, ReqAttributes));
+		Client, EventType, Request, Response}) ->
+	auth_to_ecs({TS, N, P, Node, Server, Client, EventType, Request,
+			Response}, lists:keyfind(?NasIdentifier, 1, Request));
 auth_to_ecs({TS, N, diameter = P, Node, Server, Client, Request, Response}) ->
 	auth_to_ecs({TS, N, P, Node, Server, Client, Request, Response},
 		dia_req_and_res(Request, Response, Client)).
 %% @hidden
 auth_to_ecs({TS, N, radius = P, Node, Server, {ClientIp, _} = Client,
-		EventType, ReqAttributes, ResAttributes}, {_, OriginHost}) ->
+		EventType, Request, Response}, {_, OriginHost}) ->
 	ClientFields = case OriginHost of
 		OriginHost1 when is_binary(OriginHost1) ->
 			[{"ip", OriginHost1}];
@@ -1461,8 +1461,8 @@ auth_to_ecs({TS, N, radius = P, Node, Server, {ClientIp, _} = Client,
 	end,
 	ClientObj = {struct, [{"address", OriginHost}] ++ ClientFields},
 	auth_to_ecs({TS, N, radius = P, Node, Server, Client,
-			EventType, ReqAttributes, ResAttributes}, ClientObj,
-			lists:keyfind(?UserName, 1, ReqAttributes));
+			EventType, Request, Response}, ClientObj,
+			lists:keyfind(?UserName, 1, Request));
 auth_to_ecs({TS, N, diameter = Protocol, Node,
 		{ServerIP, ServerPort}, _Client, _Request, _Response},
 		{EventType, Outcome, App, ClientAddress, ClientIp,
@@ -1517,7 +1517,7 @@ auth_to_ecs(_Event, false) ->
 	throw(not_found).
 %% @hidden
 auth_to_ecs({TS, N, radius = Protocol, Node, {ServerIP, ServerPort}, _Client,
-		Type, _ReqAttributes, _ResAttributes}, ClientObj, {_, UserName}) ->
+		Type, _Request, _Response}, ClientObj, {_, UserName}) ->
 	Now = erlang:system_time(millisecond),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
 	ExampleSocket = "http://host.example.net:8080",
@@ -1561,16 +1561,16 @@ auth_to_ecs(_Event, _ClientObj, false) ->
 		ECS :: {struct, list()}.
 %% @doc Convert auth_event to ECS.
 acct_to_ecs({TS, N, radius = P, Node, Server,
-		Type, ReqAttributes, ResAttributes, Rated}) ->
-	acct_to_ecs({TS, N, P, Node, Server, Type, ReqAttributes, ResAttributes,
-			Rated}, lists:keyfind(?NasIdentifier, 1, ReqAttributes));
+		Type, Request, Response, Rated}) ->
+	acct_to_ecs({TS, N, P, Node, Server, Type, Request, Response,
+			Rated}, lists:keyfind(?NasIdentifier, 1, Request));
 acct_to_ecs({TS, N, diameter = P, Node,
 		Server, Type, Request, Response, Rated}) ->
 	acct_to_ecs({TS, N, P, Node, Server, Type, Request, Response, Rated},
 		dia_req_and_res(Request, Response)).
 %% @hidden
-acct_to_ecs({_TS, _N, radius, _Node, _Server, _Type, ReqAttributes,
-		_ResAttributes, _Rated} = Event, {_, OriginHost}) ->
+acct_to_ecs({_TS, _N, radius, _Node, _Server, _Type, Request,
+		_Response, _Rated} = Event, {_, OriginHost}) ->
 	ClientFields = case OriginHost of
 		OriginHost1 when is_binary(OriginHost1) ->
 			[{"ip", OriginHost1}];
@@ -1578,7 +1578,7 @@ acct_to_ecs({_TS, _N, radius, _Node, _Server, _Type, ReqAttributes,
 			[{"domain", OriginHost2}]
 	end,
 	ClientObj = {struct, [{"address", OriginHost}] ++ ClientFields},
-	acct_to_ecs(Event, ClientObj, lists:keyfind(?UserName, 1, ReqAttributes));
+	acct_to_ecs(Event, ClientObj, lists:keyfind(?UserName, 1, Request));
 acct_to_ecs({TS, N, diameter = Protocol, Node,
 		{ServerIP, ServerPort}, Type, _Request, _Response, _Rated},
 		{Outcome, App, ClientAddress, ClientIp, ClientDomain,
