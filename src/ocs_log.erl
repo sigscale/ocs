@@ -121,7 +121,7 @@
 		Type :: ocs_log:acct_type(),
 		Request :: ocs_log:acct_request(),
 		Response :: ocs_log:acct_response(),
-		Rated :: [#rated{}] | undefined}.
+		Rated :: acct_rated() | undefined}.
 %% Event in the `acct' log.
 
 -type http_event() :: {
@@ -158,11 +158,9 @@
 
 -export_type([auth_event/0, acct_event/0, abmf_event/0,
 		http_event/0]).
-
 -export_type([acct_type/0, acct_request/0, acct_response/0, acct_rated/0]).
-
 -export_type([auth_type/0, auth_request/0, auth_response/0]).
-
+-export_type([attribute_match/0]).
 -export_type([cdr/0]).
 
 -dialyzer({no_opaque,
@@ -196,27 +194,48 @@ acct_open() ->
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
--type nrf_request() :: map().
-%% A request on the Nrf interface.
-
--type nrf_response() :: map().
-%% A response on the Nrf interface.
-
 -type acct_type() :: on | off | start | stop | update | interim | final | event.
 %% Type of an event in the `acct' log.
 
--type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
-		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{}
-		| radius_attributes:attributes() | nrf_request().
-%% A request in an event of the `acct' log.
+-type acct_request() :: acct_request_rad()
+		| acct_request_dia()
+		| acct_request_nrf().
+%% A request field in an event of the `auth' log.
 
--type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
-		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{}
-		| radius_attributes:attributes() | nrf_response().
-%% A response in an event of the `acct' log.
+-type acct_request_rad() :: radius_attributes:attributes().
+%% A request on a RADIUS `acct' service.
 
--type acct_rated() :: [#rated{}].
-%% Rated records in an event of the `acct' log.
+-type acct_request_dia() :: #'3gpp_ro_CCR'{}
+		| #'3gpp_ro_RAR'{}
+		| #'3gpp_gx_CCR'{}
+		| #'3gpp_gx_RAR'{}.
+%% A request on a DIAMETER `acct' service.
+
+-type acct_request_nrf() :: map().
+%% A request on an Nrf_Rating service.
+
+-type acct_response() :: acct_response_rad()
+		| acct_response_dia()
+		| acct_response_nrf().
+%% A response field in an event of the `auth' log.
+
+-type acct_response_rad() :: radius_attributes:attributes().
+%% A response on a RADIUS `acct' service.
+
+-type acct_response_dia() :: #'3gpp_ro_CCA'{}
+		| #'3gpp_ro_RAA'{}
+		| #'3gpp_gx_CCA'{}
+		| #'3gpp_gx_RAA'{}.
+%% A response on a DIAMETER `acct' service.
+
+-type acct_response_nrf() :: map().
+%% A response on an Nrf_Rating service.
+
+-type acct_rated() :: [rated()].
+%% Rated records field in an event of the `acct' log.
+
+-type rated() :: #rated{}.
+%% A Rated record.
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -241,6 +260,14 @@ acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 acct_close() ->
 	close_log(log_name(acct_log_name)).
 
+-type attribute_match() :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]}.
+%% Match specifications for RADIUS attributes.
+
 -spec acct_query(Continuation, Start, End, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
@@ -252,21 +279,13 @@ acct_close() ->
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: acct_request_dia() | acct_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: acct_request_nrf() | acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: rated(),
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
@@ -289,21 +308,13 @@ acct_query(Continuation, Start, End, Types, Matches) ->
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: acct_request_dia() | acct_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: acct_request_nrf() | acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: rated(),
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
@@ -351,31 +362,71 @@ auth_open() ->
 -type auth_type() :: accept | reject | change.
 %% Type of an event in the `auth' log.
 
+-type auth_request() :: auth_request_rad() | auth_request_dia().
+%% A request field in an event of the `auth' log.
+
 -type auth_request_rad() :: radius_attributes:attributes().
-%% A request on a RADIUS interface.
+%% A request on a RADIUS `auth' service.
 
 -type auth_request_dia() :: #diameter_nas_app_AAR{}
-		| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
-		| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | #'3gpp_s6b_STR'{}
-		| #'3gpp_swx_RTR'{} | #'3gpp_s6b_AAR'{} | #'3gpp_s6a_AIR'{}
-		| #'3gpp_s6a_ULR'{} | #'3gpp_s6a_PUR'{}.
-%% A request on a DIAMETER interface.
-
--type auth_request() :: auth_request_rad() | auth_request_dia().
-%% A request in an event of the `auth' log.
-
--type auth_response_rad() :: radius_attributes:attributes().
-%% A response on a RADIUS interface.
-
--type auth_response_dia() :: #diameter_nas_app_AAA{}
-		| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
-		| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{} | #'3gpp_s6b_STA'{}
-		| #'3gpp_swx_RTA'{} | #'3gpp_s6b_AAA'{} | #'3gpp_s6a_AIA'{}
-		| #'3gpp_s6a_ULA'{} | #'3gpp_s6a_PUA'{}.
-%% A response on a DIAMETER interface.
+		| #diameter_nas_app_RAR{}
+		| #diameter_nas_app_STR{}
+		| #diameter_nas_app_ASR{}
+		| #diameter_eap_app_DER{}
+		| #'3gpp_sta_DER'{}
+		| #'3gpp_sta_AAR'{}
+		| #'3gpp_sta_STR'{}
+		| #'3gpp_sta_ASR'{}
+		| #'3gpp_sta_RAR'{}
+		| #'3gpp_swm_DER'{}
+		| #'3gpp_swm_AAR'{}
+		| #'3gpp_swm_STR'{}
+		| #'3gpp_swm_ASR'{}
+		| #'3gpp_swm_RAR'{}
+		| #'3gpp_s6a_AIR'{}
+		| #'3gpp_s6a_ULR'{}
+		| #'3gpp_s6a_PUR'{}
+		| #'3gpp_s6b_AAR'{}
+		| #'3gpp_s6b_STR'{}
+		| #'3gpp_s6b_ASR'{}
+		| #'3gpp_s6b_RAR'{}
+		| #'3gpp_swx_MAR'{}
+		| #'3gpp_swx_SAR'{}
+		| #'3gpp_swx_RTR'{}.
+%% A request on a DIAMETER `auth' service.
 
 -type auth_response() :: auth_response_rad() | auth_response_dia().
-%% A response in an event of the `auth' log.
+%% A response field in an event of the `auth' log.
+
+-type auth_response_rad() :: radius_attributes:attributes().
+%% A response on a RADIUS `auth' service.
+
+-type auth_response_dia() :: #diameter_nas_app_AAA{}
+		| #diameter_nas_app_RAA{}
+		| #diameter_nas_app_STA{}
+		| #diameter_nas_app_ASA{}
+		| #diameter_eap_app_DEA{}
+		| #'3gpp_sta_DEA'{}
+		| #'3gpp_sta_AAA'{}
+		| #'3gpp_sta_STA'{}
+		| #'3gpp_sta_ASA'{}
+		| #'3gpp_sta_RAA'{}
+		| #'3gpp_swm_DEA'{}
+		| #'3gpp_swm_AAA'{}
+		| #'3gpp_swm_STA'{}
+		| #'3gpp_swm_ASA'{}
+		| #'3gpp_swm_RAA'{}
+		| #'3gpp_s6a_AIA'{}
+		| #'3gpp_s6a_ULA'{}
+		| #'3gpp_s6a_PUA'{}
+		| #'3gpp_s6b_AAA'{}
+		| #'3gpp_s6b_STA'{}
+		| #'3gpp_s6b_ASA'{}
+		| #'3gpp_s6b_RAR'{}
+		| #'3gpp_swx_MAA'{}
+		| #'3gpp_swx_SAA'{}
+		| #'3gpp_swx_RTA'{}.
+%% A response on a DIAMETER `auth' service.
 
 -spec auth_log(Protocol, Server, Client, Type, Request,
 		Response) -> Result
@@ -416,15 +467,10 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		End :: calendar:datetime() | timestamp(),
 		Types :: [Type] | '_',
 		Type :: auth_type(),
-		ReqAttrsMatch :: [{Attribute, Match}] | '_',
-		RespAttrsMatch :: [{Attribute, Match}] | '_',
+		ReqAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
+		RespAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
 		Attribute :: byte(),
-		Match :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+		AttributeMatch :: attribute_match(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
@@ -444,15 +490,10 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 		Protocol :: protocol() | '_',
 		Types :: [Type] | '_',
 		Type :: auth_type(),
-		ReqAttrsMatch :: [{Attribute, Match}] | '_',
-		RespAttrsMatch :: [{Attribute, Match}] | '_',
+		ReqAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
+		RespAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
 		Attribute :: byte(),
-		Match :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+		AttributeMatch :: attribute_match(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
@@ -1680,21 +1721,13 @@ acct_to_ecs(_Event, _ClientObj, false) ->
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{}
-				| #'3gpp_ro_RAR'{} | #'3gpp_ro_RAA'{}
-				| #'3gpp_gx_CCR'{} | #'3gpp_gx_CCA'{}
-				| #'3gpp_gx_RAR'{} | #'3gpp_gx_RAA'{},
+		DiameterMatchHead :: acct_request_dia() | acct_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: acct_request_nrf() | acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: rated(),
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events}.
 %% @doc Continue query of accounting log events.
@@ -3283,7 +3316,7 @@ ipdr_codec3(_, _ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 		ReqType :: stop,
 		Req :: #'3gpp_ro_CCR'{},
 		Res :: #'3gpp_ro_CCA'{},
-		Rated :: [#rated{}] | undefined,
+		Rated :: acct_rated() | undefined,
 		IPDR :: #ipdr_voip{}.
 %% @doc CODEC for IMS VOIP
 %% @deprecated The IPDR format has been deprecated.
@@ -3300,7 +3333,7 @@ ipdr_ims(<<"32260">> = _Voice, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 		ReqType :: stop,
 		Req :: #'3gpp_ro_CCR'{} | map(),
 		Res :: #'3gpp_ro_CCA'{} | map(),
-		Rated :: [#rated{}] | undefined,
+		Rated :: acct_rated() | undefined,
 		IPDR :: #ipdr_voip{}.
 %% @doc CODEC for IMS VOIP
 %% @hidden
@@ -3485,7 +3518,7 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		ReqType :: stop,
 		Req :: [tuple()] | #'3gpp_ro_CCR'{} | map() | undefined,
 		Res :: [tuple()] | #'3gpp_ro_CCA'{} | map() | undefined,
-		Rated :: #rated{} | undefined,
+		Rated :: acct_rated() | undefined,
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
 %% @deprecated The IPDR format has been deprecated.
