@@ -293,8 +293,37 @@ acct_close() ->
 		Reason :: term().
 %% @doc Query accounting log events with filters.
 %% @equiv acct_query(Continuation, Start, End, '_', Types, AttrsMatch)
-acct_query(Continuation, Start, End, Types, Matches) ->
-	acct_query(Continuation, Start, End, '_', Types, Matches).
+acct_query(Continuation, Start, End, Types, Matches)
+		when length(Matches) > 0 ->
+	F = fun({_Attribute, _AttributeMatch}, {N1, N2, N3} = _Acc) ->
+				{N1 + 1, N2, N3};
+			(R, {N1, N2, N3} = _Acc)
+					when is_record(R, '3gpp_ro_CCR');
+					is_record(R, '3gpp_ro_CCA');
+					is_record(R, '3gpp_ro_RAR');
+					is_record(R, '3gpp_ro_RAA');
+					is_record(R, '3gpp_gx_CCR');
+					is_record(R, '3gpp_gx_CCA');
+					is_record(R, '3gpp_gx_RAR');
+					is_record(R, '3gpp_gx_RAA') ->
+				{N1, N2 + 1, N3};
+			(M, {N1, N2, N3} = _Acc)
+					when is_map(M) ->
+				{N1, N2 + 1, N3};
+			(_, Acc) ->
+				Acc
+	end,
+	Protocol = case lists:foldl(F, {0, 0, 0}, Matches) of
+		{N, 0, 0} when is_integer(N), N > 0 ->
+			radius;
+		{0, N, 0} when is_integer(N), N > 0 ->
+			diameter;
+		{0, 0, N} when is_integer(N), N > 0 ->
+			nrf;
+		{_, _, _} ->
+			'_'
+	end,
+	acct_query(Continuation, Start, End, Protocol, Types, Matches).
 
 -spec acct_query(Continuation, Start, End, Protocol, Types, Matches) -> Result
 	when
