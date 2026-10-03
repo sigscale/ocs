@@ -5,6 +5,11 @@
 @inherits diameter_gen_base_rfc6733
 
 @avp_types
+   ;; RFC7155 Diameter Network Access Server Application (NAS)
+   CHAP-Auth                                               402  Grouped         M
+   CHAP-Algorithm                                          403  Enumerated      M
+   CHAP-Ident                                              404  OctetString     M
+   CHAP-Response                                           405  OctetString     M
    ;; RFC4006 DIAMETER Credit Control Application (DCCA)
    Accounting-EAP-Auth-Method                              465  Unsigned64       -
    Callback-Id                                              20  UTF8String       M
@@ -211,6 +216,12 @@
 
 
 @grouped
+
+   CHAP-Auth ::= < AVP Header: 402 >
+      { CHAP-Algorithm }
+      { CHAP-Ident }
+      [ CHAP-Response ]
+     *[ AVP ]
 
    Load ::= <AVP Header: 650 >
       [ Load-Type ]
@@ -624,6 +635,14 @@
    CALLBACK_NAS_PROMPT              9
    CALL_CHECK                      10
    CALLBACK_ADMINISTRATIVE         11
+   VOICE                           12
+   FAX                             13
+   MODEM_RELAY                     14
+   IAPP_REGISTER                   15
+   IAPP_AP_CHECK                   16
+   AUTHORIZE_ONLY                  17
+   FRAMED_MANAGEMENT               18
+   ADDITIONAL_AUTHORIZATION        19
 
 @enum Tunnel-Type
    PPTP                             1
@@ -684,6 +703,24 @@
    WIRELESS_UMTS                   23
    WIRELESS_1X_EV                  24
    IAPP                            25
+   FTTP                            26
+   WIRELESS_IEEE_802_16            27
+   WIRELESS_IEEE_802_20            28
+   WIRELESS_IEEE_802_22            29
+   PPPOA                           30
+   PPPOEOA                         31
+   PPPOEOE                         32
+   PPPOEOVLAN                      33
+   PPPOEOQINQ                      34
+   XPON                            35
+   WIRELESS_XGP                    36
+   WIMAX_PRE8_IWK                  37
+   WIMAX_WIFI_IWK                  38
+   WIMAX_SFF                       39
+   WIMAX_HA_LMA                    40
+   WIMAX_DHCP                      41
+   WIMAX_LBS                       42
+   WIMAX_WVS                       43
 
 @enum Negated
    False                            0

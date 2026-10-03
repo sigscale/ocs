@@ -301,7 +301,6 @@ nrf(Counters) ->
 	end,
 	maps:foreach(F, Counters).
 
-%% @hidden
 -spec ll(Log) -> Events
 	when
 		Log :: acct | auth,
@@ -352,19 +351,14 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: ocs_log:attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
 				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: ocs_log:acct_request_nrf() | ocs_log:acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: ocs_log:rated(),
 		MatchConditions :: [tuple()],
 		Events :: [ocs_log:acct_event()].
 %% @doc Query event logs.
@@ -384,19 +378,14 @@ ql(Log, Match) ->
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: ocs_log:attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
 				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: ocs_log:acct_request_nrf() | ocs_log:acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: ocs_log:rated(),
 		MatchConditions :: [tuple()],
 		Start :: calendar:datetime() | ocs_log:timestamp(),
 		Events :: [ocs_log:acct_event()].
@@ -415,19 +404,14 @@ ql(Log, Match, Start) ->
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: ocs_log:attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia()
 				| ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: ocs_log:acct_request_nrf() | ocs_log:acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: ocs_log:rated(),
 		MatchConditions :: [tuple()],
 		Start :: calendar:datetime() | ocs_log:timestamp(),
 		End :: calendar:datetime() | ocs_log:timestamp(),
@@ -525,18 +509,13 @@ diameter_service_info([], _Info, Acc) ->
 		MatchFilter :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: ocs_log:attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:acct_request_dia() | ocs_log:acct_response_dia(),
 		NrfMatchSpec :: {NrfMatchHead, MatchConditions},
-		NrfMatchHead :: map(),
+		NrfMatchHead :: ocs_log:acct_request_nrf() | ocs_log:acct_response_nrf(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
-		RatedMatchHead :: #rated{},
+		RatedMatchHead :: ocs_log:rated(),
 		MatchConditions :: [tuple()],
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
@@ -564,12 +543,7 @@ query_acct_log(Context1, Start, End, Match, Acc) ->
 		MatchFilter :: RadiusMatch | DiameterMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		AttributeMatch :: {exact, term()} | {notexact, term()}
-				| {lt, term()} | {lte, term()}
-				| {gt, term()} | {gte, term()}
-				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
-				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]},
+		AttributeMatch :: ocs_log:attribute_match(),
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:auth_request_dia() | ocs_log:auth_response_dia(),
 		MatchConditions :: [tuple()],
