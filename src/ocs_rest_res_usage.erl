@@ -198,7 +198,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query, _Headers) ->
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
-		case ocs_log:auth_query(start, TS, TS, '_', '_', '_', '_') of
+		case ocs_log:auth_query(start, TS, TS, '_', '_', '_') of
 			{error, _Reason} ->
 				{error, 500};
 			{_Cont, Events} ->
@@ -3095,8 +3095,8 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 				{'_', '_', '_', '_'}
 		end
 	of
-		{Protocol, Types, Request, Response} ->
-			Args = [DateStart, DateEnd, Protocol, Types, Request, Response],
+		{Protocol, Types, Request, _Response} ->
+			Args = [DateStart, DateEnd, Protocol, Types, Request],
 			MFA = [ocs_log, auth_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
@@ -3616,7 +3616,9 @@ ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
 %%
 %% 	`VarNum' is the next available number for a `MatchVariable'.
 %%
-%% 	`Result' is used in {@link //ocs/ocs_log:acct_query/6. ocs_log:acct_query/6}.
+%% 	`Result' is used in
+%% 	{@link //ocs/ocs_log:acct_query/6. ocs_log:acct_query/6}
+%% 	or {@link //ocs/ocs_log:auth_query/6. ocs_log:auth_query/6}.
 %%
 %% @throws {error, 400 | 500}
 %% @private

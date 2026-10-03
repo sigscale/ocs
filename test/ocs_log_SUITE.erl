@@ -42,6 +42,7 @@
 -include("../include/diameter_gen_3gpp.hrl").
 
 -define(BASE_APPLICATION_ID, 0).
+-define(NAS_APPLICATION_ID, 1).
 -define(RO_APPLICATION_ID, 4).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
@@ -152,8 +153,8 @@ all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
 			nrf_log_acct_event, ipdr_log, cdr_log, get_range,
-			get_last, auth_query, acct_query_radius,
-			acct_query_diameter, acct_query_nrf,
+			get_last, auth_query_radius, auth_query_diameter,
+			acct_query_radius, acct_query_diameter, acct_query_nrf,
 			abmf_log_event, abmf_query, binary_tree_before,
 			binary_tree_after, binary_tree_backward,
 			binary_tree_forward, binary_tree_last,
@@ -470,7 +471,7 @@ cdr_log() ->
 
 cdr_log(_Config) ->
 	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
-	ok = fill_acct(1000),
+	ok = fill(ocs_acct, 1000),
 	LogInfo = disk_log:info(AcctLog),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -479,7 +480,7 @@ cdr_log(_Config) ->
 	FileEvents = FileSize div EventSize,
 	Start = erlang:system_time(millisecond),
 	NumItems = FileEvents * 4,
-	ok = fill_acct(NumItems),
+	ok = fill(ocs_acct, NumItems),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(AcctLog),
 	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
@@ -620,23 +621,24 @@ get_last(_Config) ->
 	StartItem4 = NumTotal4 - MaxSize,
 	StartItem4 = lists:foldl(Fcheck, NumTotal4, Items4).
 
-auth_query() ->
-   [{userdata, [{doc, "Get matching access log events"}]}].
+auth_query_radius() ->
+   [{userdata, [{doc, "Get matching RADIUS events from auth log"}]}].
 
-auth_query(_Config) ->
+auth_query_radius(_Config) ->
 	Server = {{0,0,0,0}, 1812},
-	ClientAddress = {10,0,0,1},
-	Client = {ClientAddress, 37645},
+	ClientAddress = ocs_test_lib:ipv4(),
+	Client = {ClientAddress, ocs_test_lib:port()},
 	Username = ocs:generate_identity(),
-	NasIdentifier = "ap13.sigscale.net",
+	NasIdentifier = ocs_test_lib:rand_name() ++ ".sigscale.net",
 	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"},
 			{?NasPortType, 19}, {?UserName, Username},
-			{?CallingStationId, "BE:EF:FE:ED:CA:FE"},
-			{?CalledStationId, "CA:FE:CA:FE:CA:FE:AP13"},
+			{?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+			{?CalledStationId, ocs_test_lib:mac()},
 			{?NasIdentifier, NasIdentifier},
 			{?NasIpAddress, ClientAddress}],
 	RespAttrs = [{?SessionTimeout, 3600}],
-	ok = fill_auth(1000),
+	ok = fill(ocs_auth, 1000),
 	LogInfo = disk_log:info(ocs_auth),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -644,31 +646,103 @@ auth_query(_Config) ->
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(millisecond),
-	ok = fill_auth(NumItems),
+	ok = fill(ocs_auth, NumItems),
 	ok = ocs_log:auth_log(radius, Server, Client,
 			accept, ReqAttrs, RespAttrs),
-	ok = fill_auth(rand:uniform(2000)),
+	ok = fill(ocs_auth, rand:uniform(2000)),
 	ok = ocs_log:auth_log(radius, Server, Client,
 			accept, ReqAttrs, RespAttrs),
-	ok = fill_auth(rand:uniform(2000)),
+	ok = fill(ocs_auth, rand:uniform(2000)),
 	ok = ocs_log:auth_log(radius, Server, Client,
 			accept, ReqAttrs, RespAttrs),
-	ok = fill_auth(rand:uniform(2000)),
+	ok = fill(ocs_auth, rand:uniform(2000)),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_auth),
-	MatchReq = [{?UserName, {exact, Username}},
+	Match = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
 			F({Cont, []}, Acc) ->
 				F(ocs_log:auth_query(Cont, Start, End,
-						[accept], MatchReq, '_'), Acc);
+						[accept], Match), Acc);
 			F({Cont, Events}, Acc) ->
 				F(ocs_log:auth_query(Cont, Start, End,
-						[accept], MatchReq, '_'), [Events | Acc])
+						[accept], Match), [Events | Acc])
 	end,
 	Events = Fget(ocs_log:auth_query(start, Start, End,
-						[accept], MatchReq, '_'), []),
+						[accept], Match), []),
+	3 = length(Events).
+
+auth_query_diameter() ->
+   [{userdata, [{doc, "Get matching DIAMETER events from auth log"}]}].
+
+auth_query_diameter(_Config) ->
+	Server = {{0,0,0,0}, 3868},
+	ClientAddress = ocs_test_lib:ipv4(),
+	Client = {ClientAddress, ocs_test_lib:port()},
+	Username = list_to_binary(ocs:generate_identity()),
+	Password = list_to_binary(ocs_test_lib:rand_name()),
+	Realm = "aaa.mnc001.mcc001.3gppnetwork.org",
+	ClientHost = list_to_binary(ocs_test_lib:rand_name() ++ Realm),
+	ServerHost = list_to_binary(ocs_test_lib:rand_name() ++ Realm),
+	Hostname = atom_to_binary(?FUNCTION_NAME),
+	NasIdentifier = list_to_binary(ocs_test_lib:rand_name() ++ ".sigscale.net"),
+	Request = #diameter_nas_app_AAR{
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Origin-Realm' = Realm,
+			'Origin-Host' = ClientHost,
+			'Destination-Realm' = Realm,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'NAS-Identifier' = [NasIdentifier],
+			'NAS-IP-Address' = [ocs_test_lib:ipv4()],
+			'NAS-Port-Type' = [?'DIAMETER_NAS_APP_NAS-PORT-TYPE_FTTP'],
+			'Service-Type' = [?'DIAMETER_NAS_APP_SERVICE-TYPE_FRAMED'],
+			'User-Name' = [Username],
+			'User-Password' = [Password]},
+	Response = #diameter_nas_app_AAA{
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Origin-Realm' = Realm,
+			'Origin-Host' = ServerHost,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'},
+	SessionId1 = iolist_to_binary(diameter:session_id(Hostname)),
+	Request1 = Request#diameter_nas_app_AAR{'Session-Id' = SessionId1},
+	Response1 = Response#diameter_nas_app_AAA{'Session-Id' = SessionId1},
+	SessionId2 = iolist_to_binary(diameter:session_id(Hostname)),
+	Request2 = Request#diameter_nas_app_AAR{'Session-Id' = SessionId2},
+	Response2 = Response#diameter_nas_app_AAA{'Session-Id' = SessionId2},
+	SessionId3 = iolist_to_binary(diameter:session_id(Hostname)),
+	Request3 = Request#diameter_nas_app_AAR{'Session-Id' = SessionId3},
+	Response3 = Response#diameter_nas_app_AAA{'Session-Id' = SessionId3},
+	ok = fill(ocs_auth, 1000),
+	LogInfo = disk_log:info(ocs_auth),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	NumItems = (FileSize div EventSize) * 5,
+	Start = erlang:system_time(millisecond),
+	ok = fill(ocs_auth, NumItems),
+	ok = ocs_log:auth_log(diameter, Server, Client, Request1, Response1),
+	ok = fill(ocs_auth, rand:uniform(2000)),
+	ok = ocs_log:auth_log(diameter, Server, Client, Request2, Response2),
+	ok = fill(ocs_auth, rand:uniform(2000)),
+	ok = ocs_log:auth_log(diameter, Server, Client, Request3, Response3),
+	ok = fill(ocs_auth, rand:uniform(2000)),
+	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_auth),
+	Match = [{#diameter_nas_app_AAR{'User-Name' = [Username], _ = '_'}, []}],
+	Fget = fun F({eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, []}, Acc) ->
+				F(ocs_log:auth_query(Cont, Start, End,
+						diameter, '_', Match), Acc);
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:auth_query(Cont, Start, End,
+						diameter, '_', Match), [Events | Acc])
+	end,
+	Events = Fget(ocs_log:auth_query(start,
+			Start, End, diameter, '_', Match), []),
 	3 = length(Events).
 
 acct_query_radius() ->
@@ -688,7 +762,7 @@ acct_query_radius(_Config) ->
 			{?AcctSessionTime, rand:uniform(3600) + 100},
 			{?AcctInputOctets, rand:uniform(100000000)},
 			{?AcctOutputOctets, rand:uniform(100000)}],
-	ok = fill_acct(1000),
+	ok = fill(ocs_acct, 1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -697,16 +771,16 @@ acct_query_radius(_Config) ->
 	FileEvents = FileSize div EventSize,
 	Start = erlang:system_time(millisecond),
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1),
+	ok = fill(ocs_acct, NumItems1),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2),
+	ok = fill(ocs_acct, NumItems2),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3),
+	ok = fill(ocs_acct, NumItems3),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4),
+	ok = fill(ocs_acct, NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchReq = [{?UserName, {exact, Username}},
@@ -729,7 +803,7 @@ acct_query_diameter() ->
 
 acct_query_diameter(_Config) ->
 	Server = {{0,0,0,0}, 1812},
-	ok = fill_acct(1000),
+	ok = fill(ocs_acct, 1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -744,25 +818,25 @@ acct_query_diameter(_Config) ->
 	CCR = #'3gpp_ro_CCR'{'Session-Id' = SessionId, 'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1),
+	ok = fill(ocs_acct, NumItems1),
 	TS1 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR1 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS1,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, start, CCR1, undefined, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2),
+	ok = fill(ocs_acct, NumItems2),
 	TS2 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR2 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS2,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, interim, CCR2, undefined, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3),
+	ok = fill(ocs_acct, NumItems3),
 	TS3 = [ocs_log:date(erlang:system_time(milli_seconds))],
 	CCR3 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS3,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST'},
 	ok = ocs_log:acct_log(diameter, Server, stop, CCR3, undefined, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4),
+	ok = fill(ocs_acct, NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
@@ -784,7 +858,7 @@ acct_query_nrf() ->
 
 acct_query_nrf(_Config) ->
 	Server = {{0,0,0,0}, 1812},
-	ok = fill_acct(1000),
+	ok = fill(ocs_acct, 1000),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -808,7 +882,7 @@ acct_query_nrf(_Config) ->
 			"ratingGroup" => 32,
 			"uPFID" => "b7f8f226-a51a-45cf-859d-ff57c1613ab1"},
 	NumItems1 = FileEvents * 4,
-	ok = fill_acct(NumItems1),
+	ok = fill(ocs_acct, NumItems1),
 	TSreq1 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq1 = [ServiceRating#{"requestSubType" => "RESERVE",
 			"requestedUnit" => #{},
@@ -824,7 +898,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => SRres1},
 	ok = ocs_log:acct_log(nrf, Server, start, RDreq1, RDres1, undefined),
 	NumItems2 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems2),
+	ok = fill(ocs_acct, NumItems2),
 	TSreq2 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq2 = [ServiceRating#{"requestSubType" => "RESERVE",
 					"requestedUnit" => #{},
@@ -843,7 +917,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => SRres2},
 	ok = ocs_log:acct_log(nrf, Server, interim, RDreq2, RDres2, undefined),
 	NumItems3 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems3),
+	ok = fill(ocs_acct, NumItems3),
 	TSreq3 = ocs_log:iso8601(erlang:system_time(millisecond)),
 	SRreq3 = [ServiceRating#{"requestSubType" => "DEBIT",
 			"consumedUnit" => #{"uplinkVolume" => 2018540,
@@ -857,7 +931,7 @@ acct_query_nrf(_Config) ->
 			"serviceRating" => []},
 	ok = ocs_log:acct_log(nrf, Server, stop, RDreq3, RDres3, undefined),
 	NumItems4 = FileEvents + rand:uniform(FileEvents),
-	ok = fill_acct(NumItems4),
+	ok = fill(ocs_acct, NumItems4),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	MatchSpec = [{#{"subscriptionId" => SubscriptionId}, []}],
@@ -883,8 +957,8 @@ binary_tree_half(_Config) ->
 	disk_log:truncate(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
-	File = NumFiles div 4,
-	ok = fill_log(File),
+	File = NumFiles div 2,
+	ok = fill_log(ocs_acct, File),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo1 = disk_log:info(ocs_acct),
 	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
@@ -897,7 +971,7 @@ binary_tree_before() ->
 binary_tree_before(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	start = ocs_log:btree_search(ocs_acct, 1).
 
@@ -907,7 +981,7 @@ binary_tree_after() ->
 binary_tree_after(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -921,7 +995,7 @@ binary_tree_backward() ->
 binary_tree_backward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -936,7 +1010,7 @@ binary_tree_forward() ->
 binary_tree_forward(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -951,7 +1025,7 @@ binary_tree_last() ->
 binary_tree_last(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -966,7 +1040,7 @@ binary_tree_first() ->
 binary_tree_first(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
-	ok = fill_log(),
+	ok = fill_log(ocs_acct),
 	ok = disk_log:sync(ocs_acct),
 	LogInfo = disk_log:info(ocs_acct),
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -1025,7 +1099,7 @@ abmf_query(_Config) ->
 	BucketId = integer_to_list(erlang:system_time(millisecond)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	ProdId = ocs:generate_password(),
-	ok = fill_abmf(1000),
+	ok = fill(ocs_abmf, 1000),
 	ok = disk_log:sync(ocs_abmf),
 	LogInfo = disk_log:info(ocs_abmf),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
@@ -1034,7 +1108,7 @@ abmf_query(_Config) ->
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(millisecond),
-	ok = fill_abmf(NumItems),
+	ok = fill(ocs_abmf, NumItems),
 	ok = disk_log:sync(ocs_abmf),
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
@@ -1042,20 +1116,20 @@ abmf_query(_Config) ->
 	ok = ocs_log:abmf_log(topup, Subscriber, BucketId, cents,
 			ProdId, Topup, C1, C2, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
-	ok = fill_abmf(rand:uniform(2000)),
+	ok = fill(ocs_abmf, rand:uniform(2000)),
 	ok = disk_log:sync(ocs_abmf),
 	Transfer = rand:uniform(50000),
 	C3 = C2 - Transfer,
 	ok = ocs_log:abmf_log(transfer, Subscriber, BucketId, cents,
 			ProdId, Transfer, C2, C3, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
-	ok = fill_abmf(rand:uniform(2000)),
+	ok = fill(ocs_abmf, rand:uniform(2000)),
 	ok = disk_log:sync(ocs_abmf),
 	Adjustment = rand:uniform(50000),
 	ok = ocs_log:abmf_log(adjustment, Subscriber, BucketId, cents,
 			ProdId, Transfer, C3, C3 - Adjustment, undefined, undefined,
 			undefined, undefined, undefined, undefined, undefined),
-	ok = fill_abmf(rand:uniform(2000)),
+	ok = fill(ocs_abmf, rand:uniform(2000)),
 	ok = disk_log:sync(ocs_abmf),
 	End = erlang:system_time(millisecond),
 	Fget = fun F({eof, Chunk}, Acc) ->
@@ -1607,7 +1681,7 @@ cdr_chf_csv() ->
 cdr_chf_csv(_Config) ->
 	{ok, AcctLog} = application:get_env(ocs, acct_log_name),
 	Start = erlang:system_time(millisecond),
-	ok = fill_acct(1000),
+	ok = fill(ocs_acct, 1000),
 	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(AcctLog),
 	Filename = "cdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
@@ -1621,64 +1695,162 @@ cdr_chf_csv(_Config) ->
 %% internal functions
 %%---------------------------------------------------------------------
 
-fill_auth(0) ->
-	ok;
-fill_auth(N) ->
-	Server = {{0, 0, 0, 0}, 1812},
-	I3 = rand:uniform(256) - 1,
-	I4 = rand:uniform(254),
-	ClientAddress = {192, 168, I3, I4},
-	Client = {ClientAddress, rand:uniform(64512) + 1024},
-	NASn = integer_to_list((I3 bsl 8) + I4),
-	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
-	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
-			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
-			{?NasIpAddress, ClientAddress}],
-	{Type, RespAttrs} = resp_attr(),
-	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
-	fill_auth(N - 1).
-
-fill_log() ->
-	ok = fill_acct(10, undefined),
+fill_log(Log) ->
+	ok = fill(Log, 10),
 	receive
-		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
-			fill_log();
-		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
-			LogInfo = disk_log:info(ocs_acct),
+		{disk_log, _Node, Log, {wrap, 0}} ->
+			fill_log(Log);
+		{disk_log, _Node, Log, {wrap, N}} when N > 0 ->
+			LogInfo = disk_log:info(Log),
 			{_, Items} = lists:keyfind(items, 1, LogInfo),
-			fill_acct(Items div 4, undefined);
+			fill(Log, Items div 4);
 		_Other ->
-			fill_log()
+			fill_log(Log)
 	after
-		500 ->
-			fill_log()
+		100 ->
+			fill_log(Log)
 	end.
-fill_log(N) ->
-	ok = fill_acct(10, diameter),
+
+fill_log(Log, N) ->
+	ok = fill(Log, 10),
 	receive
-		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
-			LogInfo = disk_log:info(ocs_acct),
+		{disk_log, _Node, Log, {wrap, 0}} ->
+			LogInfo = disk_log:info(Log),
 			{_, File} = lists:keyfind(current_file, 1, LogInfo),
 			case N > File of
 				true ->
-					fill_log(N);
+					fill_log(Log, N);
 				false ->
 					ok
 			end;
 		_Other ->
-			fill_log(N)
+			fill_log(Log, N)
 	after
-		500 ->
-			fill_log(N)
+		100 ->
+			fill_log(Log, N)
 	end.
 
-fill_acct(N) ->
-	fill_acct(N, undefined).
+fill(Log, N) ->
+	fill(Log, N, undefined).
 
-fill_acct(0, _Protocol) ->
+fill(_Log, 0, _Protocol) ->
 	ok;
-fill_acct(N, Protocol) ->
+fill(ocs_auth = Log, N, Protocol)
+		when Protocol == undefined;
+		Protocol == radius;
+		Protocol == diameter ->
+	Hostname = atom_to_binary(?FUNCTION_NAME),
+	Protocol1 = case Protocol of
+		undefined ->
+			lists:nth(rand:uniform(2), [radius, diameter]);
+		_ ->
+			Protocol
+	end,
+	Server = {{0, 0, 0, 0}, ocs_test_lib:port()},
+	ClientAddress = ocs_test_lib:ipv4(),
+	Client = {ClientAddress, ocs_test_lib:port()},
+	NasIdentifier = ocs_test_lib:rand_name(),
+	Type = case rand:uniform(100) of
+		N when N < 80 -> accept;
+		N when N < 95 -> reject;
+		_N -> change
+	end,
+	Username = ocs:generate_identity(),
+	Password = ocs_test_lib:rand_name(),
+	CallingStationId = ocs_test_lib:mac(),
+	CalledStationId = ocs_test_lib:mac() ++ ":AP1",
+	FramedIpAddress = ocs_test_lib:ipv4(),
+	Class = ocs_test_lib:rand_name(),
+	SessionTimeout = rand:uniform(3540) + 60,
+	ReplyMessage = ocs_test_lib:rand_name(),
+	Fradius = fun() ->
+			BootNumber = 1,
+			SessionNumber = erlang:unique_integer([positive, monotonic]),
+			AcctSessionId = io_lib:fwrite("~2.16.0B~6.16.0B",
+					[BootNumber rem 16#ff, SessionNumber rem 16#ffffff]),
+			AAR0 = radius_attributes:new(),
+			AAR1 = radius_attributes:store(?ServiceType, 2, AAR0),
+			AAR2 = radius_attributes:store(?NasPortId, "wlan1", AAR1),
+			AAR3 = radius_attributes:store(?NasPortType, 19, AAR2),
+			AAR4 = radius_attributes:store(?NasIdentifier,
+					NasIdentifier, AAR3),
+			AAR5 = radius_attributes:store(?NasIpAddress,
+					ClientAddress, AAR4),
+			AAR6 = radius_attributes:store(?UserName, Username, AAR5),
+			AAR7 = radius_attributes:store(?UserPassword,
+					Password, AAR6),
+			AAR8 = radius_attributes:store(?FramedIpAddress,
+					FramedIpAddress, AAR7),
+			AAR9 = radius_attributes:store(?CallingStationId,
+					CallingStationId, AAR8),
+			AAR10 = radius_attributes:store(?CalledStationId,
+					CalledStationId, AAR9),
+			AAR11 = radius_attributes:store(?AcctSessionId,
+					AcctSessionId, AAR10),
+			AAA0 = radius_attributes:new(),
+			AAA1 = radius_attributes:store(?SessionTimeout,
+					SessionTimeout, AAA0),
+			AAA2 = radius_attributes:store(?Class, Class, AAA1),
+			AAA3 = radius_attributes:store(?ReplyMessage,
+					ReplyMessage, AAA2),
+			{AAR11, AAA3}
+	end,
+	Fdiameter = fun() ->
+			SessionId = iolist_to_binary(diameter:session_id(Hostname)),
+			AAR = #diameter_nas_app_AAR{'Session-Id' = SessionId,
+					'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+					'Origin-Host' = Hostname,
+					'Origin-Realm' = "nas.mnc001.mcc001.3gppnetwork.org",
+					'Destination-Realm' = "aaa.mnc001.mcc001.3gppnetwork.org",
+					'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+         		'NAS-Identifier' = [NasIdentifier],
+         		'NAS-IP-Address' = [ClientAddress],
+         		'NAS-Port-Id' = ["wlan"],
+         		'NAS-Port-Type' = [19],
+         		'User-Name' = [Username],
+         		'User-Password' = [Password],
+         		'Service-Type' = [?'DIAMETER_NAS_APP_SERVICE-TYPE_FRAMED'],
+         		'Called-Station-Id' = [CallingStationId],
+         		'Calling-Station-Id' = [CalledStationId],
+         		'Framed-IP-Address' = [FramedIpAddress]},
+			ResultCode = case Type of
+				accept ->
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS';
+				reject ->
+					case rand:uniform(2) of
+						1 ->
+							?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED';
+						2 ->
+							?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED'
+					end;
+				change ->
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS'
+			end,
+			AAA = #diameter_nas_app_AAA{'Session-Id' = SessionId,
+					'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+					'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+					'Result-Code' = ResultCode,
+					'Origin-Host' = Hostname,
+					'Origin-Realm' = "nas.mnc001.mcc001.3gppnetwork.org",
+         		'Class' = [Class],
+         		'Acct-Interim-Interval' = [300],
+         		'Session-Timeout' = [SessionTimeout],
+         		'Reply-Message' = [ReplyMessage]},
+			{AAR, AAA}
+	end,
+	case Protocol1 of
+		radius ->
+			{Request, Response} = Fradius(),
+			ok = ocs_log:auth_log(Protocol, Server, Client, Type, Request, Response);
+		diameter ->
+			{Request, Response} = Fdiameter(),
+			ok = ocs_log:auth_log(Protocol, Server, Client, Request, Response)
+	end,
+	fill(Log, N - 1, Protocol);
+fill(ocs_acct = Log, N, Protocol)
+		when Protocol == undefined;
+		Protocol == radius;
+		Protocol == diameter ->
 	Hostname = atom_to_binary(?FUNCTION_NAME),
 	Timestamp = erlang:system_time(millisecond),
 	SeqNo = rand:uniform(1000000) + N,
@@ -2243,7 +2415,50 @@ fill_acct(N, Protocol) ->
 			undefined
 	end,
 	ok = ocs_log:acct_log(Protocol1, Server, Type, Request, Response, RatedRecords),
-	fill_acct(N - 1, Protocol).
+	fill(Log, N - 1, Protocol);
+fill(ocs_abmf = Log, N, Protocol) ->
+	Subscriber = list_to_binary(ocs:generate_identity()),
+	BucketId = integer_to_list(erlang:system_time(millisecond)) ++ "-"
+				++ integer_to_list(erlang:unique_integer([positive])),
+	Type = case rand:uniform(3) of
+		1 -> topup;
+		2 -> transfer;
+		3 -> adjustment
+	end,
+	Units = case rand:uniform(3) of
+		1 -> cents;
+		2 -> octets;
+		3 -> seconds
+	end,
+	ProdId = ocs:generate_password(),
+	CurrentAmount = rand:uniform(100000000),
+	case Type of
+		topup ->
+			Topup = rand:uniform(50000),
+			BucketAmount = Topup,
+			BeforeAmount = CurrentAmount,
+			AfterAmount = CurrentAmount + Topup,
+			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
+					undefined, undefined, undefined, undefined, undefined);
+		transfer ->
+			Transfer = rand:uniform(50000),
+			BucketAmount = Transfer,
+			BeforeAmount = CurrentAmount,
+			AfterAmount = CurrentAmount - Transfer,
+			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
+					undefined, undefined, undefined, undefined, undefined);
+		adjustment ->
+			Adjustment = rand:uniform(50000),
+			BucketAmount = Adjustment,
+			BeforeAmount = CurrentAmount,
+			AfterAmount = CurrentAmount - Adjustment,
+			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
+					undefined, undefined, undefined, undefined, undefined)
+	end,
+	fill(Log, N - 1, Protocol).
 
 rated(N) ->
 	rated(N, []).
@@ -2294,53 +2509,6 @@ rated(N, _W, Acc) ->
 			price_type = Type, currency = "CAD",
 			usage_rating_tag = non_included, is_billed = true},
 	rated(N - 1, [Rated | Acc]).
-
-fill_abmf(0) ->
-	ok;
-fill_abmf(N) ->
-	Subscriber = list_to_binary(ocs:generate_identity()),
-	BucketId = integer_to_list(erlang:system_time(millisecond)) ++ "-"
-				++ integer_to_list(erlang:unique_integer([positive])),
-	Type = case rand:uniform(3) of
-		1 -> topup;
-		2 -> transfer;
-		3 -> adjustment
-	end,
-	Units = case rand:uniform(3) of
-		1 -> cents;
-		2 -> octets;
-		3 -> seconds
-	end,
-	ProdId = ocs:generate_password(),
-	CurrentAmount = rand:uniform(100000000),
-	case Type of
-		topup ->
-			Topup = rand:uniform(50000),
-			BucketAmount = Topup,
-			BeforeAmount = CurrentAmount,
-			AfterAmount = CurrentAmount + Topup,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
-					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
-					undefined, undefined, undefined, undefined, undefined);
-		transfer ->
-			Transfer = rand:uniform(50000),
-			BucketAmount = Transfer,
-			BeforeAmount = CurrentAmount,
-			AfterAmount = CurrentAmount - Transfer,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
-					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
-					undefined, undefined, undefined, undefined, undefined);
-		adjustment ->
-			Adjustment = rand:uniform(50000),
-			BucketAmount = Adjustment,
-			BeforeAmount = CurrentAmount,
-			AfterAmount = CurrentAmount - Adjustment,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
-					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
-					undefined, undefined, undefined, undefined, undefined)
-	end,
-	fill_abmf(N - 1).
-
 
 resp_attr() ->
 	resp_attr(rand:uniform(100)).

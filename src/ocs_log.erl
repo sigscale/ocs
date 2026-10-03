@@ -18,13 +18,13 @@
 %%% @doc This library module implements functions used in handling of
 %%% 	logging in the {@link //ocs. ocs} application.
 %%%
-%%% 	Event logging in {@link //ocs. ocs} uses
-%%% 	{@link //kernel/disk_log. disk_log} wrap logs configured for file
-%%% 	size, and number of files, with application environment variables
+%%% 	Event logging in the {@link //ocs. ocs} application uses
+%%% 	{@link //kernel/disk_log. disk_log} wrap (FIFO) logs configured for
+%%% 	file size, and number of files, with application environment variables
 %%% 	(e.g. `acct_log_size', `acct_log_files'). As the log items are
-%%% 	chronologically ordered finding an event by start time is relatively
+%%% 	chronologically ordered, finding an event by start time is relatively
 %%% 	efficient. The {@link btree_search/2. btree_search/2} function is
-%%% 	used to perform a binary tree search across the files and a chunk
+%%% 	used to perform a binary tree search across the files, and a chunk
 %%% 	head comparison to quickly find the file and chunk containing items
 %%% 	with a given start time.
 %%%
@@ -39,6 +39,30 @@
 %%% 	Functions reading log files SHALL assume the above format and
 %%% 	SHOULD ignore items with unexpected tuple arity or element values.
 %%%
+%%% 	The FIFO ({@link //kernel/disk_log:log(). disk_log:log()}) used are:
+%%% 	<dl>
+%%% 		<dt>`ocs_auth'</dt>
+%%% 			<dd>The OCS/AAA authorization log.</dd>
+%%% 		<dt>`ocs_acct'</dt>
+%%% 			<dd>The OCS accounting log.</dd>
+%%% 		<dt>`ocs_abmf'</dt>
+%%% 			<dd>The OCS account balance management log.</dd>
+%%% 		<dt>`"./log/http/transfer"'</dt>
+%%% 			<dd>The HTTP server transfer log.</dd>
+%%% 		<dt>`"./log/http/security"'</dt>
+%%% 			<dd>The HTTP server security log.</dd>
+%%% 		<dt>`"./log/http/error"'</dt>
+%%% 			<dd>The HTTP server error log.</dd>
+%%% 	</dl>
+%%% 	
+%%% 	Events are read from FIFO logs and written to archive log files
+%%% 	on a scheduled basis (default daily). These internally formatted
+%%% 	archive logs may be exported on demand to a supported file format
+%%% 	(e.g. CSV). A shell script is provided (`bin/export_cdr') for this
+%%% 	purpose.
+%%%
+%%% 	<img class="diagram" src="disk_logs.svg" alt="Disk Logs" />
+%%%
 -module(ocs_log).
 -copyright('Copyright (c) 2016 - 2026 SigScale Global Inc.').
 
@@ -46,7 +70,7 @@
 -export([acct_open/0, acct_log/6, acct_close/0,
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
-			auth_query/6, auth_query/7]).
+			auth_query/5, auth_query/6]).
 -export([cdr_log/4, cdr_file/3]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
@@ -59,7 +83,7 @@
 -export([ipdr_log/4, ipdr_file/3]).
 
 %% export the private API
--export([acct_query/4, auth_query/5, abmf_query/6]).
+-export([acct_query/4, auth_query/4, abmf_query/6]).
 -export([btree_search/2]).
 
 -include("ocs_log.hrl").
@@ -80,49 +104,57 @@
 -define(usagePath, "/usageManagement/v1/usage/").
 
 -type timestamp() :: pos_integer().
+%% A UNIX epoch millisecond counter.
+
 -type unique() :: pos_integer().
--type protocol() :: radius | diameter | nrf.
+%% A unique integer to guarantee differentiation.
+
+-type auth_protocol() :: radius | diameter.
+%% A protocol used by an event in the authorization (`ocs_auth') log.
+
+-type acct_protocol() :: radius | diameter | nrf.
+%% A protocol used by an event in the accounting (`ocs_acct') log.
+
 -type server() :: {Address :: inet:ip_address(),
 		Port :: non_neg_integer()} | undefined.
--export_type([timestamp/0, unique/0, protocol/0, server/0]).
 
 -type diameter_auth_event() :: {
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
+		Protocol :: diameter,
 		Node :: atom(),
 		Server :: ocs_log:server(),
 		Client :: ocs_log:server(),
 		Request :: ocs_log:auth_request(),
 		Response :: ocs_log:auth_response()}.
-%% DIAMETER event in the `auth' log.
+%% DIAMETER event in the authorization (`ocs_auth') log.
 
 -type radius_auth_event() :: {
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
+		Protocol :: radius,
 		Node :: atom(),
 		Server :: ocs_log:server(),
 		Client :: ocs_log:server(),
 		Type :: ocs_log:auth_type(),
 		Request :: ocs_log:auth_request(),
 		Response :: ocs_log:auth_response()}.
-%% RADIUS event in the `auth' log.
+%% RADIUS event in the authorization (`ocs_auth') log.
 
 -type auth_event() :: diameter_auth_event() | radius_auth_event().
-%% Event in the `auth' log.
+%% Event in the authorization (`ocs_auth') log.
 
 -type acct_event() :: {
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
-		Protocol :: ocs_log:protocol(),
+		Protocol :: ocs_log:acct_protocol(),
 		Node :: atom(),
 		Server :: ocs_log:server(),
 		Type :: ocs_log:acct_type(),
 		Request :: ocs_log:acct_request(),
 		Response :: ocs_log:acct_response(),
 		Rated :: acct_rated() | undefined}.
-%% Event in the `acct' log.
+%% Event in the accounting (`ocs_acct') log.
 
 -type http_event() :: {
 		Host :: string(),
@@ -131,7 +163,7 @@
 		Method :: string(),
 		URI :: string(),
 		HttpStatus :: string()}.
-%% Event in the `http' log.
+%% Event in the HTTP server transfer log.
 
 -type abmf_event() :: {
 		Timestamp :: ocs_log:timestamp(),
@@ -154,8 +186,10 @@
 		PaymentMeans :: undefined | string(),
 		Action :: undefined | string(),
 		Status :: undefined | term()}.
-%% Event in the `abmf' log.
+%% Event in the account balance management (`ocs_abmf') log.
 
+-export_type([timestamp/0, unique/0, server/0]).
+-export_type([acct_protocol/0, auth_protocol/0]).
 -export_type([auth_event/0, acct_event/0, abmf_event/0,
 		http_event/0]).
 -export_type([acct_type/0, acct_request/0, acct_response/0, acct_rated/0]).
@@ -187,7 +221,7 @@ log_name(Var) ->
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open an accounting event disk log.
+%% @doc Open accounting event disk log (`ocs_acct').
 acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
@@ -195,32 +229,32 @@ acct_open() ->
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
 -type acct_type() :: on | off | start | stop | update | interim | final | event.
-%% Type of an event in the `acct' log.
+%% A Type field in an event of the accounting (`ocs_acct') log.
 
 -type acct_request() :: acct_request_rad()
 		| acct_request_dia()
 		| acct_request_nrf().
-%% A request field in an event of the `auth' log.
+%% A Request field in an event of the authorization (`ocs_auth') log.
 
 -type acct_request_rad() :: radius_attributes:attributes().
-%% A request on a RADIUS `acct' service.
+%% A Request on a RADIUS `acct' service.
 
 -type acct_request_dia() :: #'3gpp_ro_CCR'{}
 		| #'3gpp_ro_RAR'{}
 		| #'3gpp_gx_CCR'{}
 		| #'3gpp_gx_RAR'{}.
-%% A request on a DIAMETER `acct' service.
+%% A Request on a DIAMETER `acct' service.
 
 -type acct_request_nrf() :: map().
-%% A request on an Nrf_Rating service.
+%% A Request on an Nrf_Rating service.
 
 -type acct_response() :: acct_response_rad()
 		| acct_response_dia()
 		| acct_response_nrf().
-%% A response field in an event of the `auth' log.
+%% A Response field in an event of the accounting (`ocs_acct') log.
 
 -type acct_response_rad() :: radius_attributes:attributes().
-%% A response on a RADIUS `acct' service.
+%% A Response on a RADIUS `ocs_acct' service.
 
 -type acct_response_dia() :: #'3gpp_ro_CCA'{}
 		| #'3gpp_ro_RAA'{}
@@ -229,17 +263,17 @@ acct_open() ->
 %% A response on a DIAMETER `acct' service.
 
 -type acct_response_nrf() :: map().
-%% A response on an Nrf_Rating service.
+%% A Response on an Nrf_Rating service.
 
 -type acct_rated() :: [rated()].
-%% Rated records field in an event of the `acct' log.
+%% Rated records field in an event of the `ocs_acct' log.
 
 -type rated() :: #rated{}.
 %% A Rated record.
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
-		Protocol :: protocol(),
+		Protocol :: acct_protocol(),
 		Server :: server(),
 		Type :: acct_type(),
 		Request :: acct_request(),
@@ -256,7 +290,7 @@ acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Close accounting disk log.
+%% @doc Close accounting event disk log.
 acct_close() ->
 	close_log(log_name(acct_log_name)).
 
@@ -289,7 +323,8 @@ acct_close() ->
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
+		Events :: [Event],
+		Event :: acct_event(),
 		Reason :: term().
 %% @doc Query accounting log events with filters.
 %% @equiv acct_query(Continuation, Start, End, '_', Types, AttrsMatch)
@@ -330,7 +365,7 @@ acct_query(Continuation, Start, End, Types, Matches)
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | timestamp(),
 		End :: calendar:datetime() | timestamp(),
-		Protocol :: protocol() | [protocol()] | '_',
+		Protocol :: acct_protocol() | [acct_protocol()] | '_',
 		Types :: [Type] | '_',
 		Type :: acct_type(),
 		Matches :: [Match] | '_',
@@ -347,25 +382,51 @@ acct_query(Continuation, Start, End, Types, Matches)
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
+		Events :: [Event],
+		Event :: acct_event(),
 		Reason :: term().
-%% @doc Query accounting log events with filters.
+%% @doc Query accounting log (`ocs_acct') events with filters.
 %%
 %% 	The first time called `Continuation' should have the value `start'.
 %%
-%% 	Events before `Start' or after `Stop', or which do not match
-%% 	the `Protocol' or one of the `Types', are ignored.
+%% 	An `Event' before `Start' or after `Stop', or which does not
+%% 	match the `Protocol' or one of the `Types', is ignored.
 %%
-%% 	Events which do not include `Attribute' in attributes are ignored.
-%% 	If `Match' is '_' any attribute value will match or
-%% 	`{Operator, MatchValue}' may be used for more complex queries.
+%% 	Each `Event' is compared with `Matches' and ignored unless each
+%% 	`Match' matches either {@link acct_request()}
+%% 	 or {@link acct_response()}.
 %%
-%% 	All attribute filters must match or the event will be ignored.
+%% 	A RADIUS `Event' which does not include a provided `Attribute'
+%% 	is ignored. If `Attribute' is found in either
+%% 	{@link acct_request()} or {@link acct_response()}
+%% 	and the value does not match `AttributeMatch' the `Event'
+%% 	is ignored.
 %%
-%% 	`Protocol', `Types', or `MatchSpec' may be '_' which matches any value.
+%% 	A DIAMETER `Event' is tested against a
+%% 	{@link //stdlib/ets:match_spec(). match_spec()} formed
+%% 	from a provided `DiameterMatchSpec'. If neither
+%% 	{@link acct_request()} nor {@link acct_response()}
+%% 	matches the `Event' is ignored.
 %%
-%% 	Returns a new `Continuation' and a list of matching accounting events.
-%% 	Successive calls use the new `Continuation' to read more events.
+%% 	An Nrf_Rating `Event' is tested against a
+%% 	{@link //stdlib/ets:match_spec(). match_spec()} formed
+%% 	from a provided `NrfMatchSpec'. If neither
+%% 	{@link acct_request()} nor {@link acct_response()}
+%% 	matches the `Event' is ignored.
+%%
+%% 	Each `Event' is tested against a
+%% 	{@link //stdlib/ets:match_spec(). match_spec()} formed
+%% 	from a provided `RatedMatchSpec'. If {@link acct_rated()} 
+%% 	does not match the `Event' is ignored.
+%%
+%% 	If `Match' is '_' any 
+%% 	{@link acct_request()} or {@link acct_response()}
+%% 	will match.
+%%
+%% 	All provided filters must match or the `Event' will be ignored.
+%%
+%% 	Returns a new `Continuation' and a list of matching `Events'.
+%% 	Successive calls use the new `Continuation' to read more `Events'.
 %%
 acct_query(Continuation, Start, End, Protocol, Types, Matches)
 		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
@@ -389,13 +450,13 @@ auth_open() ->
 	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles).
 
 -type auth_type() :: accept | reject | change.
-%% Type of an event in the `auth' log.
+%% A Type field in an event of the authorization (`ocs_auth') log.
 
 -type auth_request() :: auth_request_rad() | auth_request_dia().
-%% A request field in an event of the `auth' log.
+%% A Request field in an event of the authorization (`ocs_auth') log.
 
 -type auth_request_rad() :: radius_attributes:attributes().
-%% A request on a RADIUS `auth' service.
+%% A Request on a RADIUS `auth' service.
 
 -type auth_request_dia() :: #diameter_nas_app_AAR{}
 		| #diameter_nas_app_RAR{}
@@ -422,13 +483,13 @@ auth_open() ->
 		| #'3gpp_swx_MAR'{}
 		| #'3gpp_swx_SAR'{}
 		| #'3gpp_swx_RTR'{}.
-%% A request on a DIAMETER `auth' service.
+%% A Request on a DIAMETER `auth' service.
 
 -type auth_response() :: auth_response_rad() | auth_response_dia().
-%% A response field in an event of the `auth' log.
+%% A Response field in an event of the authorization (`ocs_auth') log.
 
 -type auth_response_rad() :: radius_attributes:attributes().
-%% A response on a RADIUS `auth' service.
+%% A Response on a RADIUS `auth' service.
 
 -type auth_response_dia() :: #diameter_nas_app_AAA{}
 		| #diameter_nas_app_RAA{}
@@ -455,7 +516,7 @@ auth_open() ->
 		| #'3gpp_swx_MAA'{}
 		| #'3gpp_swx_SAA'{}
 		| #'3gpp_swx_RTA'{}.
-%% A response on a DIAMETER `auth' service.
+%% A Response on a DIAMETER `auth' service.
 
 -spec auth_log(Protocol, Server, Client, Type, Request,
 		Response) -> Result
@@ -468,7 +529,7 @@ auth_open() ->
 		Response :: auth_response_rad(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a RADIUS event to authorization log.
+%% @doc Write a RADIUS event to authorization (`ocs_auth') log.
 auth_log(Protocol, Server, Client, Type, Request, Response) ->
 	Event = [Protocol, node(), Server, Client, Type,
 			Request, Response],
@@ -483,87 +544,172 @@ auth_log(Protocol, Server, Client, Type, Request, Response) ->
 		Response :: auth_response_dia(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a DIAMETER event to authorization log.
+%% @doc Write a DIAMETER event to authorization (`ocs_auth') log.
 auth_log(Protocol, Server, Client, Request, Response) ->
 	Event = [Protocol, node(), Server, Client, Request, Response],
 	write_log(log_name(auth_log_name), Event).
 
--spec auth_query(Continuation, Start, End, Types,
-		ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Continuation, Start, End, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | timestamp(),
 		End :: calendar:datetime() | timestamp(),
 		Types :: [Type] | '_',
 		Type :: auth_type(),
-		ReqAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
-		RespAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: attribute_match(),
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: acct_request_dia() | acct_response_dia(),
+		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [auth_event()],
+		Events :: [Event],
+		Event :: auth_event(),
 		Reason :: term().
-%% @doc Query access log events with filters.
+%% @doc Query authorization (`ocs_auth') log events with filters.
 %% @equiv auth_query(Continuation, Start, End, '_', Types, ReqAttrsMatch, RespAttrsMatch)
-auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	auth_query(Continuation, Start, End, '_', Types,
-			ReqAttrsMatch, RespAttrsMatch).
+auth_query(Continuation, Start, End, Types, Matches)
+		when length(Matches) > 0 ->
+	F = fun({_Attribute, _AttributeMatch}, {N1, N2} = _Acc) ->
+				{N1 + 1, N2};
+			(R, {N1, N2} = _Acc)
+					when is_record(R, diameter_nas_app_AAR);
+					is_record(R, diameter_nas_app_AAA);
+					is_record(R, diameter_nas_app_RAR);
+					is_record(R, diameter_nas_app_RAA);
+					is_record(R, diameter_nas_app_STR);
+					is_record(R, diameter_nas_app_STA);
+					is_record(R, diameter_nas_app_ASR);
+					is_record(R, diameter_nas_app_ASA);
+					is_record(R, diameter_eap_app_DER);
+					is_record(R, diameter_eap_app_DEA);
+					is_record(R, '3gpp_sta_DER');
+					is_record(R, '3gpp_sta_DEA');
+					is_record(R, '3gpp_sta_AAR');
+					is_record(R, '3gpp_sta_AAA');
+					is_record(R, '3gpp_sta_STR');
+					is_record(R, '3gpp_sta_STA');
+					is_record(R, '3gpp_sta_ASR');
+					is_record(R, '3gpp_sta_ASA');
+					is_record(R, '3gpp_sta_RAR');
+					is_record(R, '3gpp_sta_RAA');
+					is_record(R, '3gpp_swm_DER');
+					is_record(R, '3gpp_swm_DEA');
+					is_record(R, '3gpp_swm_AAR');
+					is_record(R, '3gpp_swm_AAA');
+					is_record(R, '3gpp_swm_STR');
+					is_record(R, '3gpp_swm_STA');
+					is_record(R, '3gpp_swm_ASR');
+					is_record(R, '3gpp_swm_ASA');
+					is_record(R, '3gpp_swm_RAR');
+					is_record(R, '3gpp_swm_RAA');
+					is_record(R, '3gpp_s6a_AIR');
+					is_record(R, '3gpp_s6a_AIA');
+					is_record(R, '3gpp_s6a_ULR');
+					is_record(R, '3gpp_s6a_ULA');
+					is_record(R, '3gpp_s6a_PUR');
+					is_record(R, '3gpp_s6a_PUA');
+					is_record(R, '3gpp_s6b_AAR');
+					is_record(R, '3gpp_s6b_AAA');
+					is_record(R, '3gpp_s6b_STR');
+					is_record(R, '3gpp_s6b_STA');
+					is_record(R, '3gpp_s6b_ASR');
+					is_record(R, '3gpp_s6b_ASA');
+					is_record(R, '3gpp_s6b_RAR');
+					is_record(R, '3gpp_s6b_RAA');
+					is_record(R, '3gpp_swx_MAR');
+					is_record(R, '3gpp_swx_MAA');
+					is_record(R, '3gpp_swx_SAR');
+					is_record(R, '3gpp_swx_SAA');
+					is_record(R, '3gpp_swx_RTR');
+					is_record(R, '3gpp_swx_RTA') ->
+				{N1, N2 + 1};
+			(_, Acc) ->
+				Acc
+	end,
+	Protocol = case lists:foldl(F, {0, 0}, Matches) of
+		{N, 0} when is_integer(N), N > 0 ->
+			radius;
+		{0, N} when is_integer(N), N > 0 ->
+			diameter;
+		{_, _} ->
+			'_'
+	end,
+	auth_query(Continuation, Start, End, Protocol, Types, Matches).
 
--spec auth_query(Continuation, Start, End, Protocol, Types,
-		ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Continuation, Start, End,
+		Protocol, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | timestamp(),
 		End :: calendar:datetime() | timestamp(),
-		Protocol :: protocol() | '_',
+		Protocol :: auth_protocol() | [auth_protocol()] | '_',
 		Types :: [Type] | '_',
 		Type :: auth_type(),
-		ReqAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
-		RespAttrsMatch :: [{Attribute, AttributeMatch}] | '_',
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
 		AttributeMatch :: attribute_match(),
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: acct_request_dia() | acct_response_dia(),
+		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [auth_event()],
+		Events :: [Event],
+		Event :: auth_event(),
 		Reason :: term().
-%% @doc Query access log events with filters.
+%% @doc Query authorization (`ocs_auth') log events with filters.
 %%
 %% 	The first time called `Continuation' should have the value `start'.
 %%
-%% 	Events before `Start' or after `Stop' or which do not match
-%% 	`Protocol' or one of the `Types' are ignored.
+%% 	An `Event' before `Start' or after `Stop', or which does not
+%% 	match the `Protocol' or one of the `Types', is ignored.
 %%
-%% 	Events which do not include `Attribute' in request or response
-%% 	attributes are ignored. If `Match' is '_' any attribute value
-%% 	will match or `{Operator, MatchValue}' may be used for more
-%% 	complex queries.
+%% 	Each `Event' is compared with `Matches' and ignored unless each
+%% 	`Match' matches either {@link acct_request()}
+%% 	 or {@link acct_response()}.
 %%
-%% 	All attribute filters must match or the event will be ignored.
+%% 	A RADIUS `Event' which does not include a provided `Attribute'
+%% 	is ignored. If `Attribute' is found in either
+%% 	{@link acct_request()} or {@link acct_response()}
+%% 	and the value does not match `AttributeMatch' the `Event'
+%% 	is ignored.
 %%
-%% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
-%% 	'_' which matches any value.
+%% 	A DIAMETER `Event' is tested against a
+%% 	{@link //stdlib/ets:match_spec(). match_spec()} formed
+%% 	from a provided `DiameterMatchSpec'. If neither
+%% 	{@link acct_request()} nor {@link acct_response()}
+%% 	matches the `Event' is ignored.
 %%
-%% 	Returns a new `Continuation' and a list of matching access events.
-%% 	Successive calls use the new `Continuation' to read more events.
+%% 	If `Match' is '_' any 
+%% 	{@link acct_request()} or {@link acct_response()}
+%% 	will match.
+%%
+%% 	All provided filters must match or the `Event' will be ignored.
+%%
+%% 	Returns a new `Continuation' and a list of matching `Events'.
+%% 	Successive calls use the new `Continuation' to read more `Events'.
 %%
 %%
-auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+auth_query(Continuation, Start, End, Protocol, Types, Matches)
 		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
 		(is_integer(End) orelse (tuple_size(End) == 2)),
 		(is_atom(Protocol) orelse is_list(Protocol)
 				orelse (Protocol == '_')),
 		(is_list(Types) orelse (Types == '_')),
-		(is_list(ReqAttrsMatch) orelse (ReqAttrsMatch== '_')),
-		(is_list(RespAttrsMatch) orelse (RespAttrsMatch== '_')) ->
-	MFA = {?MODULE, auth_query, [Protocol, Types, ReqAttrsMatch, RespAttrsMatch]},
+		(is_list(Matches) orelse (Matches == '_')) ->
+	MFA = {?MODULE, auth_query, [Protocol, Types, Matches]},
 	query_log(Continuation, Start, End, log_name(auth_log_name), MFA).
 
 -spec auth_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Close auth disk log.
+%% @doc Close authorization (`ocs_auth') disk log.
 auth_close() ->
 	close_log(log_name(auth_log_name)).
 
@@ -587,9 +733,10 @@ auth_close() ->
 		HTTPStatus :: '_' | string() | integer(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [http_event()],
+		Events :: [Event],
+		Event :: http_event(),
 		Reason :: term().
-%% @doc Query http log events with filters
+%% @doc Query HTTP server log events with filters
 http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
 	Log = ocs_log:httpd_logname(LogType),
 	http_query1(disk_log:chunk(Log, start),
@@ -662,13 +809,13 @@ http_query8(Chunks) ->
 		End :: calendar:datetime() | timestamp(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Log accounting records within range to new CDR disk log.
+%% @doc Log accounting (`ocs_acct') records within range to new CDR disk log.
 %%
 %% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
 %% 	or overwrites an existing, with filename `File'.
 %%
 %% 	The `ocs_acct' log is searched for events created between
-%% 	`Start' and `End'.
+%% 	`Start' and `End' and writes them to `File'.
 %%
 cdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
@@ -1176,7 +1323,7 @@ dump_file(Log, FileName) when is_list(FileName) ->
 		FileName :: file:filename(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write events logged by `httpd' to a file.
+%% @doc Write events logged by HTTP server to a file.
 %%
 http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
 	Log = httpd_logname(LogType),
@@ -1426,7 +1573,7 @@ iso8601millisecond(EpocMilliseconds, _) ->
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open balance activity event disk log.
+%% @doc Open account balance management (`ocs_abmf') disk log.
 abmf_open() ->
 	{ok, Directory} = application:get_env(ocs, abmf_log_dir),
 	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
@@ -1457,7 +1604,7 @@ abmf_open() ->
 		Name :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a balance activity log event.
+%% @doc Write an account balance management (`ocs_abmf') log event.
 abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status)
@@ -1494,9 +1641,10 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		MatchType :: exact | like,
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [abmf_event()],
+		Events :: [Event],
+		Event :: abmf_event(),
 		Reason :: term().
-%% @doc Query balance activity log events with filters.
+%% @doc Query account balance management (`ocs_abmf') log events with filters.
 abmf_query(Continuation, Start, End, Type, Subscriber, Bucket, Units, Product)
 		when (is_integer(Start) orelse (tuple_size(Start) == 2)),
 		(is_integer(End) orelse (tuple_size(End) == 2)),
@@ -1512,7 +1660,7 @@ abmf_query(Continuation, Start, End, Type, Subscriber, Bucket, Units, Product)
 	when
 		Event :: auth_event(),
 		ECS :: {struct, list()}.
-%% @doc Convert auth_event to ECS.
+%% @doc Convert authorization (`ocs_auth') log event to ECS.
 auth_to_ecs({TS, N, radius = P, Node, Server,
 		Client, EventType, Request, Response}) ->
 	auth_to_ecs({TS, N, P, Node, Server, Client, EventType, Request,
@@ -1629,7 +1777,7 @@ auth_to_ecs(_Event, _ClientObj, false) ->
 	when
 		Event :: acct_event(),
 		ECS :: {struct, list()}.
-%% @doc Convert auth_event to ECS.
+%% @doc Convert accounting (`ocs_acct') log event to ECS.
 acct_to_ecs({TS, N, radius = P, Node, Server,
 		Type, Request, Response, Rated}) ->
 	acct_to_ecs({TS, N, P, Node, Server, Type, Request, Response,
@@ -1742,10 +1890,11 @@ acct_to_ecs(_Event, _ClientObj, false) ->
 	when
 		Continuation :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
-		Protocol :: protocol() | [protocol()] | '_',
+		Events :: [Event],
+		Event :: acct_event(),
+		Protocol :: acct_protocol() | [acct_protocol()] | '_',
 		Types :: [Type] | '_',
-		Type :: start | interim | stop | event | on | off,
+		Type :: acct_type(),
 		Matches :: [Match] | '_',
 		Match :: RadiusMatch | DiameterMatchSpec | NrfMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
@@ -1759,11 +1908,11 @@ acct_to_ecs(_Event, _ClientObj, false) ->
 		RatedMatchHead :: rated(),
 		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events}.
-%% @doc Continue query of accounting log events.
+%% @doc Continue query of accounting (`ocs_acct') log events.
 %% @private
 acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches)
 		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
+	{Cont, acct_query1(Events, Protocol, Types, Matches, [])}.
 %% @hidden
 acct_query1(Events, Protocol, '_', Matches, _Acc) ->
 	acct_query2(Events, Protocol, Matches, []);
@@ -1987,87 +2136,180 @@ acct_query9([H | T], Matches, RatedMatchSpec, Acc) ->
 acct_query9([], _, _, Acc) ->
 	lists:reverse(Acc).
 
--spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Continuation, Protocol, Types, Matches) -> Result
 	when
 		Continuation :: {Continuation2, Events},
-		Protocol :: radius | diameter | '_',
+		Protocol :: auth_protocol() | [auth_protocol()] | '_',
 		Types :: [Type] | '_',
-		Type :: atom(),
-		ReqAttrsMatch :: [tuple()] | '_',
-		RespAttrsMatch :: [tuple()] | '_',
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-
-		Events :: [acct_event()].
-%% @doc Continue query of authentication log events.
+		Type :: auth_type(),
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: attribute_match(),
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: auth_request_dia() | auth_response_dia(),
+		MatchConditions :: [tuple()],
+		Result :: {Continuation2, Events}.
+%% @doc Continue query of authentication (`ocs_auth') log events.
 %% @private
-auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+auth_query({Cont, Events} = _Continuation, Protocol, Types, Matches)
 		when (is_tuple(Cont) or (Cont == eof)) ->
-	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
+	{Cont, auth_query1(Events, Protocol, Types, Matches, [])}.
 %% @hidden
-auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch, []).
-%% @hidden
-auth_query1(Events, Protocol, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
-	auth_query2(Events, Protocol, ReqAttrsMatch, RespAttrsMatch, []);
-auth_query1([{_, _, _, _, _, _, Type, _, _} = H | T],
-		Protocol, Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	case lists:member(Type, Types) of
+auth_query1(Events, Protocol, '_', Matches, _Acc) ->
+	auth_query2(Events, Protocol, Matches, []);
+auth_query1([H | T], Protocol, Types, Matches, Acc)
+		when tuple_size(H) == 9, is_list(Types) ->
+	case lists:member(element(7, H), Types) of
 		true ->
-			auth_query1(T, Protocol, Types,
-				ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+			auth_query1(T, Protocol, Types, Matches, [H | Acc]);
 		false ->
-			auth_query1(T, Protocol, Types,
-				ReqAttrsMatch, RespAttrsMatch, Acc)
+			auth_query1(T, Protocol, Types, Matches, Acc)
 	end;
-auth_query1([], Protocol, _Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(lists:reverse(Acc), Protocol, ReqAttrsMatch, RespAttrsMatch, []).
+auth_query1([_ | T], Protocol, Types,  Matches, Acc) ->
+	auth_query1(T, Protocol, Types, Matches, Acc);
+auth_query1([], Protocol, _Types,  Matches, Acc) ->
+	auth_query2(lists:reverse(Acc), Protocol, Matches, []).
 %% @hidden
-auth_query2(Events, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
-	auth_query3(Events, ReqAttrsMatch, RespAttrsMatch, []);
-auth_query2([{_, _, Protocol, _, _, _, _, _, _} = H | T],
-		Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
-auth_query2([_ | T], Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, Acc);
-auth_query2([], _Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query3(lists:reverse(Acc), ReqAttrsMatch, RespAttrsMatch, []).
+auth_query2(Events, '_', Matches, _Acc) ->
+	auth_query3(Events, Matches);
+auth_query2([H | T], Protocol, Matches, Acc)
+		when element(3, H) == Protocol ->
+	auth_query2(T, Protocol, Matches, [H |Acc]);
+auth_query2([H | T], [Protocol | _] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	auth_query2(T, Protocols, Matches, [H |Acc]);
+auth_query2([H | T], [_, Protocol] = Protocols, Matches, Acc)
+		when element(3, H) == Protocol ->
+	auth_query2(T, Protocols, Matches, [H |Acc]);
+auth_query2([_H | T], Protocol, Matches, Acc) ->
+	auth_query2(T, Protocol, Matches, Acc);
+auth_query2([], _Protocol, Matches, Acc) ->
+	auth_query3(lists:reverse(Acc), Matches).
 %% @hidden
-auth_query3(Events, '_', RespAttrsMatch, []) ->
-	auth_query4(Events, RespAttrsMatch, []);
-auth_query3([{_, _, _, _, _, _, _, ReqAttr, _} = H | T],
-		ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	case auth_query5(ReqAttr, ReqAttrsMatch) of
+auth_query3(Events, Matches) when is_list(Matches) ->
+	Fradius = fun({Attribute, _Match}) when is_integer(Attribute) ->
+				true;
+			(_) ->
+				false
+	end,
+	Fdiameter = fun({#diameter_nas_app_AAR{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_RAR{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_STR{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_ASR{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_eap_app_DER{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_DER'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_AAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_STR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_ASR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_DER'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_AAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_STR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_ASR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_AIR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_ULR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_PUR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_AAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_STR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_ASR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_RAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_MAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_SAR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_RTR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	RadiusMatchSpec = lists:filtermap(Fradius, Matches),
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	auth_query4(Events, Matches,
+			RadiusMatchSpec, DiameterMatchSpec, []);
+auth_query3(Events, '_') ->
+	Events.
+%% @hidden
+auth_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, Acc)
+		when element(3, H) == radius,
+		length(RadiusMatchSpec) > 0 ->
+	case auth_query5(element(8, H), RadiusMatchSpec) of
 		true ->
-			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+			auth_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, [H | Acc]);
 		false ->
-			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, Acc)
+			auth_query4(T, Matches, RadiusMatchSpec,
+					DiameterMatchSpec, Acc)
 	end;
-auth_query3([], _ReqAttrsMatch, RespAttrsMatch, Acc) ->
-	auth_query4(lists:reverse(Acc), RespAttrsMatch, []).
-%% @hidden
-auth_query4(Events, '_', []) ->
-	Events;
-auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
-		RespAttrsMatch, Acc) ->
-	case auth_query5(RespAttr, RespAttrsMatch) of
-		true ->
-			auth_query4(T, RespAttrsMatch, [H | Acc]);
-		false ->
-			auth_query4(T, RespAttrsMatch, Acc)
+auth_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, Acc)
+		when element(3, H) == radius,
+		length(DiameterMatchSpec) > 0 ->
+	auth_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, Acc);
+auth_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, Acc)
+		when element(3, H) == diameter,
+		length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(7, H),
+			DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			auth_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			auth_query4(T,  Matches,RadiusMatchSpec,
+					DiameterMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
 	end;
-auth_query4([], _RespAttrsMatch, Acc) ->
-	lists:reverse(Acc).
+auth_query4([H | T] = _Events, Matches,
+		RadiusMatchSpec, DiameterMatchSpec, Acc)
+		when element(3, H) == diameter,
+		length(RadiusMatchSpec) > 0 ->
+	auth_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, Acc);
+auth_query4([H | T], Matches, RadiusMatchSpec,
+		DiameterMatchSpec, Acc) ->
+	auth_query4(T, Matches, RadiusMatchSpec,
+			DiameterMatchSpec, [H | Acc]);
+auth_query4([], Matches, _, _, Acc) ->
+	auth_query6(lists:reverse(Acc), Matches).
 %% @hidden
 auth_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Match1} when
-				(Match == Match1) or (Match == '_') ->
+				(Match1 == Match) or (Match == '_') ->
 			auth_query5(Attributes, T);
 		_ ->
 			false
 	end;
-auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2])
+		when is_list(H) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Value} ->
 			case lists:prefix(H, Value) of
@@ -2081,17 +2323,92 @@ auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 	end;
 auth_query5(Attributes, [{_, {like, []}} | T]) ->
 	auth_query5(Attributes, T);
-auth_query5(Attributes, [_H | T]) ->
+auth_query5(Attributes, [_ | T]) ->
 	auth_query5(Attributes, T);
 auth_query5(_Attributes, []) ->
 	true.
+%% @hidden
+auth_query6(Events, Matches) when is_list(Matches) ->
+	Fdiameter = fun({#diameter_nas_app_AAA{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_RAA{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_STA{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_nas_app_ASA{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#diameter_eap_app_DEA{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_DEA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_AAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_STA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_ASA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_sta_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_DEA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_AAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_STA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_ASA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swm_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_AIA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_ULA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6a_PUA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_AAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_STA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_ASA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_s6b_RAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_MAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_SAA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			({#'3gpp_swx_RTA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	DiameterMatchSpec = lists:filtermap(Fdiameter, Matches),
+	auth_query7(Events, DiameterMatchSpec, []).
+%% @hidden
+auth_query7([H | T] = _Events, DiameterMatchSpec, Acc)
+		when element(3, H) == diameter,
+		length(DiameterMatchSpec) > 0 ->
+	case erlang:match_spec_test(element(8, H),
+			DiameterMatchSpec, table) of
+		{ok, Event, [], []} when is_tuple(Event) ->
+			auth_query7(T, DiameterMatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			auth_query7(T, DiameterMatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+auth_query7([H | T], DiameterMatchSpec, Acc) ->
+	auth_query7(T, DiameterMatchSpec, [H | Acc]);
+auth_query7([], _, Acc) ->
+	lists:reverse(Acc).
 
 -spec abmf_query(Continuation, Type, Subscriber, Bucket,
 		Units, Product) -> Result
 	when
 		Continuation :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [abmf_event()],
+		Events :: [Event],
+		Event :: abmf_event(),
 		Type :: [{type, {MatchType, TypeValue}}] | '_',
 		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
 		Subscriber :: [{subscriber, {MatchType, SubscriberValue}}] | '_',
@@ -2104,7 +2421,7 @@ auth_query5(_Attributes, []) ->
 		ProductValue :: string() | '_',
 		MatchType :: exact | like,
 		Result :: {Continuation2, Events}.
-%% @doc Continue query of balance activity log events.
+%% @doc Continue query of account balance management (`ocs_abmf') log events.
 %% @private
 abmf_query({Cont, Events}, Type, Subscriber, Bucket, Units, Product)
 		when (is_tuple(Cont) or (Cont == eof)) ->
