@@ -1,3 +1,14 @@
+2026-10-03    Vance Shipley <vances@sigscale.org>
+
+	* remove redundant edoc type specs
+	* replace ocs_log:auth_query/? with same pattern as acct_query/?
+	* apply iana updates for avp enumerated values in nas
+	* optimize acct_query/5 with conditional protocol field match
+	* refactor log type specifications for clarity
+	* rename variables to be protocol agnostic
+	* update readme to describe pwa
+	* update readme with new cdr, deprecated ipdr
+
 2026-09-28    Vance Shipley <vances@sigscale.org>
 
 	* absolute paths for release_handler
