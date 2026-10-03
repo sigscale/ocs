@@ -81,53 +81,42 @@
 %%----------------------------------------------------------------------
 
 -type k() :: binary().
-%% @type k() = binary().
 %% 	A 128 bit subscriber authentication key (K) known only to the
 %% 	HSS and the ISIM/USIM application on the UICC.
 %%
 -type opc() :: binary().
-%% @type opc() = binary().
 %% 	A 128 bit key (OPc) derived from the Operator Variant Algorithm
 %% 	Configuration Field (OP) and {@link k(). K} known only to the
 %% 	HSS and the ISIM/USIM application on the UICC.
 %%
 -type op() :: binary().
-%% @type op() = binary().
 %% 	A 128 bit operator variant algorithm configuration field (OP).
 %%
 -type rand() :: binary().
-%% @type rand() = binary().
 %% 	A 128 bit random challenge (RAND).
 %%
 -type sqn() :: binary().
-%% @type sqn() = binary().
 %% 	A 48 bit sequence number (SQN).  The management of sequence
 %% 	numbers is specified in
 %% 	<a href="http://www.3gpp.org/ftp/Specs/html-info/33102.htm">
 %% 	3GPP TS 33.102</a> Annex C.
 %%
 -type amf() :: binary().
-%% @type amf() = binary().
 %% 	A 16 bit authentication management field (AMF).
 %%
 -type mac() :: binary().
-%% @type mac() = binary().
 %% 	A 64 bit message authentication code (MAC).
 %%
 -type res() :: binary().
-%% @type res() = binary().
 %% 	A 64 bit challenge response (RES).
 %%
 -type ak() :: binary().
-%% @type ak() = binary().
 %% 	A 48 bit anonymity key (AK).
 %%
 -type ck() :: binary().
-%% @type ck() = binary().
 %% 	A 128 bit confidentiality key (AK).
 %%
 -type ik() :: binary().
-%% @type ik() = binary().
 %% 	A 128 bit integrity key (AK).
 %%
 
