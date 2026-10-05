@@ -56,7 +56,10 @@ fi
 
 if [ -f "releases/RELEASES" ];
 then
-	if ! APP_OLD=$(erl -noinput -eval '{ok, [R]} = file:consult("releases/RELEASES"), {release, _, Vsn, _, _, permanent} = lists:keyfind(permanent, 6, R), io:fwrite("~s", [Vsn]), init:stop()' 2> /dev/null);
+	if ! APP_OLD=$(erl -noinput -eval \
+			'{ok, [R]} = file:consult("releases/RELEASES"),
+			{release, _, Vsn, _, _, permanent} = lists:keyfind(permanent, 6, R),
+			io:fwrite("~s", [Vsn]), init:stop()' 2> /dev/null);
 	then
 		echo "No permanent release found."
 		unset APP_OLD
@@ -182,6 +185,12 @@ then
 				exit 1
 			fi
 		fi
+	fi
+	OLDLIBS=$(echo $APPDIRS | sed -e 's/},/\n/g' | grep -hv ${HOME} | cut -d, -f1 | sed -e 's|^[[{]\+|'${HOME}'/lib/|' -e 's/$/\*/')
+	if [ -n ${OLDLIBS} ];
+	then
+		echo "The following directories are no longer in use and may be removed:"
+		echo "${OLDLIBS}"
 	fi
 else
 	# Install release via shell
