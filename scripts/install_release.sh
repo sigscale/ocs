@@ -187,7 +187,7 @@ then
 		fi
 	fi
 	OLDLIBS=$(echo $APPDIRS | sed -e 's/},/\n/g' | grep -hv ${HOME} | cut -d, -f1 | sed -e 's|^[[{]\+|'${HOME}'/lib/|' -e 's/$/\*/')
-	if [ -n ${OLDLIBS} ];
+	if [ -n "${OLDLIBS}" ];
 	then
 		echo "The following directories are no longer in use and may be removed:"
 		echo "${OLDLIBS}"
