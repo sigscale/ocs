@@ -11,8 +11,10 @@ RuntimeDirectory=ocs
 RuntimeDirectoryMode=0750
 EnvironmentFile=/etc/default/ocs
 ExecStart=@ERLANG_ROOT_DIR@/bin/run_erl -daemon /run/ocs/ log \
-                'ERL_LIBS=lib exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} ${RELDIR} \
-                ${START_ERL_DATA} -boot_var OTPHOME . +K true +A 32 +Bi -sname ${NODENAME}'
+      'ERL_LIBS=@ERLANG_LIB_DIR@:lib exec \
+      ${ROOTDIR}/bin/start_erl ${ROOTDIR} ${RELDIR} \
+      ${START_ERL_DATA} -boot_var OTPHOME \
+      . +K true +A 32 +Bi -sname ${NODENAME}'
 GuessMainPID=no
 Type=forking
 Restart=always
