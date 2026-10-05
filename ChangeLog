@@ -1,3 +1,10 @@
+2026-10-05    Vance Shipley <vances@sigscale.org>
+
+	* inform installer of old library directories to be removed
+	* root lib dir first in path
+	* get applications for release from root lib dir
+	* remove deprecated gitlab ci config
+
 2026-10-03    Vance Shipley <vances@sigscale.org>
 
 	* remove redundant edoc type specs
