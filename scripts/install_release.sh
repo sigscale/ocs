@@ -199,7 +199,7 @@ then
 			n+=1
 		fi
 	done
-	if [ "${#OLDDIRS[@]}" gt 0 ];
+	if [ "${#OLDDIRS[@]}" -gt 0 ];
 	then
 		echo "The following library directories are no longer in use and may be removed:"
 		for i in "${OLDDIRS[@]}";
