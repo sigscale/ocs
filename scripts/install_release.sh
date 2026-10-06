@@ -186,11 +186,26 @@ then
 			fi
 		fi
 	fi
-	OLDLIBS=$(echo $APPDIRS | sed -e 's/},/\n/g' | grep -hv ${HOME} | cut -d, -f1 | sed -e 's|^[[{]\+|'${HOME}'/lib/|' -e 's/$/\*/')
-	if [ -n "${OLDLIBS}" ];
+	# Warn about garbage collecting legacy releases
+	OLDLIBS=($(echo $APPDIRS | sed -e 's/},/\n/g' | grep -hv ${HOME} | cut -d, -f1 | sed -e 's|^[[{]\+|'${HOME}'/lib/|' -e 's/$/-\*/'))
+	OLDDIRS=()
+	n=0
+	for i in "${OLDLIBS[@]}";
+	do
+		DIR=$(ls -d $i 2>/dev/null)
+		if [ -n "$DIR" ];
+		then
+			OLDDIRS[$n]="$DIR"
+			n+=1
+		fi
+	done
+	if [ "${#OLDDIRS[@]}" gt 0 ];
 	then
-		echo "The following directories are no longer in use and may be removed:"
-		echo "${OLDLIBS}"
+		echo "The following library directories are no longer in use and may be removed:"
+		for i in "${OLDDIRS[@]}";
+		do
+			echo "$i"
+		done
 	fi
 else
 	# Install release via shell
