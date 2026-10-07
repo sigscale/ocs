@@ -1,3 +1,7 @@
+October 7, 2026
+---------------
+	- Correct regression handling of special characters in resource names
+
 October 5, 2026
 ---------------
 	- Releases use Erlang/OTP root library path (for arch independence)
