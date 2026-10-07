@@ -64,6 +64,12 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-if(?OTP_RELEASE >= 25).
+	-define(UNQUOTE(S), uri_string:unquote(S)).
+-else.
+	-define(UNQUOTE(S), uri_string:percent_decode(S)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -152,62 +158,74 @@ get_etag(Headers) ->
 
 %% @hidden
 do_patch(ContentType, Resource, ModData, Body, Etag,
-		["ocs", "v1", "client", Identity], _Query) ->
+		["ocs", "v1", "client", Id], _Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_client(Identity, Etag, ContentType, Body));
+			Resource:patch_client(?UNQUOTE(Id), Etag, ContentType, Body));
 do_patch(ContentType, Resource, ModData, Body, Etag,
-		["ocs", "v1", "subscriber", Identity], _Query) ->
+		["ocs", "v1", "subscriber", Id], _Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_subscriber(Identity, Etag, ContentType, Body));
+			Resource:patch_subscriber(?UNQUOTE(Id), Etag, ContentType, Body));
 do_patch(ContentType, Resource, ModData, Body, Etag,
-		["partyManagement", "v1", "individual", Identity],
+		["partyManagement", "v1", "individual", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_user(Identity, Etag, ContentType, Body));
+			Resource:patch_user(?UNQUOTE(Id), Etag, ContentType, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
-		["catalogManagement", "v2", "productOffering", ProdId],
+		["catalogManagement", "v2", "productOffering", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_offer(ProdId, Etag, Body));
+			Resource:patch_offer(?UNQUOTE(Id), Etag, Body));
 do_patch("application/merge-patch+json", Resource, ModData, Body, Etag,
-		["catalogManagement", "v2", "productOffering", ProdId],
+		["catalogManagement", "v2", "productOffering", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:merge_patch_offer(ProdId, Etag, Body));
+			Resource:merge_patch_offer(?UNQUOTE(Id), Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
-		["productInventoryManagement", "v2", "product", SubId],
+		["productInventoryManagement", "v2", "product", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_product(SubId, Etag, Body));
+			Resource:patch_product(?UNQUOTE(Id), Etag, Body));
 do_patch("application/merge-patch+json", Resource, ModData, Body, Etag,
-		["productInventoryManagement", "v2", "product", SubId],
+		["productInventoryManagement", "v2", "product", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_product(SubId, Etag, Body));
+			Resource:patch_product(?UNQUOTE(Id), Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
-		["catalogManagement", "v2", "pla", ProdId], _Query) ->
+		["catalogManagement", "v2", "pla", Id], _Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_pla(ProdId, Etag, Body));
+			Resource:patch_pla(?UNQUOTE(Id), Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
 		["resourceInventoryManagement", "v1", "resource", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_resource(Id, Etag, Body));
+			Resource:patch_resource(?UNQUOTE(Id), Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
-		["serviceInventoryManagement", "v2", "service", ServiceId],
+		["serviceInventoryManagement", "v2", "service", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_service(ServiceId, Etag, Body));
+			Resource:patch_service(?UNQUOTE(Id), Etag, Body));
 do_patch("application/json-patch+json", Resource, ModData, Body, Etag,
-		["productCatalogManagement", "v2", "productOffering", ProdId],
+		["productCatalogManagement", "v2", "productOffering", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:patch_offer(ProdId, Etag, Body));
+			Resource:patch_offer(?UNQUOTE(Id), Etag, Body));
 do_patch("application/merge-patch+json", Resource, ModData, Body, Etag,
-		["productCatalogManagement", "v2", "productOffering", ProdId],
+		["productCatalogManagement", "v2", "productOffering", Id],
 		_Query) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Id, ?UNQUOTE(Id)}),
 	do_response(ModData,
-			Resource:merge_patch_offer(ProdId, Etag, Body));
+			Resource:merge_patch_offer(?UNQUOTE(Id), Etag, Body));
 do_patch(_ContentType, _Resource,
 		#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 		_Body, _Etag, _Path, _Query) ->

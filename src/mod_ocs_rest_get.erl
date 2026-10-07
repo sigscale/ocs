@@ -115,6 +115,12 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-if(?OTP_RELEASE >= 25).
+	-define(UNQUOTE(S), uri_string:unquote(S)).
+-else.
+	-define(UNQUOTE(S), uri_string:percent_decode(S)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -193,17 +199,17 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_applications(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["health", "application", Id], _Query) ->
-	do_response(ModData, Resource:get_application(Id, Headers));
+	do_response(ModData, Resource:get_application(?UNQUOTE(Id), Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["ocs", "v1", "client"], Query) ->
 	do_response(ModData, Resource:get_clients(Query, Headers));
 do_get(Resource, ModData, ["ocs", "v1", "client", Id], Query) ->
-	do_response(ModData, Resource:get_client(Id, Query));
+	do_response(ModData, Resource:get_client(?UNQUOTE(Id), Query));
 do_get(Resource, #mod{parsed_header = Headers} =
 		ModData, ["ocs", "v1", "subscriber"], Query) ->
 	do_response(ModData, Resource:get_services(Query, Headers));
 do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], Query) ->
-	do_response(ModData, Resource:get_subscriber(Id, Query));
+	do_response(ModData, Resource:get_subscriber(?UNQUOTE(Id), Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["metrics"], Query) ->
 	do_response(ModData, Resource:get_metrics(Query, Headers));
@@ -212,22 +218,23 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_usages(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage", "ipdr", Type, Id], Query) ->
-	do_response(ModData, Resource:get_usages(Type, Id, Query, Headers));
+	do_response(ModData, Resource:get_usages(?UNQUOTE(Type),
+			?UNQUOTE(Id), Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage", Id], Query) ->
-	do_response(ModData, Resource:get_usage(Id, Query, Headers));
+	do_response(ModData, Resource:get_usage(?UNQUOTE(Id), Query, Headers));
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification"], Query) ->
 	do_response(ModData, Resource:get_usagespec(Query));
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
-	do_response(ModData, Resource:get_usagespec(Id, Query));
+	do_response(ModData, Resource:get_usagespec(?UNQUOTE(Id), Query));
 do_get(Resource, ModData, ["usageManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["usageManagement", "v1", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
-	do_response(ModData, Resource:get_ipdr(Type, Query));
+	do_response(ModData, Resource:get_ipdr(?UNQUOTE(Type), Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
 	do_response(ModData, Resource:get_http());
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
@@ -237,181 +244,232 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["partyManagement", "v1", "individual"], Query) ->
 	do_response(ModData, Resource:get_users(Query, Headers));
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
-	do_response(ModData, Resource:get_user(Id, Query));
+	do_response(ModData, Resource:get_user(?UNQUOTE(Id), Query));
 do_get(Resource, ModData, ["partyManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["partyManagement", "v1", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["partyRoleManagement", "v4", "partyRole"], Query) ->
 	do_response(ModData, Resource:get_roles(Query, Headers));
 do_get(Resource, ModData,
 		["partyRoleManagement", "v4", "partyRole", Name], Query) ->
-	do_response(ModData, Resource:get_role(Name, Query));
+	do_response(ModData, Resource:get_role(?UNQUOTE(Name), Query));
 do_get(Resource, ModData, ["partyRoleManagement", "v4", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["partyRoleManagement", "v4", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
-do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "accumulatedBalance"], []) ->
-	do_response(ModData, Resource:get_balance(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
+		"accumulatedBalance"], []) ->
+	do_response(ModData, Resource:get_balance(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
 		"accumulatedBalance"], Query) ->
-	do_response(ModData, Resource:get_balance(Id, Query));
-do_get(Resource, ModData, ["balanceManagement", "v1", "service", Id, "accumulatedBalance"], []) ->
-	do_response(ModData, Resource:get_balance_service(Id));
-do_get(Resource, #mod{parsed_header = Headers} = ModData, ["balanceManagement", "v1", "bucket"], Query) ->
+	do_response(ModData, Resource:get_balance(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["balanceManagement", "v1", "service", Id,
+		"accumulatedBalance"], []) ->
+	do_response(ModData, Resource:get_balance_service(?UNQUOTE(Id)));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["balanceManagement", "v1", "bucket"], Query) ->
 	do_response(ModData, Resource:get_buckets(Query, Headers));
 do_get(Resource, ModData, ["balanceManagement", "v1", "bucket", Id], []) ->
-	do_response(ModData, Resource:get_bucket(Id));
+	do_response(ModData, Resource:get_bucket(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["balanceManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["balanceManagement", "v1", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_offers(Query, Headers));
-do_get(Resource, ModData, ["catalogManagement", "v2", "productOffering", Id], []) ->
-	do_response(ModData, Resource:get_offer(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "catalog", Id], Query) ->
-	do_response(ModData, Resource:get_catalog(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "productOffering",
+		Id], []) ->
+	do_response(ModData, Resource:get_offer(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2", "catalog",
+		Id], Query) ->
+	do_response(ModData, Resource:get_catalog(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"],
+		Query) ->
 	do_response(ModData, Resource:get_catalogs(Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "productSpecification", Id], Query) ->
-	do_response(ModData, Resource:get_product_spec(Id, Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "productSpecification"], Query) ->
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"productSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_product_spec(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"productSpecification"], Query) ->
 	do_response(ModData, Resource:get_product_specs(Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "catalog", Id], Query) ->
-	do_response(ModData, Resource:get_catalog(Id, Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "catalog"], Query) ->
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"catalog", Id], Query) ->
+	do_response(ModData, Resource:get_catalog(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"catalog"], Query) ->
 	do_response(ModData, Resource:get_catalogs(Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "category", Id], Query) ->
-	do_response(ModData, Resource:get_category(Id, Query));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "category"], Query) ->
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"category", Id], Query) ->
+	do_response(ModData, Resource:get_category(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"category"], Query) ->
 	do_response(ModData, Resource:get_categories(Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productCatalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_offers(Query, Headers));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Id], []) ->
-	do_response(ModData, Resource:get_offer(Id));
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"productOffering", Id], []) ->
+	do_response(ModData, Resource:get_offer(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"hub"], []) ->
 	do_response(ModData, Resource:get_catalog_hubs());
 do_get(Resource, ModData, ["productCatalog", "v2", "hub"], []) ->
 		% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_catalog_hubs());
-do_get(Resource, ModData, ["productCatalogManagement", "v2", "hub", Id], []) ->
-	do_response(ModData, Resource:get_catalog_hub(Id));
+do_get(Resource, ModData, ["productCatalogManagement", "v2",
+		"hub", Id], []) ->
+	do_response(ModData, Resource:get_catalog_hub(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["productCatalog", "v2", "hub", Id], []) ->
 		% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:get_catalog_hub(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
-	do_response(ModData, Resource:get_category(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->
+	do_response(ModData, Resource:get_catalog_hub(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"category", Id], Query) ->
+	do_response(ModData, Resource:get_category(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"category"], Query) ->
 	do_response(ModData, Resource:get_categories(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "productSpecification", Id], Query) ->
-	do_response(ModData, Resource:get_product_spec(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "productSpecification"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"productSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_product_spec(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"productSpecification"], Query) ->
 	do_response(ModData, Resource:get_product_specs(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "plaSpecification", Id], Query) ->
-	do_response(ModData, Resource:get_pla_spec(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "plaSpecification"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"plaSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_pla_spec(?UNQUOTE(Id), Query));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "serviceSpecification"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"serviceSpecification"], Query) ->
 	do_response(ModData, Resource:get_service_specs(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "serviceSpecification", Id], Query) ->
-	do_response(ModData, Resource:get_service_spec(Id, Query));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"serviceSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_service_spec(?UNQUOTE(Id), Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "pla", Id], []) ->
-	do_response(ModData, Resource:get_pla(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceSpecification", Id], []) ->
-	do_response(ModData, Resource:get_resource_spec(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceSpecification"], Query) ->
+	do_response(ModData, Resource:get_pla(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceSpecification", Id], []) ->
+	do_response(ModData, Resource:get_resource_spec(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceSpecification"], Query) ->
 	do_response(ModData, Resource:get_resource_specs(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCategory", Id], []) ->
-	do_response(ModData, Resource:get_resource_category(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCategory"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCategory", Id], []) ->
+	do_response(ModData, Resource:get_resource_category(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCategory"], Query) ->
 	do_response(ModData, Resource:get_resource_categories(Query));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate", Id], []) ->
-	do_response(ModData, Resource:get_resource_candidate(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCandidate", Id], []) ->
+	do_response(ModData, Resource:get_resource_candidate(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCandidate"], Query) ->
 	do_response(ModData, Resource:get_resource_candidates(Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["resourceInventoryManagement", "v1", "resource"], Query) ->
 	do_response(ModData, Resource:get_resource(Query, Headers));
-do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "resource", Id], []) ->
-	do_response(ModData, Resource:get_resource(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []) ->
-	do_response(ModData, Resource:get_resource_catalog(Id));
-do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1",
+		"resource", Id], []) ->
+	do_response(ModData, Resource:get_resource(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCatalog", Id], []) ->
+	do_response(ModData, Resource:get_resource_catalog(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["catalogManagement", "v2",
+		"resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog", Id], []) ->
-	do_response(ModData, Resource:get_resource_catalog(Id));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog"], Query) ->
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCatalog", Id], []) ->
+	do_response(ModData, Resource:get_resource_catalog(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification", Id], []) ->
-	do_response(ModData, Resource:get_resource_spec(Id));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification"], Query) ->
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceSpecification", Id], []) ->
+	do_response(ModData, Resource:get_resource_spec(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceSpecification"], Query) ->
 	do_response(ModData, Resource:get_resource_specs(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory", Id], []) ->
-	do_response(ModData, Resource:get_resource_category(Id));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory"], Query) ->
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCategory", Id], []) ->
+	do_response(ModData, Resource:get_resource_category(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCategory"], Query) ->
 	do_response(ModData, Resource:get_resource_categories(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate", Id], []) ->
-	do_response(ModData, Resource:get_resource_candidate(Id));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate"], Query) ->
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCandidate", Id], []) ->
+	do_response(ModData, Resource:get_resource_candidate(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2",
+		"resourceCandidate"], Query) ->
 	do_response(ModData, Resource:get_resource_candidates(Query));
-do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "hub"], []) ->
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1",
+		"hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["resourceInventory", "v1", "hub"], []) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_hubs());
-do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1",
+		"hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["resourceInventory", "v1", "hub", Id], []) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:get_hub(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
-do_get(Resource, ModData, ["serviceCatalogManagement", "v2", "serviceSpecification"], Query) ->
+do_get(Resource, ModData, ["serviceCatalogManagement", "v2",
+		"serviceSpecification"], Query) ->
 	do_response(ModData, Resource:get_service_specs(Query));
-do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
-	do_response(ModData, Resource:get_product(Id));
+do_get(Resource, ModData, ["productInventoryManagement", "v2",
+		"product", Id], []) ->
+	do_response(ModData, Resource:get_product(?UNQUOTE(Id)));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
 	do_response(ModData, Resource:get_products(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2"], Query) ->
 	do_response(ModData, Resource:get_products(Query, Headers));
-do_get(Resource, ModData, ["productInventoryManagement", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["productInventoryManagement", "v2",
+		"hub"], []) ->
 	do_response(ModData, Resource:get_product_hubs());
 do_get(Resource, ModData, ["productInventory", "v2", "hub"], []) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_product_hubs());
-do_get(Resource, ModData, ["productInventoryManagement", "v2", "hub", Id], []) ->
-	do_response(ModData, Resource:get_product_hub(Id));
+do_get(Resource, ModData, ["productInventoryManagement", "v2",
+		"hub", Id], []) ->
+	do_response(ModData, Resource:get_product_hub(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["productInventory", "v2", "hub", Id], []) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:get_product_hub(Id));
+	do_response(ModData, Resource:get_product_hub(?UNQUOTE(Id)));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2", "service"], Query) ->
 	do_response(ModData, Resource:get_services(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2"], Query) ->
 	do_response(ModData, Resource:get_services(Query, Headers));
-do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
-	do_response(ModData, Resource:get_service(Id));
-do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub"], []) ->
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2",
+		"service", Id], []) ->
+	do_response(ModData, Resource:get_service(?UNQUOTE(Id)));
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2",
+		"hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
 	% @todo: deprecate legacy basename error
 	do_response(ModData, Resource:get_hubs());
-do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "hub", Id], []) ->
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2",
+		"hub", Id], []) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:get_hub(Id));
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
 do_get(Resource, ModData, ["serviceInventory", "v2", "hub", Id], []) ->
-	do_response(ModData, Resource:get_hub(Id));
-do_get(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _, _) ->
+	do_response(ModData, Resource:get_hub(?UNQUOTE(Id)));
+do_get(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		_, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",

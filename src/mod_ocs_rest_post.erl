@@ -64,6 +64,12 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-if(?OTP_RELEASE >= 25).
+	-define(UNQUOTE(S), uri_string:unquote(S)).
+-else.
+	-define(UNQUOTE(S), uri_string:percent_decode(S)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -157,11 +163,11 @@ do_post(Resource, ModData, Body,
 do_post(Resource, ModData, Body,
 		["balanceManagement", "v1", "product", Id, "balanceTopup"],
 		_Query) ->
-	do_response(ModData, Resource:top_up(Id, Body));
+	do_response(ModData, Resource:top_up(?UNQUOTE(Id), Body));
 do_post(Resource, ModData, Body,
 		["balanceManagement", "v1", "service", Id, "balanceTopup"],
 		_Query) ->
-	do_response(ModData, Resource:top_up_service(Id, Body));
+	do_response(ModData, Resource:top_up_service(?UNQUOTE(Id), Body));
 do_post(Resource, ModData, Body,
 		["balanceManagement", "v1", "balanceAdjustment"], _Query) ->
 	do_response(ModData, Resource:balance_adjustment(Body));

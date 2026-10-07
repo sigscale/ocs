@@ -62,6 +62,12 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-if(?OTP_RELEASE >= 25).
+	-define(UNQUOTE(S), uri_string:unquote(S)).
+-else.
+	-define(UNQUOTE(S), uri_string:percent_decode(S)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -129,79 +135,79 @@ parse_query1(_, #mod{parsed_header = RequestHeaders,
 
 %% @hidden
 do_delete(Resource, ModData,
-		["ocs", "v1", "client", Identity], _Query) ->
-	do_response(ModData, Resource:delete_client(Identity));
+		["ocs", "v1", "client", Id], _Query) ->
+	do_response(ModData, Resource:delete_client(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["ocs", "v1", "subscriber", Identity], _Query) ->
-	do_response(ModData, Resource:delete_service(Identity));
+		["ocs", "v1", "subscriber", Id], _Query) ->
+	do_response(ModData, Resource:delete_service(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["catalogManagement", "v2", "productOffering", Identity], _Query) ->
-	do_response(ModData, Resource:delete_offer(Identity));
+		["catalogManagement", "v2", "productOffering", Id], _Query) ->
+	do_response(ModData, Resource:delete_offer(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["catalogManagement", "v2", "pla", Identity], _Query) ->
-	do_response(ModData, Resource:delete_pla(Identity));
+		["catalogManagement", "v2", "pla", Id], _Query) ->
+	do_response(ModData, Resource:delete_pla(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["partyManagement", "v1", "individual", Identity], _Query) ->
-	do_response(ModData, Resource:delete_user(Identity));
+		["partyManagement", "v1", "individual", Id], _Query) ->
+	do_response(ModData, Resource:delete_user(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["partyManagement", "v1", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["partyManagement", "v1", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["partyRoleManagement", "v4", "partyRole", Identity], _Query) ->
-	do_response(ModData, Resource:delete_role(Identity));
+		["partyRoleManagement", "v4", "partyRole", Id], _Query) ->
+	do_response(ModData, Resource:delete_role(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["partyRoleManagement", "v4", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["partyRoleManagement", "v4", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productInventoryManagement", "v2", "product", Identity], _Query) ->
-	do_response(ModData, Resource:delete_product(Identity));
+		["productInventoryManagement", "v2", "product", Id], _Query) ->
+	do_response(ModData, Resource:delete_product(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productInventoryManagement", "v2", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["productInventoryManagement", "v2", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productInventory", "v2", "hub", Identity], _Query) ->
+		["productInventory", "v2", "hub", Id], _Query) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:delete_hub(Identity));
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["serviceInventoryManagement", "v2", "service", Identity], _Query) ->
-	do_response(ModData, Resource:delete_service(Identity));
+		["serviceInventoryManagement", "v2", "service", Id], _Query) ->
+	do_response(ModData, Resource:delete_service(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["serviceInventoryManagement", "v2", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["serviceInventoryManagement", "v2", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["serviceInventory", "v2", "hub", Identity], _Query) ->
+		["serviceInventory", "v2", "hub", Id], _Query) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:delete_hub(Identity));
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["resourceInventoryManagement", "v1", "resource", Identity], _Query) ->
-	do_response(ModData, Resource:delete_resource(Identity));
+		["resourceInventoryManagement", "v1", "resource", Id], _Query) ->
+	do_response(ModData, Resource:delete_resource(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["resourceInventoryManagement", "v1", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["resourceInventoryManagement", "v1", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["resourceInventory", "v1", "hub", Identity], _Query) ->
+		["resourceInventory", "v1", "hub", Id], _Query) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:delete_hub(Identity));
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["balanceManagement", "v1", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["balanceManagement", "v1", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["balanceManagement", "v1", "bucket", Identity], _Query) ->
-	do_response(ModData, Resource:delete_bucket(Identity));
+		["balanceManagement", "v1", "bucket", Id], _Query) ->
+	do_response(ModData, Resource:delete_bucket(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productCatalogManagement", "v2", "hub", Identity], _Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+		["productCatalogManagement", "v2", "hub", Id], _Query) ->
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productCatalog", "v2", "hub", Identity], _Query) ->
+		["productCatalog", "v2", "hub", Id], _Query) ->
 	% @todo: deprecate legacy basename error
-	do_response(ModData, Resource:delete_hub(Identity));
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(Resource, ModData,
-		["productCatalogManagement", "v2", "productOffering", Identity],
+		["productCatalogManagement", "v2", "productOffering", Id],
 		_Query) ->
-	do_response(ModData, Resource:delete_offer(Identity));
-do_delete(Resource, ModData ,["usageManagement", "v1", "hub", Identity],
+	do_response(ModData, Resource:delete_offer(?UNQUOTE(Id)));
+do_delete(Resource, ModData ,["usageManagement", "v1", "hub", Id],
 		_Query) ->
-	do_response(ModData, Resource:delete_hub(Identity));
+	do_response(ModData, Resource:delete_hub(?UNQUOTE(Id)));
 do_delete(_,
 		#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 		_Path, _Query) ->
