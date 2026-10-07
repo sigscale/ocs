@@ -70,43 +70,44 @@ auth_session(Options) ->
 			#diameter_event{service = Name, info = Info} ->
 				error(Info)
 		end,
-		Frequest = fun F(0) ->
-					 ok;
-				F(N) ->
-					SId = list_to_binary(diameter:session_id(Hostname)),
-					EapId = 0,
-					IMSI = maps:get(imsi, Options, "001001123456789"),
-					Identity = iolist_to_binary([?PERM_AKAp, IMSI, $@, OriginRealm]),
-					EapPacket = #eap_packet{code = response, type = ?Identity,
-								identifier = EapId, data = Identity},
-					EapMessage = ocs_eap_codec:eap_packet(EapPacket),
-					DER = #'3gpp_sta_DER'{'Session-Id' = SId,
-						'Auth-Application-Id' = ?STa_APPLICATION_ID,
-						'Origin-Host' = Hostname,
-						'Origin-Realm' = OriginRealm,
-						'Destination-Realm' = OriginRealm,
-						'Auth-Request-Type' = ?'3GPP_STA_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-						'EAP-Payload' = EapMessage,
-						'User-Name' = [Identity],
-						'RAT-Type' = [?'3GPP_STA_RAT-TYPE_WLAN']},
-					Fsta = fun('3gpp_sta_DEA', _N) ->
-								record_info(fields, '3gpp_sta_DEA')
-					end,
-					Fbase = fun('diameter_base_answer-message', _N) ->
-								record_info(fields, 'diameter_base_answer-message')
-					end,
-					case diameter:call(Name, sta, DER, []) of
-						#'3gpp_sta_DEA'{'Session-Id' = SId} = Answer ->
-								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
-						#'diameter_base_answer-message'{'Session-Id' = SId} = Answer ->
-								io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
-						{error, Reason} ->
-									error(Reason)
-					end,
-					timer:sleep(maps:get(interval, Options, 1000)),
-					F(N-1)
+		SId = list_to_binary(diameter:session_id(Hostname)),
+		EapId = 0,
+		IMSI = maps:get(imsi, Options, "001001123456789"),
+		Identity = iolist_to_binary([?PERM_AKAp, IMSI, $@, OriginRealm]),
+		EapPacket = #eap_packet{code = response, type = ?Identity,
+					identifier = EapId, data = Identity},
+		EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+		DER = #'3gpp_sta_DER'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?STa_APPLICATION_ID,
+			'Origin-Host' = Hostname,
+			'Origin-Realm' = OriginRealm,
+			'Destination-Realm' = OriginRealm,
+			'Auth-Request-Type' = ?'3GPP_STA_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMessage,
+			'User-Name' = [Identity],
+			'RAT-Type' = [?'3GPP_STA_RAT-TYPE_WLAN']},
+		Fsta = fun('3gpp_sta_DEA', _N) ->
+					record_info(fields, '3gpp_sta_DEA')
 		end,
-		Frequest(maps:get(repeats, Options, 1))
+		Fbase = fun('diameter_base_answer-message', _N) ->
+					record_info(fields, 'diameter_base_answer-message')
+		end,
+		case diameter:call(Name, sta, DER, []) of
+			#'3gpp_sta_DEA'{'Session-Id' = SId,
+						'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = Answer ->
+					io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]);
+			#'3gpp_sta_DEA'{'Session-Id' = SId,
+						'Result-Code' = ResultCode} = Answer ->
+					io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fsta)]),
+					throw(ResultCode);
+			#'diameter_base_answer-message'{'Session-Id' = SId,
+						'Result-Code' = ResultCode} = Answer ->
+					io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]),
+					throw(ResultCode);
+			{error, Reason} ->
+					error(Reason)
+		end
+		% @todo: implement EAP challenge response
 	catch
 		throw:_Reason3 ->
 			halt(1);
