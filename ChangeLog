@@ -1,3 +1,9 @@
+2026-10-08    Vance Shipley <vances@sigscale.org>
+
+	* escript for simple auth with diameter nas
+	* refactor simple auth diameter callbacks for consistency
+	* no looping for aaa escripts
+
 2026-10-07    Vance Shipley <vances@sigscale.org>
 
 	* unquote variable path components

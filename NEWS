@@ -1,3 +1,7 @@
+October 8, 2026
+---------------
+	- Added escript for simple auth with DIAMETER NAS
+
 October 7, 2026
 ---------------
 	- Correct regression handling of special characters in resource names
@@ -24,7 +28,7 @@ September 22, 2026
 September 19, 2026
 ------------------
 	- Correct User Location Information in CDR 
-	- Improved error hreporting in escripts
+	- Improved error reporting in escripts
 	- Warn on failure to load (optional) SNMP MIBs
 	- Fix missing VCS charging information in CDR
 	- Modernize FSMs with gen_statem behaviour
