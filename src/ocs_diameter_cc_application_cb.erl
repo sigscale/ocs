@@ -1,4 +1,4 @@
-%%% ocs_diameter_cc_application_cb.erl 
+%%% ocs_diameter_cc_application_cb.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2026 SigScale Global Inc.
@@ -84,7 +84,7 @@ peer_down(_SvcName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _], _, _SvcName, _State) ->
 	{ok, Peer}.
 
@@ -98,7 +98,7 @@ pick_peer([Peer | _], _, _SvcName, _State) ->
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
@@ -150,7 +150,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 -spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		ServiceName :: term(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval | eval_packet, Action, PostF},
@@ -162,7 +162,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
 		ServiceName, {_, Capabilities} = _Peer) ->
-	is_client_authorized(ServiceName, Capabilities, Request);
+	process_request(ServiceName, Capabilities, Request);
 handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		ServiceName, {_, Capabilities} = _Peer) ->
 	errors(ServiceName, Capabilities, Request, Errors).
@@ -173,7 +173,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
-		ServiceName :: atom(),
+		ServiceName :: diameter:service_name(),
 		Capabilities :: capabilities(),
 		Request :: message(),
 		Errors :: [Error],
@@ -233,14 +233,12 @@ errors(ServiceName, Capabilities, _Request,
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
-	is_client_authorized(ServiceName, Capabilities, Request).
+	{answer_message, ResultCode}.
 
--spec is_client_authorized(Svc, Caps, Request) -> Action
+-spec	process_request(ServiceName, Capabilities, Request) -> Action
 	when
-		Svc :: atom(),
-		Caps :: capabilities(),
+		ServiceName :: diameter:service_name(),
+		Capabilities :: capabilities(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -249,21 +247,9 @@ errors(ServiceName, Capabilities, Request, []) ->
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
-%% CER message against identities in client table.
+%% @doc Process a received DIAMETER message.
+%% @todo Implement Credit Control handling.
 %% @hidden
-is_client_authorized(_SvcName, Caps, _Req) ->
-	try
-		HostIPAddresses = Caps#diameter_caps.host_ip_address,
-		{ClientIPs, _} = HostIPAddresses,
-		[HostIpAddress | _] = ClientIPs,
-		{ok, #client{protocol = diameter}} = ocs:find_client(HostIpAddress),
-		true
-	of
-		true ->
-			{answer_message, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'}
-	catch
-		_ : _ ->
-			{answer, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER'}
-	end.
+process_request(_ServiceName, _Capabilities, _Request) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'}.
 

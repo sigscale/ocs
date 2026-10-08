@@ -1,4 +1,4 @@
-%%% ocs_diameter_eap_application_cb.erl 
+%%% ocs_diameter_eap_application_cb.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2026 SigScale Global Inc.
@@ -85,7 +85,7 @@ peer_down(_SvcName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer(_, _, _SvcName, _State) ->
     false.
 
@@ -99,7 +99,7 @@ pick_peer(_, _, _SvcName, _State) ->
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 	{send, Packet}.
 
@@ -144,7 +144,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 -spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		ServiceName :: term(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval | eval_packet, Action, PostF},
@@ -156,7 +156,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
 		ServiceName, {_, Capabilities} = _Peer) ->
-	is_client_authorized(ServiceName, Capabilities, Request);
+	process_request(ServiceName, Capabilities, Request);
 handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		ServiceName, {_, Capabilities} = _Peer) ->
 	errors(ServiceName, Capabilities, Request, Errors).
@@ -167,7 +167,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
-		ServiceName :: atom(),
+		ServiceName :: diameter:service_name(),
 		Capabilities :: capabilities(),
 		Request :: message(),
 		Errors :: [Error],
@@ -227,15 +227,79 @@ errors(ServiceName, Capabilities, _Request,
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
-	is_client_authorized(ServiceName, Capabilities, Request).
+	{answer_message, ResultCode}.
 
--spec send_to_port_server(Svc, Caps, ClientAddress, ClientPort,
-		PasswordReq, Trusted, Request, EapPacket) -> Action
+-spec process_request(SvcName, Capabilities, Request) -> Action
 	when
-		Svc :: atom(),
-		Caps :: capabilities(),
+		SvcName :: diameter:service_name(),
+		Capabilities :: capabilities(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Process DIAMETER request.
+%% @hidden
+process_request(SvcName, Capabilities, Request) ->
+	try
+		{_, [ClientAddress | _]} = Capabilities#diameter_caps.host_ip_address,
+		case ocs:find_client(ClientAddress) of
+			{ok, #client{protocol = diameter,
+					port = Port,
+					password_required = PasswordReq,
+					trusted = Trusted}} ->
+				extract_eap(SvcName, Capabilities, ClientAddress,
+						Port, PasswordReq, Trusted, Request);
+			_Other ->
+				throw(not_found)
+		end
+	catch
+		_:_ ->
+			send_error(Capabilities, Request,
+					?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
+	end.
+
+-spec extract_eap(SvcName, Capabilities, Address, Port,
+		PasswordReq, Trusted, Request) -> Action
+	when
+		SvcName :: diameter:service_name(),
+		Capabilities :: capabilities(),
+		Request :: message(),
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
+		PasswordReq :: boolean(),
+		Trusted :: boolean(),
+		Request :: #diameter_eap_app_DER{},
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Extract EAP packet from DER's EAP-Payload attribute.
+%% @hidden
+extract_eap(SvcName, Capabilities, Address, Port,
+		PasswordReq, Trusted, Request) ->
+	try
+		#diameter_eap_app_DER{'EAP-Payload' = Payload} = Request,
+		send_to_port_server(SvcName, Capabilities, Address, Port,
+				PasswordReq, Trusted, Request, Payload)
+	catch
+		_:_ ->
+			send_error(Capabilities, Request,
+					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS')
+	end.
+
+-spec send_to_port_server(SvcName, Capabilities,
+		ClientAddress, ClientPort, PasswordReq,
+		Trusted, Request, EapPacket) -> Action
+	when
+		SvcName :: diameter:service_name(),
+		Capabilities :: capabilities(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
 		PasswordReq :: boolean(),
@@ -250,21 +314,25 @@ errors(ServiceName, Capabilities, Request, []) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Locate ocs_diameter_auth_port_server process and send it
-%% peer's capabilities and diameter request.
+%% 	peer's capabilities and diameter request.
 %% @hidden
-send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Trusted, Request, EapPacket) ->
-	[Info | _] = diameter:service_info(Svc, transport),
+send_to_port_server(SvcName, Capabilities, ClientAddress, ClientPort,
+		PasswordReq, Trusted, Request, EapPacket) ->
+	[Info | _] = diameter:service_info(SvcName, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
 			case lists:keyfind(transport_config, 1, Options) of
 				{transport_config, [_, {ip, IP}, {port, Port}]} ->
-					case global:whereis_name({ocs_diameter_auth, node(), IP, Port}) of
+					case global:whereis_name({ocs_diameter_auth,
+							node(), IP, Port}) of
 						undefined ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, CAddress, CPort, 
-										PasswordReq, Trusted, Request, {eap, EapPacket}}),
+									{diameter_request, Capabilities,
+									ClientAddress, ClientPort,
+									PasswordReq, Trusted, Request,
+									{eap, EapPacket}}),
 							{reply, Answer}
 					end;
 				false ->
@@ -274,76 +342,19 @@ send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Trusted, Request, E
 			discard
 	end.
 
--spec is_client_authorized(Svc, Caps, Request) -> Action
+-spec send_error(Capabilities, Request, ErrorCode) -> Answer
 	when
-		Svc :: atom(),
-		Caps :: capabilities(),
-		Request :: message(),
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
-%% CER message against identities in client table.
-%% @hidden
-is_client_authorized(SvcName, Caps, Req) ->
-	try
-		HostIPAddresses = Caps#diameter_caps.host_ip_address,
-		{ClientIPs, _} = HostIPAddresses,
-		[HostIpAddress | _] = ClientIPs,
-		{ok, #client{protocol = diameter, port = Port,
-				password_required = PasswordReq,
-				trusted = Trusted}} = ocs:find_client(HostIpAddress),
-		extract_eap(SvcName, Caps, HostIpAddress, Port, PasswordReq, Trusted, Req)
-	catch
-		_ : _ ->
-			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
-	end.
-
--spec extract_eap(Svc, Caps, Address, Port, PasswordReq, Trusted, DiameterRequest) -> Action
-	when
-		Svc :: atom(),
-		Caps :: capabilities(),
-		Address :: inet:ip_address(),
-		Port :: inet:port_number(),
-		PasswordReq :: boolean(),
-		Trusted :: boolean(),
-		DiameterRequest :: #diameter_eap_app_DER{},
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Extract EAP packet from DER's EAP-Payload attribute.
-%% @hidden
-extract_eap(Svc, Caps, Address, Port, PasswordReq, Trusted, DiameterRequest) ->
-	try 
-		#diameter_eap_app_DER{'EAP-Payload' = Payload} = DiameterRequest,
-		send_to_port_server(Svc, Caps, Address, Port,
-				PasswordReq, Trusted, DiameterRequest, Payload)
-	catch
-		_:_ ->
-			send_error(Caps, DiameterRequest, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS')
-	end.
-
--spec send_error(Caps, Request, ErrorCode) -> Answer
-	when
-		Caps :: capabilities(),
+		Capabilities :: capabilities(),
 		Request :: message(),
 		ErrorCode :: non_neg_integer(),
 		Answer :: message().
 %% @doc When protocol/application error occurs, send DIAMETER answer with appropriate
 %% error indicated in Result-Code AVP.
 %% @hidden
-send_error(Caps, Request, ErrorCode) ->
+send_error(Capabilities, Request, ErrorCode) ->
 	#diameter_caps{origin_host = {OHost,_},
-			origin_realm = {ORealm, DRealm}} = Caps,
-send_error(OHost, ORealm, DRealm, Request, ErrorCode).
+			origin_realm = {ORealm, DRealm}} = Capabilities,
+	send_error(OHost, ORealm, DRealm, Request, ErrorCode).
 
 %% @hidden
 send_error(OHost, ORealm, DRealm, Request, ErrorCode)
