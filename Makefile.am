@@ -20,6 +20,7 @@ script_SCRIPTS = scripts/install_tables.escript \
 		scripts/send_sms.escript \
 		scripts/voice_call.escript \
 		scripts/data_session.escript \
+		scripts/aaa-nas.escript \
 		scripts/aaa-sta.escript \
 		scripts/nrf.escript \
 		scripts/fill_subs.escript
